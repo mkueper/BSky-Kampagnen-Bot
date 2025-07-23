@@ -20,7 +20,7 @@ Ein Open-Source-Tool für die automatische, geplante Veröffentlichung und Über
 
 ### 1. Repository klonen
 
-git clone https://github.com/mkueper/bluesky-kampagnen-tool.git
+git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git  
 cd bluesky-kampagnen-tool
 
 ### 2. Backend-Abhängigkeiten installieren
