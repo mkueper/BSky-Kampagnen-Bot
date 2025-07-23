@@ -1,0 +1,22 @@
+{
+  "name": "bsky-kampagnen-bot",
+  "version": "1.0.0",
+  "description": "Bot um Kampagnen Skeets an ausgewählten Tagen zu senden und die Reaktionen zu überprüfen.",
+  "keywords": [],
+  "license": "ISC",
+  "author": "Michael Küper & S.A.R.A.H",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.15.26",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7"
+  }
+}
