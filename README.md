@@ -29,10 +29,10 @@ npm install
 
 ### 3. Frontend installieren & bauen
 
-cd dashboard
-npm install
-npm run build
-cd ..
+cd dashboard  
+npm install  
+npm run build  
+cd ..  
 
 ### 4. .env-Datei im Projekt-Root anlegen
 
