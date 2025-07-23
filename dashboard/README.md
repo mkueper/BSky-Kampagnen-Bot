@@ -1,12 +1,25 @@
-# React + Vite
+# Bluesky Kampagnen-Tool
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ein Open-Source-Tool für die automatische, geplante Veröffentlichung und Überwachung von Bluesky-Posts (Skeets). Entwickelt mit Node.js (Express), React (Vite), Sequelize/SQLite und moderner API-Architektur.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Funktionsumfang
 
-## Expanding the ESLint configuration
+- Geplante Veröffentlichung von Skeets zu beliebigen Zeitpunkten
+- Verwaltung, Bearbeitung und Löschung geplanter Skeets im Web-Dashboard
+- Automatischer Versand über die Bluesky-API (mit Login)
+- Übersicht aller geplanten und bereits veröffentlichten Skeets
+- Erfassung und Anzeige von Reaktionen (Likes, Reposts) und Replies
+- Konfigurierbare Scheduler-Zeit über `.env`/`config.js`
+- Einfache Installation und lokale Ausführung (auch im Docker möglich)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Installation
+
+### 1. Repository klonen
+
+```bash
+git clone https://github.com/dein-benutzername/bluesky-kampagnen-tool.git
+cd bluesky-kampagnen-tool
