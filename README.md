@@ -62,4 +62,6 @@ Der Server läuft dann standardmäßig auf http://localhost:3000.
 
 ### Lizenz
 
-Dieses Projekt steht unter der GPT-3.0 License.
+Dieses Projekt steht unter der GNU General Public License (GPL).  
+Siehe die beigefügte [LICENSE](./LICENSE)-Datei für weitere Details.  
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
