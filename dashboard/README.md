@@ -36,7 +36,7 @@ cd ..
 
 ### 4. .env-Datei im Projekt-Root anlegen
 
-BLUESKY_HANDLE=dein_handle.bsky.social
+BLUESKY_HANDLE=dein_handle.bsky.social 
 BLUESKY_PASSWORD=dein_passwort
 
 ### 5. Server starten
