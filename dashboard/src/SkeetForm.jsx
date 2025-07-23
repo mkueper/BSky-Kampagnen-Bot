@@ -1,23 +1,36 @@
 import { useState } from "react";
 
+// Hilfsfunktion für Formatierung
+function getDefaultDateTime() {
+  const now = new Date();
+  now.setDate(now.getDate() + 1); // morgen
+  now.setHours(9, 0, 0, 0); // 9:00 Uhr
+  const isoString = now.toISOString();
+  return isoString.slice(0, 16); // yyyy-MM-ddTHH:mm
+}
+
+
 function SkeetForm({ onSkeetCreated }) {
   const [content, setContent] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState(getDefaultDateTime());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (content.length > 300) {
       alert("Der Skeet darf maximal 300 Zeichen enthalten!");
       return;
     }
+
     const res = await fetch("/api/skeets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, scheduledAt }),
     });
+
     if (res.ok) {
       setContent("");
-      setScheduledAt("");
+      setScheduledAt(getDefaultDateTime());
       if (onSkeetCreated) onSkeetCreated();
     } else {
       alert("Fehler beim Anlegen!");
@@ -31,7 +44,7 @@ function SkeetForm({ onSkeetCreated }) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Skeet-Text"
-        rows={5}
+        rows={7}
         style={{ width: "100%", marginBottom: 8 }}
       />
       <div

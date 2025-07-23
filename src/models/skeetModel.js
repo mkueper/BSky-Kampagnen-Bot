@@ -5,6 +5,7 @@ const sequelize = require("./db");
 const Skeet = sequelize.define("Skeet", {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   content: { type: DataTypes.TEXT, allowNull: false },
+  scheduledAt: { type: DataTypes.DATE, allowNull: false },
   postUri: { type: DataTypes.STRING, allowNull: true },
   likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   repostsCount: { type: DataTypes.INTEGER, defaultValue: 0 },

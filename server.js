@@ -6,10 +6,10 @@ const fs = require('fs');
 const { login } = require('./src/services/blueskyClient');
 const dashboardController = require('./src/controllers/dashboardController');
 const db = require('./src/models/db');
+const config = require("./src/config")
 
 const app = express();
-const PORT = 3000;
-
+const PORT = config.SERVER_PORT;
 const DIST_DIR = path.join(__dirname, 'dashboard', 'dist');
 const INDEX_HTML = path.join(DIST_DIR, 'index.html');
 
