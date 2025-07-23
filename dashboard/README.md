@@ -20,7 +20,7 @@ Ein Open-Source-Tool für die automatische, geplante Veröffentlichung und Über
 
 ### 1. Repository klonen
 
-git clone https://github.com/dein-benutzername/bluesky-kampagnen-tool.git
+git clone https://github.com/mkueper/bluesky-kampagnen-tool.git
 cd bluesky-kampagnen-tool
 
 ### 2. Backend-Abhängigkeiten installieren
@@ -36,7 +36,7 @@ cd ..
 
 ### 4. .env-Datei im Projekt-Root anlegen
 
-BLUESKY_HANDLE=dein_handle.bsky.social 
+BLUESKY_HANDLE=dein_handle.bsky.social  
 BLUESKY_PASSWORD=dein_passwort
 
 ### 5. Server starten
