@@ -9,7 +9,7 @@ const db = require('./src/models/db');
 const config = require("./src/config")
 
 const app = express();
-const PORT = config.SERVER_PORT;
+const PORT = config.PORT;
 const DIST_DIR = path.join(__dirname, 'dashboard', 'dist');
 const INDEX_HTML = path.join(DIST_DIR, 'index.html');
 

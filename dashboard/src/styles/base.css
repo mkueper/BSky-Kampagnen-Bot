@@ -1,0 +1,27 @@
+/* Farben, Schrift, Grundlayout */
+body {
+    font-family: Arial, sans-serif;
+    margin: var(--spacing-large);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+h1,
+h2 {
+    color: var(--color-text);
+    font-size: var(--font-size-heading);
+}
+
+button {
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    background-color: var(--color-accent);
+    color: var(--color-button-text);
+    border-radius: var(--border-radius);
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #005fa3;
+}

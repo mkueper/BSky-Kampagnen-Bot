@@ -1,0 +1,29 @@
+/* Listen, Karten, responsive Gitterlayouts */
+.skeet-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.skeet-item {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fdfdfd;
+}
+
+.skeet-planned {
+    border-left: 5px solid #ffc107;
+    background-color: #fffbea;
+}
+
+.skeet-published {
+    border-left: 5px solid #28a745;
+}
+
+@media (min-width: 768px) {
+    .skeet-list {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}

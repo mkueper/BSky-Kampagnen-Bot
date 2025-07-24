@@ -1,14 +1,21 @@
 import { useState } from "react";
 
+const localISODateTime = (utcDateString) => {
+  const date = new Date(utcDateString);
+  const offset = date.getTimezoneOffset(); // in Minuten
+  const localDate = new Date(date.getTime() - offset * 60000);
+  return localDate.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+};
+
 // Hilfsfunktion für Formatierung
 function getDefaultDateTime() {
   const now = new Date();
   now.setDate(now.getDate() + 1); // morgen
   now.setHours(9, 0, 0, 0); // 9:00 Uhr
-  const isoString = now.toISOString();
-  return isoString.slice(0, 16); // yyyy-MM-ddTHH:mm
+  const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(now.getTime() - offsetMs);
+  return localDate.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm String.slice(0, 16); // yyyy-MM-ddTHH:mm
 }
-
 
 function SkeetForm({ onSkeetCreated }) {
   const [content, setContent] = useState("");
@@ -25,7 +32,7 @@ function SkeetForm({ onSkeetCreated }) {
     const res = await fetch("/api/skeets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content, scheduledAt }),
+      body: JSON.stringify({ content, scheduledAt: new Date(scheduledAt) }),
     });
 
     if (res.ok) {
@@ -62,7 +69,7 @@ function SkeetForm({ onSkeetCreated }) {
           Geplante Uhrzeit (optional):{" "}
           <input
             type="datetime-local"
-            value={scheduledAt}
+            value={localISODateTime(scheduledAt)}
             onChange={(e) => setScheduledAt(e.target.value)}
           />
         </label>
