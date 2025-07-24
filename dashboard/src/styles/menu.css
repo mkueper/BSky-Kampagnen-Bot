@@ -1,0 +1,75 @@
+.menu-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.menu-tabs button {
+    background-color: var(--color-accent);
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.menu-tabs button:hover {
+    background-color: var(--color-accent-hover);
+}
+
+.menu-container {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.burger-button {
+    display: none;
+    background: none;
+    background-color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    padding: 8px 12px;
+    font-size: 1.2em;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.burger-button:hover {
+    background-color: var(--color-accent-hover);
+    color: var(--color-button-text);
+    border-color: var(--color-accent);
+}
+
+.menu-tabs button.active {
+    background-color: var(--color-accent-active);
+    color: var(--color-button-text);
+    font-weight: bold;
+}
+
+@media (max-width: 600px) {
+    .burger-button {
+        display: block;
+    }
+
+    .menu-tabs {
+        flex-direction: column;
+        position: absolute;
+        top: 40px;
+        left: 0;
+        background: var(--color-accent);
+        border: 1px solid var(--color-accent);
+        border-radius: 6px;
+        padding: 8px;
+        width: max-content;
+        z-index: 1000;
+        display: none;
+    }
+
+    .menu-tabs.open {
+        display: flex;
+    }
+
+    .menu-tabs.closed {
+        display: none;
+    }
+}

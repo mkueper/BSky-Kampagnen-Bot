@@ -34,10 +34,19 @@ npm install
 npm run build  
 cd ..  
 
-### 4. .env-Datei im Projekt-Root anlegen
+### 4. Konfiguration
 
+1. Kopiere die Beispieldatei `.env.sample` nach `.env`:
+
+```bash
+cp .env.sample .env
+```
+2. Trage deine persönlichen Zugangsdaten für Bluesky ein:
 BLUESKY_HANDLE=dein_handle.bsky.social  
 BLUESKY_PASSWORD=dein_passwort
+
+3. Stelle ggf. die gewünschte Zeitzone für geplante Posts ein:
+VITE_TIME_ZONE=Europe/Berlin
 
 ### 5. Server starten
 

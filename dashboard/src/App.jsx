@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
-import "./App.css";
+import { formatTime } from "./utils/formatTime";
+import { classNames } from "./utils/classNames";
+import "./styles/App.css";
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -8,6 +10,25 @@ function App() {
   const [replies, setReplies] = useState([]);
   const [selectedSkeetId, setSelectedSkeetId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false); // Menü schließen, wenn außerhalb geklickt wird
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // Lädt Skeets vom Server (GET /api/skeets)
   const loadSkeets = async () => {
@@ -42,12 +63,6 @@ function App() {
 
   return (
     <div className="App">
-      {/* <div className="menu-tabs">
-        <button onClick={() => setActiveTab("dashboard")}>🗂 Übersicht</button>
-        <button onClick={() => setActiveTab("config")}>⚙️ Konfiguration</button>
-        <button onClick={() => setActiveTab("skeetplaner")}>📝 Skeet planen</button>
-      </div> */}
-
       <div className="menu-container">
         <button
           className="burger-button"
@@ -56,8 +71,15 @@ function App() {
           ☰ Menü
         </button>
 
-        <div className={`menu-tabs ${menuOpen ? "open" : "closed"}`}>
+        <div
+          className={`menu-tabs ${menuOpen ? "open" : "closed"}`}
+          ref={menuRef}
+        >
           <button
+            className={classNames(
+              "menu-button",
+              activeTab === "dashboard" && "active"
+            )}
             onClick={() => {
               setActiveTab("dashboard");
               setMenuOpen(false);
@@ -66,6 +88,10 @@ function App() {
             🗂 Übersicht
           </button>
           <button
+            className={classNames(
+              "menu-button",
+              activeTab === "config" && "active"
+            )}
             onClick={() => {
               setActiveTab("config");
               setMenuOpen(false);
@@ -74,6 +100,10 @@ function App() {
             ⚙️ Konfiguration
           </button>
           <button
+            className={classNames(
+              "menu-button",
+              activeTab === "skeetplaner" && "active"
+            )}
             onClick={() => {
               setActiveTab("skeetplaner");
               setMenuOpen(false);
@@ -95,10 +125,7 @@ function App() {
                   <strong>Geplant:</strong> {skeet.content}
                 </p>
                 <p>
-                  <em>
-                    Wird gepostet um:{" "}
-                    {new Date(skeet.scheduledAt).toLocaleString()}
-                  </em>
+                  <em>Wird gepostet um: {formatTime(skeet.scheduledAt)}</em>
                 </p>
               </li>
             ))}
