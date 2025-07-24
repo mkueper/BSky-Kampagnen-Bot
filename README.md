@@ -11,7 +11,7 @@ Ein Open-Source-Tool für die automatische, geplante Veröffentlichung und Über
 - Automatischer Versand über die Bluesky-API (mit Login)
 - Übersicht aller geplanten und bereits veröffentlichten Skeets
 - Erfassung und Anzeige von Reaktionen (Likes, Reposts) und Replies
-- Konfigurierbare Scheduler-Zeit über `.env`/`config.js`
+- Jeder Skeet kann mit Datum und Zeit zum Versenden versehen werden
 - Einfache Installation und lokale Ausführung (auch im Docker möglich)
 
 ---
