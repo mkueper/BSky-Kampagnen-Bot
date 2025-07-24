@@ -10,6 +10,18 @@ const Skeet = sequelize.define("Skeet", {
   likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   repostsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   postedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  repeat: {
+    type: DataTypes.ENUM("none", "daily", "weekly", "monthly"),
+    defaultValue: "none",
+  },
+  repeatDayOfWeek: {
+    type: DataTypes.INTEGER, // 0=Sonntag … 6=Samstag
+    allowNull: true,
+  },
+  repeatDayOfMonth: {
+    type: DataTypes.INTEGER, // 1–31
+    allowNull: true,
+  },
 });
 
 module.exports = Skeet;

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
 import { formatTime } from "./utils/formatTime";
 import { classNames } from "./utils/classNames";
+import {getRepeatDescription} from "./utils/timeUtils";
 import "./styles/App.css";
 
 function App() {
@@ -125,7 +126,7 @@ function App() {
                   <strong>Geplant:</strong> {skeet.content}
                 </p>
                 <p>
-                  <em>Wird gepostet um: {formatTime(skeet.scheduledAt)}</em>
+                  <em>{getRepeatDescription(skeet)}</em>
                 </p>
               </li>
             ))}
