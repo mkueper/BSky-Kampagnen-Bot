@@ -51,15 +51,15 @@ Wähle die für dich passende Installationsmethode:
 
 Die Architektur ist in einzelne Diagramme aufgeteilt und im Ordner docs/diagramme dokumentiert:
 
-Systemarchitektur – Überblick über die Hauptkomponenten
+**Systemarchitektur** – Überblick über die Hauptkomponenten
 
-Datenfluss – Ablauf beim Planen & Posten
+**Datenfluss** – Ablauf beim Planen & Posten
 
-Lebenszyklus Skeet – Zustände und Übergänge für einzelne Posts
+**Lebenszyklus Skeet** – Zustände und Übergänge für einzelne Posts
 
-Lebenszyklus Thread – Zustände und Übergänge für Threads
+**Lebenszyklus Thread** – Zustände und Übergänge für Threads
 
-Statusfarben-Legende – Farbdefinitionen für UI & Diagramme
+**Statusfarben-Legende** – Farbdefinitionen für UI & Diagramme
 
 ## Roadmap
 Die geplante Weiterentwicklung ist in der ROADMAP.md beschrieben – von der minimalen Kampagnen-Version bis hin zur vollständigen Bluesky-Client-Suite.
