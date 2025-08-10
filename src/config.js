@@ -1,6 +1,8 @@
 // src/config.js
 require("dotenv").config();
 
+const path = require('path');
+
 module.exports = {
   //  SCHEDULE_TIME: "0 9 * * *", // Standard jeden Tag um 9 Uhr
   BLUESKY_SERVER: "https://bsky.social", // Standard Bluesky Server
