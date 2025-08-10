@@ -113,13 +113,16 @@ sequenceDiagram
   FE->>BE: GET Status
   BE-->>FE: Aktueller Status sent oder failed
 ```
+
 ---
+
 ## State-Machines
 
 ### Skeet
+
 ```mermaid
 stateDiagram-v2
-  %% Farben für die Status definieren
+
   state "draft" as draft_state
   state "scheduled" as scheduled_state
   state "sending" as sending_state
@@ -129,7 +132,7 @@ stateDiagram-v2
   state "archived" as archived_state
   state "deleted" as deleted_state
 
-  %% Farbstile (Hex aus Statusfarben-Tabelle)
+
   style draft_state fill:#9e9e9e,color:#fff
   style scheduled_state fill:#1976d2,color:#fff
   style sending_state fill:#ff9800,color:#000
@@ -164,13 +167,14 @@ stateDiagram-v2
   archived_state --> [*]
 
 ```
+
 ---
 
 ### Thread Status
 
 ```mermaid
 stateDiagram-v2
-  %% Zustände definieren
+
   state "draft" as draft_state
   state "scheduled" as scheduled_state
   state "sending" as sending_state
@@ -180,7 +184,7 @@ stateDiagram-v2
   state "archived" as archived_state
   state "deleted" as deleted_state
 
-  %% Farbstile (identisch zur UI-Tabelle)
+
   style draft_state fill:#9e9e9e,color:#fff
   style scheduled_state fill:#1976d2,color:#fff
   style sending_state fill:#ff9800,color:#000
@@ -217,7 +221,6 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-  %% Farbklassen zuerst definieren (GH-sicher)
   classDef draft fill:#9e9e9e,color:#fff
   classDef scheduled fill:#1976d2,color:#fff
   classDef sending fill:#ff9800,color:#000
@@ -229,7 +232,7 @@ flowchart LR
 
   subgraph Skeet [Skeet-Lebenszyklus]
     direction TB
-    skeet_start([*])
+    skeet_start["Start"]
     skeet_draft["draft"]:::draft
     skeet_scheduled["scheduled"]:::scheduled
     skeet_sending["sending"]:::sending
@@ -238,7 +241,7 @@ flowchart LR
     skeet_cancelled["cancelled"]:::cancelled
     skeet_archived["archived"]:::archived
     skeet_deleted["deleted"]:::deleted
-    skeet_end([*])
+    skeet_end["end"]
 
     skeet_start --> skeet_draft
     skeet_draft --> skeet_scheduled
@@ -301,6 +304,7 @@ flowchart LR
 ## Legende & Notizen
 
 ### Statusbedeutungen
+
 - **draft**: Entwurf – noch nicht zur Ausführung geplant.
 - **scheduled**: Geplant – Ausführungstermin steht fest (UTC).
 - **sending**: Wird gerade gepostet (Job läuft).
@@ -311,6 +315,7 @@ flowchart LR
 - **deleted**: Hart gelöscht (Daten entfernt, nicht wiederherstellbar).
 
 ### Typische Aktionen → Übergänge
+
 - **Planen**: `draft → scheduled`
 - **Stornieren**: `scheduled → cancelled`
 - **Starten (Job)**: `scheduled → sending`
@@ -322,6 +327,7 @@ flowchart LR
 - **Löschen**: `draft|failed|cancelled|sent → deleted`
 
 ### Regeln & Verhalten
+
 - **Idempotenz**: Jeder Post‑Job prüft vor dem Senden, ob bereits eine `post_uri` existiert.
 - **Retries**: Exponentielles Backoff bis `MAX_ATTEMPTS`; danach verbleibt `failed`.
 - **Zeit & TZ**: Alle Zeiten in **UTC** speichern; Kampagnen‑TZ nur für UI/Planung.
@@ -330,24 +336,26 @@ flowchart LR
 - **Kaskaden**: Beim Löschen von Threads werden zugehörige Thread‑Skeets per `ON DELETE CASCADE` entfernt (Skeets selbst nur, wenn explizit gewünscht).
 
 ### Fehlerfälle (Kurzüberblick)
+
 - **API‑Fehler 4xx/5xx**: `sending → failed` mit `last_error`; Scheduler setzt Retry.
 - **Rate‑Limit**: Als Fehler behandeln, Backoff erhöhen.
 - **Timeout**: Vor Retry wird geprüft, ob die Veröffentlichung trotz Timeout erfolgreich war (Dedupe über `post_uri`/Request‑ID).
 
 ## Statusfarben (UI-Empfehlung)
 
-| Status     | Farbe (Hex) | Bedeutung im UI                                  |
-|------------|-------------|--------------------------------------------------|
-| draft      | `#9e9e9e`   | Grau – Entwurf, noch nicht geplant               |
-| scheduled  | `#1976d2`   | Blau – Geplant, wartet auf Ausführung            |
-| sending    | `#ff9800`   | Orange – Wird gerade gesendet                    |
-| sent       | `#4caf50`   | Grün – Erfolgreich veröffentlicht                |
-| failed     | `#f44336`   | Rot – Veröffentlichung fehlgeschlagen            |
-| cancelled  | `#757575`   | Dunkelgrau – Manuell gestoppt                     |
-| archived   | `#607d8b`   | Blau-Grau – Erfolgreich abgeschlossen & archiviert|
-| deleted    | `#000000`   | Schwarz – Endgültig gelöscht (nicht wiederherstellbar) |
+| Status    | Farbe (Hex) | Bedeutung im UI                                        |
+| --------- | ----------- | ------------------------------------------------------ |
+| draft     | `#9e9e9e`   | Grau – Entwurf, noch nicht geplant                     |
+| scheduled | `#1976d2`   | Blau – Geplant, wartet auf Ausführung                  |
+| sending   | `#ff9800`   | Orange – Wird gerade gesendet                          |
+| sent      | `#4caf50`   | Grün – Erfolgreich veröffentlicht                      |
+| failed    | `#f44336`   | Rot – Veröffentlichung fehlgeschlagen                  |
+| cancelled | `#757575`   | Dunkelgrau – Manuell gestoppt                          |
+| archived  | `#607d8b`   | Blau-Grau – Erfolgreich abgeschlossen & archiviert     |
+| deleted   | `#000000`   | Schwarz – Endgültig gelöscht (nicht wiederherstellbar) |
 
 **Hinweise:**
+
 - Farben bewusst kontrastreich gewählt (AA-Kontrast für Barrierefreiheit).
 - Für helle/dunkle Themes ggf. leichte Anpassungen.
 - Einheitliche Farbzuordnung auch in Diagrammen verwenden (State-Machine, Listen, Detailansicht).
