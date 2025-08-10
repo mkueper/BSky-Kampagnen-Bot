@@ -55,13 +55,16 @@ node server.js
 Der Server läuft dann standardmäßig auf http://localhost:3000.
 
 
-### Architektur (Kurzüberblick)
+### Architektur
 
-- Express Backend: REST-API, Scheduler, Anbindung an Bluesky
-- React Frontend: Dashboard für Eingabe, Übersicht und Planung
-- Sequelize + SQLite: Datenhaltung für Skeets, Replies, Status
-- Scheduler: Automatisches Posten zur konfigurierbaren Zeit
-- Konfigurierbar per .env und src/config.js
+Eine detaillierte Übersicht zur Architektur des Projekts findet sich im  
+[Architektur-Bereich](./doc/architektur/README.md) unseres Dokumentationsordners.
+
+
+### Roadmap
+
+Die geplante Weiterentwicklung des Projekts ist in der [Roadmap](./doc/ROADMAP.md) dokumentiert.  
+Sie beschreibt den Weg von der minimalen Kampagnen-Version bis hin zu einer vollständigen Bluesky-Client-Suite.
 
 ### Sicherheitshinweise
 
