@@ -1,79 +1,76 @@
 # Bluesky Kampagnen-Tool
 
-Ein Open-Source-Tool für die automatische, geplante Veröffentlichung und Überwachung von Bluesky-Posts (Skeets). Entwickelt mit Node.js (Express), React (Vite), Sequelize/SQLite und moderner API-Architektur.
+Ein Open-Source-Tool zur **automatisierten, geplanten Veröffentlichung und Verwaltung** von Bluesky-Posts (Skeets) und Threads – inklusive Mandantenfähigkeit, sicherer Zugangsdaten-Verwaltung und erweiterbaren Analysefunktionen.  
+Entwickelt mit **Node.js (Express)**, **React (Vite)**, **Sequelize** und einer **API-Architektur**, die sowohl lokal als auch in der Cloud betrieben werden kann.
 
 ---
 
-## Funktionsumfang
+## Funktionsumfang (aktueller Planungsstand)
 
-- Geplante Veröffentlichung von Skeets zu beliebigen Zeitpunkten
-- Verwaltung, Bearbeitung und Löschung geplanter Skeets im Web-Dashboard
-- Automatischer Versand über die Bluesky-API (mit Login)
-- Übersicht aller geplanten und bereits veröffentlichten Skeets
-- Erfassung und Anzeige von Reaktionen (Likes, Reposts) und Replies
-- Jeder Skeet kann mit Datum und Zeit zum Versenden versehen werden
-- Einfache Installation und lokale Ausführung (auch im Docker möglich)
+- **Planung & Veröffentlichung**
+  - Einzelne Skeets oder komplette Threads zu beliebigen Zeitpunkten posten
+  - Unicode-Graphem-Zählung (Bluesky-kompatibel)
+  - Medienanhänge mit Alt-Texten
+- **Kampagnen-Management**
+  - Mehrere Kampagnen pro Tenant
+  - Übersicht aller geplanten, gesendeten, fehlgeschlagenen und archivierten Posts
+  - Status- und Zeitfilter
+- **Multi-Tenant-Unterstützung**
+  - Getrennte Datenhaltung pro Organisation
+  - Rollen & Rechte (Owner, Admin, Editor, Viewer)
+- **Sicherheit**
+  - Passwort-Hashing (Argon2id) für lokale Logins
+  - Verschlüsselte Speicherung von Bluesky-Zugangsdaten (AES-GCM)
+  - Vorbereitet für 2FA (TOTP, Backup-Codes)
+- **Scheduler**
+  - Hintergrundjobs mit Retry-Logik und Backoff
+  - Concurrency-Limits pro Tenant
+- **Analysen**
+  - Erfassung von Likes, Reposts, Replies
+  - Zeitreihen-Auswertung pro Skeet/Thread
+- **Zukunft**
+  - Erweiterung zu einem vollständigen Bluesky-Client (Timeline, Interaktion, Listen)
 
 ---
 
 ## Installation
 
-### 1. Repository klonen
+Wähle die für dich passende Installationsmethode:
 
-git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git  
-cd bluesky-kampagnen-tool
+- **[Option A: Installation auf lokalem PC oder Server](./docs/installation/local-install.md)**  
+  Für lokale Entwicklung oder direkten Betrieb ohne Container.
 
-### 2. Backend-Abhängigkeiten installieren
+- **[Option B: Manuelle Installation auf einem Server](./docs/installation/server-install.md)**  
+  Für produktiven Betrieb mit manueller Einrichtung aller Abhängigkeiten.
 
-npm install
+- **[Option C: Installation im Docker Container](./docs/installation/docker-install.md)**  
+  Für eine schnelle, reproduzierbare Container-Installation mit Docker Compose.
+---
 
-### 3. Frontend installieren & bauen
+## Architektur & Diagramme
 
-cd dashboard  
-npm install  
-npm run build  
-cd ..  
+Die Architektur ist in einzelne Diagramme aufgeteilt und im Ordner docs/diagramme dokumentiert:
 
-### 4. Konfiguration
+Systemarchitektur – Überblick über die Hauptkomponenten
 
-1. Kopiere die Beispieldatei `.env.sample` nach `.env`:
+Datenfluss – Ablauf beim Planen & Posten
 
-```bash
-cp .env.sample .env
-```
-2. Trage deine persönlichen Zugangsdaten für Bluesky ein:
-BLUESKY_HANDLE=dein_handle.bsky.social  
-BLUESKY_PASSWORD=dein_passwort
+Lebenszyklus Skeet – Zustände und Übergänge für einzelne Posts
 
-3. Stelle ggf. die gewünschte Zeitzone für geplante Posts ein:
-VITE_TIME_ZONE=Europe/Berlin
+Lebenszyklus Thread – Zustände und Übergänge für Threads
 
-### 5. Server starten
+Statusfarben-Legende – Farbdefinitionen für UI & Diagramme
 
-node server.js
+## Roadmap
+Die geplante Weiterentwicklung ist in der ROADMAP.md beschrieben – von der minimalen Kampagnen-Version bis hin zur vollständigen Bluesky-Client-Suite.
 
-Der Server läuft dann standardmäßig auf http://localhost:3000.
+## Sicherheitshinweise
+Keine Zugangsdaten in öffentliche Repos hochladen!
 
+.env immer in .gitignore eintragen.
 
-### Architektur
+Für Produktivbetrieb: Eigene App-Keys und starke Passwörter nutzen.
 
-Eine detaillierte Übersicht zur Architektur des Projekts findet sich im  
-[Architektur-Bereich](./doc/architektur/README.md) unseres Dokumentationsordners.
-
-
-### Roadmap
-
-Die geplante Weiterentwicklung des Projekts ist in der [Roadmap](./doc/ROADMAP.md) dokumentiert.  
-Sie beschreibt den Weg von der minimalen Kampagnen-Version bis hin zu einer vollständigen Bluesky-Client-Suite.
-
-### Sicherheitshinweise
-
-- Lege deine Zugangsdaten niemals in ein öffentliches Repository!
-- Trage .env immer in die .gitignore ein.
-- Für Produktivbetrieb: Verwende eigene App-Keys & sichere Passwörter.
-
-### Lizenz
-
-Dieses Projekt steht unter der GNU General Public License (GPL).  
-Siehe die beigefügte [LICENSE](./LICENSE)-Datei für weitere Details.  
-![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+## Lizenz
+Dieses Projekt steht unter der GNU General Public License (GPL).
+Siehe LICENSE für Details.

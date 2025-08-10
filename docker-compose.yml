@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "8080:80"
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: bsky
+      POSTGRES_PASSWORD: bsky_pass
+      POSTGRES_DB: bsky_campaigns
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
