@@ -220,6 +220,79 @@ stateDiagram-v2
 ```
 
 ```mermaid
+flowchart LR
+  classDef draft fill:#9e9e9e,color:#fff
+  classDef scheduled fill:#1976d2,color:#fff
+  classDef sending fill:#ff9800,color:#000
+  classDef sent fill:#4caf50,color:#fff
+  classDef failed fill:#f44336,color:#fff
+  classDef cancelled fill:#757575,color:#fff
+  classDef archived fill:#607d8b,color:#fff
+  classDef deleted fill:#000000,color:#fff
+  classDef start fill:#ffffff,stroke:#000000,color:#000
+  classDef endstate fill:#ffffff,stroke:#000000,color:#000
+
+  subgraph Skeet [Skeet-Lebenszyklus]
+    direction TB
+    skeet_start([Start]):::start
+    skeet_draft["draft"]:::draft
+    skeet_scheduled["scheduled"]:::scheduled
+    skeet_sending["sending"]:::sending
+    skeet_sent["sent"]:::sent
+    skeet_failed["failed"]:::failed
+    skeet_cancelled["cancelled"]:::cancelled
+    skeet_archived["archived"]:::archived
+    skeet_deleted["deleted"]:::deleted
+    skeet_end([End]):::endstate
+
+    skeet_start --> skeet_draft
+    skeet_draft --> skeet_scheduled
+    skeet_draft --> skeet_deleted
+    skeet_scheduled --> skeet_cancelled
+    skeet_scheduled --> skeet_sending
+    skeet_sending --> skeet_sent
+    skeet_sending --> skeet_failed
+    skeet_failed --> skeet_scheduled
+    skeet_failed --> skeet_cancelled
+    skeet_failed --> skeet_deleted
+    skeet_cancelled --> skeet_scheduled
+    skeet_cancelled --> skeet_deleted
+    skeet_sent --> skeet_archived
+    skeet_sent --> skeet_deleted
+    skeet_deleted --> skeet_end
+    skeet_archived --> skeet_end
+  end
+
+  subgraph Thread [Thread-Lebenszyklus]
+    direction TB
+    thread_start([Start]):::start
+    thread_draft["draft"]:::draft
+    thread_scheduled["scheduled"]:::scheduled
+    thread_sending["sending"]:::sending
+    thread_sent["sent"]:::sent
+    thread_failed["failed"]:::failed
+    thread_cancelled["cancelled"]:::cancelled
+    thread_archived["archived"]:::archived
+    thread_deleted["deleted"]:::deleted
+    thread_end([End]):::endstate
+
+    thread_start --> thread_draft
+    thread_draft --> thread_scheduled
+    thread_draft --> thread_deleted
+    thread_scheduled --> thread_cancelled
+    thread_scheduled --> thread_sending
+    thread_sending --> thread_sent
+    thread_sending --> thread_failed
+    thread_failed --> thread_scheduled
+    thread_failed --> thread_cancelled
+    thread_failed --> thread_deleted
+    thread_cancelled --> thread_scheduled
+    thread_cancelled --> thread_deleted
+    thread_sent --> thread_archived
+    thread_sent --> thread_deleted
+    thread_deleted --> thread_end
+    thread_archived --> thread_end
+  end
 
 ```
 
