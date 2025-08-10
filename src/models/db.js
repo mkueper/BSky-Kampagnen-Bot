@@ -1,16 +1,24 @@
 // src/models/db.js
 const { Sequelize } = require("sequelize");
+const path = require("path");
 
-const sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: "./data/bluesky_campaign.sqlite",
-  logging: false,
+// CLI-Config laden (Root/config/config.js)
+const dbConfig = require(path.join(__dirname, "../../config/config.js"));
+
+// Umgebung bestimmen (default: development)
+const env = process.env.NODE_ENV || "development";
+const config = dbConfig[env];
+
+// Sequelize-Instanz erzeugen
+const sequelize = new Sequelize(config.database || "", config.username || "", config.password || "", {
+  dialect: config.dialect,
+  storage: config.storage,
+  logging: config.logging ?? false,
+
+  // Zeitstempel-Handling
+  timezone: "+00:00", // UTC speichern
   dialectOptions: {
-    timezone: "Etc/UTC", // sorgt dafür, dass UTC gespeichert wird
-  },
-  define: {
-    // Alle Zeitfelder automatisch in UTC verwalten
-    timestamps: true,
+    useUTC: true, // sicherstellen, dass UTC genutzt wird
   },
 });
 
