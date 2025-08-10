@@ -217,10 +217,19 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-  %% ---------- Subgraph Skeet ----------
+  %% Farbklassen zuerst definieren (GH-sicher)
+  classDef draft fill:#9e9e9e,color:#fff
+  classDef scheduled fill:#1976d2,color:#fff
+  classDef sending fill:#ff9800,color:#000
+  classDef sent fill:#4caf50,color:#fff
+  classDef failed fill:#f44336,color:#fff
+  classDef cancelled fill:#757575,color:#fff
+  classDef archived fill:#607d8b,color:#fff
+  classDef deleted fill:#000000,color:#fff
+
   subgraph Skeet [Skeet-Lebenszyklus]
     direction TB
-    skeet_start([*]):::start
+    skeet_start([*])
     skeet_draft["draft"]:::draft
     skeet_scheduled["scheduled"]:::scheduled
     skeet_sending["sending"]:::sending
@@ -229,7 +238,7 @@ flowchart LR
     skeet_cancelled["cancelled"]:::cancelled
     skeet_archived["archived"]:::archived
     skeet_deleted["deleted"]:::deleted
-    skeet_end([*]):::endstate
+    skeet_end([*])
 
     skeet_start --> skeet_draft
     skeet_draft --> skeet_scheduled
@@ -249,10 +258,9 @@ flowchart LR
     skeet_archived --> skeet_end
   end
 
-  %% ---------- Subgraph Thread ----------
   subgraph Thread [Thread-Lebenszyklus]
     direction TB
-    thread_start([*]):::start
+    thread_start([*])
     thread_draft["draft"]:::draft
     thread_scheduled["scheduled"]:::scheduled
     thread_sending["sending"]:::sending
@@ -261,7 +269,7 @@ flowchart LR
     thread_cancelled["cancelled"]:::cancelled
     thread_archived["archived"]:::archived
     thread_deleted["deleted"]:::deleted
-    thread_end([*]):::endstate
+    thread_end([*])
 
     thread_start --> thread_draft
     thread_draft --> thread_scheduled
@@ -281,19 +289,7 @@ flowchart LR
     thread_archived --> thread_end
   end
 
-  %% ---------- Farbdefinitionen ----------
-  classDef draft fill:#9e9e9e,color:#fff
-  classDef scheduled fill:#1976d2,color:#fff
-  classDef sending fill:#ff9800,color:#000
-  classDef sent fill:#4caf50,color:#fff
-  classDef failed fill:#f44336,color:#fff
-  classDef cancelled fill:#757575,color:#fff
-  classDef archived fill:#607d8b,color:#fff
-  classDef deleted fill:#000000,color:#fff
-  classDef start fill:#ffffff,stroke:#000000,color:#000
-  classDef endstate fill:#ffffff,stroke:#000000,color:#000
 ```
-
 
 > **Hinweis:**  
 > Die in den Diagrammen verwendeten Statusfarben entsprechen exakt den definierten UI-Badges  
