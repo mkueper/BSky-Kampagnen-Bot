@@ -1,16 +1,12 @@
-require("dotenv").config();
+import { env } from "../env";
 
-const { AtpAgent } = require("@atproto/api");
-const config = require("../config");
-const agent = new AtpAgent({ service: config.BLUESKY_SERVER });
-
-const identifier = process.env.BLUESKY_HANDLE;
-const password = process.env.BLUESKY_PASSWORD;
+const { serverUrl, identifier, appPassword } = env.bluesky;
+const agent = new AtpAgent({ service: serverUrl });
 
 async function login() {
   console.log("identifier:", identifier);
-  console.log("password:", password ? "[gesetzt]" : "[FEHLT]");
-  await agent.login({ identifier, password });
+  console.log("password:", appPassword ? "[gesetzt]" : "[FEHLT]");
+  await agent.login({ identifier, password: appPassword });
 }
 
 async function postSkeet(text) {
