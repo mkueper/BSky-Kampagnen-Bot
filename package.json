@@ -19,18 +19,27 @@
     "migrate:prod": "cross-env NODE_ENV=production npx sequelize-cli db:migrate",
     "seed:dev": "cross-env NODE_ENV=development npx sequelize-cli db:seed:all",
     "seed:test": "cross-env NODE_ENV=test npx sequelize-cli db:seed:all",
-    "seed:prod": "cross-env NODE_ENV=production npx sequelize-cli db:seed:all"
+    "seed:prod": "cross-env NODE_ENV=production npx sequelize-cli db:seed:all",
+    "smoke:bsky": "tsx scripts/smokeBlueskyPost.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "smoke:masto": "tsx scripts/smokeMastodonPost.ts"
   },
   "dependencies": {
     "@atproto/api": "^0.15.26",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "grapheme-splitter": "^1.0.4",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "undici": "^7.13.0"
   },
   "devDependencies": {
     "cross-env": "^10.0.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
   }
 }

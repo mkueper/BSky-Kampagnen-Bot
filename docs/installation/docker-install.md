@@ -37,8 +37,9 @@ Kopiere die Beispiel‑Konfiguration und passe sie an:
 - ### 2. Zugangsdaten für Bluesky (Pflichtangaben):
 
 ```ini
-    BLUESKY_HANDLE=dein_handle.bsky.social
-    BLUESKY_PASSWORD=dein_passwort
+    BLUESKY_SERVER=https://bsky.social
+    BLUESKY_IDENTIFIER=dein_handle.bsky.social
+    BLUESKY_APP_PASSWORD=dein_passwort
 ```
 - ### 3. Zeitzone einstellen (Optional):
 ```ini

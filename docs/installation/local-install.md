@@ -30,8 +30,9 @@ cd ..
 ```
 - ### 2. Zugangsdaten für Bluesky eintragen:
 ```ini
-    BLUESKY_HANDLE=dein_handle.bsky.social
-    BLUESKY_PASSWORD=dein_passwort
+    BLUESKY_SERVER=https://bsky.social
+    BLUESKY_IDENTIFIER=dein_handle.bsky.social
+    BLUESKY_APP_PASSWORD=dein_passwort
 ```
 - ### 3. Optional Zeitzone einstellen:
 ```ini
