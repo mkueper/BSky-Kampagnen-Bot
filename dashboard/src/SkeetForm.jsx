@@ -1,12 +1,5 @@
 import { useState } from "react";
 
-// const localISODateTime = (utcDateString) => {
-//   const date = new Date(utcDateString);
-//   const offset = date.getTimezoneOffset(); // in Minuten
-//   const localDate = new Date(date.getTime() - offset * 60000);
-//   return localDate.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
-// };
-
 // Hilfsfunktion für Formatierung
 function getDefaultDateTime() {
   const now = new Date();
@@ -19,6 +12,7 @@ function getDefaultDateTime() {
 
 function SkeetForm({ onSkeetCreated }) {
   const [content, setContent] = useState("");
+  const [targetPlatforms, setTargetPlatforms] = useState(["bluesky", "mastodon"]);
 
   const now = new Date();
   const defaultDate = now.toISOString().slice(0, 10); // yyyy-mm-dd
@@ -32,6 +26,13 @@ function SkeetForm({ onSkeetCreated }) {
   const [repeat, setRepeat] = useState("none");
   const [repeatDayOfWeek, setRepeatDayOfWeek] = useState(null);
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null);
+
+  function togglePlatform(platform) {
+    setTargetPlatforms((prev) => {
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name];
+      return prev;
+    });
+  }
 
   function updateScheduled(date, time) {
     setScheduled(`${date}T${time}`);
@@ -96,6 +97,58 @@ function SkeetForm({ onSkeetCreated }) {
           }}
         >
           {content.length}/300 Zeichen
+        </div>
+
+        {/* Plattform-Auswahl */}
+        <div className="platforms-group" style={{ marginTop: 12 }}>
+          <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>Plattformen</label>
+
+          <div className="platforms-toggles" style={{ display: "flex", gap: 8 }}>
+            {/* Bluesky Toggle */}
+            <label
+              className={`toggle ${targetPlatforms.includes("bluesky") ? "on" : "off"}`}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={targetPlatforms.includes("bluesky")}
+                onChange={() => togglePlatform("bluesky")}
+                style={{ marginRight: 6 }}
+              />
+              Bluesky
+            </label>
+
+            {/* Mastodon Toggle */}
+            <label
+              className={`toggle ${targetPlatforms.includes("mastodon") ? "on" : "off"}`}
+              style={{
+                padding: "6px 10px",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={targetPlatforms.includes("mastodon")}
+                onChange={() => togglePlatform("mastodon")}
+                style={{ marginRight: 6 }}
+              />
+              Mastodon
+            </label>
+          </div>
+
+          {/* Kleiner Hinweis */}
+          <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
+            Standard: beide aktiv. Auswahl wirkt sich erst in Schritt 3 auf das Senden aus.
+          </div>
         </div>
 
         <label htmlFor="repeat">Wiederholen</label>
