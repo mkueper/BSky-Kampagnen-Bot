@@ -23,7 +23,7 @@
     "include": [
         "src/**/*.ts",
         "scripts/**/*.ts"
-    ],
+, "src/platforms/registry.js", "src/utils/graphemes.js", "src/env.js", "src/services/postService.js"    ],
     "exclude": [
         "node_modules",
         "dist",

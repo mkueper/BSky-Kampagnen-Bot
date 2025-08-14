@@ -6,7 +6,7 @@
   "keywords": [],
   "license": "ISC",
   "author": "",
-  "type": "module",
+  "type": "commonjs",
   "main": "eslint.config.js",
   "scripts": {
     "dev": "vite",

@@ -1,7 +1,10 @@
-import { env } from "../env";
+const { env } = require("../env");
 
 const { serverUrl, identifier, appPassword } = env.bluesky;
+const { AtpAgent } = require("@atproto/api");
+
 const agent = new AtpAgent({ service: serverUrl });
+
 
 async function login() {
   console.log("identifier:", identifier);

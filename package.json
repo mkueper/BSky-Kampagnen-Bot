@@ -26,10 +26,11 @@
     "smoke:masto": "tsx scripts/smokeMastodonPost.ts"
   },
   "dependencies": {
-    "@atproto/api": "^0.15.26",
-    "dotenv": "^17.2.0",
+    "@atproto/api": "^0.15.27",
+    "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "grapheme-splitter": "^1.0.4",
+    "mastodon-api": "^1.3.0",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
