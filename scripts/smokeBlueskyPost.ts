@@ -4,8 +4,6 @@ import { sendPost } from "../src/services/postService";
 import { env } from "../src/env";
 import type { PlatformEnv } from "../src/platforms/types";
 
-const {serverUrl, identifier, appPassword } =env.bluesky;
-
 const bskyEnv = {
   serverUrl: env.bluesky.serverUrl,
   identifier: env.bluesky.identifier,
@@ -14,7 +12,7 @@ const bskyEnv = {
 
 function requireField(name: keyof typeof bskyEnv) {
   if (!bskyEnv[name]) {
-    throw new Error(`Missing Bluesky env var: ${name}`);
+    throw new Error(`Missing Bluesky env var: ${String(name)}`);
   }
 }
 requireField("serverUrl");
