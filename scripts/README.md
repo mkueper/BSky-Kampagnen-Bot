@@ -1,44 +1,55 @@
-# scripts/ – Hilfsskripte für den BSKY‑Kampagnen‑Bot
+# scripts – Hilfswerkzeuge für den BSky-Kampagnen-Bot
 
-Dieses Verzeichnis enthält **manuell ausführbare** Hilfsskripte (z. B. Smoke‑Tests, One‑Off‑Tasks, Migrations‑Helper).  
-Sie sind **nicht** Teil des Produktions‑Builds.
+Das Verzeichnis enthält manuell ausführbare TypeScript-Skripte für Smoke-Tests und Wartungsaufgaben. Sie sind nicht Teil des regulären Builds, können aber bei Entwicklung, Fehleranalyse oder Integrationen unterstützen.
 
 ---
 
 ## Voraussetzungen
 
 - Node.js ≥ 20
-- Abhängigkeiten installiert: `npm i`
-- TypeScript + ts-node verfügbar:
-  ```bash
-  npm i -D typescript ts-node
-  ```
+- Projektabhängigkeiten installiert (`npm install`)
+- TypeScript/TSX-Laufzeit (wird automatisch über `devDependencies` bereitgestellt)
+
+> Empfehlung: Skripte via `npx tsx` oder über die hinterlegten npm-Skripte starten.
+
 ---
 
 ## Struktur
 
-```bash
+```
 scripts/
-├─ smokeBlueskyPost.ts   # Minimaler End‑to‑End‑Test zum Posten auf Bluesky
-└─ README.md             # Diese Datei
+├─ checkEnvUsage.ts       # Prüft, ob Variablen aus .env im Code verwendet werden
+├─ smokeBlueskyPost.ts    # Minimaler End-to-End-Test für Bluesky-Posts
+├─ smokeMastodonPost.ts   # Experimenteller Smoke-Test für Mastodon (optional)
+└─ README.md
 ```
-Benennung: themaAktion.ts (z. B. dbMigrateOnce.ts, mastodonSmoke.ts).
 
-## Schnellstart
-Bluesky Smoke‑Test ausführen
+Namenskonvention: `themaAktion.ts` (z. B. `dbMigrateOnce.ts`).
 
-Postet einen kurzen Test‑Skeet über das Plattform‑Profil „bluesky“.
+---
+
+## Ausführen von Skripten
+
+### Bluesky-Smoke-Test
 
 ```bash
-npx ts-node scripts/smokeBlueskyPost.ts
+npm run smoke:bsky
+# alternativ
+npx tsx scripts/smokeBlueskyPost.ts
 ```
 
-Oder als NPM‑Script (Empfehlung – in package.json):
-```json
-"scripts": {
-  "smoke": "ts-node scripts/smokeBlueskyPost.ts"
-}
-```
+### Mastodon-Smoke-Test
+
 ```bash
-npm run smoke
+npm run smoke:masto
+# alternativ
+npx tsx scripts/smokeMastodonPost.ts
 ```
+
+### Environment-Check
+
+```bash
+npx tsx scripts/checkEnvUsage.ts
+```
+
+Die Skripte greifen auf `.env` zu. Verwende für Tests separate Zugangsdaten oder eine abgesicherte Test-Instanz.

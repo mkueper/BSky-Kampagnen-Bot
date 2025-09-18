@@ -1,102 +1,57 @@
 # Roadmap – BSky-Kampagnen-Bot
 
-Diese Roadmap skizziert den geplanten Funktionsumfang des Projekts in drei Entwicklungsphasen.  
-Sie ist so aufgebaut, dass jede Phase produktiv nutzbar ist, aber die Architektur von Anfang an auf **Skalierbarkeit**, **Sicherheit** und **Erweiterbarkeit** ausgelegt wird.
+Die Roadmap gliedert die Entwicklung in drei auslieferbare Phasen. Jede Phase liefert ein produktiv nutzbares System, während Architektur und Sicherheit von Anfang an auf Skalierung, Mandantentrennung und Erweiterbarkeit ausgerichtet werden.
 
 ---
 
-## **Phase 1 – Minimaler Kampagnen-Bot**
-**Ziel:** Funktionsfähige Open-Source-Anwendung, die geplante Skeets und Threads automatisch posten kann.
+## Phase 1 – Minimaler Kampagnen-Bot
+
+**Ziel:** Automatisiertes Planen und Posten von Skeets/Threads mit grundlegender Sicherheit.
 
 ### Kernfunktionen
-- **Skeets planen und veröffentlichen**  
-  - Unterstützung für Einzelposts und Threads  
-  - Unicode-Graphem-Zählung (Bluesky-kompatibel)  
-  - Medienanhänge mit Alt-Texten
-- **Scheduler**
-  - Zeitplanung in UTC mit Campaign-spezifischer Zeitzone  
-  - Einmalige und wiederkehrende Posts  
-  - Warteschlange mit Status (`pending`, `running`, `done`, `failed`)
-- **Einfache Kampagnenstruktur**
-  - Campaign-Tabelle mit Name, Zeitzone, Zeitraum, Status  
-  - Skeets/Threads einer Campaign zugeordnet
-- **Speicherung**
-  - SQLite als Default (Zero-Config)  
-  - MySQL/Postgres optional (per `.env`-Konfiguration)
-- **Basis-Sicherheit**
-  - Master-Key-gestützte Verschlüsselung für Bluesky-Credentials  
-  - Keine Speicherung von Klartext-Passwörtern oder Tokens  
-  - Minimaler User-Login (lokal, Passwort gehasht)
+
+- Skeets und Threads planen, Unicode-Grapheme zählen, Medienanhänge mit Alt-Texten verwalten.
+- Scheduler mit UTC-Zeitplan, optionalen Wiederholungen und Status-Warteschlange (`pending`, `running`, `done`, `failed`).
+- Kampagnen-Grundstruktur mit Zeitzone, Zeitraum und Status.
+- Speicherung wahlweise per SQLite (Standard) oder PostgreSQL/MySQL über `.env`.
+- Sicherheit: Argon2id-Hashing für Nutzerpasswörter, verschlüsselte Speicherung von Bluesky-Credentials.
 
 ---
 
-## **Phase 2 – Multi-Tenant-Kampagnen-Suite**
-**Ziel:** Mehrere Mandanten (Organisationen) können unabhängig voneinander arbeiten, mit sauberer Trennung aller Daten und Rechte.
+## Phase 2 – Multi-Tenant-Kampagnen-Suite
+
+**Ziel:** Mehrere Organisationen können unabhängig voneinander arbeiten, inklusive Rollen und erweiterten Tools.
 
 ### Erweiterungen
-- **Multi-Tenancy**
-  - `tenant_id` in allen relevanten Tabellen  
-  - Tenant-weite Unique-Constraints  
-  - Mandantenbezogene Filter in allen Queries
-- **Benutzer- und Rollenverwaltung**
-  - Benutzerkonten pro Tenant  
-  - Rollen: `owner`, `admin`, `editor`, `viewer`  
-  - Einladungssystem mit E-Mail-Verifizierung
-- **Erweiterte Scheduler-Funktionen**
-  - Job-Retries mit Backoff  
-  - Concurrency-Limits pro Tenant  
-  - Abbruch und Neuplanung geplanter Posts
-- **Medienverwaltung**
-  - Upload-Übersicht mit Metadaten  
-  - Wiederverwendung von Medien innerhalb einer Campaign  
-  - Speicherort: Filesystem oder S3-kompatibler Object-Store
-- **Analytics**
-  - Tracking von Likes, Reposts, Replies  
-  - Zeitverlauf-Graphen pro Post und Campaign
-- **Sicherheits-Features**
-  - Token-Verschlüsselung per Envelope-Key pro Tenant  
-  - Audit-Logs für wichtige Aktionen (Posten, Löschen, Rollenzuweisung)
-- **2FA-Vorbereitung**
-  - Tabellen und Flags für TOTP/WebAuthn  
-  - Deaktivierter, aber vorbereiteter MFA-Schritt im Login-Flow
+
+- Mandantentrennung per `tenant_id`, Unique-Constraints pro Tenant, Query-Filter.
+- Benutzer- und Rollenverwaltung (`owner`, `admin`, `editor`, `viewer`) inklusive Einladungen und E-Mail-Verifizierung.
+- Scheduler-Verbesserungen: Retries mit Backoff, Concurrency-Limits, Abbruch und Neuplanung.
+- Medienverwaltung mit Metadaten, Wiederverwendung und optionalem S3-Speicher.
+- Analytics: Erfassung von Likes/Reposts/Replies und Zeitreihen-Auswertung.
+- Sicherheit: Envelope-Verschlüsselung je Tenant, Audit-Logs, vorbereitete 2FA-Tabellen.
 
 ---
 
-## **Phase 3 – Vollständiger Bluesky-Client**
-**Ziel:** Neben Kampagnenplanung wird auch vollständige Interaktion mit Bluesky möglich – ähnlich einem professionellen Social-Media-Tool.
+## Phase 3 – Vollständiger Bluesky-Client
 
-### Client-Funktionen
-- **Timeline-Anzeige**
-  - Home, benutzerdefinierte Feeds, Listen  
-  - Filtern und Suchen in Echtzeit
-- **Interaktion**
-  - Liken, Reposten, Zitieren, Antworten  
-  - Folgen/Entfolgen, Listenverwaltung
-- **Direktnachrichten** *(sofern Bluesky sie implementiert)*
-- **Multi-Account-Unterstützung pro Tenant**
-  - Trennung der Credentials je Account  
-  - Account-spezifische Timeline und Posting-Optionen
-- **Erweiterte Kampagnenfunktionen**
-  - Mehrkanalplanung (mehrere Accounts pro Campaign)  
-  - Crossposting-Vorbereitung (Bluesky + Mastodon + weitere Plattformen)
-- **Erweiterte Sicherheit**
-  - Voll implementierte 2FA (TOTP + Backup-Codes, optional WebAuthn)  
-  - Geräteverwaltung & Login-Benachrichtigungen  
-  - Export/Import kompletter Tenants (inkl. Medien und Einstellungen)
-- **Integrationen**
-  - Webhooks für externe Tools  
-  - API-Endpunkte für Automatisierung  
-  - Optional: Plugin-System
+**Ziel:** Neben der Kampagnenplanung ermöglicht das Tool vollwertige Bluesky-Interaktionen.
+
+### Geplante Funktionen
+
+- Timeline-Ansichten (Home, benutzerdefinierte Feeds, Listen) mit Filter- und Suchfunktionen.
+- Interaktionen: Liken, Reposten, Zitieren, Antworten, Follow/Unfollow, Listenpflege.
+- Direktnachrichten sobald Bluesky sie bereitstellt.
+- Multi-Account-Unterstützung pro Tenant, inklusive Account-spezifischer Timelines.
+- Erweiterte Kampagnenfunktionen (Mehrkanalplanung, Crossposting-Vorbereitung).
+- Sicherheit: Vollständige 2FA (TOTP + Backup-Codes, perspektivisch WebAuthn), Geräteverwaltung, Login-Benachrichtigungen.
+- Integrationen: Webhooks, Automatisierungs-API, optional Plugin-Schnittstelle.
 
 ---
 
-## Hinweise zur Umsetzung
-- **Open Source**: Der Code wird unter einer freien Lizenz veröffentlicht, um Community-Beiträge zu ermöglichen.  
-- **Architekturprinzipien**:  
-  - Von Anfang an Datenbank-agnostisch (SQLite, MySQL, Postgres)  
-  - Strikte Trennung von Mandanten-Daten  
-  - Security-by-Design (Verschlüsselung, Hashing, Audit-Logs)  
-- **Priorisierung**: Jede Phase bringt ein **benutzbares Produkt**, das auf dem vorherigen Stand aufbaut.  
-- **Community-Einbindung**: Feedback und Feature-Requests über Issues und Diskussionen im GitHub-Repository.
+## Leitprinzipien
 
----
+- **Open Source:** Freie Lizenz, Community-Beiträge ausdrücklich erwünscht.
+- **Architektur:** Datenbank-agnostisch, konsequente Mandantentrennung, Security-by-Design.
+- **Priorisierung:** Jede Phase liefert Mehrwert, ohne zukünftige Erweiterungen zu blockieren.
+- **Feedback:** Feature-Requests und Diskussionen über Issues, Roadmap wird kontinuierlich aktualisiert.

@@ -1,61 +1,80 @@
-# Option A: Installation auf lokalem PC
+# Option A: Installation auf einem lokalen Rechner
 
-Diese Methode eignet sich für lokale Entwicklung, Tests oder den direkten Betrieb auf einem Rechner ohne Container.
+Geeignet für lokale Entwicklung, manuelle Tests oder kleine Selbst-Hostings ohne Container. Die Anleitung nutzt Node.js und SQLite als Standarddatenbank.
+
+---
+
+## Voraussetzungen
+
+- Node.js ≥ 20 (inkl. npm)
+- Git
+- Bluesky-Identifier und App-Passwort
+
+Optional:
+- PostgreSQL oder MySQL, falls du nicht mit SQLite arbeiten möchtest
+- `nodemon` für komfortable Entwicklung (per `npm install -g nodemon`)
 
 ---
 
 ## 1. Repository klonen
+
 ```bash
 git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
 cd BSky-Kampagnen-Bot
 ```
 
-## 2. Backend-Abhängigkeiten installieren
+## 2. Abhängigkeiten installieren
+
 ```bash
 npm install
 ```
 
-## 3. Frontend installieren & bauen
+## 3. Frontend bauen
+
 ```bash
 cd dashboard
 npm install
 npm run build
 cd ..
 ```
-## 4. Konfiguration
 
-- ### 1. env.sample nach .env kopieren:
+> Das Dashboard wird durch `npm run build` in den Ordner `dashboard/dist` gebaut und vom Express-Server ausgeliefert.
+
+## 4. Konfiguration einrichten
+
+1. Beispiel-Environment kopieren:
+   ```bash
+   cp .env.sample .env
+   ```
+2. Zugangsdaten in `.env` ergänzen:
+   ```ini
+   BLUESKY_SERVER=https://bsky.social
+   BLUESKY_IDENTIFIER=dein_handle.bsky.social
+   BLUESKY_APP_PASSWORD=dein_app_passwort
+   ```
+3. Optional: Zeitzone und Datenbanktyp anpassen (siehe Kommentare in `.env`).
+
+## 5. Datenbank vorbereiten (optional, empfohlen)
+
 ```bash
-    cp .env.sample .env
-```
-- ### 2. Zugangsdaten für Bluesky eintragen:
-```ini
-    BLUESKY_SERVER=https://bsky.social
-    BLUESKY_IDENTIFIER=dein_handle.bsky.social
-    BLUESKY_APP_PASSWORD=dein_passwort
-```
-- ### 3. Optional Zeitzone einstellen:
-```ini
-    VITE_TIME_ZONE=Europe/Berlin
+npm run migrate:dev
+# optional Seeds laden:
+npm run seed:dev
 ```
 
-## 5. Server starten
+## 6. Server starten
+
 ```bash
-node server.js
+npm run dev
 ```
 
-Der Server ist erreichbar unter: http://localhost:3000
+Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produktionsähnlichen Start verwende `npm start`.
 
 ---
 
-## Hinweise & Tipps
+## Zusätzliche Hinweise
 
-- **Datenbank:** Standardmäßig SQLite-Datei im Projektverzeichnis. Für MySQL/PostgreSQL in .env umstellen.
-
-- **Logs:** Standardausgabe in der Konsole. Bei Bedarf Umleitung in Logdateien.
-
-- **Entwicklung:** Mit nodemon kannst du automatische Neustarts bei Codeänderungen aktivieren.
-
-- **Sicherheit:** .env niemals ins Git-Repository hochladen.
-
-- **Backups:** Bei SQLite einfach die DB-Datei sichern. Bei MySQL/PostgreSQL die Tools mysqldump bzw. pg_dump verwenden.
+- **Datenbank:** Ohne weitere Konfiguration wird eine SQLite-Datei im Projektverzeichnis erstellt. Für PostgreSQL/MySQL entsprechende Verbindungsdaten in `.env` setzen.
+- **Logs:** Standardmäßig werden Logs in der Konsole ausgegeben. Für lokale Tests kann `npm run dev` mit automatischem Reload genutzt werden.
+- **Sicherheit:** `.env` niemals ins Repository einchecken. Verwende für Tests Dummy-Zugangsdaten.
+- **Backups:** Bei SQLite reicht das Kopieren der Datenbankdatei. Für andere Datenbanken stehen `pg_dump` bzw. `mysqldump` zur Verfügung.

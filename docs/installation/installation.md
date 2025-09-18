@@ -1,25 +1,22 @@
 # Installation
 
-Dieser Abschnitt beschreibt die verschiedenen Möglichkeiten, den **BSky-Kampagnen-Bot** zu installieren und zu betreiben.  
-Bitte wähle die für dich passende Variante aus.
-
-## Optionen
-
-1. **[Installation auf dem lokalen PC oder Server](local-install.md)**  
-   Für die Ausführung auf einem lokalen Rechner (Windows, macOS, Linux) oder einem eigenen Server ohne Containerisierung.
-
-2. **[Installation auf einem Server](server-install.md)**  
-   Für die direkte Installation auf einem (v)Server oder einer dedizierten Maschine, z. B. im Rechenzentrum oder Cloud-Hoster.
-
-3. **[Installation im Docker-Container](docker-install.md)**  
-   Für eine einfache, isolierte Installation mit Docker und optionaler Docker-Compose-Unterstützung.
+Hier findest du einen Überblick über die verfügbaren Installationswege für den **BSky-Kampagnen-Bot**. Wähle die Variante, die am besten zu deinem Einsatzzweck passt, und folge anschließend der jeweiligen Detailanleitung.
 
 ---
 
-## Hinweise
+## Installationsoptionen
 
-- Vor der Installation sollte geprüft werden, ob alle **Systemvoraussetzungen** erfüllt sind (siehe jeweilige Anleitung).
-- Falls du unsicher bist, welche Option die richtige ist, empfehlen wir die **Docker-Installation** – sie ist am einfachsten zu warten und erfordert keine komplexe lokale Einrichtung.
+1. **[Lokale Installation](./local-install.md)** – ideal für Entwicklung, Tests oder den Betrieb auf dem eigenen Rechner.
+2. **[Manuelle Server-Installation](./server-install.md)** – geeignet für produktive Setups ohne Containerisierung, z. B. auf einem (v)Server.
+3. **[Docker-Installation](./docker-install.md)** – bevorzugte Option für einen reproduzierbaren und isolierten Betrieb mit Docker Compose.
+
+---
+
+## Allgemeine Hinweise
+
+- Prüfe vorab die Systemvoraussetzungen der gewählten Anleitung (Node.js-Version, Datenbank, Docker, …).
+- Sensible Konfigurationsdateien wie `.env` niemals ins Versionskontrollsystem hochladen.
+- Für produktive Umgebungen empfehlen wir einen regelmäßigen Backup-Plan für Datenbank und Konfiguration.
 
 ---
 
