@@ -1,67 +1,83 @@
+/* Tab-Navigation und kompaktes Burger-Menü */
 .menu-tabs {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-small);
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing);
 }
 
 .menu-tabs button {
     background-color: var(--color-accent);
-    border: none;
-    padding: 8px 14px;
-    border-radius: 4px;
+    color: var(--color-button-text);
+    border: 1px solid transparent;
+    padding: var(--spacing-small) calc(var(--spacing) * 0.9);
+    border-radius: var(--border-radius-small);
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: var(--font-size-base);
+    transition: background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease), transform var(--transition-duration) var(--transition-ease);
 }
 
 .menu-tabs button:hover {
     background-color: var(--color-accent-hover);
 }
 
-.menu-container {
-    position: relative;
-    margin-bottom: 16px;
+.menu-tabs button:active {
+    transform: translateY(1px);
+    background-color: var(--color-accent-active);
 }
 
-.burger-button {
-    display: none;
-    background: none;
-    background-color: var(--color-accent);
-    border: 1px solid var(--color-accent);
-    padding: 8px 12px;
-    font-size: 1.2em;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.burger-button:hover {
-    background-color: var(--color-accent-hover);
-    color: var(--color-button-text);
-    border-color: var(--color-accent);
+.menu-tabs button:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .menu-tabs button.active {
     background-color: var(--color-accent-active);
     color: var(--color-button-text);
-    font-weight: bold;
+    font-weight: 600;
+}
+
+.menu-container {
+    position: relative;
+    margin-bottom: var(--spacing);
+}
+
+.burger-button {
+    display: none;
+    background-color: var(--color-accent);
+    color: var(--color-button-text);
+    border: 1px solid var(--color-accent);
+    padding: var(--spacing-small) var(--spacing);
+    font-size: 1.1rem;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: background-color var(--transition-duration) var(--transition-ease);
+}
+
+.burger-button:hover,
+.burger-button:focus-visible {
+    background-color: var(--color-accent-hover);
 }
 
 @media (max-width: 600px) {
     .burger-button {
-        display: block;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-x-small);
     }
 
     .menu-tabs {
         flex-direction: column;
         position: absolute;
-        top: 40px;
+        top: 42px;
         left: 0;
-        background: var(--color-accent);
-        border: 1px solid var(--color-accent);
-        border-radius: 6px;
-        padding: 8px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-small);
         width: max-content;
         z-index: 1000;
+        box-shadow: var(--box-shadow-medium);
         display: none;
     }
 

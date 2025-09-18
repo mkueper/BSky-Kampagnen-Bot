@@ -1,48 +1,67 @@
 :root {
-    /* styles/variables.css */
-
-
-    /* Farben */
+    /* Farbpalette */
     --color-bg: #f5f5f5;
-    --color-bg-light: #f8f9fa;
-    --color-bg-white: #ffffff;
+    --color-bg-subtle: #f8f9fa;
+    --color-surface: #ffffff;
 
-    --color-text: #333;
-    --color-muted: #666;
-    --color-border: #ccc;
+    --color-text: #333333;
+    --color-text-muted: #666666;
+    --color-border: #d0d5dd;
 
     --color-accent: #b1b3b5;
-    /* sattes Mittelblau */
-    --color-accent-hover: #494a4a;
-    /* deutlich dunkleres Blau */
-    --color-accent-active: #6d7171;
-    /* sattes dunkleres Blau */
+    --color-accent-hover: #6f7376;
+    --color-accent-active: #5b5f62;
+
     --color-warning: #ffc107;
+    --color-warning-surface: #fff8e5;
     --color-success: #28a745;
+    --color-success-surface: #ecfdf3;
 
     --color-button-text: #ffffff;
+    --color-focus: rgba(88, 101, 242, 0.45);
 
-    /* Layout */
+    /* Abstände & Radien */
+    --spacing-x-small: 0.25rem;
     --spacing-small: 0.5rem;
     --spacing: 1rem;
     --spacing-large: 2rem;
 
+    --border-radius-small: 4px;
     --border-radius: 6px;
     --border-radius-large: 12px;
 
-    --box-shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --box-shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --box-shadow-light: 0 2px 4px rgba(15, 23, 42, 0.08);
+    --box-shadow-medium: 0 4px 12px rgba(15, 23, 42, 0.12);
 
-    /* Schriftgrößen */
+    /* Typografie */
+    --font-family-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     --font-size-base: 1rem;
     --font-size-heading: 1.5rem;
     --font-size-small: 0.875rem;
-}
 
+    /* Animation & Übergänge */
+    --transition-duration: 0.2s;
+    --transition-ease: ease;
+}
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --background: #121212;
-        --text: #f0f0f0;
+        --color-bg: #0f172a;
+        --color-bg-subtle: #1e293b;
+        --color-surface: #111827;
+
+        --color-text: #e2e8f0;
+        --color-text-muted: #94a3b8;
+        --color-border: #334155;
+
+        --color-accent: #8b9aaf;
+        --color-accent-hover: #9ea9b8;
+        --color-accent-active: #798498;
+
+        --color-warning-surface: rgba(252, 211, 77, 0.2);
+        --color-success-surface: rgba(74, 222, 128, 0.2);
+
+        --box-shadow-light: 0 2px 4px rgba(15, 23, 42, 0.35);
+        --box-shadow-medium: 0 6px 16px rgba(15, 23, 42, 0.45);
     }
 }

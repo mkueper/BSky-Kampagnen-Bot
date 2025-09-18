@@ -7,8 +7,15 @@ const agent = new AtpAgent({ service: serverUrl });
 
 
 async function login() {
-  console.log("identifier:", identifier);
-  console.log("password:", appPassword ? "[gesetzt]" : "[FEHLT]");
+  if (!identifier) {
+    throw new Error("BLUESKY_IDENTIFIER fehlt. Bitte .env prüfen.");
+  }
+
+  if (!appPassword) {
+    throw new Error("BLUESKY_APP_PASSWORD fehlt. Bitte .env prüfen.");
+  }
+
+  console.log("Bluesky-Login mit bereitgestellten Zugangsdaten gestartet");
   await agent.login({ identifier, password: appPassword });
 }
 
