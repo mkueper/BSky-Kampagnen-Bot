@@ -2,8 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
 import { formatTime } from "./utils/formatTime";
 import { classNames } from "./utils/classNames";
-import {getRepeatDescription} from "./utils/timeUtils";
+import { getRepeatDescription } from "./utils/timeUtils";
 import "./styles/App.css";
+
+function parseTargetPlatforms(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Konnte targetPlatforms nicht parsen:", error);
+    }
+  }
+
+  return [];
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -11,12 +28,13 @@ function App() {
   const [replies, setReplies] = useState([]);
   const [selectedSkeetId, setSelectedSkeetId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingSkeet, setEditingSkeet] = useState(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false); // Menü schließen, wenn außerhalb geklickt wird
+        setMenuOpen(false);
       }
     }
 
@@ -31,12 +49,20 @@ function App() {
     };
   }, [menuOpen]);
 
-  // Lädt Skeets vom Server (GET /api/skeets)
   const loadSkeets = async () => {
     const res = await fetch("/api/skeets");
     if (res.ok) {
       const data = await res.json();
-      setSkeets(data);
+      const normalized = data.map((item) => ({
+        ...item,
+        targetPlatforms: parseTargetPlatforms(item.targetPlatforms),
+      }));
+      setSkeets(normalized);
+      setEditingSkeet((current) => {
+        if (!current) return current;
+        const updated = normalized.find((entry) => entry.id === current.id);
+        return updated ?? null;
+      });
     } else {
       console.error("Fehler beim Laden der Skeets");
     }
@@ -57,6 +83,37 @@ function App() {
     const data = await res.json();
     setReplies(data);
     setSelectedSkeetId(id);
+  };
+
+  const handleEdit = (skeet) => {
+    setEditingSkeet(skeet);
+    setActiveTab("skeetplaner");
+  };
+
+  const handleDelete = async (skeet) => {
+    const confirmed = window.confirm("Soll dieser geplante Skeet wirklich gelöscht werden?");
+    if (!confirmed) {
+      return;
+    }
+
+    const res = await fetch(`/api/skeets/${skeet.id}`, { method: "DELETE" });
+    if (res.ok) {
+      setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
+      loadSkeets();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Fehler beim Löschen des Skeets.");
+    }
+  };
+
+  const handleFormSaved = () => {
+    setEditingSkeet(null);
+    loadSkeets();
+    setActiveTab("dashboard");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSkeet(null);
   };
 
   const plannedSkeets = skeets.filter((s) => !s.postUri);
@@ -128,6 +185,17 @@ function App() {
                 <p>
                   <em>{getRepeatDescription(skeet)}</em>
                 </p>
+                {skeet.targetPlatforms?.length > 0 && (
+                  <p className="skeet-platforms">
+                    Plattformen: {skeet.targetPlatforms.join(", ")}
+                  </p>
+                )}
+                <div className="skeet-actions">
+                  <button onClick={() => handleEdit(skeet)}>Bearbeiten</button>
+                  <button className="danger" onClick={() => handleDelete(skeet)}>
+                    Löschen
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -137,6 +205,16 @@ function App() {
             {publishedSkeets.map((skeet) => (
               <li key={skeet.id} className="skeet-item skeet-published">
                 <p>{skeet.content}</p>
+                {skeet.targetPlatforms?.length > 0 && (
+                  <p className="skeet-platforms">
+                    Plattformen: {skeet.targetPlatforms.join(", ")}
+                  </p>
+                )}
+                {skeet.postedAt && (
+                  <p className="skeet-meta">
+                    Gesendet am {formatTime(skeet.postedAt)}
+                  </p>
+                )}
                 <button onClick={() => fetchReactions(skeet.id)}>
                   Reaktionen anzeigen
                 </button>
@@ -179,8 +257,11 @@ function App() {
 
       {activeTab === "skeetplaner" && (
         <div className="planer-section">
-          
-          <SkeetForm onSkeetCreated={loadSkeets} />
+          <SkeetForm
+            onSkeetSaved={handleFormSaved}
+            editingSkeet={editingSkeet}
+            onCancelEdit={handleCancelEdit}
+          />
         </div>
       )}
     </div>

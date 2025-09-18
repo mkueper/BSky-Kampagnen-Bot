@@ -65,6 +65,16 @@ textarea:focus-visible {
     gap: var(--spacing-small);
 }
 
+.form-actions .secondary {
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.form-actions .secondary:hover {
+    background: var(--color-bg-subtle);
+}
+
 .form-header {
     display: flex;
     align-items: center;

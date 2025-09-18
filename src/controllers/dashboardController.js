@@ -2,6 +2,8 @@
 const { Skeet, Reply } = require("../models");
 const { getReactions, getReplies } = require("../services/blueskyClient");
 
+const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
+
 // GET /api/skeets
 async function getSkeets(req, res) {
   try {
@@ -94,10 +96,26 @@ async function createSkeet(req, res) {
       repeatDayOfMonth = null,
       threadId = null,
       isThreadPost = false,
+      targetPlatforms = ["bluesky"],
     } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ error: "content ist erforderlich." });
+    }
+
+    if (!Array.isArray(targetPlatforms) || targetPlatforms.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "targetPlatforms muss mindestens eine Plattform enthalten." });
+    }
+
+    const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+
+    const invalidPlatforms = normalizedPlatforms.filter((p) => !ALLOWED_PLATFORMS.includes(p));
+    if (invalidPlatforms.length > 0) {
+      return res
+        .status(400)
+        .json({ error: `Ungültige Plattform(en): ${invalidPlatforms.join(", ")}` });
     }
 
     // Datum nur prüfen, wenn es übergeben wurde
@@ -117,6 +135,8 @@ async function createSkeet(req, res) {
       repeatDayOfMonth,
       threadId,
       isThreadPost,
+      targetPlatforms: normalizedPlatforms,
+      platformResults: {},
     });
 
     res.status(201).json(skeet);
@@ -126,9 +146,139 @@ async function createSkeet(req, res) {
   }
 }
 
+// PATCH /api/skeets/:id
+async function updateSkeet(req, res) {
+  const { id } = req.params;
+
+  try {
+    const skeet = await Skeet.findByPk(id);
+    if (!skeet) {
+      return res.status(404).json({ error: "Skeet nicht gefunden." });
+    }
+
+    const {
+      content,
+      scheduledAt,
+      repeat = "none",
+      repeatDayOfWeek = null,
+      repeatDayOfMonth = null,
+      threadId = null,
+      isThreadPost = false,
+      targetPlatforms = ["bluesky"],
+    } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: "content ist erforderlich." });
+    }
+
+    if (!Array.isArray(targetPlatforms) || targetPlatforms.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "targetPlatforms muss mindestens eine Plattform enthalten." });
+    }
+
+    const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+    const invalidPlatforms = normalizedPlatforms.filter((p) => !ALLOWED_PLATFORMS.includes(p));
+    if (invalidPlatforms.length > 0) {
+      return res
+        .status(400)
+        .json({ error: `Ungültige Plattform(en): ${invalidPlatforms.join(", ")}` });
+    }
+
+    let scheduled = skeet.scheduledAt;
+    if (scheduledAt !== undefined) {
+      if (scheduledAt === null || scheduledAt === "") {
+        scheduled = null;
+      } else {
+        const parsed = new Date(scheduledAt);
+        if (isNaN(parsed)) {
+          return res.status(400).json({ error: "scheduledAt ist kein gültiges Datum." });
+        }
+        scheduled = parsed;
+      }
+    }
+
+    if (repeat === "none") {
+      if (!scheduled) {
+        return res
+          .status(400)
+          .json({ error: "scheduledAt ist erforderlich, wenn repeat = 'none' ist." });
+      }
+    }
+
+    let normalizedRepeatDayOfWeek = null;
+    if (repeat === "weekly") {
+      const value = Number(repeatDayOfWeek);
+      if (!Number.isInteger(value) || value < 0 || value > 6) {
+        return res
+          .status(400)
+          .json({ error: "repeatDayOfWeek muss zwischen 0 (Sonntag) und 6 liegen." });
+      }
+      normalizedRepeatDayOfWeek = value;
+    }
+
+    let normalizedRepeatDayOfMonth = null;
+    if (repeat === "monthly") {
+      const value = Number(repeatDayOfMonth);
+      if (!Number.isInteger(value) || value < 1 || value > 31) {
+        return res
+          .status(400)
+          .json({ error: "repeatDayOfMonth muss zwischen 1 und 31 liegen." });
+      }
+      normalizedRepeatDayOfMonth = value;
+    }
+
+    const updates = {
+      content: content.trim(),
+      repeat,
+      repeatDayOfWeek: normalizedRepeatDayOfWeek,
+      repeatDayOfMonth: normalizedRepeatDayOfMonth,
+      threadId,
+      isThreadPost,
+      targetPlatforms: normalizedPlatforms,
+      platformResults: {},
+    };
+
+    if (repeat === "none") {
+      updates.scheduledAt = scheduled;
+      updates.postUri = null;
+      updates.postedAt = null;
+    } else if (scheduled) {
+      updates.scheduledAt = scheduled;
+    }
+
+    await skeet.update(updates);
+
+    res.json(skeet);
+  } catch (err) {
+    console.error(`Fehler beim Aktualisieren des Skeets ${req.params.id}:`, err);
+    res.status(400).json({ error: err.message || "Fehler beim Aktualisieren des Skeets." });
+  }
+}
+
+// DELETE /api/skeets/:id
+async function deleteSkeet(req, res) {
+  const { id } = req.params;
+
+  try {
+    const skeet = await Skeet.findByPk(id);
+    if (!skeet) {
+      return res.status(404).json({ error: "Skeet nicht gefunden." });
+    }
+
+    await skeet.destroy();
+    res.status(204).send();
+  } catch (err) {
+    console.error(`Fehler beim Löschen des Skeets ${req.params.id}:`, err);
+    res.status(500).json({ error: "Fehler beim Löschen des Skeets." });
+  }
+}
+
 module.exports = {
   getSkeets,
   createSkeet,
+  updateSkeet,
+  deleteSkeet,
   getReactions: getReactionsController,
   getReplies: getRepliesController,
 };
