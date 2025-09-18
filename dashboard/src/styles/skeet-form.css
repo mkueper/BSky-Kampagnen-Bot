@@ -49,3 +49,32 @@ textarea {
 .form-actions {
     text-align: right;
 }
+
+.form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    /* bricht unter den Titel bei schmalem Screen */
+}
+
+.platforms-inline {
+    display: flex;
+    gap: 8px;
+}
+
+.platforms-inline .toggle {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.platforms-inline .toggle.on {
+    border-color: #7aa7;
+}
