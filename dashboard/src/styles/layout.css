@@ -15,6 +15,27 @@
     transition: border-color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
 }
 
+.skeet-platforms {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    margin: var(--spacing-x-small) 0;
+}
+
+.skeet-actions {
+    margin-top: var(--spacing-small);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-small);
+}
+
+.skeet-actions .danger {
+    background-color: #dc3545;
+}
+
+.skeet-actions .danger:hover {
+    background-color: #b02a37;
+}
+
 .skeet-item:hover {
     border-color: var(--color-accent);
     box-shadow: var(--box-shadow-medium);

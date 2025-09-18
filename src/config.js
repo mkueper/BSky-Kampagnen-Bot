@@ -1,7 +1,7 @@
 // src/config.js
 require("dotenv").config();
 
-const DEFAULT_CRON = "0 9 * * *"; // Standard: jeden Tag um 9 Uhr
+const DEFAULT_CRON = "* * * * *"; // Standard: jede Minute prüfen
 
 module.exports = {
   SCHEDULE_TIME:

@@ -1,5 +1,5 @@
 const { countGraphemesSync } = require("../../utils/graphemes");
-const Masto = require("mastodon-api"); // oder dein bisher genutztes Mastodon-SDK
+const { createClient } = require("../../services/mastodonClient");
 
 /**
  * Erwartete env-Felder:
@@ -12,13 +12,6 @@ const Masto = require("mastodon-api"); // oder dein bisher genutztes Mastodon-SD
  * @property {string} apiUrl
  * @property {string} accessToken
  */
-
-function createClient(env) {
-  return new Masto({
-    access_token: env.accessToken,
-    api_url: `${env.apiUrl}/api/v1/`,
-  });
-}
 
 const mastodonProfile = {
   id: "mastodon",

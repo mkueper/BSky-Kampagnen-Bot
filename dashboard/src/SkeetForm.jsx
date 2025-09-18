@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Hilfsfunktion für Formatierung
 function getDefaultDateTime() {
@@ -7,30 +7,87 @@ function getDefaultDateTime() {
   now.setHours(9, 0, 0, 0); // 9:00 Uhr
   const offsetMs = now.getTimezoneOffset() * 60 * 1000;
   const localDate = new Date(now.getTime() - offsetMs);
-  return localDate.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm String.slice(0, 16); // yyyy-MM-ddTHH:mm
+  return localDate.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
 }
 
-function SkeetForm({ onSkeetCreated }) {
+function getDefaultDateParts() {
+  const defaultDateTime = getDefaultDateTime();
+  const [date, time] = defaultDateTime.split("T");
+  return { date, time };
+}
+
+function toLocalDateParts(value) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (isNaN(parsed)) {
+    return null;
+  }
+
+  const offsetMs = parsed.getTimezoneOffset() * 60 * 1000;
+  const local = new Date(parsed.getTime() - offsetMs);
+  const iso = local.toISOString().slice(0, 16);
+  const [date, time] = iso.split("T");
+  return { date, time };
+}
+
+function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
+  const { date: defaultDate, time: defaultTime } = getDefaultDateParts();
+
   const [content, setContent] = useState("");
-  const [targetPlatforms, setTargetPlatforms] = useState(["bluesky", "mastodon"]);
-
-  const now = new Date();
-  const defaultDate = now.toISOString().slice(0, 10); // yyyy-mm-dd
-  const defaultTime = now.toTimeString().slice(0, 5); // HH:mm
-
+  const [targetPlatforms, setTargetPlatforms] = useState(["bluesky"]);
   const [scheduledDate, setScheduledDate] = useState(defaultDate);
   const [scheduledTime, setScheduledTime] = useState(defaultTime);
-  const [scheduledAt, setScheduled] = useState(`${defaultDate}T${defaultTime}`);
-  const fullDateTime = scheduledDate && scheduledTime ? new Date(`${scheduledDate}T${scheduledTime}`) : null;
-
   const [repeat, setRepeat] = useState("none");
   const [repeatDayOfWeek, setRepeatDayOfWeek] = useState(null);
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null);
 
+  const isEditing = Boolean(editingSkeet);
+
+  function resetToDefaults() {
+    setContent("");
+    setTargetPlatforms(["bluesky"]);
+    setRepeat("none");
+    setRepeatDayOfWeek(null);
+    setRepeatDayOfMonth(null);
+    const defaults = getDefaultDateParts();
+    setScheduledDate(defaults.date);
+    setScheduledTime(defaults.time);
+  }
+
+  useEffect(() => {
+    if (editingSkeet) {
+      setContent(editingSkeet.content ?? "");
+      setTargetPlatforms(
+        Array.isArray(editingSkeet.targetPlatforms) && editingSkeet.targetPlatforms.length > 0
+          ? editingSkeet.targetPlatforms
+          : ["bluesky"],
+      );
+      setRepeat(editingSkeet.repeat ?? "none");
+      setRepeatDayOfWeek(
+        editingSkeet.repeat === "weekly" && editingSkeet.repeatDayOfWeek != null
+          ? Number(editingSkeet.repeatDayOfWeek)
+          : null,
+      );
+      setRepeatDayOfMonth(
+        editingSkeet.repeat === "monthly" && editingSkeet.repeatDayOfMonth != null
+          ? Number(editingSkeet.repeatDayOfMonth)
+          : null,
+      );
+
+      const parts = toLocalDateParts(editingSkeet.scheduledAt) ?? getDefaultDateParts();
+      setScheduledDate(parts.date);
+      setScheduledTime(parts.time);
+    } else {
+      resetToDefaults();
+    }
+  }, [editingSkeet]);
+
   function togglePlatform(name) {
     setTargetPlatforms((prev) => {
       if (prev.includes(name)) {
-        // verhindere, dass alle abgewählt werden
         if (prev.length === 1) return prev;
         return prev.filter((p) => p !== name);
       }
@@ -38,9 +95,8 @@ function SkeetForm({ onSkeetCreated }) {
     });
   }
 
-  function updateScheduled(date, time) {
-    setScheduled(`${date}T${time}`);
-  }
+  const scheduledDateTime =
+    scheduledDate && scheduledTime ? new Date(`${scheduledDate}T${scheduledTime}`) : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,42 +106,53 @@ function SkeetForm({ onSkeetCreated }) {
       return;
     }
 
-    if (!fullDateTime || isNaN(fullDateTime.getTime())) {
-      alert("Ungültiges Datum oder Uhrzeit.");
+    if (repeat === "none") {
+      if (!scheduledDateTime || isNaN(scheduledDateTime.getTime())) {
+        alert("Ungültiges Datum oder Uhrzeit.");
+        return;
+      }
+    }
+
+    const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+    if (normalizedPlatforms.length === 0) {
+      alert("Bitte mindestens eine Plattform auswählen.");
       return;
     }
 
-    const res = await fetch("/api/skeets", {
-      method: "POST",
+    const payload = {
+      content,
+      scheduledAt:
+        scheduledDateTime && !isNaN(scheduledDateTime.getTime()) ? scheduledDateTime : null,
+      repeat,
+      repeatDayOfWeek,
+      repeatDayOfMonth,
+      targetPlatforms: normalizedPlatforms,
+    };
+
+    const url = isEditing ? `/api/skeets/${editingSkeet.id}` : "/api/skeets";
+    const method = isEditing ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content,
-        scheduledAt: fullDateTime,
-        repeat,
-        repeatDayOfWeek,
-        repeatDayOfMonth,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
-      setContent("");
-
-      const defaultDateTime = getDefaultDateTime();
-      const [defaultDate, defaultTime] = defaultDateTime.split("T");
-
-      setScheduledDate(defaultDate);
-      setScheduledTime(defaultTime);
-
-      if (onSkeetCreated) onSkeetCreated();
+      if (!isEditing) {
+        resetToDefaults();
+      }
+      if (onSkeetSaved) onSkeetSaved();
     } else {
-      alert("Fehler beim Anlegen!");
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Fehler beim Speichern des Skeets.");
     }
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
       <div className="form-header">
-        <h2>📝 Skeetplaner</h2>
+        <h2>{isEditing ? "✏️ Skeet bearbeiten" : "📝 Skeetplaner"}</h2>
 
         <div className="platforms-inline" role="group" aria-label="Plattformen wählen">
           <label className={`toggle ${targetPlatforms.includes("bluesky") ? "on" : "off"}`}>
@@ -132,8 +199,8 @@ function SkeetForm({ onSkeetCreated }) {
           id="repeat"
           value={repeat}
           onChange={(e) => {
-            setRepeat(e.target.value);
-            // Reset Felder je nach Auswahl
+            const value = e.target.value;
+            setRepeat(value);
             setRepeatDayOfWeek(null);
             setRepeatDayOfMonth(null);
           }}
@@ -151,7 +218,10 @@ function SkeetForm({ onSkeetCreated }) {
           <select
             id="repeatDayOfWeek"
             value={repeatDayOfWeek ?? ""}
-            onChange={(e) => setRepeatDayOfWeek(Number(e.target.value))}
+            onChange={(e) => {
+              const value = e.target.value;
+              setRepeatDayOfWeek(value === "" ? null : Number(value));
+            }}
           >
             <option value="">Bitte wählen</option>
             <option value="1">Montag</option>
@@ -174,7 +244,10 @@ function SkeetForm({ onSkeetCreated }) {
             min="1"
             max="31"
             value={repeatDayOfMonth ?? ""}
-            onChange={(e) => setRepeatDayOfMonth(Number(e.target.value))}
+            onChange={(e) => {
+              const value = e.target.value;
+              setRepeatDayOfMonth(value === "" ? null : Number(value));
+            }}
           />
         </div>
       )}
@@ -186,10 +259,7 @@ function SkeetForm({ onSkeetCreated }) {
             id="date"
             type="date"
             value={scheduledDate}
-            onChange={(e) => {
-              setScheduledDate(e.target.value);
-              updateScheduled(e.target.value, scheduledTime);
-            }}
+            onChange={(e) => setScheduledDate(e.target.value)}
           />
         </div>
       )}
@@ -200,14 +270,24 @@ function SkeetForm({ onSkeetCreated }) {
           id="time"
           type="time"
           value={scheduledTime}
-          onChange={(e) => {
-            setScheduledTime(e.target.value);
-            updateScheduled(scheduledDate, e.target.value);
-          }}
+          onChange={(e) => setScheduledTime(e.target.value)}
         />
       </div>
 
-      <button type="submit">Skeet speichern</button>
+      <div className="form-actions">
+        {isEditing && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onCancelEdit) onCancelEdit();
+            }}
+            className="secondary"
+          >
+            Abbrechen
+          </button>
+        )}
+        <button type="submit">{isEditing ? "Skeet aktualisieren" : "Skeet speichern"}</button>
+      </div>
     </form>
   );
 }
