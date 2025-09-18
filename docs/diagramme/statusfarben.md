@@ -1,24 +1,17 @@
-
----
-
-### `docs/diagramme/statusfarben.md`
-```markdown
 # Statusfarben-Legende
 
-Diese Tabelle definiert die Farbzuordnung für alle Stati im BSky-Kampagnen-Bot.  
-Die Hex-Werte werden sowohl in der UI als auch in den Mermaid-Diagrammen verwendet.
+Die Tabelle definiert die Farbzuordnung für Status in UI-Komponenten und Diagrammen. Änderungen sollten synchron im Frontend, in den CSS-Variablen und in den Mermaid-Diagrammen übernommen werden.
 
-| Status      | Farbe (Hex) |
-|-------------|-------------|
-| draft       | `#9e9e9e`   |
-| scheduled   | `#1976d2`   |
-| sending     | `#ff9800`   |
-| sent        | `#4caf50`   |
-| failed      | `#f44336`   |
-| cancelled   | `#757575`   |
-| archived    | `#607d8b`   |
-| deleted     | `#000000`   |
-| Start/End   | `#ffffff`   |
+| Status      | Farbe (Hex) | Verwendung |
+|-------------|-------------|------------|
+| draft       | `#9e9e9e`   | Entwürfe, noch nicht geplant |
+| scheduled   | `#1976d2`   | Geplante Posts/Threads |
+| sending     | `#ff9800`   | Aktive Ausführung im Scheduler |
+| sent        | `#4caf50`   | Erfolgreich veröffentlichte Inhalte |
+| failed      | `#f44336`   | Fehlgeschlagene Jobs |
+| cancelled   | `#757575`   | Manuell gestoppte Jobs |
+| archived    | `#607d8b`   | Archivierte Inhalte |
+| deleted     | `#000000`   | Dauerhaft gelöschte Einträge |
+| Start/End   | `#ffffff`   | Start- bzw. Endknoten in Diagrammen |
 
-Hinweis: Änderungen an den Farben bitte konsistent in UI und Diagrammen übernehmen.
-```
+> Tipp: Für Dark-Mode-Anpassungen den Kontrast mit Tools wie WebAIM prüfen.

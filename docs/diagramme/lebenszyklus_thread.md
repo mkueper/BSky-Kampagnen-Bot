@@ -1,13 +1,6 @@
-
----
-
-### `docs/diagramme/lebenszyklus_thread.md`
-```markdown
 # Lebenszyklus – Thread
 
-Zustände und Übergänge eines Threads.  
-Die Farben entsprechen der [Statusfarben‑Legende](./statusfarben.md).
-```
+Das Diagramm zeigt, wie sich der Status eines mehrteiligen Threads verändert. Übergänge berücksichtigen sowohl erfolgreiche Komplettveröffentlichungen als auch Fehler bei einzelnen Posts.
 
 ```mermaid
 stateDiagram-v2
@@ -35,12 +28,12 @@ stateDiagram-v2
   draft_state --> deleted_state: löschen
 
   scheduled_state --> cancelled_state: stornieren
-  scheduled_state --> sending_state: job startet
+  scheduled_state --> sending_state: Job startet
 
-  sending_state --> sent_state: alle teile gepostet
-  sending_state --> failed_state: teil fehlgeschlagen
+  sending_state --> sent_state: alle Teile gesendet
+  sending_state --> failed_state: Teil fehlgeschlagen
 
-  failed_state --> scheduled_state: retry start/teil
+  failed_state --> scheduled_state: Retry für fehlende Teile
   failed_state --> cancelled_state: stornieren
   failed_state --> deleted_state: löschen
 
