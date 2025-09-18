@@ -1,25 +1,33 @@
-/* Listen, Karten, responsive Gitterlayouts */
+/* Karten- und Listenlayout für Terminübersichten */
 .skeet-list {
     list-style: none;
     padding: 0;
     display: grid;
-    gap: 12px;
+    gap: var(--spacing-small);
 }
 
 .skeet-item {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #fdfdfd;
+    padding: var(--spacing);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: var(--color-surface);
+    box-shadow: var(--box-shadow-light);
+    transition: border-color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
+}
+
+.skeet-item:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--box-shadow-medium);
 }
 
 .skeet-planned {
-    border-left: 5px solid #ffc107;
-    background-color: #fffbea;
+    border-left: 4px solid var(--color-warning);
+    background-color: var(--color-warning-surface);
 }
 
 .skeet-published {
-    border-left: 5px solid #28a745;
+    border-left: 4px solid var(--color-success);
+    background-color: var(--color-success-surface);
 }
 
 @media (min-width: 768px) {

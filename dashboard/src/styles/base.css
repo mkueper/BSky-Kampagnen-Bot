@@ -1,27 +1,44 @@
-/* Farben, Schrift, Grundlayout */
+/* Basistypografie und interaktive Elemente des Dashboards */
 body {
-    font-family: Arial, sans-serif;
     margin: var(--spacing-large);
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
     background-color: var(--color-bg);
     color: var(--color-text);
+    transition: background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease);
 }
 
 h1,
 h2 {
     color: var(--color-text);
     font-size: var(--font-size-heading);
+    margin-bottom: var(--spacing);
 }
 
 button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-x-small);
     padding: 0.6rem 1rem;
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     background-color: var(--color-accent);
     color: var(--color-button-text);
     border-radius: var(--border-radius);
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
+    transition: background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
 }
 
 button:hover {
-    background-color: #005fa3;
+    background-color: var(--color-accent-hover);
+}
+
+button:active {
+    background-color: var(--color-accent-active);
+}
+
+button:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
 }

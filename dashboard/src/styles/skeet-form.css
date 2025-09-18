@@ -1,80 +1,99 @@
+/* Formular-Layout für geplante Skeets */
 .skeet-form {
-    background-color: #f8f9fa;
-    padding: 2rem;
-    margin: 1rem auto;
-    max-width: 600px;
-    border-radius: 12px;
+    background-color: var(--color-bg-subtle);
+    padding: var(--spacing-large);
+    margin: var(--spacing) auto;
+    max-width: 640px;
     width: 100%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--box-shadow-light);
 }
 
 .form-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
+    font-size: var(--font-size-heading);
+    margin-bottom: var(--spacing);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-small);
 }
 
 .form-group {
     margin-bottom: 1.2rem;
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-x-small);
+}
+
+input[type="datetime-local"],
+textarea {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    transition: border-color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
 }
 
 input[type="datetime-local"] {
-    padding: 0.5rem;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    max-width: 250px;
+    padding: var(--spacing-small);
+    max-width: 260px;
 }
 
 textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 0.8rem;
+    padding: calc(var(--spacing-small) * 1.6);
     min-height: 120px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid #ccc;
+    resize: vertical;
+}
+
+input[type="datetime-local"]:focus-visible,
+textarea:focus-visible {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-focus);
+    outline: none;
 }
 
 .char-count {
-    font-size: 0.875rem;
-    color: #666;
-    margin-top: 0.3rem;
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
 }
 
 .form-actions {
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-small);
 }
 
 .form-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--spacing-small);
     flex-wrap: wrap;
-    /* bricht unter den Titel bei schmalem Screen */
 }
 
 .platforms-inline {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-small);
+    flex-wrap: wrap;
 }
 
 .platforms-inline .toggle {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    padding: var(--spacing-small) var(--spacing);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
     cursor: pointer;
     user-select: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-x-small);
+    background: var(--color-surface);
+    transition: border-color var(--transition-duration) var(--transition-ease), background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease);
 }
 
 .platforms-inline .toggle.on {
-    border-color: #7aa7;
+    border-color: var(--color-accent);
+    background-color: var(--color-accent-hover);
+    color: var(--color-button-text);
 }
