@@ -1,25 +1,26 @@
 const { PLATFORMS } = require("./types");
-const blueskyClient = require("../services/blueskyClient");
-const mastodonClient = require("../services/mastodonClient");
 
-/**
- * Vereinheitliche hier die Methoden-Namen mit deinen Services.
- * Ich nehme an, beide Clients exportieren z.B. sendPost / sendScheduled / health.
- */
-const registry = {
-  [PLATFORMS.BLUESKY]: {
-    sendPost: blueskyClient.sendPost,
-    sendScheduled: blueskyClient.sendScheduled, // falls vorhanden
-    health: blueskyClient.health, // falls vorhanden
-  },
-  [PLATFORMS.MASTODON]: {
-    sendPost: mastodonClient.sendPost,
-    sendScheduled: mastodonClient.sendScheduled,
-    health: mastodonClient.health,
-  },
-};
+/** @type {Map<string, any>} */
+const registry = new Map();
+
+function registerProfile(profile) {
+  if (!profile || typeof profile.id !== "string") {
+    throw new Error("Profil muss eine eindeutige 'id' besitzen.");
+  }
+
+  registry.set(profile.id, profile);
+}
+
+function getProfile(id) {
+  if (!id) {
+    return null;
+  }
+
+  return registry.get(id) ?? null;
+}
 
 module.exports = {
-  registry,
+  registerProfile,
+  getProfile,
   PLATFORMS,
 };

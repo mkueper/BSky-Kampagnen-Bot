@@ -1,10 +1,18 @@
 const cron = require("node-cron");
 const config = require("../config");
 const { postSkeet } = require("./blueskyClient");
-const Skeet = require("../models/skeetModel");
+const { Skeet } = require("../models");
 
 function scheduleSkeetPosting(content) {
-  cron.schedule(config.SCHEDULE_TIME, async () => {
+  const schedule = config.SCHEDULE_TIME;
+
+  if (!cron.validate(schedule)) {
+    throw new Error(
+      `Ungültiger Cron-Ausdruck für SCHEDULE_TIME: "${schedule}"`
+    );
+  }
+
+  cron.schedule(schedule, async () => {
     try {
       console.log(`Poste Skeet: ${content}`);
       const post = await postSkeet(content);
