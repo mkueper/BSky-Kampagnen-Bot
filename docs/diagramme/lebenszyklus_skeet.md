@@ -1,13 +1,6 @@
-
----
-
-### `docs/diagramme/lebenszyklus_skeet.md`
-```markdown
 # Lebenszyklus – Skeet
 
-Zustände und Übergänge eines Skeets im Kampagnen‑Bot.  
-Die Farben entsprechen der [Statusfarben‑Legende](./statusfarben.md).
-```
+Das Zustandsdiagramm zeigt alle möglichen Status eines einzelnen Skeets und die wichtigsten Übergänge. Die Farben orientieren sich an der [Statusfarben-Legende](./statusfarben.md).
 
 ```mermaid
 stateDiagram-v2
@@ -35,12 +28,12 @@ stateDiagram-v2
   draft_state --> deleted_state: löschen
 
   scheduled_state --> cancelled_state: stornieren
-  scheduled_state --> sending_state: job startet
+  scheduled_state --> sending_state: Job startet
 
-  sending_state --> sent_state: posten erfolgreich
-  sending_state --> failed_state: posten fehlgeschlagen
+  sending_state --> sent_state: Post erfolgreich
+  sending_state --> failed_state: Fehler beim Versand
 
-  failed_state --> scheduled_state: retry geplant
+  failed_state --> scheduled_state: Retry planen
   failed_state --> cancelled_state: stornieren
   failed_state --> deleted_state: löschen
 
