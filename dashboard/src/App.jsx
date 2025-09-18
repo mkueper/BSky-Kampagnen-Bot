@@ -179,7 +179,7 @@ function App() {
 
       {activeTab === "skeetplaner" && (
         <div className="planer-section">
-          <h2>📝 Skeetplaner</h2>
+          
           <SkeetForm onSkeetCreated={loadSkeets} />
         </div>
       )}

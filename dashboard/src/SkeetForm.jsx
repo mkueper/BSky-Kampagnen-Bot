@@ -27,10 +27,14 @@ function SkeetForm({ onSkeetCreated }) {
   const [repeatDayOfWeek, setRepeatDayOfWeek] = useState(null);
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null);
 
-  function togglePlatform(platform) {
+  function togglePlatform(name) {
     setTargetPlatforms((prev) => {
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name];
-      return prev;
+      if (prev.includes(name)) {
+        // verhindere, dass alle abgewählt werden
+        if (prev.length === 1) return prev;
+        return prev.filter((p) => p !== name);
+      }
+      return [...prev, name];
     });
   }
 
@@ -80,6 +84,30 @@ function SkeetForm({ onSkeetCreated }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
+      <div className="form-header">
+        <h2>📝 Skeetplaner</h2>
+
+        <div className="platforms-inline" role="group" aria-label="Plattformen wählen">
+          <label className={`toggle ${targetPlatforms.includes("bluesky") ? "on" : "off"}`}>
+            <input
+              type="checkbox"
+              checked={targetPlatforms.includes("bluesky")}
+              onChange={() => togglePlatform("bluesky")}
+            />
+            Bluesky
+          </label>
+
+          <label className={`toggle ${targetPlatforms.includes("mastodon") ? "on" : "off"}`}>
+            <input
+              type="checkbox"
+              checked={targetPlatforms.includes("mastodon")}
+              onChange={() => togglePlatform("mastodon")}
+            />
+            Mastodon
+          </label>
+        </div>
+      </div>
+
       <div className="form-group">
         <textarea
           required
@@ -97,58 +125,6 @@ function SkeetForm({ onSkeetCreated }) {
           }}
         >
           {content.length}/300 Zeichen
-        </div>
-
-        {/* Plattform-Auswahl */}
-        <div className="platforms-group" style={{ marginTop: 12 }}>
-          <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>Plattformen</label>
-
-          <div className="platforms-toggles" style={{ display: "flex", gap: 8 }}>
-            {/* Bluesky Toggle */}
-            <label
-              className={`toggle ${targetPlatforms.includes("bluesky") ? "on" : "off"}`}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                cursor: "pointer",
-                userSelect: "none",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={targetPlatforms.includes("bluesky")}
-                onChange={() => togglePlatform("bluesky")}
-                style={{ marginRight: 6 }}
-              />
-              Bluesky
-            </label>
-
-            {/* Mastodon Toggle */}
-            <label
-              className={`toggle ${targetPlatforms.includes("mastodon") ? "on" : "off"}`}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #ccc",
-                cursor: "pointer",
-                userSelect: "none",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={targetPlatforms.includes("mastodon")}
-                onChange={() => togglePlatform("mastodon")}
-                style={{ marginRight: 6 }}
-              />
-              Mastodon
-            </label>
-          </div>
-
-          {/* Kleiner Hinweis */}
-          <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-            Standard: beide aktiv. Auswahl wirkt sich erst in Schritt 3 auf das Senden aus.
-          </div>
         </div>
 
         <label htmlFor="repeat">Wiederholen</label>
