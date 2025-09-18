@@ -147,6 +147,7 @@ async function dispatchSkeet(skeet) {
   ensurePlatforms();
 
   const targetPlatforms = getTargetPlatforms(skeet);
+  const normalizedPlatforms = Array.from(new Set(targetPlatforms));
   const results = ensureResultsObject(skeet.platformResults);
   const successOrder = [];
 
@@ -187,12 +188,12 @@ async function dispatchSkeet(skeet) {
     }
   }
 
-  const allSent = targetPlatforms.every((platformId) => results[platformId]?.status === "sent");
+  const allSent = normalizedPlatforms.every((platformId) => results[platformId]?.status === "sent");
   const nextRun = calculateNextScheduledAt(skeet);
 
   const updates = {
     platformResults: results,
-    targetPlatforms,
+    targetPlatforms: normalizedPlatforms.length > 0 ? normalizedPlatforms : ["bluesky"],
   };
 
   if (successOrder.length > 0) {
