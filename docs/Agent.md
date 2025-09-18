@@ -1,74 +1,82 @@
-# Agent.md
+# Kampagnen-Agent
 
-## Name
-Campaign Agent
+Der Kampagnen-Agent ist die Automatisierungsschicht des Projekts. Er koordiniert Planung, Speicherung und Veröffentlichung von Kampagneninhalten auf Bluesky und bildet die Grundlage für weitere Plattform-Integrationen.
 
-## Rolle
-Der Agent automatisiert die Veröffentlichung und Verwaltung von Kampagneninhalten auf sozialen Plattformen.  
-Er stellt sicher, dass Beiträge zeitlich geplant, rechtssicher formuliert, in Threads strukturiert und nachverfolgt werden können.
+---
 
-## Aufgaben
-- **Skeets posten**  
-  Veröffentlichung einzelner Skeets auf Bluesky mit Unicode-Zeichenlimit (300 Zeichen).
-- **Threads verwalten**  
-  Erstellung, Planung und Verwaltung von mehrteiligen Beiträgen mit klarer Nummerierung.  
-  Unterstützung für erzwungene Thread-Trennung.
-- **Scheduler**  
-  Zeitgenaue Planung und automatische Veröffentlichung von Posts (inkl. Zeitzonen-Handling).
-- **Multi-Tenant Support**  
-  Mehrere Kampagnen/Accounts parallel verwalten, getrennte Logins und Konfigurationen.
-- **Reaktions-Tracking**  
-  Erfassen von Likes, Reposts und Replies zur Auswertung der Kampagnenwirkung.
-- **Dashboard**  
-  Frontend-Komponenten für Verwaltung, Vorschau und Planung von Kampagnen (React-UI).
-- **Plattform-Setup**  
-  Abstraktion für verschiedene Plattformen (aktuell Bluesky, später Mastodon etc.).
-- **Zeichenzähler**  
-  Überprüfung von Beiträgen gegen die Plattformgrenzen (Unicode-Grapheme).
-- **Migration & Versionierung**  
-  Nutzung von Sequelize-Migrations für strukturierte Datenbankentwicklung.
+## Rolle & Verantwortlichkeiten
+
+- **Planung umsetzen:** Zeitsensitive Veröffentlichung einzelner Skeets oder kompletter Threads durchführen.
+- **Mandanten trennen:** Kampagnen, Accounts und Zugangsdaten tenant-spezifisch verwalten.
+- **Sicherheit gewährleisten:** Zugangsdaten verschlüsseln, Logins absichern und Wiederholungsversuche kontrollieren.
+- **Monitoring bereitstellen:** Status-Updates, Logs und Analysedaten für das Dashboard liefern.
+- **Plattformen abstrahieren:** Schnittstellen kapseln, um neben Bluesky weitere Plattformen anbinden zu können.
+
+---
+
+## Kernaufgaben
+
+| Bereich            | Beschreibung |
+|--------------------|--------------|
+| **Skeets & Threads** | Posts validieren, Unicode-Grapheme zählen, Medienanhänge samt Alt-Texten verarbeiten. |
+| **Scheduler**        | Jobs nach Zeitzone terminieren, Retries mit Backoff steuern und Ergebnisse zurückmelden. |
+| **Multi-Tenancy**    | Mandanten- und Benutzerkontexte erzwingen, Rollen (`owner`, `admin`, `editor`, `viewer`) berücksichtigen. |
+| **Reaktions-Tracking** | Likes, Reposts und Replies abrufen und historisieren. |
+| **Dashboard-Anbindung** | APIs für Planung, Vorschau und Monitoring bereitstellen. |
+
+---
 
 ## Eingaben
-- Textinhalte für Skeets/Threads  
-- Geplanter Veröffentlichungszeitpunkt  
-- Account/Kampagnen-Zuordnung  
-- Plattform-Konfiguration (API-Tokens, Secrets)  
-- Optionale Metadaten (Alt-Text, Sharepics, Quellen)
+
+- Kampagnen- und Account-Daten (Tenant, Rollen, Status)
+- Texte, Medien und Metadaten für Skeets/Threads
+- Geplante Veröffentlichungszeitpunkte und Wiederholungsregeln
+- Plattformkonfigurationen (z. B. Bluesky-Identifier, App-Passwörter)
 
 ## Ausgaben
-- Veröffentlichung auf Zielplattform(en)  
-- Logfiles der erfolgreichen oder fehlerhaften Veröffentlichungen  
-- Tracking-Daten zu Reichweite und Reaktionen  
-- Vorschau im Dashboard
+
+- Erfolgreich veröffentlichte Posts inklusive Plattform-URI
+- Fehlermeldungen und Logs bei abgebrochenen Versuchen
+- Status- und Analysedaten für das Dashboard
+
+---
 
 ## Interaktionen
-- **User**: erstellt Kampagnen, plant Skeets/Threads, prüft Reaktionen.  
-- **Datenbank**: persistiert Kampagnen, Posts, Threads, Scheduler-Jobs, Reaktionen.  
-- **Plattform-APIs**: Bluesky (ATProto), künftig Mastodon und andere soziale Netzwerke.  
-- **Dashboard**: UI zur Eingabe, Bearbeitung, Vorschau und Monitoring.
+
+- **Benutzer:innen:** Planen Kampagnen, bearbeiten Inhalte, prüfen Ergebnisse.
+- **Backend-Datenbank:** Persistiert Kampagnen, Posts, Jobs, Reaktionen und Credentials.
+- **Scheduler-Worker:** Führt geplante Jobs aus und meldet Status zurück.
+- **Plattform-APIs:** Aktuell Bluesky (ATProto); Architektur ist auf weitere Netzwerke vorbereitet.
+- **Dashboard:** Visualisiert Status, Auswertungen und bietet Eingabeformulare.
+
+---
+
+## Konfiguration & Betrieb
+
+### Environment-Variablen (Auszug)
+
+- `DATABASE_URL` – Datenbankverbindung (SQLite, PostgreSQL oder MySQL)
+- `SESSION_SECRET` – Schlüssel für Sitzungs- und Tokenverschlüsselung
+- `BLUESKY_IDENTIFIER` / `BLUESKY_APP_PASSWORD` – Plattformzugang
+- `PORT` – API- bzw. Dashboard-Port
+- `NODE_ENV` – Laufzeitumgebung (`development`, `production`)
+
+### Migrationen & Versionierung
+
+- Sequelize-Migrationen für Kampagnen, Skeets/Threads, Plattformkonten, Credentials und Reaktionen
+- Versionierte Seeds und Tests für Kern-Workflows
+
+### Frontend-Komponenten
+
+- React-basierte Formulare (z. B. `SkeetForm`, `ThreadComposer`, `CampaignDashboard`)
+- Konsistente Statusfarben und Zeitachsen basierend auf den Diagrammdefinitionen
+
+---
 
 ## Beispielablauf
-1. User erstellt im Dashboard eine neue Kampagne.  
-2. User fügt Skeets/Threads hinzu und plant Veröffentlichungszeitpunkte.  
-3. Agent speichert die Daten in der Datenbank und legt Scheduler-Jobs an.  
-4. Zum geplanten Zeitpunkt veröffentlicht der Agent die Inhalte auf der gewählten Plattform.  
-5. Agent trackt Reaktionen (Likes, Reposts, Replies) und speichert diese zur Auswertung.  
-6. Dashboard zeigt Statistiken und Kampagnenstatus an.
 
-## Konfiguration
-- **ENV Variablen**
-  - `DATABASE_URL` – Verbindung zur SQLite/Postgres DB  
-  - `SESSION_SECRET` – Verschlüsselung von Tokens  
-  - `BLUESKY_IDENTIFIER` / `BLUESKY_PASSWORD` – API-Zugangsdaten  
-  - `PORT` – Serverport für Dashboard  
-  - `NODE_ENV` – Umgebung (development/production)
-
-- **Migrationen**
-  - Skeet & Thread Models  
-  - Kampagnen Model  
-  - Plattform Model  
-  - Reaction Model
-
-- **Frontend**
-  - React mit Tailwind, shadcn/ui, lucide-icons  
-  - Komponenten: SkeetForm, ThreadView, CampaignDashboard
+1. Benutzer:in erstellt eine Kampagne im Dashboard und plant Skeets oder Threads.
+2. Der Agent speichert Inhalte, verschlüsselt Zugangsdaten und legt Scheduler-Jobs an.
+3. Zum geplanten Zeitpunkt löst der Scheduler den Job aus; der Agent veröffentlicht den Post.
+4. Rückmeldungen der Bluesky-API werden verarbeitet, Status aktualisiert und Logs erstellt.
+5. Dashboard und Analysen zeigen den finalen Zustand und Reaktionswerte an.

@@ -1,77 +1,89 @@
-# Option C: Installation im Docker Container
+# Option C: Installation im Docker-Container
 
-Diese Anleitung setzt den BSky‑Kampagnen‑Bot mit **drei Containern** auf:
-- **backend** (Node.js API, Port 3000)
-- **frontend** (Nginx, liefert die gebaute React‑App, Port 8080)
-- **db** (PostgreSQL 15 mit persistentem Volume)
+Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Bot** mit Docker Compose betreiben möchten. Das Setup besteht aus drei Containern:
 
-> Ordnerstruktur:
-> ```
-> BSky-Kampagnen-Bot/
-> ├─ docker/
-> │  ├─ Dockerfile.backend
-> │  └─ Dockerfile.frontend
-> ├─ docker-compose.yml
-> └─ docs/installation/docker-install.md
-> ```
+| Service   | Beschreibung                              | Port |
+|-----------|--------------------------------------------|------|
+| `backend` | Node.js-API (Express + Scheduler)          | 3000 |
+| `frontend`| Nginx-Container mit vorgebauter React-App  | 8080 |
+| `db`      | PostgreSQL 15 mit persistentem Volume      | intern |
+
+```
+BSky-Kampagnen-Bot/
+├─ docker/
+│  ├─ Dockerfile.backend
+│  └─ Dockerfile.frontend
+├─ docker-compose.yml
+└─ docs/installation/docker-install.md
+```
+
+---
 
 ## Voraussetzungen
-- Docker
-- Docker Compose
+
+- Docker und Docker Compose (CLI `docker compose`)
+- Zugriff auf die Bluesky-Zugangsdaten (Identifier + App-Passwort)
+- Mindestens 2 GB RAM und 2 GB freien Speicher für Container & Datenbank
 
 ---
 
 ## 1. Repository klonen
+
 ```bash
 git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
 cd BSky-Kampagnen-Bot
 ```
-## 2. Konfiguration
-Kopiere die Beispiel‑Konfiguration und passe sie an:
 
- - ### 1. env.sample nach .env kopieren:
-```bash
-    cp .env.sample .env
-```
+## 2. Konfiguration vorbereiten
 
-- ### 2. Zugangsdaten für Bluesky (Pflichtangaben):
+1. Beispiel-Environment kopieren:
+   ```bash
+   cp .env.sample .env
+   ```
+2. Pflichtvariablen in `.env` setzen:
+   ```ini
+   BLUESKY_SERVER=https://bsky.social
+   BLUESKY_IDENTIFIER=dein_handle.bsky.social
+   BLUESKY_APP_PASSWORD=dein_app_passwort
+   ```
+3. Optional: Zeitzone für das Frontend festlegen (Standard `UTC`):
+   ```ini
+   VITE_TIME_ZONE=Europe/Berlin
+   ```
 
-```ini
-    BLUESKY_SERVER=https://bsky.social
-    BLUESKY_IDENTIFIER=dein_handle.bsky.social
-    BLUESKY_APP_PASSWORD=dein_passwort
-```
-- ### 3. Zeitzone einstellen (Optional):
-```ini
-    VITE_TIME_ZONE=Europe/Berlin
-```
+> Sensible Daten werden ausschließlich in `.env` abgelegt und nur dem Backend-Container bereitgestellt.
 
----
 ## 3. Container starten
-```bash
-docker-compose up --build
-```
-- frontend ist unter http://localhost:8080 erreichbar
-- backend (API) unter http://localhost:3000
-- db läuft intern; Daten werden im Volume db_data persistiert
 
-## 4. Logs anzeigen
 ```bash
-docker-compose logs -f
+docker compose up --build
 ```
+
+- Frontend: <http://localhost:8080>
+- Backend-API: <http://localhost:3000>
+- PostgreSQL: internes Netzwerk, Daten im Volume `db_data`
+
+Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d`.
+
+## 4. Logs prüfen
+
+```bash
+docker compose logs -f
+```
+
 ## 5. Container stoppen
+
 ```bash
-docker-compose down
+docker compose down
 ```
+
+Optional kannst du mit `docker compose down -v` auch das Datenbank-Volume löschen (setzt alle Daten zurück).
+
 ---
-## Hinweise & Tipps
 
-- **Netzwerk:** Die Services kommunizieren über das Compose‑Netzwerk per Service‑Namen (backend, db). Falls das Frontend direkt mit der API spricht, konfiguriere die API‑Basis‑URL entsprechend.
+## Hinweise für den Produktivbetrieb
 
-- **Environment:** Sensible Variablen (Bluesky‑Zugang) liegen in .env und werden nur dem backend gegeben.
-
-- **Persistenz:** Das DB‑Volume db_data sorgt für dauerhafte Speicherung. Zum „Neuaufsetzen“ der DB: docker compose down -v (löscht das Volume!).
-
-- **Prod‑Betrieb:** Reverse Proxy (Traefik/Nginx) mit HTTPS vorschalten, Ressourcenlimits setzen, regelmäßige Backups des Volumes.
-
-- **Datenbankwahl:** Compose nutzt Postgres 15. Das Projekt bleibt ORM‑basiert (Sequelize) und kann bei Bedarf auf MySQL/SQLite umgestellt werden (Konfigurationsaufwand nötig).
+- **Netzwerk:** Reverse Proxy (z. B. Traefik/Nginx) mit HTTPS vorschalten. Domains und Zertifikate außerhalb von Docker verwalten.
+- **Backups:** Volume `db_data` regelmäßig sichern. Für PostgreSQL bietet sich `pg_dump` an.
+- **Updates:** Bei neuen Versionen `git pull`, anschließend `docker compose build` und `docker compose up -d` ausführen.
+- **Monitoring:** Docker-Healthchecks und Log-Aggregation (z. B. Loki, Elastic) einrichten, um Scheduler-Fehler früh zu erkennen.
