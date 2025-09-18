@@ -9,7 +9,10 @@ async function main() {
   const res = await sendPost(
     { content: "Hallo Mastodon 👋 (Smoke Test)" },
     "mastodon",
-    { serverUrl: env.mastodon.serverUrl, token: env.mastodon.token }
+    {
+      apiUrl: env.mastodon.apiUrl,
+      accessToken: env.mastodon.accessToken,
+    }
   );
 
   console.log("Posted:", res.uri, "at", res.postedAt.toISOString());
