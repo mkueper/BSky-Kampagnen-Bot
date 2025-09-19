@@ -12,34 +12,37 @@ const { getProfile } = require("../platforms/registry");
  * @typedef {{ [k: string]: any }} PlatformEnv
  */
 
-/** Utility: Sleep */
+/**
+ * Einfache Retry/Backoff-Strategie mit Exponential-Backoff + Jitter.
+ * Über ENV konfigurierbar: POST_RETRIES, POST_BACKOFF_MS (Basis), POST_BACKOFF_MAX_MS.
+ */
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Heuristik: Ist ein Fehler retrybar? */
 function isRetryable(error) {
   const msg = (error?.message || "").toLowerCase();
   const status = error?.status || error?.statusCode;
 
   if (typeof status === "number") {
-    if (status === 429) return true; // Rate-Limit
-    if (status >= 500) return true; // Serverfehler
-    if (status >= 400 && status < 500) return false; // Clientfehler: nicht retrybar
+    if (status === 429) return TrueLike.TRUE;       // Rate Limit
+    if (status >= 500) return TrueLike.TRUE;        // Serverfehler
+    if (status >= 400 && status < 500) return FalseLike.FALSE; // Clientfehler: nicht retrybar
   }
 
+  // Netzwerk-/Transport-Fehler heuristisch
   const retryHints = ["etimedout", "econnreset", "enotfound", "network", "temporarily", "timeout", "rate limit"];
   if (retryHints.some((k) => msg.includes(k))) {
-    return true;
+    return TrueLike.TRUE;
   }
 
-  return false;
+  return FalseLike.FALSE;
 }
 
-/**
- * Exponential Backoff + Jitter.
- * ENV: POST_RETRIES, POST_BACKOFF_MS, POST_BACKOFF_MAX_MS
- */
+// Kleine „enum“-Helfer für Lesbarkeit im return
+const TrueLike = { TRUE: true };
+const FalseLike = { FALSE: false };
+
 async function withRetry(fn, opts = {}) {
   const maxRetries = Number(process.env.POST_RETRIES || opts.retries || 3);
   const baseMs = Number(process.env.POST_BACKOFF_MS || opts.baseMs || 500);
@@ -48,18 +51,26 @@ async function withRetry(fn, opts = {}) {
   let attempt = 0;
   while (true) {
     try {
-      const result = await fn();
-      return { result, attempts: attempt + 1 };
+      return await fn();
     } catch (err) {
       attempt += 1;
-      if (!isRetryable(err) || attempt >= maxRetries) {
+      const retryable = isRetryable(err);
+
+      if (!retryable || attempt > maxRetries) {
+        // Letzter Versuch oder nicht retrybar -> Fehler weiterreichen
         err.attempts = attempt;
         throw err;
       }
+
+      // Exponential Backoff mit Jitter
       const delay = Math.min(maxMs, baseMs * Math.pow(2, attempt - 1));
       const jitter = Math.floor(Math.random() * Math.floor(delay * 0.25));
       const wait = delay + jitter;
-      console.warn(`⚠️  Post fehlgeschlagen (Versuch ${attempt}/${maxRetries}). Warte ${wait}ms…`, err?.message || err);
+
+      console.warn(
+        `⚠️  Post fehlgeschlagen (Versuch ${attempt}/${maxRetries}). Warten ${wait}ms und erneut versuchen…`,
+        err?.message || err
+      );
       await sleep(wait);
     }
   }
@@ -67,13 +78,13 @@ async function withRetry(fn, opts = {}) {
 
 /**
  * Sendet einen Post an die angegebene Plattform.
- * Rückgabe ist strukturiert: { ok, platform, attempts, uri?, postedAt?, error? }
+ * Wirft bei ungültigem Input oder irreparablem Fehler (nach Retries).
  *
- * @param {PostInput} input
  * @param {"bluesky"|"mastodon"} platformId
+ * @param {PostInput} input
  * @param {PlatformEnv} env
  */
-async function sendPost(input, platformId, env) {
+async function sendPost(platformId, input, env) {
   if (!platformId) {
     throw new Error("platformId ist erforderlich.");
   }
@@ -88,27 +99,11 @@ async function sendPost(input, platformId, env) {
     throw new Error(check.errors?.join("; ") || "Ungültiger Inhalt.");
   }
 
+  // Profil entscheidet über Normalisierung & Payload
   const payload = profile.toPostPayload(input);
 
-  try {
-    const { result, attempts } = await withRetry(() => profile.post(payload, env));
-    // Erwartet: result enthält ggf. uri/postedAt je nach Profil
-    return {
-      ok: true,
-      platform: platformId,
-      attempts,
-      uri: result?.uri ?? "",
-      postedAt: result?.postedAt ?? new Date().toISOString(),
-      raw: result ?? null,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      platform: platformId,
-      attempts: error?.attempts || 1,
-      error: error?.message || String(error),
-    };
-  }
+  // Retry um den eigentlichen Post-Aufruf
+  return await withRetry(() => profile.post(payload, env));
 }
 
 module.exports = {

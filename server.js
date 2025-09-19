@@ -14,6 +14,7 @@ const { login: loginBluesky } = require("./src/services/blueskyClient");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("./src/services/mastodonClient");
 const { startScheduler } = require("./src/services/scheduler");
 const dashboardController = require("./src/controllers/dashboardController");
+const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, Skeet, Reply } = require("./src/models");
 
@@ -34,6 +35,11 @@ app.post("/api/skeets", dashboardController.createSkeet);
 app.patch("/api/skeets/:id", dashboardController.updateSkeet);
 app.delete("/api/skeets/:id", dashboardController.deleteSkeet);
 
+// Health endpoint for liveness checks
+app.get("/health", (req, res) => {
+  res.json({ ok: true, env: process.env.NODE_ENV || "development", version: require("./package.json").version });
+});
+
 // Wildcard-Route (nur GET) – leitet unbekannte Pfade an das Dashboard weiter.
 app.use((req, res, next) => {
   if (req.method === "GET") {
@@ -52,6 +58,22 @@ app.use((req, res, next) => {
 
 // Init-Pipeline: Logins, DB-Setup und Scheduler-Start.
 (async () => {
+  // --- Preflight: prüfe notwendige Umgebungsvariablen
+  try {
+    const report = runPreflight();
+
+    if (report.bluesky.critical) {
+      console.error("❌ Preflight fehlgeschlagen (Bluesky):", report.bluesky.issues.join("; "));
+      report.bluesky.hints.forEach(h => console.error("   Hinweis:", h));
+      process.exit(1);
+    }
+
+    report.mastodon.warnings.forEach(w => console.warn("⚠️  Preflight:", w));
+  } catch (pfErr) {
+    console.error("❌ Preflight-Fehler:", pfErr?.message || pfErr);
+    process.exit(1);
+  }
+
   try {
     await loginBluesky();
     console.log("✅ Bluesky-Login erfolgreich");
@@ -80,7 +102,9 @@ app.use((req, res, next) => {
     }
 
     app.listen(PORT, () => {
-      console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
+      if (process.env.NODE_ENV !== "test") {
+        console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
+      }
     });
   } catch (err) {
     console.error("❌ Fehler beim Initialisieren des Servers:", err);

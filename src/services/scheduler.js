@@ -233,24 +233,39 @@ async function dispatchSkeet(skeet) {
     }
 
     try {
-      const result = await sendPost({ content: current.content }, platformId, platformEnv);
-      const postedAt = result?.postedAt ? new Date(result.postedAt) : new Date();
-      results[platformId] = {
-        status: "sent",
-        uri: result?.uri ?? "",
-        postedAt: postedAt.toISOString(),
-      };
-      successOrder.push({ platformId, uri: result?.uri ?? "", postedAt });
-      console.log(`✅ Skeet ${current.id} auf ${platformId} veröffentlicht (${result?.uri ?? "ohne URI"})`);
-    } catch (error) {
+      const res = await sendPost({ content: current.content }, platformId, platformEnv);
+
+      if (res.ok) {
+        const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
+        results[platformId] = {
+          status: "sent",
+          uri: res.uri || "",
+          postedAt: postedAt.toISOString(),
+          attempts: res.attempts || 1,
+        };
+        successOrder.push({ platformId, uri: res.uri || "", postedAt });
+        console.log(`✅ Skeet ${current.id} auf ${platformId} veröffentlicht (${res.uri || "ohne URI"})`);
+      } else {
+        results[platformId] = {
+          status: "failed",
+          error: res.error || "Unbekannter Fehler",
+          failedAt: new Date().toISOString(),
+          attempts: res.attempts || 1,
+        };
+        console.error(
+          `❌ Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
+          res.error || "Unbekannter Fehler"
+        );
+      }
+    } catch (unexpected) {
       results[platformId] = {
         status: "failed",
-        error: error?.message || String(error),
+        error: unexpected?.message || String(unexpected),
         failedAt: new Date().toISOString(),
       };
       console.error(
-        `❌ Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
-        error?.message || error
+        `❌ Unerwarteter Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
+        unexpected?.message || unexpected
       );
     }
   }
@@ -264,8 +279,7 @@ async function dispatchSkeet(skeet) {
   };
 
   if (successOrder.length > 0) {
-    const primary =
-      successOrder.find((entry) => entry.platformId === "bluesky") ?? successOrder[0];
+    const primary = successOrder.find((entry) => entry.platformId === "bluesky") ?? successOrder[0];
     if (primary) {
       if (current.repeat === "none") {
         if (allSent) {
@@ -300,10 +314,7 @@ async function processDueSkeets(now = new Date()) {
     where: {
       scheduledAt: { [Op.ne]: null, [Op.lte]: now },
       isThreadPost: false,
-      [Op.or]: [
-        { repeat: "none", postUri: null },
-        { repeat: { [Op.ne]: "none" } },
-      ],
+      [Op.or]: [{ repeat: "none", postUri: null }, { repeat: { [Op.ne]: "none" } }],
     },
     order: [["scheduledAt", "ASC"]],
     limit: MAX_BATCH_SIZE,
@@ -342,9 +353,7 @@ function startScheduler() {
     { timezone: config.TIME_ZONE }
   );
 
-  console.log(
-    `🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${config.TIME_ZONE || "system"})`
-  );
+  console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${config.TIME_ZONE || "system"})`);
 
   processDueSkeets().catch((error) => {
     console.error("❌ Initialer Scheduler-Lauf fehlgeschlagen:", error?.message || error);

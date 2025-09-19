@@ -1,5 +1,5 @@
 const { registerProfile } = require("./registry");
-const blueskyProfile = require("./bluesky/blueksyProfile");
+const blueskyProfile = require("./bluesky/blueskyProfile");
 const mastodonProfile = require("./mastodon/mastodonProfile");
 
 /**

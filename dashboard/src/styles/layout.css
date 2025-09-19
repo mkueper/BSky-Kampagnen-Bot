@@ -68,15 +68,7 @@
     }
 }
 
-.dashboard-page {
-    min-height: 600px;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing);
-}
-
-/* Tab-Rahmen für den Wechsel zwischen geplanten und veröffentlichten Skeets. */
+/* Tab-Rahmen + Sticky-Verhalten für Geplant/Veröffentlicht */
 .dashboard-subtabs {
     display: inline-flex;
     background: var(--color-surface);
@@ -84,6 +76,13 @@
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--box-shadow-light);
+
+    /* sticky-Zusatz */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--color-border, #334155);
+    padding-top: var(--spacing-small, 0.5rem);
 }
 
 .dashboard-subtab {
@@ -210,4 +209,89 @@
 .reply-meta {
     font-size: var(--font-size-small);
     color: var(--color-text-muted);
+}
+
+
+/* --- Viewport Layout & Scrollbereiche --- */
+.app, .dashboard-page {
+  min-height: 100vh;
+}
+
+.dashboard-page {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.dashboard-subtab-content {
+  overflow: hidden; /* kein Doppel-Scrollen */
+}
+
+.dashboard-subtab-scroll {
+  height: 100%;
+  overflow: auto;
+}
+
+/* Plattform-Badges */
+.platform-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #334155);
+  background: var(--color-surface, #0b1220);
+  box-shadow: var(--box-shadow-light, 0 2px 4px rgba(15,23,42,.35));
+  white-space: nowrap;
+}
+
+.badge-sent {
+  background: var(--color-success-surface, rgba(74, 222, 128, 0.2));
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.badge-failed {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.badge-pending {
+  background: var(--color-warning-surface, rgba(252, 211, 77, 0.2));
+  border-color: rgba(252, 211, 77, 0.35);
+}
+
+/* --- Stabilisierung der Karten beim Umschalten zwischen „Skeet“ und „Antworten“ --- */
+.skeet-card-panel {
+    min-height: var(--skeet-card-min-height, 20rem);
+    /* Verhindert, dass die Karte beim Umschalten springt */
+    overflow-y: auto;
+    /* stabiler Scrollbalken innerhalb der Karte */
+}
+.skeet-card-panel {
+    scrollbar-gutter: stable both-edges;
+}
+
+.skeet-card-panel {
+    overflow-y: scroll;
+}
+
+.skeet-card-replies {
+    /* reserviert Mindesthöhe für die Antworten-Ansicht */
+    min-height: 12rem;
+}
+
+.replies-list {
+    margin: 0;
+    /* verhindert Höhen-Sprünge durch Standard-UL-Margins */
+    padding-left: 1rem;
+}
+
+/* Kleiner Puffer unter den Karten-Tabs, damit Layout konstant bleibt */
+.skeet-card-tabs {
+    margin-bottom: 0.5rem;
 }

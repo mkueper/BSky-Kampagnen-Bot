@@ -23,7 +23,11 @@
     "smoke:bsky": "tsx scripts/smokeBlueskyPost.ts",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "smoke:masto": "tsx scripts/smokeMastodonPost.ts"
+    "smoke:masto": "tsx scripts/smokeMastodonPost.ts",
+    "build:frontend": "npm --prefix dashboard run build",
+    "dev:frontend": "npm --prefix dashboard run dev",
+    "install:frontend": "npm --prefix dashboard install",
+    "build:all": "npm run build && npm run build:frontend"
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",
