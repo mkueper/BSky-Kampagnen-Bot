@@ -49,6 +49,41 @@ async function getReactionsController(req, res) {
 }
 
 // GET /api/replies/:skeetId
+function extractRepliesFromThread(thread) {
+  if (!thread || typeof thread !== "object") return [];
+
+  const queue = Array.isArray(thread.replies) ? [...thread.replies] : [];
+  const collected = [];
+
+  while (queue.length > 0) {
+    const node = queue.shift();
+    if (!node || typeof node !== "object") continue;
+
+    if (Array.isArray(node.replies) && node.replies.length > 0) {
+      queue.push(...node.replies);
+    }
+
+    const post = node.post;
+    if (!post || typeof post !== "object") continue;
+
+    const authorHandle = post.author?.handle;
+    const content = post.record?.text ?? "";
+    const indexedAt = post.indexedAt ?? post.record?.createdAt ?? new Date().toISOString();
+
+    if (!authorHandle) {
+      continue;
+    }
+
+    collected.push({
+      authorHandle,
+      content,
+      indexedAt,
+    });
+  }
+
+  return collected;
+}
+
 async function getRepliesController(req, res) {
   const { skeetId } = req.params;
   try {
@@ -60,7 +95,7 @@ async function getRepliesController(req, res) {
     }
 
     const repliesData = await getReplies(skeet.postUri);
-    const replies = repliesData?.replies || [];
+    const replies = extractRepliesFromThread(repliesData);
 
     // Atomar: alte Replies weg, neue speichern
     await Reply.sequelize.transaction(async (t) => {
@@ -69,8 +104,8 @@ async function getRepliesController(req, res) {
         await Reply.bulkCreate(
           replies.map((r) => ({
             skeetId: skeet.id,
-            authorHandle: r.author.handle,
-            content: r.text,
+            authorHandle: r.authorHandle,
+            content: r.content,
             createdAt: new Date(r.indexedAt), // überschreibt timestamps, ist ok
           })),
           { transaction: t }
