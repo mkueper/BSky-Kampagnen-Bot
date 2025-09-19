@@ -1,12 +1,11 @@
 # Option C: Installation im Docker-Container
 
-Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Bot** mit Docker Compose betreiben möchten. Das Setup besteht aus drei Containern:
+Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Bot** mit Docker Compose betreiben möchten. Das Standard-Setup besteht aus zwei Containern (Backend + Frontend). Eine separate Datenbank ist optional – SQLite ist bereits integriert.
 
-| Service   | Beschreibung                              | Port |
-|-----------|--------------------------------------------|------|
-| `backend` | Node.js-API (Express + Scheduler)          | 3000 |
-| `frontend`| Nginx-Container mit vorgebauter React-App  | 8080 |
-| `db`      | PostgreSQL 15 mit persistentem Volume      | intern |
+| Service    | Beschreibung                               | Port (Standard) |
+|------------|---------------------------------------------|-----------------|
+| `backend`  | Express-API inkl. Scheduler                 | `BACKEND_PORT` (3000) |
+| `frontend` | Nginx-Container mit vorgebauter React-App   | `FRONTEND_PORT` (8080) |
 
 ```
 BSky-Kampagnen-Bot/
@@ -46,8 +45,10 @@ cd BSky-Kampagnen-Bot
    BLUESKY_IDENTIFIER=dein_handle.bsky.social
    BLUESKY_APP_PASSWORD=dein_app_passwort
    ```
-3. Optional: Zeitzone für das Frontend festlegen (Standard `UTC`):
+3. Optional: Ports und Zeitzone anpassen (Standard `BACKEND_PORT=3000`, `FRONTEND_PORT=8080`):
    ```ini
+   BACKEND_PORT=3000
+   FRONTEND_PORT=8080
    VITE_TIME_ZONE=Europe/Berlin
    ```
 
@@ -59,9 +60,8 @@ cd BSky-Kampagnen-Bot
 docker compose up --build
 ```
 
-- Frontend: <http://localhost:8080>
-- Backend-API: <http://localhost:3000>
-- PostgreSQL: internes Netzwerk, Daten im Volume `db_data`
+- Frontend: <http://localhost:${FRONTEND_PORT:-8080}>
+- Backend-API: <http://localhost:${BACKEND_PORT:-3000}>
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d`.
 
@@ -77,7 +77,7 @@ docker compose logs -f
 docker compose down
 ```
 
-Optional kannst du mit `docker compose down -v` auch das Datenbank-Volume löschen (setzt alle Daten zurück).
+Wenn du mit einer externen Datenbank arbeiten möchtest (z. B. PostgreSQL), kannst du den auskommentierten `db`-Service in `docker-compose.yml` reaktivieren oder über eine eigene Compose-Datei definieren.
 
 ---
 

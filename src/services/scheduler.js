@@ -196,13 +196,27 @@ function ensureResultsObject(raw) {
 async function dispatchSkeet(skeet) {
   ensurePlatforms();
 
-  const targetPlatforms = getTargetPlatforms(skeet);
+  const current = await Skeet.findByPk(skeet.id);
+  if (!current) {
+    console.log(`ℹ️ Skeet ${skeet.id} wurde inzwischen gelöscht – überspringe Versand.`);
+    return;
+  }
+
+  if (!current.scheduledAt || current.scheduledAt > new Date()) {
+    return;
+  }
+
+  if (current.repeat === "none" && current.postUri) {
+    return;
+  }
+
+  const targetPlatforms = getTargetPlatforms(current);
   const normalizedPlatforms = Array.from(new Set(targetPlatforms));
-  const results = ensureResultsObject(skeet.platformResults);
+  const results = ensureResultsObject(current.platformResults);
   const successOrder = [];
 
   for (const platformId of targetPlatforms) {
-    if (skeet.repeat === "none" && results[platformId]?.status === "sent") {
+    if (current.repeat === "none" && results[platformId]?.status === "sent") {
       continue;
     }
 
@@ -219,7 +233,7 @@ async function dispatchSkeet(skeet) {
     }
 
     try {
-      const result = await sendPost({ content: skeet.content }, platformId, platformEnv);
+      const result = await sendPost({ content: current.content }, platformId, platformEnv);
       const postedAt = result?.postedAt ? new Date(result.postedAt) : new Date();
       results[platformId] = {
         status: "sent",
@@ -227,19 +241,22 @@ async function dispatchSkeet(skeet) {
         postedAt: postedAt.toISOString(),
       };
       successOrder.push({ platformId, uri: result?.uri ?? "", postedAt });
-      console.log(`✅ Skeet ${skeet.id} auf ${platformId} veröffentlicht (${result?.uri ?? "ohne URI"})`);
+      console.log(`✅ Skeet ${current.id} auf ${platformId} veröffentlicht (${result?.uri ?? "ohne URI"})`);
     } catch (error) {
       results[platformId] = {
         status: "failed",
         error: error?.message || String(error),
         failedAt: new Date().toISOString(),
       };
-      console.error(`❌ Fehler beim Senden von Skeet ${skeet.id} auf ${platformId}:`, error?.message || error);
+      console.error(
+        `❌ Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
+        error?.message || error
+      );
     }
   }
 
   const allSent = normalizedPlatforms.every((platformId) => results[platformId]?.status === "sent");
-  const nextRun = calculateNextScheduledAt(skeet);
+  const nextRun = calculateNextScheduledAt(current);
 
   const updates = {
     platformResults: results,
@@ -250,7 +267,7 @@ async function dispatchSkeet(skeet) {
     const primary =
       successOrder.find((entry) => entry.platformId === "bluesky") ?? successOrder[0];
     if (primary) {
-      if (skeet.repeat === "none") {
+      if (current.repeat === "none") {
         if (allSent) {
           updates.postUri = primary.uri;
           updates.postedAt = primary.postedAt;
@@ -262,7 +279,7 @@ async function dispatchSkeet(skeet) {
     }
   }
 
-  if (skeet.repeat === "none") {
+  if (current.repeat === "none") {
     if (allSent) {
       updates.scheduledAt = null;
     } else {
@@ -272,7 +289,7 @@ async function dispatchSkeet(skeet) {
     updates.scheduledAt = nextRun ?? new Date(Date.now() + RETRY_DELAY_MS);
   }
 
-  await skeet.update(updates);
+  await current.update(updates);
 }
 
 /**

@@ -33,6 +33,13 @@ function toLocalDateParts(value) {
   return { date, time };
 }
 
+/**
+ * Formular zum Erstellen oder Bearbeiten eines Skeets.
+ *
+ * @param {Function} onSkeetSaved   Callback nach erfolgreichem Speichern (lädt Liste neu).
+ * @param {Object|null} editingSkeet Aktueller Datensatz beim Bearbeiten, sonst null.
+ * @param {Function} onCancelEdit   Wird beim Abbrechen aufgerufen (z. B. Tab-Wechsel).
+ */
 function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const { date: defaultDate, time: defaultTime } = getDefaultDateParts();
 

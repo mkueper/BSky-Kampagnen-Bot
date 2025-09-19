@@ -50,9 +50,15 @@ async function getReactionsController(req, res) {
 
     const reactions = await getReactions(skeet.postUri);
 
+    const normalizedPlatforms = Array.isArray(skeet.targetPlatforms)
+      ? skeet.targetPlatforms.filter(Boolean)
+      : [];
+
     await skeet.update({
       likesCount: reactions.likes.length,
       repostsCount: reactions.reposts.length,
+      targetPlatforms:
+        normalizedPlatforms.length > 0 ? normalizedPlatforms : ["bluesky"],
     });
 
     res.json({
