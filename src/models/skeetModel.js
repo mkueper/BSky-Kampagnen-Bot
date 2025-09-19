@@ -1,4 +1,11 @@
 // src/models/skeetModel.js
+/**
+ * zentrale Tabelle für geplante bzw. veröffentlichte Skeets.
+ *
+ * Enthält sowohl Scheduling-Metadaten als auch Tracking-Felder wie postUri,
+ * Likes/Reposts und Zielplattformen. Zusätzliche Model-Validierungen verhindern
+ * unvollständige Daten (z. B. fehlende Terminangaben bei einmaligen Posts).
+ */
 module.exports = (sequelize, DataTypes) => {
   const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
 

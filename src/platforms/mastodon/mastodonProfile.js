@@ -2,6 +2,13 @@ const { countGraphemesSync } = require("../../utils/graphemes");
 const { createClient } = require("../../services/mastodonClient");
 
 /**
+ * Plattformprofil für Mastodon.
+ *
+ * Spiegelt denselben Aufbau wie das Bluesky-Profil wider, so dass das
+ * Dashboard und Scheduler die Plattformen polymorph behandeln können.
+ */
+
+/**
  * Erwartete env-Felder:
  *  - apiUrl: string (z. B. https://mastodon.social)
  *  - accessToken: string (persönlicher Access Token)
@@ -13,6 +20,9 @@ const { createClient } = require("../../services/mastodonClient");
  * @property {string} accessToken
  */
 
+/**
+ * Profil-Definition für Mastodon; wird vom Registry-System geladen.
+ */
 const mastodonProfile = {
   id: "mastodon",
   displayName: "Mastodon",
@@ -20,6 +30,9 @@ const mastodonProfile = {
   countMethod: "graphemes",
   description: "Mastodon-Limit (Unicode-Grapheme)",
 
+  /**
+   * Validiert die Beitragslänge anhand des Mastodon-Limits.
+   */
   validate(input) {
     const text = typeof input.content === "string" ? input.content : "";
     const len = countGraphemesSync(text);
@@ -31,15 +44,25 @@ const mastodonProfile = {
     };
   },
 
+  /**
+   * Entfernt Zero-Width-Zeichen, um böse Überraschungen beim Posten zu
+   * vermeiden.
+   */
   normalizeContent(text) {
     return text.replace(/[\u200B-\u200D\uFEFF]/g, "");
   },
 
+  /**
+   * Stellt die Struktur bereit, die Mastodon von der API erwartet.
+   */
   toPostPayload(input) {
     const text = this.normalizeContent ? this.normalizeContent(input.content) : input.content;
     return { status: text };
   },
 
+  /**
+   * Sendet den Beitrag an die Mastodon-API.
+   */
   async post(payload, env) {
     if (!env?.apiUrl || !env?.accessToken) {
       throw new Error("Mastodon-Env unvollständig (apiUrl, accessToken erforderlich).");

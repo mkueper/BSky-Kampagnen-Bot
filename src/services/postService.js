@@ -1,4 +1,10 @@
 // src/services/postService.js
+/**
+ * Abstraktionsebene, die Inhalte an Plattformprofile delegiert.
+ *
+ * Dadurch bleibt der Rest des Codes unabhängig von konkreten APIs; jedes
+ * Profil definiert, wie validiert, normalisiert und gepostet wird.
+ */
 const { getProfile } = require("../platforms/registry");
 
 /**
@@ -8,6 +14,7 @@ const { getProfile } = require("../platforms/registry");
 
 /**
  * Sendet einen Post an die angegebene Plattform.
+ *
  * @param {PostInput} input
  * @param {string} platformId // z.B. "bluesky" | "mastodon"
  * @param {PlatformEnv} env

@@ -1,4 +1,11 @@
-// Projekt: Bluesky Kampagnen-Tool in Node.js (Express 5 kompatibel)
+// server.js – Einstiegspunkt der Anwendung
+/**
+ * Bootstrapt Express, nimmt Logins zu Bluesky/Mastodon vor, synchronisiert die
+ * DB und startet anschließend den Scheduler.
+ *
+ * Alle API-Endpoints werden hier verdrahtet, die Implementierung liegt in den
+ * jeweiligen Controllern und Services.
+ */
 
 const express = require("express");
 const path = require("path");
@@ -27,7 +34,7 @@ app.post("/api/skeets", dashboardController.createSkeet);
 app.patch("/api/skeets/:id", dashboardController.updateSkeet);
 app.delete("/api/skeets/:id", dashboardController.deleteSkeet);
 
-// Wildcard-Route (nur GET)
+// Wildcard-Route (nur GET) – leitet unbekannte Pfade an das Dashboard weiter.
 app.use((req, res, next) => {
   if (req.method === "GET") {
     console.log("Wildcard Route ausgelöst für:", req.originalUrl);
@@ -43,7 +50,7 @@ app.use((req, res, next) => {
   }
 });
 
-// Init: Bluesky-Login, DB, Serverstart
+// Init-Pipeline: Logins, DB-Setup und Scheduler-Start.
 (async () => {
   try {
     await loginBluesky();

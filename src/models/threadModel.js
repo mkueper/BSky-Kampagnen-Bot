@@ -1,4 +1,10 @@
 // src/models/threadModel.js
+/**
+ * Thread-Modell: gruppiert mehrere Skeets zu einem redaktionellen Faden.
+ *
+ * Aktuell sehr schlank – dient vor allem als Container, um geplante Posts
+ * zeitlich oder thematisch zusammenzufassen.
+ */
 module.exports = (sequelize, DataTypes) => {
   return sequelize.define(
     "Thread",
@@ -18,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
-      timestamps: false, // wir nutzen nur createdAt
+      timestamps: false, // hier genügt ein manueller createdAt-Timestamp
       tableName: "Threads",
     }
   );

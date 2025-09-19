@@ -1,4 +1,11 @@
-// Optional: JSDoc für Editor-Typgefühl
+// src/platforms/types.js
+/**
+ * Sammlung gemeinsamer Typ-Konstanten für Plattformprofile.
+ *
+ * Ermöglicht, dass Scheduler/Dashboard auf symbolische Konstanten zugreifen
+ * können, ohne die tatsächlichen ID-Strings duplizieren zu müssen.
+ */
+
 /**
  * @typedef {"bluesky" | "mastodon"} TargetPlatform
  */

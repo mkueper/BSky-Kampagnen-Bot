@@ -1,4 +1,10 @@
 // src/config.js
+/**
+ * Ableitung laufzeitrelevanter Konfigurationen (Cron, Ports, Locale).
+ *
+ * Im Unterschied zu `env.js` werden hier konkrete Defaults und Fallbacks
+ * zusammengeführt, die der Server unmittelbar benötigt.
+ */
 require("dotenv").config();
 
 const DEFAULT_CRON = "* * * * *"; // Standard: jede Minute prüfen
