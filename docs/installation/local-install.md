@@ -46,11 +46,13 @@ cd ..
    ```bash
    cp .env.sample .env
    ```
-2. Zugangsdaten in `.env` ergänzen:
+2. Zugangsdaten in `.env` ergänzen und bei Bedarf Ports anpassen:
    ```ini
    BLUESKY_SERVER=https://bsky.social
    BLUESKY_IDENTIFIER=dein_handle.bsky.social
    BLUESKY_APP_PASSWORD=dein_app_passwort
+   BACKEND_PORT=3000
+   FRONTEND_PORT=8080
    ```
 3. Optional: Zeitzone und Datenbanktyp anpassen (siehe Kommentare in `.env`).
 

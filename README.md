@@ -1,88 +1,123 @@
-# Bluesky Kampagnen-Tool
+# Bluesky Kampagnen-Bot
 
-Das Bluesky Kampagnen-Tool ist ein Open-Source-Projekt für die **geplante Veröffentlichung und Verwaltung** von Bluesky-Posts (Skeets) und Threads. Es kombiniert eine Express-API, ein React-Dashboard und einen robusten Scheduler, sodass Kampagnen sicher vorbereitet und automatisiert ausgeliefert werden können – lokal, auf dem eigenen Server oder in Containern betrieben.
-
----
-
-## Projektziele
-
-- Kampagnen mit mehreren Skeets oder kompletten Threads vorbereiten und punktgenau veröffentlichen.
-- Mandanten sauber voneinander trennen, inklusive Rollen- und Rechteverwaltung.
-- Zugangsdaten verschlüsselt speichern und Erweiterungen (z. B. 2FA, zusätzliche Plattformen) vorbereiten.
-- Reaktionen von Bluesky abrufen, um Wirkung und Reichweite sichtbar zu machen.
+Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (optional PostgreSQL), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert.
 
 ---
 
-## Funktionsumfang (aktueller Planungsstand)
+## Aktuelle Funktionen
 
-### Planung & Veröffentlichung
-- Einzelne Skeets oder komplette Threads zeitgesteuert posten.
-- Unicode-Graphem-Zählung (Bluesky-konform) und Validierung des Zeichenvorrats.
-- Medienanhänge inklusive Alt-Texten vorbereiten.
+- **Planen & Veröffentlichen** – Skeets erstellen, nach Datum/Uhrzeit einplanen und später bearbeiten oder löschen.
+- **Automatischer Scheduler** – prüft jede Minute, welche Skeets fällig sind, versendet sie und wiederholt fehlgeschlagene Versuche.
+- **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten direkt an der jeweiligen Skeet-Karte einsehen.
+- **Plattformauswahl** – Zielplattformen pro Skeet festhalten (derzeit Bluesky, Mastodon in Vorbereitung).
+- **Frontend-Tabs** – Übersichtlich zwischen geplanten und veröffentlichten Skeets wechseln; Replies sind direkt in der Karte eingebettet.
 
-### Kampagnen-Management
-- Mehrere Kampagnen pro Tenant verwalten.
-- Statusübersichten für geplante, gesendete, fehlgeschlagene und archivierte Beiträge.
-- Filter nach Status, Zeit und Kampagne.
-
-### Multi-Tenant-Unterstützung
-- Strikte Mandantentrennung in der Datenbank.
-- Rollenmodell (Owner, Admin, Editor, Viewer) mit abgestuften Rechten.
-
-### Sicherheit
-- Passwort-Hashing mit Argon2id für lokale Logins.
-- AES-GCM-verschlüsselte Speicherung von Bluesky-Zugangsdaten.
-- Vorbereitete Strukturen für TOTP-basierte Zwei-Faktor-Authentifizierung.
-
-### Scheduler
-- Hintergrundjobs mit Retry-Logik, Backoff und Concurrency-Limits pro Tenant.
-- Status-Tracking und Benachrichtigung des Dashboards.
-
-### Analysen
-- Erfassung von Likes, Reposts und Replies.
-- Zeitreihen-Auswertungen pro Skeet/Thread in Planung.
-
-### Perspektive
-- Ausbau zu einem vollständigen Bluesky-Client mit Timeline, Interaktionen und Listenverwaltung.
+> Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (Multi-Tenant, zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
 ---
 
-## Technologie-Stack
+## Schnellstart (lokale Entwicklung)
 
-- **Backend:** Node.js (Express), TypeScript, Sequelize, PostgreSQL/MySQL/SQLite
-- **Frontend:** React (Vite), TypeScript, Tailwind/Shadcn UI
-- **Jobs & Scheduler:** Node-basierter Worker mit Queue- und Retry-Mechanismen
-- **Infrastruktur:** Betrieb lokal, als Service oder per Docker Compose
+```bash
+# Repository klonen
+git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
+cd BSky-Kampagnen-Bot
+
+# Backend-Abhängigkeiten installieren
+npm install
+
+# Frontend-Abhängigkeiten installieren und bauen
+cd dashboard
+npm install
+npm run build
+cd ..
+
+# Environment vorbereiten
+cp .env.sample .env
+# BLUESKY_IDENTIFIER / BLUESKY_APP_PASSWORD in .env ergänzen
+
+# Entwicklung starten (mit automatischem Reload)
+npm run start:dev
+```
+
+- API: <http://localhost:3000>
+- Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`).
+
+> Für den Produktionsmodus kannst du `npm run build` (Backend-Transpile) und `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
 
 ---
 
-## Installation
+## Betrieb mit Docker Compose
 
-Wähle die passende Installationsmethode aus den Anleitungen unter `docs/installation/`:
+Das Repository enthält Compose-Dateien für Backend und Frontend (SQLite als Default). Beispiel:
 
-- **[Option A: Installation auf lokalem PC oder Server](./docs/installation/local-install.md)** – lokale Entwicklung oder Betrieb ohne Container.
-- **[Option B: Manuelle Server-Installation](./docs/installation/server-install.md)** – produktiver Betrieb mit manueller Einrichtung der Umgebung.
-- **[Option C: Installation im Docker-Container](./docs/installation/docker-install.md)** – reproduzierbarer Betrieb mit Docker Compose.
+```bash
+cp .env.sample .env
+# Zugangsdaten setzen und optional Ports anpassen (BACKEND_PORT, FRONTEND_PORT)
+
+docker compose build
+docker compose up -d
+```
+
+- Backend erreichbar unter `http://localhost:${BACKEND_PORT:-3000}`
+- Frontend erreichbar unter `http://localhost:${FRONTEND_PORT:-8080}`
+
+Die Frontend-Container-Konfiguration (`docker/nginx-frontend.conf`) leitet `/api/*` automatisch an den Backend-Service weiter. Detaillierte Hinweise (Volumes, Updates, Reverse Proxy) findest du in `docs/installation/docker-install.md`.
 
 ---
 
-## Dokumentation & Architektur
+## Projektstruktur (Kurzüberblick)
 
-- **[Dokumentenübersicht](./docs/README.md)** – Einstieg in Architektur, Diagramme und weiterführende Unterlagen.
-- **[Roadmap](./docs/ROADMAP.md)** – geplanter Ausbau in drei Entwicklungsphasen.
-- **[Diagramme](./docs/diagramme)** – Systemarchitektur, Datenfluss, Statusdiagramme und Farbdefinitionen.
-- **[Agentenbeschreibung](./docs/Agent.md)** – Rolle des Kampagnen-Agents und seine Interaktionen.
+```
+BSky-Kampagnen-Bot/
+├─ server.js                # Express-Einstiegspunkt, Scheduler-Bootstrap
+├─ src/                     # Backend-Quellcode (Controller, Services, Models)
+├─ dashboard/               # React-Dashboard (Vite)
+├─ docker/                  # Dockerfiles + Nginx-Konfiguration
+├─ docs/                    # Architektur- und Installationsdokumentation
+└─ data/                    # SQLite-Datenbanken (Standard)
+```
+
+Weitere Details zu Architektur & Diagrammen findest du in `docs/README.md`.
 
 ---
 
-## Sicherheitshinweise
+## Wichtige Environment-Variablen (Auszug)
 
-- Keine Zugangsdaten in Repositories oder Tickets hochladen.
-- `.env` und andere Geheimnisse immer in `.gitignore` belassen und sicher verwahren.
-- Für produktive Installationen starke Passwörter, eigene App-Keys und verschlüsselte Backups einsetzen.
+| Variable          | Beschreibung                               | Standard |
+|-------------------|---------------------------------------------|----------|
+| `BLUESKY_SERVER`  | Bluesky-Endpunkt                            | `https://bsky.social` |
+| `BLUESKY_IDENTIFIER` | Handle oder Mailadresse                   | –        |
+| `BLUESKY_APP_PASSWORD` | App-spezifisches Passwort               | –        |
+| `BACKEND_PORT`    | Exponierter Port des Express-Servers        | `3000`   |
+| `FRONTEND_PORT`   | Port des Nginx-Frontend-Containers          | `8080`   |
+| `TIME_ZONE`       | Zeitzone für Scheduler                      | `Europe/Berlin` |
+
+Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
+
+---
+
+## Tests & Qualitätssicherung
+
+- **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build` im `dashboard/`-Verzeichnis).
+- **Linting/Formatting:** aktuell kein automatisches Setup – kann bei Bedarf ergänzt werden.
+- **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
+
+---
+
+## Mitwirken
+
+Issues, Ideen und Pull Requests sind willkommen! Bitte beachte die bestehenden Dokumente:
+
+- `docs/ROADMAP.md` – geplanter Funktionsumfang.
+- `docs/Agent.md` – Überblick über den Kampagnen-Agenten.
+- `docs/diagramme/*` – Visualisierung wichtiger Prozesse.
+
+Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 
 ---
 
 ## Lizenz
 
-Dieses Projekt steht unter der **GNU General Public License (GPL)**. Details siehe [LICENSE](./LICENSE).
+Dieses Projekt steht unter der **GNU General Public License v3.0**. Details siehe [LICENSE](./LICENSE).
+

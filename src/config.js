@@ -14,7 +14,7 @@ module.exports = {
     process.env.SCHEDULE_TIME ||
     process.env.VITE_SCHEDULE_TIME ||
     DEFAULT_CRON,
-  PORT: parseInt(process.env.PORT ?? "", 10) || 3000,
+  PORT: parseInt(process.env.BACKEND_PORT ?? "", 10) || 3000,
   TIME_ZONE:
     process.env.TIME_ZONE || process.env.VITE_TIME_ZONE || "Europe/Berlin",
   LOCALE: process.env.LOCALE || process.env.VITE_LOCALE || "de-DE",
