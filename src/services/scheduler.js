@@ -1,3 +1,11 @@
+// src/services/scheduler.js
+/**
+ * Verantwortlich für das periodische Abholen und Ausspielen geplanter Skeets.
+ *
+ * Holt sich fällige Einträge aus der Datenbank, delegiert das Posting an das
+ * Plattform-Registry und protokolliert Ergebnisse. Unterstützt einfache,
+ * Wiederholungs- und Mehrplattform-Workflows.
+ */
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("../config");
@@ -11,6 +19,10 @@ const RETRY_DELAY_MS = 60 * 1000;
 let platformsReady = false;
 let task = null;
 
+/**
+ * Registriert Plattformprofile lazy, damit Tests/CLI-Läufe ohne Scheduler
+ * keine Netzwerk-Initialisierung benötigen.
+ */
 function ensurePlatforms() {
   if (!platformsReady) {
     setupPlatforms();
@@ -18,6 +30,10 @@ function ensurePlatforms() {
   }
 }
 
+/**
+ * Normalisiert beliebige persistierte Plattformlisten (Array oder JSON-String)
+ * zu einem eindeutigen Array.
+ */
 function normalizeTargetPlatforms(raw) {
   if (!raw) {
     return [];
@@ -40,11 +56,18 @@ function normalizeTargetPlatforms(raw) {
   return [];
 }
 
+/**
+ * Stellt sicher, dass mindestens Bluesky angesprochen wird, wenn nichts
+ * gespeichert wurde.
+ */
 function getTargetPlatforms(skeet) {
   const normalized = normalizeTargetPlatforms(skeet?.targetPlatforms);
   return normalized.length > 0 ? normalized : ["bluesky"];
 }
 
+/**
+ * Mapped Plattform-IDs auf die passenden Credentials aus `env`.
+ */
 function resolvePlatformEnv(platformId) {
   switch (platformId) {
     case "bluesky":
@@ -56,6 +79,9 @@ function resolvePlatformEnv(platformId) {
   }
 }
 
+/**
+ * Prüft, ob notwendige Secrets für die Plattform vorhanden sind.
+ */
 function validatePlatformEnv(platformId, platformEnv) {
   if (platformId === "bluesky") {
     if (!platformEnv?.identifier || !platformEnv?.appPassword) {
@@ -72,12 +98,18 @@ function validatePlatformEnv(platformId, platformEnv) {
   return null;
 }
 
+/**
+ * Hilfsmethoden: behalten Uhrzeitbestandteile beim Verschieben bei.
+ */
 function addDaysKeepingTime(date, days) {
   const next = new Date(date.getTime());
   next.setUTCDate(next.getUTCDate() + days);
   return next;
 }
 
+/**
+ * Berechnet den nächsten Wochentermin für ein wiederkehrendes Posting.
+ */
 function computeNextWeekly(base, targetDay) {
   const next = new Date(base.getTime());
   const desired = typeof targetDay === "number" ? targetDay : next.getUTCDay();
@@ -90,10 +122,16 @@ function computeNextWeekly(base, targetDay) {
   return next;
 }
 
+/**
+ * Liefert die Anzahl der Tage im gewünschten Monat (UTC-sicher).
+ */
 function daysInMonth(year, month) {
   return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }
 
+/**
+ * Verschiebt den Termin um exakt einen Monat und fixiert den gewünschten Tag.
+ */
 function computeNextMonthly(base, targetDay) {
   const next = new Date(base.getTime());
   const desiredDay = typeof targetDay === "number" ? targetDay : next.getUTCDate();
@@ -103,6 +141,9 @@ function computeNextMonthly(base, targetDay) {
   return next;
 }
 
+/**
+ * Liefert das nächste Ausführungsdatum für Wiederholungs-Skeets.
+ */
 function calculateNextScheduledAt(skeet) {
   if (!skeet.repeat || skeet.repeat === "none") {
     return null;
@@ -122,6 +163,9 @@ function calculateNextScheduledAt(skeet) {
   }
 }
 
+/**
+ * Sorgt dafür, dass `platformResults` als bearbeitbares Objekt vorliegt.
+ */
 function ensureResultsObject(raw) {
   if (!raw) {
     return {};
@@ -143,6 +187,12 @@ function ensureResultsObject(raw) {
   return {};
 }
 
+/**
+ * Kümmert sich um das eigentliche Versenden eines Skeets auf alle Zielplattformen.
+ *
+ * Aktualisiert den Datensatz mit Statusinformationen und steuert das
+ * Wiederholungsverhalten.
+ */
 async function dispatchSkeet(skeet) {
   ensurePlatforms();
 
@@ -225,6 +275,9 @@ async function dispatchSkeet(skeet) {
   await skeet.update(updates);
 }
 
+/**
+ * Holt fällige Skeets aus der Datenbank und versucht, sie zu versenden.
+ */
 async function processDueSkeets(now = new Date()) {
   const dueSkeets = await Skeet.findAll({
     where: {
@@ -248,6 +301,9 @@ async function processDueSkeets(now = new Date()) {
   }
 }
 
+/**
+ * Initialisiert und startet den Cron-Scheduler.
+ */
 function startScheduler() {
   const schedule = config.SCHEDULE_TIME;
 

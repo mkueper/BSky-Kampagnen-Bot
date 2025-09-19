@@ -1,3 +1,10 @@
+// config/config.js – Sequelize CLI Konfiguration
+/**
+ * Stellt environment-spezifische Datenbankpfade bereit.
+ *
+ * Wird sowohl von sequelize-cli als auch vom Runtime-Code (`src/models/db.js`)
+ * genutzt, damit Migrationen und Anwendung dieselbe Datei verwenden.
+ */
 const path = require("path");
 
 const env = process.env.NODE_ENV || "development";

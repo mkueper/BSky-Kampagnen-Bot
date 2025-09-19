@@ -2,6 +2,14 @@ const { countGraphemesSync } = require("../../utils/graphemes");
 const { BskyAgent, RichText } = require("@atproto/api");
 
 /**
+ * Plattformprofil für Bluesky.
+ *
+ * Die Profile kapseln plattformspezifische Regeln (Zeichenlimit,
+ * Normalisierung, Posting) und werden über das Registry-System geladen. Damit
+ * können neue Plattformen einfach ergänzt werden.
+ */
+
+/**
  * Erwartete env-Felder:
  *  - serverUrl: string (z. B. https://bsky.social)
  *  - identifier: string (Handle oder E-Mail)
@@ -15,6 +23,12 @@ const { BskyAgent, RichText } = require("@atproto/api");
  * @property {string} appPassword
  */
 
+/**
+ * Erstellt einen authentifizierten Bluesky-Agenten für API-Aufrufe.
+ *
+ * @param {BlueskyEnv} env - Konfigurationswerte aus .env bzw. Datenbank
+ * @returns {Promise<BskyAgent>}
+ */
 async function createAgent(env) {
   const agent = new BskyAgent({ service: env.serverUrl });
   await agent.login({
@@ -24,6 +38,9 @@ async function createAgent(env) {
   return agent;
 }
 
+/**
+ * Profil-Definition, die vom Plattform-Registry geladen wird.
+ */
 const blueskyProfile = {
   id: "bluesky",
   displayName: "Bluesky",
@@ -31,6 +48,9 @@ const blueskyProfile = {
   countMethod: "graphemes",
   description: "Bluesky-Limit (Unicode-Grapheme)",
 
+  /**
+   * Prüft, ob der Text ins Bluesky-Limit passt.
+   */
   validate(input) {
     const text = typeof input.content === "string" ? input.content : "";
     const len = countGraphemesSync(text);
@@ -42,16 +62,26 @@ const blueskyProfile = {
     };
   },
 
+  /**
+   * Entfernt Zero-Width-Zeichen, damit das gepostete Resultat dem sichtbaren
+   * Entwurf entspricht.
+   */
   normalizeContent(text) {
-    // Optional: zero-width chars o. Ä. entfernen
     return text.replace(/[\u200B-\u200D\uFEFF]/g, "");
   },
 
+  /**
+   * Erstellt den finalen Payload für den Post-Endpunkt.
+   */
   toPostPayload(input) {
     const text = this.normalizeContent ? this.normalizeContent(input.content) : input.content;
     return { text };
   },
 
+  /**
+   * Versendet den Beitrag via Bluesky API und liefert die wichtigsten
+   * Metadaten zurück.
+   */
   async post(payload, env) {
     if (!env?.serverUrl || !env?.identifier || !env?.appPassword) {
       throw new Error("Bluesky-Env unvollständig (serverUrl, identifier, appPassword erforderlich).");

@@ -1,10 +1,22 @@
 // src/controllers/dashboardController.js
+/**
+ * Sammlung der Express-Controller für das Dashboard.
+ *
+ * Die Methoden kapseln alle CRUD-Operationen rund um "Skeets" sowie
+ * das Nachladen von Kennzahlen (Reaktionen) und Replies direkt aus Bluesky.
+ * Dadurch bleibt server.js schlank und die Frontend-API konsistent.
+ */
 const { Skeet, Reply } = require("../models");
 const { getReactions, getReplies } = require("../services/blueskyClient");
 
 const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
 
-// GET /api/skeets
+/**
+ * Liefert alle gespeicherten Skeets sortiert nach geplanter Ausspielung
+ * sowie Erstellungsdatum.
+ *
+ * GET /api/skeets
+ */
 async function getSkeets(req, res) {
   try {
     const skeets = await Skeet.findAll({
@@ -20,7 +32,12 @@ async function getSkeets(req, res) {
   }
 }
 
-// GET /api/reactions/:skeetId
+/**
+ * Ruft Likes und Reposts direkt bei Bluesky ab und synchronisiert die
+ * gespeicherten Zählerstände des Skeets.
+ *
+ * GET /api/reactions/:skeetId
+ */
 async function getReactionsController(req, res) {
   const { skeetId } = req.params;
   try {
@@ -48,7 +65,13 @@ async function getReactionsController(req, res) {
   }
 }
 
-// GET /api/replies/:skeetId
+/**
+ * Extrahiert alle Antworten eines Threads als flache Liste.
+ *
+ * Die Bluesky-API liefert für Threads verschachtelte Strukturen mit optionalen
+ * Post-Daten. Die BFS-Suche stellt sicher, dass jede Antwort höchstens einmal
+ * auftaucht und wir defensive Checks gegen fehlende Felder haben.
+ */
 function extractRepliesFromThread(thread) {
   if (!thread || typeof thread !== "object") return [];
 
@@ -84,6 +107,12 @@ function extractRepliesFromThread(thread) {
   return collected;
 }
 
+/**
+ * Lädt Replies zu einem Skeet über Bluesky, speichert sie transactional und
+ * liefert die Daten an das Dashboard zurück.
+ *
+ * GET /api/replies/:skeetId
+ */
 async function getRepliesController(req, res) {
   const { skeetId } = req.params;
   try {
@@ -120,7 +149,14 @@ async function getRepliesController(req, res) {
   }
 }
 
-// POST /api/skeets
+/**
+ * Legt einen neuen Skeet an.
+ *
+ * Enthält Validierung für Pflichtfelder, Plattform-Auswahl und Terminierung,
+ * sodass inkonsistente Datensätze bereits an der API abgefangen werden.
+ *
+ * POST /api/skeets
+ */
 async function createSkeet(req, res) {
   try {
     const {
@@ -181,7 +217,15 @@ async function createSkeet(req, res) {
   }
 }
 
-// PATCH /api/skeets/:id
+/**
+ * Aktualisiert einen bestehenden Skeet.
+ *
+ * Bei Wechsel des Wiederholungsmusters werden abhängige Felder angepasst
+ * (z. B. geplantes Datum oder Thread-Flags). Außerdem werden Plattformlisten
+ * dedupliziert, um das Frontend konsistent zu halten.
+ *
+ * PATCH /api/skeets/:id
+ */
 async function updateSkeet(req, res) {
   const { id } = req.params;
 
@@ -291,7 +335,14 @@ async function updateSkeet(req, res) {
   }
 }
 
-// DELETE /api/skeets/:id
+/**
+ * Entfernt einen Skeet endgültig.
+ *
+ * Verbundene Replies werden dank ON DELETE CASCADE vom Datenbank-Schema
+ * automatisch mitgelöscht.
+ *
+ * DELETE /api/skeets/:id
+ */
 async function deleteSkeet(req, res) {
   const { id } = req.params;
 

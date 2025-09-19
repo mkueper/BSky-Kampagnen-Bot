@@ -1,4 +1,11 @@
 // src/env.js
+/**
+ * Zentrale Drehscheibe für Konfigurationswerte aus `.env` und Build-Varianten.
+ *
+ * Beim Import wird dotenv einmalig initialisiert. Alle Services greifen auf die
+ * hier exportierten Objekte zurück, damit die Herkunft der Secrets gekapselt
+ * bleibt.
+ */
 require("dotenv").config();
 
 const env = {

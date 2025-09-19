@@ -1,4 +1,11 @@
 // src/models/db.js
+/**
+ * Zentrales Sequelize-Setup für das Projekt.
+ *
+ * Liest die Umgebungs-spezifische Konfiguration aus `config/config.js`, erzeugt
+ * eine Singleton-Instanz und stellt sie den Models zur Verfügung. Dadurch
+ * greifen alle Models auf dieselbe Verbindung & Connection-Pool zurück.
+ */
 const { Sequelize } = require("sequelize");
 const path = require("path");
 
@@ -9,7 +16,11 @@ const dbConfig = require(path.join(__dirname, "../../config/config.js"));
 const env = process.env.NODE_ENV || "development";
 const config = dbConfig[env];
 
-// Sequelize-Instanz erzeugen
+/**
+ * Gemeinsame Sequelize-Instanz für sämtliche Models.
+ *
+ * @type {Sequelize}
+ */
 const sequelize = new Sequelize(config.database || "", config.username || "", config.password || "", {
   dialect: config.dialect,
   storage: config.storage,

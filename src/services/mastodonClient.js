@@ -1,8 +1,19 @@
+// src/services/mastodonClient.js
+/**
+ * Thin Wrapper um die mastodon-api Library.
+ *
+ * Bietet Login, Credential-Checks und vereinfachte Post-Aufrufe. Die meisten
+ * Funktionen nehmen optionale Overrides entgegen, sodass Tests andere
+ * Zugangsdaten nutzen können.
+ */
 const Mastodon = require("mastodon-api");
 const { env } = require("../env");
 
 let client = null;
 
+/**
+ * Entfernt einen trailing Slash, damit wir konsistente Basis-URLs bilden.
+ */
 function normalizeApiUrl(url) {
   if (!url) {
     return url;
@@ -11,6 +22,9 @@ function normalizeApiUrl(url) {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+/**
+ * Ermittelt final genutzte Konfiguration einschließlich Overrides.
+ */
 function resolveConfig(overrides = {}) {
   const base = env.mastodon || {};
   return {
@@ -19,10 +33,16 @@ function resolveConfig(overrides = {}) {
   };
 }
 
+/**
+ * Convenience-Helfer für `server.js`, um Credentials schnell zu prüfen.
+ */
 function hasCredentials(config = env.mastodon) {
   return Boolean(config?.apiUrl && config?.accessToken);
 }
 
+/**
+ * Erstellt eine neue Mastodon-Clientinstanz (ohne sie global zu speichern).
+ */
 function createClient(overrides = {}) {
   const { apiUrl, accessToken } = resolveConfig(overrides);
 
@@ -40,12 +60,18 @@ function createClient(overrides = {}) {
   });
 }
 
+/**
+ * Führt einen Login durch und cached den Client für Folgeoperationen.
+ */
 async function login(overrides = {}) {
   client = createClient(overrides);
   await client.get("accounts/verify_credentials");
   return client;
 }
 
+/**
+ * Liefert den zuletzt angemeldeten Client oder wirft, falls nicht initialisiert.
+ */
 function getClient() {
   if (!client) {
     throw new Error("Mastodon-Client ist nicht initialisiert. Bitte login() aufrufen.");
@@ -54,6 +80,9 @@ function getClient() {
   return client;
 }
 
+/**
+ * Postet einen Status; nutzt optional temporäre Credentials.
+ */
 async function postStatus(status, options) {
   const activeClient = options ? createClient(options) : getClient();
   const response = await activeClient.post("statuses", { status });

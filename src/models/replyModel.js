@@ -1,4 +1,11 @@
 // src/models/replyModel.js
+/**
+ * Reply-Modell repräsentiert Antworten, die wir zu einem Skeet abrufen.
+ *
+ * Da Replies ausschließlich aus Bluesky importiert werden, sind kaum eigene
+ * Validierungen notwendig – wir stellen lediglich sicher, dass die Zuordnung
+ * zum Skeet sowie der Author-Handle gespeichert werden.
+ */
 module.exports = (sequelize, DataTypes) => {
   const Reply = sequelize.define(
     "Reply",
@@ -11,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "Replies",
       timestamps: true, // createdAt/updatedAt automatisch
-      underscored: false, // oder true, wenn du snake_case willst
+      underscored: false, // könnte auf true, falls snake_case gewünscht
     }
   );
 

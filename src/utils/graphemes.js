@@ -1,4 +1,10 @@
 // src/utils/graphemes.js
+/**
+ * Kleine Hilfsfunktionen rund um Unicode-Grapheme.
+ *
+ * Dient dazu, plattformspezifische Limits korrekt zu berechnen – normale
+ * `string.length` würde zusammengesetzte Zeichen falsch behandeln.
+ */
 const GraphemeSplitter = require("grapheme-splitter");
 
 function countGraphemesSync(text) {
