@@ -89,3 +89,28 @@
         display: none;
     }
 }
+
+/* --- Größere Subtab-Leiste (🕒 Geplant / ✅ Veröffentlicht) --- */
+.dashboard-subtabs {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0.25rem;
+}
+
+.dashboard-subtab {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.9rem;
+    min-height: 30px;
+    line-height: 1.2;
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #334155);
+    background: var(--color-surface, #0b1220);
+    box-shadow: var(--box-shadow-light, 0 2px 4px rgba(15, 23, 42, .35));
+    cursor: pointer;
+}
+
+.dashboard-subtab.active {
+    outline: 2px solid var(--color-accent, #8b9aaf);
+    outline-offset: 1px;
+}
