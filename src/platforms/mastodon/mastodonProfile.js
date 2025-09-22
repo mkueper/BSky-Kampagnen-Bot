@@ -73,6 +73,7 @@ const mastodonProfile = {
 
     return {
       uri: res.data?.url || "",
+      statusId: res.data?.id ? String(res.data.id) : "",
       postedAt: new Date(),
       raw: res.data,
     };

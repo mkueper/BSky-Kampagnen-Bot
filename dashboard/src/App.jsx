@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
 import { formatTime } from "./utils/formatTime";
 import { classNames } from "./utils/classNames";
 import { getRepeatDescription } from "./utils/timeUtils";
 import "./styles/App.css";
+
+const PLATFORM_LABELS = {
+  bluesky: "Bluesky",
+  mastodon: "Mastodon",
+};
 
 // --- UI-Helfer: Plattform-Badges ---
 function getPlatformSummary(skeet) {
@@ -71,14 +76,13 @@ function App() {
   const [repliesBySkeet, setRepliesBySkeet] = useState({});
   const [activeCardTabs, setActiveCardTabs] = useState({});
   const [loadingReplies, setLoadingReplies] = useState({});
+  const [loadingReactions, setLoadingReactions] = useState({});
+  const [reactionStats, setReactionStats] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingSkeet, setEditingSkeet] = useState(null);
   const menuRef = useRef(null);
-   const [planned, setPlanned] = useState([]);
-   const [published, setPublished] = useState([]);
-  
+
   useEffect(() => {
-    
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
@@ -99,9 +103,14 @@ function App() {
   /**
    * Skeets vom Backend anfordern, JSON-Felder normalisieren und lokale States synchron halten.
    */
-  const loadSkeets = async () => {
-    const res = await fetch("/api/skeets");
-    if (res.ok) {
+  const loadSkeets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/skeets");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Fehler beim Laden der Skeets.");
+      }
+
       const data = await res.json();
       const normalized = data.map((item) => ({
         ...item,
@@ -129,36 +138,49 @@ function App() {
         const updated = normalized.find((entry) => entry.id === current.id);
         return updated ?? null;
       });
-    } else {
-      console.error("Fehler beim Laden der Skeets");
+    } catch (error) {
+      console.error("Fehler beim Laden der Skeets:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadSkeets();
-  }, []);
+  }, [loadSkeets]);
 
   /**
    * Likes/Reposts eines Skeets nachladen. Anschließend wird die gesamte
    * Liste aktualisiert, damit auch parallele Änderungen sichtbar werden.
    */
   const fetchReactions = async (id) => {
+    setLoadingReactions((current) => ({ ...current, [id]: true }));
+
     try {
       const res = await fetch(`/api/reactions/${id}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Fehler beim Laden der Reaktionen.");
-        return;
+        throw new Error(data.error || "Fehler beim Laden der Reaktionen.");
       }
 
       const data = await res.json();
+      setReactionStats((current) => ({ ...current, [id]: data }));
 
       await loadSkeets();
 
-      alert(`Likes: ${data.likes}, Reposts: ${data.reposts}`);
+      const total = data?.total ?? {};
+      const totalLikes = typeof total.likes === "number" ? total.likes : "?";
+      const totalReposts = typeof total.reposts === "number" ? total.reposts : "?";
+      console.info(`Reaktionen für ${id}: Likes ${totalLikes}, Reposts ${totalReposts}`, data);
+      if (data?.errors) {
+        console.warn(`Fehler beim Abrufen einzelner Plattformen für ${id}:`, data.errors);
+      }
     } catch (error) {
       console.error("Fehler beim Laden der Reaktionen:", error);
-      alert("Fehler beim Laden der Reaktionen.");
+    } finally {
+      setLoadingReactions((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
     }
   };
 
@@ -183,14 +205,13 @@ function App() {
       const res = await fetch(`/api/replies/${id}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Fehler beim Laden der Replies.");
+        console.error("Fehler beim Laden der Replies:", data.error || "Unbekannter Fehler");
         return;
       }
       const data = await res.json();
       setRepliesBySkeet((current) => ({ ...current, [id]: data }));
     } catch (error) {
       console.error("Fehler beim Laden der Replies:", error);
-      alert("Fehler beim Laden der Replies.");
     } finally {
       setLoadingReplies((current) => ({ ...current, [id]: false }));
     }
@@ -207,13 +228,17 @@ function App() {
       return;
     }
 
-    const res = await fetch(`/api/skeets/${skeet.id}`, { method: "DELETE" });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/skeets/${skeet.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Löschen des Skeets.");
+      }
+
       setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
-      loadSkeets();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error || "Fehler beim Löschen des Skeets.");
+      await loadSkeets();
+    } catch (error) {
+      console.error("Fehler beim Löschen des Skeets:", error);
     }
   };
 
@@ -350,6 +375,7 @@ function App() {
                     const activeCardTab = activeCardTabs[skeet.id] ?? "skeet";
                     const replies = repliesBySkeet[skeet.id] ?? [];
                     const isLoading = Boolean(loadingReplies[skeet.id]);
+                    const isFetchingReactions = Boolean(loadingReactions[skeet.id]);
 
                     return (
                       <li key={skeet.id} className="skeet-item skeet-published">
@@ -412,13 +438,35 @@ function App() {
                                 </p>
                               )}
                               <div className="skeet-actions">
-                                <button onClick={() => fetchReactions(skeet.id)}>
-                                  Reaktionen anzeigen
+                                <button
+                                  onClick={() => fetchReactions(skeet.id)}
+                                  disabled={isFetchingReactions}
+                                >
+                                  {isFetchingReactions ? "Lädt…" : "Reaktionen anzeigen"}
                                 </button>
                               </div>
                               <p className="skeet-stats">
                                 Likes: {skeet.likesCount} | Reposts: {skeet.repostsCount}
                               </p>
+                              {reactionStats[skeet.id]?.platforms &&
+                                Object.keys(reactionStats[skeet.id].platforms).length > 0 && (
+                                  <div className="skeet-reactions-breakdown">
+                                    {Object.entries(reactionStats[skeet.id].platforms).map(
+                                      ([platformId, stats]) => (
+                                        <p key={platformId} className="skeet-reactions-entry">
+                                          {PLATFORM_LABELS[platformId] || platformId}:
+                                          {" "}
+                                          Likes {stats.likes} | Reposts {stats.reposts}
+                                        </p>
+                                      )
+                                    )}
+                                    {reactionStats[skeet.id]?.errors && (
+                                      <p className="skeet-reactions-error">
+                                        Fehler: {Object.values(reactionStats[skeet.id].errors).join(", ")}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                             </>
                           )}
                         </div>

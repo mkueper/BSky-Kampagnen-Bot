@@ -7,9 +7,64 @@
  * Dadurch bleibt server.js schlank und die Frontend-API konsistent.
  */
 const { Skeet, Reply } = require("../models");
-const { getReactions, getReplies } = require("../services/blueskyClient");
+const { getReactions: getBlueskyReactions, getReplies } = require("../services/blueskyClient");
+const { hasCredentials: hasMastodonCredentials, getStatus: getMastodonStatus } = require("../services/mastodonClient");
 
 const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
+
+function parsePlatformResults(raw) {
+  if (!raw) return {};
+
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      console.error("Fehler beim Parsen von platformResults:", error);
+      return {};
+    }
+  }
+
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return { ...raw };
+  }
+
+  return {};
+}
+
+function extractMastodonStatusId(uri) {
+  if (typeof uri !== "string" || uri.trim() === "") {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(uri);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    return segments.pop() || null;
+  } catch (error) {
+    const fallbackSegments = uri.split("/").filter(Boolean);
+    return fallbackSegments.pop() || null;
+  }
+}
+
+function isAtUri(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  return value.trim().startsWith("at://");
+}
+
+function findFirstAtUri(...candidates) {
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") {
+      continue;
+    }
+    const trimmed = candidate.trim();
+    if (isAtUri(trimmed)) {
+      return trimmed;
+    }
+  }
+  return null;
+}
 
 /**
  * Liefert alle gespeicherten Skeets sortiert nach geplanter Ausspielung
@@ -44,27 +99,107 @@ async function getReactionsController(req, res) {
     const skeet = await Skeet.findByPk(skeetId);
     if (!skeet) return res.status(404).json({ error: "Skeet nicht gefunden." });
 
-    if (!skeet.postUri) {
-      return res.status(400).json({ error: "Für diesen Skeet liegt keine postUri vor." });
-    }
-
-    const reactions = await getReactions(skeet.postUri);
+    const platformResults = parsePlatformResults(skeet.platformResults);
+    const nowIso = new Date().toISOString();
+    const perPlatform = {};
+    const errors = {};
+    let totalLikes = 0;
+    let totalReposts = 0;
 
     const normalizedPlatforms = Array.isArray(skeet.targetPlatforms)
       ? skeet.targetPlatforms.filter(Boolean)
       : [];
 
-    await skeet.update({
-      likesCount: reactions.likes.length,
-      repostsCount: reactions.reposts.length,
-      targetPlatforms:
-        normalizedPlatforms.length > 0 ? normalizedPlatforms : ["bluesky"],
+    const platformSet = new Set(normalizedPlatforms);
+    Object.keys(platformResults).forEach((platformId) => {
+      if (platformId) {
+        platformSet.add(platformId);
+      }
     });
 
-    res.json({
-      likes: reactions.likes.length,
-      reposts: reactions.reposts.length,
+    const blueskyEntry = platformResults.bluesky || {};
+    const blueskyUri = findFirstAtUri(blueskyEntry.uri, blueskyEntry.raw?.uri, skeet.postUri);
+    const blueskySent = blueskyEntry.status === "sent" || Boolean(blueskyUri);
+    if (blueskySent && blueskyUri) {
+      try {
+        const reactions = await getBlueskyReactions(blueskyUri);
+        const likes = Array.isArray(reactions.likes) ? reactions.likes.length : 0;
+        const reposts = Array.isArray(reactions.reposts) ? reactions.reposts.length : 0;
+        perPlatform.bluesky = { likes, reposts };
+        totalLikes += likes;
+        totalReposts += reposts;
+        platformSet.add("bluesky");
+        platformResults.bluesky = {
+          ...blueskyEntry,
+          metrics: perPlatform.bluesky,
+          metricsUpdatedAt: nowIso,
+        };
+      } catch (error) {
+        console.error("Fehler beim Laden der Bluesky-Reaktionen:", error);
+        errors.bluesky = error?.message || "Fehler beim Laden der Bluesky-Reaktionen.";
+      }
+    } else if (blueskySent && !blueskyUri) {
+      errors.bluesky = "Keine gültige Bluesky-URI für Reaktionen gefunden.";
+    }
+
+    const mastodonEntry = platformResults.mastodon || {};
+    const mastodonConfigured = hasMastodonCredentials();
+    const mastodonUrlCandidate =
+      mastodonEntry.uri || mastodonEntry.raw?.url || mastodonEntry.raw?.uri || null;
+    let mastodonStatusId = mastodonEntry.statusId || null;
+    if (!mastodonStatusId && mastodonUrlCandidate) {
+      mastodonStatusId = extractMastodonStatusId(mastodonUrlCandidate);
+    }
+
+    const shouldFetchMastodon = mastodonConfigured && (mastodonStatusId || mastodonUrlCandidate);
+    if (shouldFetchMastodon) {
+      if (mastodonStatusId) {
+        try {
+          const status = await getMastodonStatus(mastodonStatusId);
+          const likes = Number(status?.favourites_count) || 0;
+          const reposts = Number(status?.reblogs_count) || 0;
+          perPlatform.mastodon = { likes, reposts };
+          totalLikes += likes;
+          totalReposts += reposts;
+          platformSet.add("mastodon");
+          platformResults.mastodon = {
+            ...mastodonEntry,
+            statusId: mastodonStatusId,
+            uri: mastodonEntry.uri || status?.url || mastodonUrlCandidate || "",
+            raw: mastodonEntry.raw || { url: status?.url, uri: status?.uri, id: status?.id },
+            metrics: perPlatform.mastodon,
+            metricsUpdatedAt: nowIso,
+          };
+        } catch (error) {
+          console.error("Fehler beim Laden der Mastodon-Reaktionen:", error);
+          errors.mastodon = error?.message || "Fehler beim Laden der Mastodon-Reaktionen.";
+        }
+      } else {
+        errors.mastodon = "Konnte Mastodon-Status-ID nicht bestimmen.";
+      }
+    } else if ((mastodonEntry.uri || normalizedPlatforms.includes("mastodon")) && !mastodonConfigured) {
+      errors.mastodon = "Mastodon-Zugangsdaten fehlen.";
+    }
+
+    const normalizedTargets = Array.from(platformSet);
+
+    await skeet.update({
+      likesCount: totalLikes,
+      repostsCount: totalReposts,
+      targetPlatforms: normalizedTargets.length > 0 ? normalizedTargets : ["bluesky"],
+      platformResults,
     });
+
+    const payload = {
+      total: { likes: totalLikes, reposts: totalReposts },
+      platforms: perPlatform,
+    };
+
+    if (Object.keys(errors).length > 0) {
+      payload.errors = errors;
+    }
+
+    res.json(payload);
   } catch (error) {
     console.error("Fehler beim Laden der Reaktionen:", error);
     res.status(500).json({ error: "Fehler beim Laden der Reaktionen." });
@@ -125,11 +260,17 @@ async function getRepliesController(req, res) {
     const skeet = await Skeet.findByPk(skeetId);
     if (!skeet) return res.status(404).json({ error: "Skeet nicht gefunden." });
 
-    if (!skeet.postUri) {
-      return res.status(400).json({ error: "Für diesen Skeet liegt keine postUri vor." });
+    const platformResults = parsePlatformResults(skeet.platformResults);
+    const blueskyEntry = platformResults.bluesky || {};
+    const blueskyUri = findFirstAtUri(blueskyEntry.uri, blueskyEntry.raw?.uri, skeet.postUri);
+
+    if (!isAtUri(blueskyUri || "")) {
+      return res
+        .status(400)
+        .json({ error: "Für diesen Skeet liegt keine gültige Bluesky-URI vor." });
     }
 
-    const repliesData = await getReplies(skeet.postUri);
+    const repliesData = await getReplies(blueskyUri);
     const replies = extractRepliesFromThread(repliesData);
 
     // Atomar: alte Replies weg, neue speichern

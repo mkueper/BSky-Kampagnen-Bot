@@ -2,10 +2,15 @@
 FROM node:22-slim
 WORKDIR /app
 
+ARG APP_PORT=3000
+ENV APP_PORT=${APP_PORT}
+ENV BACKEND_INTERNAL_PORT=${APP_PORT}
+
 # Dependencies exakt wie im Lockfile installieren (inkl. Build-Schritte der nativen Module).
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY . .
-EXPOSE 3000
+
+EXPOSE ${APP_PORT}
 CMD ["node", "server.js"]

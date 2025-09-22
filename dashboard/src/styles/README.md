@@ -4,27 +4,32 @@ Dieser Ordner bündelt alle Styles des Dashboards. Die Dateien sind nach Verantw
 
 ---
 
-## Design-Tokens (`variables.css`)
+## Verzeichnisstruktur
+
+- `core/`: Design-Tokens und globale Basiselemente.
+- `layout/`: Seitenübergreifende Layout-Rahmen (z. B. Dashboard-Grids, Sticky-Bereiche).
+- `components/`: Wiederverwendbare UI-Bausteine wie Karten, Formulare oder Navigation.
+- `App.css`: Zentrale Sammelstelle, die alle benötigten Teil-Styles importiert.
+
+---
+
+## Design-Tokens (`core/variables.css`)
 
 - Enthält globale Farben, Abstände, Radien, Typografie- und Transition-Werte.
 - Dark-Mode-Varianten werden über `prefers-color-scheme: dark` verwaltet und überschreiben nur die nötigen Variablen.
 - Neue Komponenten sollten ausschließlich auf diese Tokens zurückgreifen.
 
-## Basis-Stile (`base.css`)
+## Basis-Stile (`core/base.css`)
 
 - Definiert Grundtypografie (`body`, Überschriften) und globale Bedienelemente.
 - Button-States (Hover, Active, Focus) inklusive Fokus-Markierungen für Tastatursteuerung.
 
-## Anwendungs-Wrapper (`App.css`)
-
-- Enthält App-weite Layoutregeln (Grid/Flex) und definiert, wie Seitenabstände und Scroll-Verhalten umgesetzt werden.
-- Importiert gemeinsame Tokens und sorgt dafür, dass globale Hintergründe/Statusfarben konsistent bleiben.
-
 ## Layout & Komponenten
 
-- `layout.css`: Karten- und Listenlayouts, Statusfarben für geplante bzw. veröffentlichte Skeets.
-- `menu.css`: Tab-Navigation inklusive Burger-Menü für kleine Screens.
-- `skeet-form.css`: Formularlayout, Fokus-Styling sowie Toggles für Zielplattformen.
+- `layout/dashboard-layout.css`: Grid- und Karten-Container, Statusfarben für geplante bzw. veröffentlichte Skeets.
+- `components/menu.css`: Tab-Navigation inklusive Burger-Menü für kleine Screens.
+- `components/skeet-form.css`: Formularlayout, Fokus-Styling sowie Toggles für Zielplattformen.
+- `components/skeet-card.css`: Inhaltliche Darstellung der Skeet-Karten, Reaktionen, Reply-Listen.
 
 ---
 
