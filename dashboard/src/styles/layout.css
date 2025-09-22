@@ -64,31 +64,32 @@
 
 @media (min-width: 768px) {
     .skeet-list {
+        display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing);
     }
 }
 
-/* Tab-Rahmen + Sticky-Verhalten für Geplant/Veröffentlicht */
 .dashboard-subtabs {
     display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-x-small);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
-    overflow: hidden;
     box-shadow: var(--box-shadow-light);
-
-    /* sticky-Zusatz */
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 1px solid var(--color-border, #334155);
-    padding-top: var(--spacing-small, 0.5rem);
+    padding: 0.25rem 0.25rem;
 }
 
 .dashboard-subtab {
     border: none;
     background: transparent;
-    padding: var(--spacing-small) var(--spacing);
+    padding: 0.35rem 0.75rem;
+    /* schlanker */
+    line-height: 1.1;
     font-weight: 600;
     cursor: pointer;
     color: var(--color-text-muted);
@@ -114,20 +115,18 @@
     background: var(--color-surface);
     box-shadow: var(--box-shadow-light);
     overflow: hidden;
+    /* kein Doppel-Scrollen */
     min-height: 0;
 }
 
 .dashboard-subtab-scroll {
     flex: 1;
-    overflow-y: auto;
+    overflow: auto;
     padding: var(--spacing);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing);
     min-height: 0;
 }
 
-/* Tabs innerhalb einer Skeet-Karte (Inhalt vs. Replies). */
+
 .skeet-card-tabs {
     display: inline-flex;
     border: 1px solid var(--color-border);
@@ -163,6 +162,8 @@
     gap: var(--spacing-small);
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
 }
 
 .skeet-stats {
@@ -213,81 +214,67 @@
 
 
 /* --- Viewport Layout & Scrollbereiche --- */
-.app, .dashboard-page {
-  min-height: 100vh;
+.App,
+.dashboard-page {
+    min-height: 100vh;
 }
 
 .dashboard-page {
-  display: grid;
-  grid-template-rows: auto 1fr;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: var(--spacing-small)
 }
 
 .dashboard-subtab-content {
-  overflow: hidden; /* kein Doppel-Scrollen */
+    overflow: hidden;
+    /* kein Doppel-Scrollen */
 }
 
 .dashboard-subtab-scroll {
-  height: 100%;
-  overflow: auto;
+    height: auto;
+    overflow: auto;
 }
 
 /* Plattform-Badges */
 .platform-badges {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
 }
 
 .badge {
-  font-size: 0.82rem;
-  line-height: 1.6;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border, #334155);
-  background: var(--color-surface, #0b1220);
-  box-shadow: var(--box-shadow-light, 0 2px 4px rgba(15,23,42,.35));
-  white-space: nowrap;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border, #334155);
+    background: var(--color-surface, #0b1220);
+    box-shadow: var(--box-shadow-light, 0 2px 4px rgba(15, 23, 42, .35));
+    white-space: nowrap;
 }
 
 .badge-sent {
-  background: var(--color-success-surface, rgba(74, 222, 128, 0.2));
-  border-color: rgba(74, 222, 128, 0.35);
+    background: var(--color-success-surface, rgba(74, 222, 128, 0.2));
+    border-color: rgba(74, 222, 128, 0.35);
 }
 
 .badge-failed {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.35);
 }
 
 .badge-pending {
-  background: var(--color-warning-surface, rgba(252, 211, 77, 0.2));
-  border-color: rgba(252, 211, 77, 0.35);
-}
-
-/* --- Stabilisierung der Karten beim Umschalten zwischen „Skeet“ und „Antworten“ --- */
-.skeet-card-panel {
-    min-height: var(--skeet-card-min-height, 20rem);
-    /* Verhindert, dass die Karte beim Umschalten springt */
-    overflow-y: auto;
-    /* stabiler Scrollbalken innerhalb der Karte */
-}
-.skeet-card-panel {
-    scrollbar-gutter: stable both-edges;
-}
-
-.skeet-card-panel {
-    overflow-y: scroll;
+    background: var(--color-warning-surface, rgba(252, 211, 77, 0.2));
+    border-color: rgba(252, 211, 77, 0.35);
 }
 
 .skeet-card-replies {
-    /* reserviert Mindesthöhe für die Antworten-Ansicht */
     min-height: 12rem;
 }
 
 .replies-list {
     margin: 0;
-    /* verhindert Höhen-Sprünge durch Standard-UL-Margins */
     padding-left: 1rem;
 }
 

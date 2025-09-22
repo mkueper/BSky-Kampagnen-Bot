@@ -47,17 +47,6 @@ function PlatformBadges({ skeet }) {
   );
 }
 
-
-/**
- * React-Hauptansicht des Dashboards.
- *
- * Aufgabenüberblick:
- *  - Lädt Skeets aus dem Backend und normalisiert deren Struktur.
- *  - Verwaltet Tabs (Dashboard/Config/Formular sowie Geplant/Veröffentlicht).
- *  - Koordiniert das Nachladen von Reaktionen und Replies pro Skeet.
- *  - Dient als zentraler Verteiler für Formularereignisse (Anlegen/Bearbeiten).
- */
-
 function parseTargetPlatforms(value) {
   if (Array.isArray(value)) {
     return value;
@@ -77,19 +66,19 @@ function parseTargetPlatforms(value) {
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  // Innerhalb der Dashboard-Ansicht kann zwischen "planned" und "published" gewechselt werden.
   const [dashboardView, setDashboardView] = useState("planned");
   const [skeets, setSkeets] = useState([]);
-  // Replies werden pro Skeet gespeichert, um Tab-Wechsel ruckelfrei zu halten.
   const [repliesBySkeet, setRepliesBySkeet] = useState({});
   const [activeCardTabs, setActiveCardTabs] = useState({});
   const [loadingReplies, setLoadingReplies] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingSkeet, setEditingSkeet] = useState(null);
   const menuRef = useRef(null);
-
-  // Schließt das Burger-Menü, wenn außerhalb geklickt wird.
+   const [planned, setPlanned] = useState([]);
+   const [published, setPublished] = useState([]);
+  
   useEffect(() => {
+    
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
