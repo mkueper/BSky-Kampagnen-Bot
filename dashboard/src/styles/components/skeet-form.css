@@ -107,3 +107,49 @@ textarea:focus-visible {
     background-color: var(--color-accent-hover);
     color: var(--color-button-text);
 }
+
+@media (max-width: 900px) {
+    .skeet-form {
+        padding: var(--spacing);
+    }
+
+    .form-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: calc(var(--spacing-small) * 0.75);
+    }
+
+    input[type="datetime-local"] {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .skeet-form {
+        padding: calc(var(--spacing) * 0.75);
+    }
+
+    .form-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-small);
+    }
+
+    .form-title {
+        font-size: calc(var(--font-size-heading) * 0.9);
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .platforms-inline {
+        width: 100%;
+    }
+
+    .platforms-inline .toggle {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}

@@ -185,3 +185,70 @@
 .skeet-card-tabs {
     margin-bottom: 0.5rem;
 }
+
+@media (max-width: 1024px) {
+    :root {
+        --skeet-card-min-height: 18rem;
+        --skeet-card-max-height: 24rem;
+    }
+
+    .dashboard-page h1 {
+        font-size: calc(var(--font-size-heading) * 0.95);
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --skeet-card-min-height: auto;
+        --skeet-card-max-height: none;
+    }
+
+    .dashboard-page {
+        padding-bottom: var(--spacing);
+    }
+
+    .dashboard-page h1 {
+        text-align: center;
+        margin-bottom: var(--spacing);
+    }
+
+    .dashboard-subtabs {
+        justify-content: center;
+        flex-wrap: wrap;
+        row-gap: var(--spacing-small);
+    }
+
+    .skeet-list {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: calc(var(--spacing) * 0.75);
+    }
+
+    .skeet-card-panel {
+        max-height: none;
+        padding-right: 0;
+    }
+
+    .skeet-card-tabs {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-page {
+        padding-inline: calc(var(--spacing) * 0.5);
+    }
+
+    .skeet-card-panel {
+        gap: calc(var(--spacing-small) * 0.75);
+    }
+
+    .skeet-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+}

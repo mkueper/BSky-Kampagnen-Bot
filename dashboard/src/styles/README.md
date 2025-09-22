@@ -11,6 +11,8 @@ Dieser Ordner bündelt alle Styles des Dashboards. Die Dateien sind nach Verantw
 - `components/`: Wiederverwendbare UI-Bausteine wie Karten, Formulare oder Navigation.
 - `App.css`: Zentrale Sammelstelle, die alle benötigten Teil-Styles importiert.
 
+> Themes: Die CSS-Variablen reagieren auf `data-theme="light" | "dark"` am `<html>`-Element. Ohne gesetztes Attribut greift automatisch `prefers-color-scheme`.
+
 ---
 
 ## Design-Tokens (`core/variables.css`)
