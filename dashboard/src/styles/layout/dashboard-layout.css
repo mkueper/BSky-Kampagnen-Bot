@@ -23,27 +23,6 @@
     flex-direction: column;
 }
 
-.skeet-platforms {
-    font-size: var(--font-size-small);
-    color: var(--color-text-muted);
-    margin: var(--spacing-x-small) 0;
-}
-
-.skeet-actions {
-    margin-top: var(--spacing-small);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-small);
-}
-
-.skeet-actions .danger {
-    background-color: #dc3545;
-}
-
-.skeet-actions .danger:hover {
-    background-color: #b02a37;
-}
-
 .skeet-item:hover {
     border-color: var(--color-accent);
     box-shadow: var(--box-shadow-medium);
@@ -126,82 +105,6 @@
     min-height: 0;
 }
 
-
-.skeet-card-tabs {
-    display: inline-flex;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    margin-bottom: var(--spacing-small);
-    background: var(--color-surface);
-}
-
-.skeet-card-tab {
-    border: none;
-    background: transparent;
-    padding: var(--spacing-small) var(--spacing);
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    transition: background var(--transition-duration) var(--transition-ease),
-        color var(--transition-duration) var(--transition-ease);
-}
-
-.skeet-card-tab:hover {
-    background: var(--color-bg-subtle);
-}
-
-.skeet-card-tab.active {
-    background: var(--color-success-surface);
-    color: var(--color-text);
-}
-
-.skeet-card-panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-small);
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    scrollbar-gutter: stable both-edges;
-}
-
-.skeet-stats {
-    margin-top: auto;
-    font-weight: 600;
-}
-
-.skeet-card-replies {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-small);
-    flex: 1;
-    overflow-y: auto;
-    padding-right: var(--spacing-x-small);
-    min-height: 10rem;
-}
-
-.skeet-card-replies-loading,
-.skeet-card-replies-empty {
-    color: var(--color-text-muted);
-}
-
-/* Liste einzelner Replies innerhalb einer Karte. */
-.replies-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-small);
-}
-
-.replies-list li {
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-small);
-    padding: var(--spacing-small);
-    background: var(--color-bg-subtle);
-}
 
 .reply-content {
     margin: var(--spacing-x-small) 0;

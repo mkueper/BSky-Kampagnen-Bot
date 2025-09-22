@@ -27,7 +27,9 @@
     "build:frontend": "npm --prefix dashboard run build",
     "dev:frontend": "npm --prefix dashboard run dev",
     "install:frontend": "npm --prefix dashboard install",
-    "build:all": "npm run build && npm run build:frontend"
+    "build:all": "npm run build && npm run build:frontend",
+    "docker:build": "docker compose build",
+    "docker:bundle": "./scripts/docker-bundle.sh"
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",

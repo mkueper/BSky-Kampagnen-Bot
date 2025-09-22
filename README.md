@@ -89,9 +89,12 @@ Weitere Details zu Architektur & Diagrammen findest du in `docs/README.md`.
 | `BLUESKY_SERVER`  | Bluesky-Endpunkt                            | `https://bsky.social` |
 | `BLUESKY_IDENTIFIER` | Handle oder Mailadresse                   | –        |
 | `BLUESKY_APP_PASSWORD` | App-spezifisches Passwort               | –        |
-| `BACKEND_PORT`    | Exponierter Port des Express-Servers        | `3000`   |
+| `BACKEND_INTERNAL_PORT` | Port des Backend-Servers im Container    | `3000`   |
+| `BACKEND_PORT`    | Exponierter Host-Port (Port-Mapping)        | `3000`   |
 | `FRONTEND_PORT`   | Port des Nginx-Frontend-Containers          | `8080`   |
 | `TIME_ZONE`       | Zeitzone für Scheduler                      | `Europe/Berlin` |
+
+> Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
 Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
 
@@ -102,6 +105,7 @@ Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
 - **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build` im `dashboard/`-Verzeichnis).
 - **Linting/Formatting:** aktuell kein automatisches Setup – kann bei Bedarf ergänzt werden.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
+- **Bundle (inkl. Datenbank):** `npm run docker:bundle` erstellt ein Zip (`dist/bundles/…`) mit Docker-Compose-Dateien, vollständigem Projekt (ohne `node_modules`/`dist`) und der aktuellen SQLite-Datenbank – ideal zum Kopieren auf einen Server.
 
 ---
 
@@ -120,4 +124,3 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 ## Lizenz
 
 Dieses Projekt steht unter der **GNU General Public License v3.0**. Details siehe [LICENSE](./LICENSE).
-

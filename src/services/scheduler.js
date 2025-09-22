@@ -237,12 +237,22 @@ async function dispatchSkeet(skeet) {
 
       if (res.ok) {
         const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
-        results[platformId] = {
+        const resultEntry = {
           status: "sent",
           uri: res.uri || "",
           postedAt: postedAt.toISOString(),
           attempts: res.attempts || 1,
         };
+
+        if (res.statusId) {
+          resultEntry.statusId = String(res.statusId);
+        }
+
+        if (res.raw) {
+          resultEntry.raw = res.raw;
+        }
+
+        results[platformId] = resultEntry;
         successOrder.push({ platformId, uri: res.uri || "", postedAt });
         console.log(`✅ Skeet ${current.id} auf ${platformId} veröffentlicht (${res.uri || "ohne URI"})`);
       } else {
