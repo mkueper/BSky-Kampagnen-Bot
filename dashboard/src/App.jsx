@@ -79,6 +79,23 @@ function App() {
   const [loadingReactions, setLoadingReactions] = useState({});
   const [reactionStats, setReactionStats] = useState({});
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+  const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    const stored = window.localStorage.getItem("theme");
+    return stored === "light" || stored === "dark";
+  });
   const [editingSkeet, setEditingSkeet] = useState(null);
   const menuRef = useRef(null);
 
@@ -99,6 +116,36 @@ function App() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+    if (userHasExplicitTheme) {
+      window.localStorage.setItem("theme", theme);
+    } else {
+      window.localStorage.removeItem("theme");
+    }
+  }, [theme, userHasExplicitTheme]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = (event) => {
+      if (userHasExplicitTheme) {
+        return;
+      }
+      setTheme(event.matches ? "dark" : "light");
+    };
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [userHasExplicitTheme]);
+
+  const toggleTheme = () => {
+    setUserHasExplicitTheme(true);
+    setTheme((current) => (current === "light" ? "dark" : "light"));
+  };
 
   /**
    * Skeets vom Backend anfordern, JSON-Felder normalisieren und lokale States synchron halten.
@@ -261,12 +308,22 @@ function App() {
   return (
     <div className="App">
       <div className="menu-container">
-        <button
-          className="burger-button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-        >
-          ☰ Menü
-        </button>
+        <div className="menu-actions">
+          <button
+            className="burger-button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+          >
+            ☰ Menü
+          </button>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
+            title={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
+          >
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
+        </div>
 
         <div
           className={`menu-tabs ${menuOpen ? "open" : "closed"}`}

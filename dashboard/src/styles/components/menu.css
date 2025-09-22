@@ -6,6 +6,13 @@
     margin-bottom: var(--spacing);
 }
 
+.menu-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-small);
+    margin-bottom: var(--spacing-small);
+}
+
 .menu-tabs button {
     background-color: var(--color-accent);
     color: var(--color-button-text);
@@ -37,9 +44,58 @@
     font-weight: 600;
 }
 
+@media (max-width: 900px) {
+    .menu-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: calc(var(--spacing-x-small) * 0.5);
+        margin-bottom: calc(var(--spacing) * 0.75);
+        scrollbar-width: thin;
+    }
+
+    .menu-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .menu-tabs::-webkit-scrollbar-thumb {
+        background: var(--color-border);
+        border-radius: 999px;
+    }
+}
+
 .menu-container {
     position: relative;
     margin-bottom: var(--spacing);
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background-color var(--transition-duration) var(--transition-ease),
+        border-color var(--transition-duration) var(--transition-ease),
+        transform var(--transition-duration) var(--transition-ease);
+}
+
+.theme-toggle:hover {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-accent);
+}
+
+.theme-toggle:active {
+    transform: scale(0.96);
+}
+
+.theme-toggle:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .burger-button {
@@ -69,7 +125,7 @@
     .menu-tabs {
         flex-direction: column;
         position: absolute;
-        top: 42px;
+        top: 48px;
         left: 0;
         background: var(--color-surface);
         border: 1px solid var(--color-border);

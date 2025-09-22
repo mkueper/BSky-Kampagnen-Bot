@@ -11,6 +11,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten direkt an der jeweiligen Skeet-Karte einsehen.
 - **Plattformauswahl** – Zielplattformen pro Skeet festhalten (derzeit Bluesky, Mastodon in Vorbereitung).
 - **Frontend-Tabs** – Übersichtlich zwischen geplanten und veröffentlichten Skeets wechseln; Replies sind direkt in der Karte eingebettet.
+- **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
 
 > Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (Multi-Tenant, zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
