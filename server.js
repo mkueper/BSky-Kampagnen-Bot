@@ -13,7 +13,9 @@ const fs = require("fs");
 const { login: loginBluesky } = require("./src/services/blueskyClient");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("./src/services/mastodonClient");
 const { startScheduler } = require("./src/services/scheduler");
-const dashboardController = require("./src/controllers/dashboardController");
+const skeetController = require("./src/controllers/skeetController");
+const importExportController = require("./src/controllers/importExportController");
+const engagementController = require("./src/controllers/engagementController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, Skeet, Reply } = require("./src/models");
@@ -28,14 +30,16 @@ app.use(express.static(DIST_DIR));
 app.use(express.json());
 
 // API-Routen
-app.get("/api/skeets", dashboardController.getSkeets);
-app.get("/api/skeets/export", dashboardController.exportPlannedSkeets);
-app.get("/api/reactions/:skeetId", dashboardController.getReactions);
-app.get("/api/replies/:skeetId", dashboardController.getReplies);
-app.post("/api/skeets", dashboardController.createSkeet);
-app.post("/api/skeets/import", dashboardController.importPlannedSkeets);
-app.patch("/api/skeets/:id", dashboardController.updateSkeet);
-app.delete("/api/skeets/:id", dashboardController.deleteSkeet);
+app.get("/api/skeets", skeetController.getSkeets);
+app.post("/api/skeets", skeetController.createSkeet);
+app.patch("/api/skeets/:id", skeetController.updateSkeet);
+app.delete("/api/skeets/:id", skeetController.deleteSkeet);
+
+app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
+app.post("/api/skeets/import", importExportController.importPlannedSkeets);
+
+app.get("/api/reactions/:skeetId", engagementController.getReactions);
+app.get("/api/replies/:skeetId", engagementController.getReplies);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
