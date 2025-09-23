@@ -63,12 +63,6 @@
     padding: 0.25rem 0.25rem;
 }
 
-.dashboard-subtabs-row::after {
-    content: "";
-    flex-basis: 100%;
-    border-bottom: 1px solid var(--color-border);
-    margin-top: calc(var(--spacing-small) * 0.75);
-}
 
 .dashboard-subtabs {
     display: inline-flex;
@@ -101,9 +95,9 @@
 } */
 
 .dashboard-subtabs-actions button {
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text);
+    border: 1px solid var(--color-button-border);
+    background: var(--color-button-bg);
+    color: var(--color-button-text);
     border-radius: var(--border-radius);
     padding: 0.3rem 0.7rem;
     font-weight: 600;
@@ -114,7 +108,7 @@
 }
 
 .dashboard-subtabs-actions button:hover:not(:disabled) {
-    background-color: var(--color-bg-subtle);
+    background-color: var(--color-button-bg-hover);
     box-shadow: var(--box-shadow-medium);
 }
 
@@ -130,44 +124,31 @@
 
 
 .dashboard-subtab {
-    position: relative;
-    border: none;
-    background: transparent;
-    padding: 0.38rem 1.05rem;
-    border-radius: calc(var(--border-radius-large) * 1.1);
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.9rem;
+    min-height: 30px;
+    line-height: 1.2;
+    border-radius: 8px;
+    border: 1px solid var(--color-button-border);
+    background: var(--color-button-bg);
+    color: var(--color-button-text);
+    box-shadow: var(--box-shadow-light);
     cursor: pointer;
-    color: var(--color-text-muted);
-    transition: color var(--transition-duration) var(--transition-ease);
-    z-index: 1;
+    transition: background-color var(--transition-duration) var(--transition-ease),
+        box-shadow var(--transition-duration) var(--transition-ease);
 }
 
-.dashboard-subtab::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: calc(var(--border-radius-large) * 1.1);
-    background: linear-gradient(120deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.28));
-    opacity: 0;
-    transform: scale(0.9);
-    transition: opacity var(--transition-duration) var(--transition-ease), transform var(--transition-duration) var(--transition-ease);
-    z-index: -1;
-}
-
-.dashboard-subtab:hover::after {
-    opacity: 0.55;
-    transform: scale(1);
+.dashboard-subtab:hover {
+    background: var(--color-button-bg-hover);
 }
 
 .dashboard-subtab.active {
-    color: var(--color-text);
+    background: var(--color-button-bg-active);
+    box-shadow: var(--box-shadow-medium);
 }
 
-.dashboard-subtab.active::after {
-    opacity: 1;
-    transform: scale(1);
-}
 
 
 .dashboard-subtab-content {

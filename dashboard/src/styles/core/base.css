@@ -61,20 +61,20 @@ button {
     gap: var(--spacing-x-small);
     padding: 0.6rem 1rem;
     font-size: var(--font-size-base);
-    background-color: var(--color-accent);
+    background-color: var(--color-button-bg);
     color: var(--color-button-text);
     border-radius: var(--border-radius);
-    border: 1px solid transparent;
+    border: 1px solid var(--color-button-border);
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
 }
 
 button:hover {
-    background-color: var(--color-accent-hover);
+    background-color: var(--color-button-bg-hover);
 }
 
 button:active {
-    background-color: var(--color-accent-active);
+    background-color: var(--color-button-bg-active);
 }
 
 button:focus-visible {
