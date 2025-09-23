@@ -482,7 +482,8 @@ const handleImportFileChange = async (event) => {
                 ✅ Veröffentlicht
               </button>
             </div>
-            <div className="dashboard-subtab-actions">
+            <div className="dashboard-subtabs dashboard-subtabs-actions">
+              <span className="dashboard-subtab-label">📦 Daten</span>
               <button onClick={handleExport} disabled={exporting}>
                 {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
               </button>

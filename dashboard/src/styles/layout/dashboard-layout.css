@@ -53,37 +53,21 @@
 .dashboard-subtabs-row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--spacing-small);
+    gap: var(--spacing);
     align-items: center;
+    margin-bottom: var(--spacing-small);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--color-app-bg, var(--color-surface));
+    padding: 0.35rem 0.25rem;
 }
 
-.dashboard-subtab-actions {
-    display: inline-flex;
-    gap: var(--spacing-x-small);
-    align-items: center;
-}
-
-.dashboard-subtab-actions button {
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-text);
-    border-radius: var(--border-radius);
-    padding: 0.4rem 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color var(--transition-duration) var(--transition-ease),
-        box-shadow var(--transition-duration) var(--transition-ease);
-    box-shadow: var(--box-shadow-light);
-}
-
-.dashboard-subtab-actions button:hover:not(:disabled) {
-    background-color: var(--color-bg-subtle);
-    box-shadow: var(--box-shadow-medium);
-}
-
-.dashboard-subtab-actions button:disabled {
-    opacity: 0.6;
-    cursor: progress;
+.dashboard-subtabs-row::after {
+    content: "";
+    flex-basis: 100%;
+    border-bottom: 1px solid var(--color-border);
+    margin-top: var(--spacing-small);
 }
 
 .dashboard-subtabs {
@@ -94,11 +78,53 @@
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow-light);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 0.25rem 0.25rem;
+    padding: 0.25rem 0.35rem;
 }
+
+.dashboard-subtabs-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-x-small);
+    margin-left: auto;
+}
+
+.dashboard-subtabs-actions::before {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 1.75rem;
+    background: var(--color-border);
+    margin-right: var(--spacing-x-small);
+}
+
+.dashboard-subtabs-actions button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: var(--border-radius);
+    padding: 0.35rem 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) var(--transition-ease),
+        box-shadow var(--transition-duration) var(--transition-ease);
+    box-shadow: var(--box-shadow-light);
+}
+
+.dashboard-subtabs-actions button:hover:not(:disabled) {
+    background-color: var(--color-bg-subtle);
+    box-shadow: var(--box-shadow-medium);
+}
+
+.dashboard-subtabs-actions button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.dashboard-subtab-label {
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
 
 .dashboard-subtab {
     position: relative;
