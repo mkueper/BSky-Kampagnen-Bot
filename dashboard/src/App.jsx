@@ -1,43 +1,35 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import SkeetForm from "./SkeetForm";
-import PlatformBadges from "./components/PlatformBadges";
-import DashboardTabs from "./components/DashboardTabs";
-import { formatTime } from "./utils/formatTime";
-import { classNames } from "./utils/classNames";
-import { getRepeatDescription } from "./utils/timeUtils";
-import "./styles/App.css";
+import { useEffect, useRef, useState } from "react";
+import SkeetForm from './SkeetForm';
+import DashboardTabs from './components/DashboardTabs';
+import PlannedSkeetList from './components/PlannedSkeetList';
+import PublishedSkeetList from './components/PublishedSkeetList';
+import { useSkeets } from './hooks/useSkeets';
+import { formatTime } from './utils/formatTime';
+import { classNames } from './utils/classNames';
+import { getRepeatDescription } from './utils/timeUtils';
+import './styles/App.css';
 
 const PLATFORM_LABELS = {
   bluesky: "Bluesky",
   mastodon: "Mastodon",
 };
 
-function parseTargetPlatforms(value) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      console.warn("Konnte targetPlatforms nicht parsen:", error);
-    }
-  }
-
-  return [];
-}
-
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardView, setDashboardView] = useState("planned");
-  const [skeets, setSkeets] = useState([]);
-  const [repliesBySkeet, setRepliesBySkeet] = useState({});
-  const [activeCardTabs, setActiveCardTabs] = useState({});
-  const [loadingReplies, setLoadingReplies] = useState({});
-  const [loadingReactions, setLoadingReactions] = useState({});
-  const [reactionStats, setReactionStats] = useState({});
+  const {
+    plannedSkeets,
+    publishedSkeets,
+    loadSkeets,
+    fetchReactions,
+    showSkeetContent,
+    showRepliesContent,
+    activeCardTabs,
+    repliesBySkeet,
+    loadingReplies,
+    loadingReactions,
+    reactionStats,
+  } = useSkeets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window === "undefined") {
@@ -57,6 +49,14 @@ function App() {
     return stored === "light" || stored === "dark";
   });
   const [editingSkeet, setEditingSkeet] = useState(null);
+  useEffect(() => {
+    setEditingSkeet((current) => {
+      if (!current) return current;
+      const updated = [...plannedSkeets, ...publishedSkeets].find((entry) => entry.id === current.id);
+      return updated ?? null;
+    });
+  }, [plannedSkeets, publishedSkeets]);
+
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importFileInputRef = useRef(null);
@@ -109,54 +109,6 @@ function App() {
     setUserHasExplicitTheme(true);
     setTheme((current) => (current === "light" ? "dark" : "light"));
   };
-
-  /**
-   * Skeets vom Backend anfordern, JSON-Felder normalisieren und lokale States synchron halten.
-   */
-  const loadSkeets = useCallback(async () => {
-    try {
-      const res = await fetch("/api/skeets");
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Fehler beim Laden der Skeets.");
-      }
-
-      const data = await res.json();
-      const normalized = data.map((item) => ({
-        ...item,
-        targetPlatforms: parseTargetPlatforms(item.targetPlatforms),
-      }));
-      setSkeets(normalized);
-      setActiveCardTabs((current) => {
-        const next = {};
-        normalized.forEach((skeet) => {
-          next[skeet.id] = current[skeet.id] ?? "skeet";
-        });
-        return next;
-      });
-      setRepliesBySkeet((current) => {
-        const next = {};
-        normalized.forEach((skeet) => {
-          if (current[skeet.id]) {
-            next[skeet.id] = current[skeet.id];
-          }
-        });
-        return next;
-      });
-      setEditingSkeet((current) => {
-        if (!current) return current;
-        const updated = normalized.find((entry) => entry.id === current.id);
-        return updated ?? null;
-      });
-    } catch (error) {
-      console.error("Fehler beim Laden der Skeets:", error);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSkeets();
-  }, [loadSkeets]);
-
 
 const handleExport = async () => {
   if (typeof window === "undefined") {
@@ -243,76 +195,6 @@ const handleImportFileChange = async (event) => {
 };
 
 
-  /**
-   * Likes/Reposts eines Skeets nachladen. Anschließend wird die gesamte
-   * Liste aktualisiert, damit auch parallele Änderungen sichtbar werden.
-   */
-  const fetchReactions = async (id) => {
-    setLoadingReactions((current) => ({ ...current, [id]: true }));
-
-    try {
-      const res = await fetch(`/api/reactions/${id}`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Fehler beim Laden der Reaktionen.");
-      }
-
-      const data = await res.json();
-      setReactionStats((current) => ({ ...current, [id]: data }));
-
-      await loadSkeets();
-
-      const total = data?.total ?? {};
-      const totalLikes = typeof total.likes === "number" ? total.likes : "?";
-      const totalReposts = typeof total.reposts === "number" ? total.reposts : "?";
-      console.info(`Reaktionen für ${id}: Likes ${totalLikes}, Reposts ${totalReposts}`, data);
-      if (data?.errors) {
-        console.warn(`Fehler beim Abrufen einzelner Plattformen für ${id}:`, data.errors);
-      }
-    } catch (error) {
-      console.error("Fehler beim Laden der Reaktionen:", error);
-    } finally {
-      setLoadingReactions((current) => {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      });
-    }
-  };
-
-  const showSkeetContent = (id) => {
-    setActiveCardTabs((current) => ({ ...current, [id]: "skeet" }));
-  };
-
-  /**
-   * Replies-Tab aktivieren. Replies werden nur beim ersten Öffnen geladen und
-   * anschließend im Cache gehalten, um Layout-Sprünge zu vermeiden.
-   */
-  const showRepliesContent = async (id) => {
-    setActiveCardTabs((current) => ({ ...current, [id]: "replies" }));
-
-    if (Object.prototype.hasOwnProperty.call(repliesBySkeet, id)) {
-      return;
-    }
-
-    setLoadingReplies((current) => ({ ...current, [id]: true }));
-
-    try {
-      const res = await fetch(`/api/replies/${id}`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        console.error("Fehler beim Laden der Replies:", data.error || "Unbekannter Fehler");
-        return;
-      }
-      const data = await res.json();
-      setRepliesBySkeet((current) => ({ ...current, [id]: data }));
-    } catch (error) {
-      console.error("Fehler beim Laden der Replies:", error);
-    } finally {
-      setLoadingReplies((current) => ({ ...current, [id]: false }));
-    }
-  };
-
   const handleEdit = (skeet) => {
     setEditingSkeet(skeet);
     setActiveTab("skeetplaner");
@@ -350,9 +232,6 @@ const handleImportFileChange = async (event) => {
     setActiveTab("dashboard");
     setMenuOpen(false);
   };
-
-  const plannedSkeets = skeets.filter((s) => !s.postUri);
-  const publishedSkeets = skeets.filter((s) => s.postUri);
 
   return (
     <div className="App">
@@ -435,143 +314,26 @@ const handleImportFileChange = async (event) => {
           <div className="dashboard-subtab-content">
             <div className="dashboard-subtab-scroll">
               {dashboardView === "planned" ? (
-                plannedSkeets.length > 0 ? (
-                  <ul className="skeet-list">
-                    {plannedSkeets.map((skeet) => (
-                      <li key={skeet.id} className="skeet-item skeet-planned">
-                        <div className="skeet-card-panel">
-                          <PlatformBadges skeet={skeet} />
-                          <p>
-                            <strong>Geplant:</strong> {skeet.content}
-                          </p>
-                          <p>
-                            <em>{getRepeatDescription(skeet)}</em>
-                          </p>
-                          {skeet.targetPlatforms?.length > 0 && (
-                            <p className="skeet-platforms">
-                              Plattformen: {skeet.targetPlatforms.join(", ")}
-                            </p>
-                          )}
-                          <div className="skeet-actions">
-                            <button onClick={() => handleEdit(skeet)}>Bearbeiten</button>
-                            <button className="danger" onClick={() => handleDelete(skeet)}>
-                              Löschen
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>Keine geplanten Skeets.</p>
-                )
-              ) : publishedSkeets.length > 0 ? (
-                <ul className="skeet-list">
-                  {publishedSkeets.map((skeet) => {
-                    const activeCardTab = activeCardTabs[skeet.id] ?? "skeet";
-                    const replies = repliesBySkeet[skeet.id] ?? [];
-                    const isLoading = Boolean(loadingReplies[skeet.id]);
-                    const isFetchingReactions = Boolean(loadingReactions[skeet.id]);
-
-                    return (
-                      <li key={skeet.id} className="skeet-item skeet-published">
-                        <div className="skeet-card-tabs">
-                          <button
-                            className={classNames(
-                              "skeet-card-tab",
-                              activeCardTab === "skeet" && "active"
-                            )}
-                            onClick={() => showSkeetContent(skeet.id)}
-                          >
-                            🗂 Skeet
-                          </button>
-                          <button
-                            className={classNames(
-                              "skeet-card-tab",
-                              activeCardTab === "replies" && "active"
-                            )}
-                            onClick={() => showRepliesContent(skeet.id)}
-                          >
-                            💬 Antworten
-                          </button>
-                        </div>
-
-                        <div className="skeet-card-panel">
-                          <PlatformBadges skeet={skeet} />
-                          {activeCardTab === "replies" ? (
-                            <div className="skeet-card-replies">
-                              {isLoading ? (
-                                <p className="skeet-card-replies-loading">Antworten werden geladen…</p>
-                              ) : replies.length > 0 ? (
-                                <ul className="replies-list">
-                                  {replies.map((reply, index) => (
-                                    <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`}>
-                                      <p>
-                                        <strong>{reply.authorHandle}</strong>
-                                      </p>
-                                      <p className="reply-content">{reply.content}</p>
-                                      {reply.createdAt && (
-                                        <p className="reply-meta">{formatTime(reply.createdAt)}</p>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="skeet-card-replies-empty">Keine Antworten vorhanden.</p>
-                              )}
-                            </div>
-                          ) : (
-                            <>
-                              <p>{skeet.content}</p>
-                              {skeet.targetPlatforms?.length > 0 && (
-                                <p className="skeet-platforms">
-                                  Plattformen: {skeet.targetPlatforms.join(", ")}
-                                </p>
-                              )}
-                              {skeet.postedAt && (
-                                <p className="skeet-meta">
-                                  Gesendet am {formatTime(skeet.postedAt)}
-                                </p>
-                              )}
-                              <div className="skeet-actions">
-                                <button
-                                  onClick={() => fetchReactions(skeet.id)}
-                                  disabled={isFetchingReactions}
-                                >
-                                  {isFetchingReactions ? "Lädt…" : "Reaktionen anzeigen"}
-                                </button>
-                              </div>
-                              <p className="skeet-stats">
-                                Likes: {skeet.likesCount} | Reposts: {skeet.repostsCount}
-                              </p>
-                              {reactionStats[skeet.id]?.platforms &&
-                                Object.keys(reactionStats[skeet.id].platforms).length > 0 && (
-                                  <div className="skeet-reactions-breakdown">
-                                    {Object.entries(reactionStats[skeet.id].platforms).map(
-                                      ([platformId, stats]) => (
-                                        <p key={platformId} className="skeet-reactions-entry">
-                                          {PLATFORM_LABELS[platformId] || platformId}:
-                                          {" "}
-                                          Likes {stats.likes} | Reposts {stats.reposts}
-                                        </p>
-                                      )
-                                    )}
-                                    {reactionStats[skeet.id]?.errors && (
-                                      <p className="skeet-reactions-error">
-                                        Fehler: {Object.values(reactionStats[skeet.id].errors).join(", ")}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                            </>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <PlannedSkeetList
+                  skeets={plannedSkeets}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  getRepeatDescription={getRepeatDescription}
+                />
               ) : (
-                <p>Keine veröffentlichten Skeets.</p>
+                <PublishedSkeetList
+                  skeets={publishedSkeets}
+                  activeCardTabs={activeCardTabs}
+                  repliesBySkeet={repliesBySkeet}
+                  loadingReplies={loadingReplies}
+                  loadingReactions={loadingReactions}
+                  onShowSkeetContent={showSkeetContent}
+                  onShowRepliesContent={showRepliesContent}
+                  onFetchReactions={fetchReactions}
+                  reactionStats={reactionStats}
+                  platformLabels={PLATFORM_LABELS}
+                  formatTime={formatTime}
+                />
               )}
             </div>
           </div>
