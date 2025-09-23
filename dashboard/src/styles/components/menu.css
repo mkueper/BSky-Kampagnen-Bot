@@ -58,7 +58,7 @@
     }
 
     .menu-tabs::-webkit-scrollbar-thumb {
-        background: var(--color-border);
+        background: var(--card-border);
         border-radius: 999px;
     }
 }
@@ -75,8 +75,8 @@
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
     color: var(--color-text);
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease),
@@ -127,8 +127,8 @@
         position: absolute;
         top: 48px;
         left: 0;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
         border-radius: var(--border-radius);
         padding: var(--spacing-small);
         width: max-content;
@@ -163,7 +163,7 @@
     border: 1px solid var(--color-button-border);
     background: var(--color-button-bg);
     color: var(--color-button-text);
-    box-shadow: var(--box-shadow-light);
+    box-shadow: var(--card-shadow);
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease),
         box-shadow var(--transition-duration) var(--transition-ease);
