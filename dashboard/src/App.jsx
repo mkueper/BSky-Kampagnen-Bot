@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
+import PlatformBadges from "./components/PlatformBadges";
 import { formatTime } from "./utils/formatTime";
 import { classNames } from "./utils/classNames";
 import { getRepeatDescription } from "./utils/timeUtils";
@@ -9,48 +10,6 @@ const PLATFORM_LABELS = {
   bluesky: "Bluesky",
   mastodon: "Mastodon",
 };
-
-// --- UI-Helfer: Plattform-Badges ---
-function getPlatformSummary(skeet) {
-  const res = skeet.platformResults || {};
-  const targets = Array.isArray(skeet.targetPlatforms) && skeet.targetPlatforms.length > 0
-    ? skeet.targetPlatforms
-    : Object.keys(res);
-
-  const order = ["bluesky", "mastodon"];
-  const platforms = targets.length ? targets : order;
-
-  return platforms.map((p) => {
-    const r = res?.[p];
-    if (!r) {
-      return { id: p, status: "pending", title: `${p}: geplant` };
-    }
-    if (r.status === "sent") {
-      const t = r.postedAt ? new Date(r.postedAt).toLocaleString() : "";
-      const attempts = r.attempts ? `, Versuche: ${r.attempts}` : "";
-      const uri = r.uri ? `\n${r.uri}` : "";
-      return { id: p, status: "sent", title: `${p}: gesendet${attempts}${uri}${t ? "\n" + t : ""}` };
-    }
-    if (r.status === "failed") {
-      const attempts = r.attempts ? ` (Versuche: ${r.attempts})` : "";
-      return { id: p, status: "failed", title: `${p}: fehlgeschlagen${attempts}\n${r.error ?? ""}`.trim() };
-    }
-    return { id: p, status: "pending", title: `${p}: geplant` };
-  });
-}
-
-function PlatformBadges({ skeet }) {
-  const items = getPlatformSummary(skeet);
-  return (
-    <div className="platform-badges">
-      {items.map(({ id, status, title }) => (
-        <span key={id} className={`badge badge-${status} badge-${id}`} title={title}>
-          {id === "bluesky" ? "🟦" : id === "mastodon" ? "🐘" : "•"} {status}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 function parseTargetPlatforms(value) {
   if (Array.isArray(value)) {
