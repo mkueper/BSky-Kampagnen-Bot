@@ -14,10 +14,10 @@
 
 .skeet-item {
     padding: var(--spacing);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--card-border);
     border-radius: var(--border-radius);
-    background: var(--color-surface);
-    box-shadow: var(--box-shadow-light);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
     transition: border-color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
     display: flex;
     flex-direction: column;
@@ -59,7 +59,7 @@
     position: sticky;
     top: 0;
     z-index: 5;
-    background: var(--color-app-bg, var(--color-surface));
+    background: var(--color-app-bg, var(--card-bg));
     padding: 0.25rem 0.25rem;
 }
 
@@ -70,10 +70,10 @@
     gap: var(--spacing-x-small);
     justify-content: flex-start;
     margin-left: 0;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow-light);
+    box-shadow: var(--card-shadow);
     padding: 0.2rem 0.35rem;
 }
 
@@ -90,7 +90,7 @@
     display: inline-block;
     width: 1px;
     height: 1.75rem;
-    background: var(--color-border);
+    background: var(--card-border);
     margin-right: var(--spacing-x-small);
 } */
 
@@ -104,7 +104,7 @@
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease),
         box-shadow var(--transition-duration) var(--transition-ease);
-    box-shadow: var(--box-shadow-light);
+    box-shadow: var(--card-shadow);
 }
 
 .dashboard-subtabs-actions button:hover:not(:disabled) {
@@ -134,7 +134,7 @@
     border: 1px solid var(--color-button-border);
     background: var(--color-button-bg);
     color: var(--color-button-text);
-    box-shadow: var(--box-shadow-light);
+    box-shadow: var(--card-shadow);
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease),
         box-shadow var(--transition-duration) var(--transition-ease);
@@ -155,10 +155,10 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--card-border);
     border-radius: var(--border-radius);
-    background: var(--color-surface);
-    box-shadow: var(--box-shadow-light);
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
     overflow: hidden;
     /* kein Doppel-Scrollen */
     min-height: 0;
@@ -219,7 +219,7 @@
     border-radius: 999px;
     border: 1px solid var(--color-border, #334155);
     background: var(--color-surface, #0b1220);
-    box-shadow: var(--box-shadow-light, 0 2px 4px rgba(15, 23, 42, .35));
+    box-shadow: var(--card-shadow);
     white-space: nowrap;
 }
 

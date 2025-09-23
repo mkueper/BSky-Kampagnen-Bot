@@ -1,0 +1,11 @@
+/* Classic theme – mirrors current palette; add additional variants here later */
+:root[data-style-variant="classic"] {
+  --color-button-bg: var(--color-accent);
+  --color-button-bg-hover: var(--color-accent-hover);
+  --color-button-bg-active: var(--color-accent-active);
+  --color-button-border: transparent;
+
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border);
+  --card-shadow: var(--box-shadow-light);
+}

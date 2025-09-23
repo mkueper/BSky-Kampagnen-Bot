@@ -27,6 +27,9 @@
     --color-button-border: transparent;
     --color-focus: rgba(88, 101, 242, 0.45);
 
+    --card-bg: var(--color-surface);
+    --card-border: var(--color-border);
+    --card-shadow: var(--box-shadow-light);
     /* Abstände & Radien */
     --spacing-x-small: 0.25rem;
     --spacing-small: 0.5rem;
@@ -77,6 +80,10 @@
     --color-accent-active: #798498;
 
     --color-button-bg: var(--color-accent);
+    --card-bg: var(--color-surface);
+    --card-border: var(--color-border);
+    --card-shadow: var(--box-shadow-light);
+
     --color-button-bg-hover: var(--color-accent-hover);
     --color-button-bg-active: var(--color-accent-active);
     --color-button-border: transparent;
@@ -104,6 +111,10 @@
         --color-accent-active: #798498;
 
     --color-button-bg: var(--color-accent);
+    --card-bg: var(--color-surface);
+    --card-border: var(--color-border);
+    --card-shadow: var(--box-shadow-light);
+
     --color-button-bg-hover: var(--color-accent-hover);
     --color-button-bg-active: var(--color-accent-active);
     --color-button-border: transparent;
