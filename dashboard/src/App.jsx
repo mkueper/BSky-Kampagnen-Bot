@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import SkeetForm from "./SkeetForm";
 import PlatformBadges from "./components/PlatformBadges";
+import DashboardTabs from "./components/DashboardTabs";
 import { formatTime } from "./utils/formatTime";
 import { classNames } from "./utils/classNames";
 import { getRepeatDescription } from "./utils/timeUtils";
@@ -352,7 +353,6 @@ const handleImportFileChange = async (event) => {
 
   const plannedSkeets = skeets.filter((s) => !s.postUri);
   const publishedSkeets = skeets.filter((s) => s.postUri);
-  const isBusy = exporting || importing;
 
   return (
     <div className="App">
@@ -421,46 +421,16 @@ const handleImportFileChange = async (event) => {
         <div className="dashboard-page">
           <h1>Bluesky Kampagnen-Dashboard</h1>
 
-          <div className="dashboard-subtabs-row">
-            <div className="dashboard-subtabs">
-              <button
-                className={classNames(
-                  "dashboard-subtab",
-                  dashboardView === "planned" && "active"
-                )}
-                onClick={() => setDashboardView("planned")}
-              >
-                🕒 Geplant
-              </button>
-              <button
-                className={classNames(
-                  "dashboard-subtab",
-                  dashboardView === "published" && "active"
-                )}
-                onClick={() => setDashboardView("published")}
-              >
-                ✅ Veröffentlicht
-              </button>
-            </div>
-            {dashboardView === "planned" && (
-              <div className="dashboard-subtabs dashboard-subtabs-actions">
-                <span className="dashboard-subtab-label">Aktionen</span>
-                <button onClick={handleExport} disabled={isBusy}>
-                  {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
-                </button>
-                <button onClick={handleImportClick} disabled={isBusy}>
-                  {importing ? "⬆️ Import läuft…" : "⬆️ Importieren"}
-                </button>
-                <input
-                  type="file"
-                  accept="application/json"
-                  ref={importFileInputRef}
-                  onChange={handleImportFileChange}
-                  style={{ display: "none" }}
-                />
-              </div>
-            )}
-          </div>
+          <DashboardTabs
+            view={dashboardView}
+            onChangeView={setDashboardView}
+            exporting={exporting}
+            importing={importing}
+            onExport={handleExport}
+            onImportClick={handleImportClick}
+            onFileSelected={handleImportFileChange}
+            importInputRef={importFileInputRef}
+          />
 
           <div className="dashboard-subtab-content">
             <div className="dashboard-subtab-scroll">

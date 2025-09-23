@@ -1,0 +1,32 @@
+.platform-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  white-space: nowrap;
+}
+
+.badge-sent {
+  background: var(--color-success-surface, rgba(74, 222, 128, 0.2));
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.badge-failed {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.badge-pending {
+  background: var(--color-warning-surface, rgba(252, 211, 77, 0.2));
+  border-color: rgba(252, 211, 77, 0.35);
+}
