@@ -58,6 +58,11 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-gutter: stable both-edges;
+    padding: var(--spacing);
+    background: var(--card-overlay);
+    border-radius: calc(var(--border-radius-large) - var(--spacing-small));
+    backdrop-filter: blur(6px);
+    box-shadow: var(--card-inner-shadow);
 }
 
 .skeet-stats {
