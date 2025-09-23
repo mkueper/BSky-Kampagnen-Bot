@@ -22,16 +22,19 @@ h3 {
 h1 {
     font-size: var(--font-size-display);
     line-height: 1.15;
+    font-weight: 700;
 }
 
 h2 {
     font-size: var(--font-size-title);
     line-height: 1.2;
+    font-weight: 600;
 }
 
 h3 {
     font-size: var(--font-size-subtitle);
     line-height: 1.25;
+    font-weight: 500;
 }
 
 p {

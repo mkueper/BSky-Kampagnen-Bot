@@ -38,7 +38,7 @@
 
     /* Typografie */
     --font-family-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    --font-family-heading: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-family-heading: 'Poppins', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     --font-weight-heading: 700;
     --letter-spacing-heading: -0.01em;
     --font-size-base: 1rem;
