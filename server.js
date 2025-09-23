@@ -29,9 +29,11 @@ app.use(express.json());
 
 // API-Routen
 app.get("/api/skeets", dashboardController.getSkeets);
+app.get("/api/skeets/export", dashboardController.exportPlannedSkeets);
 app.get("/api/reactions/:skeetId", dashboardController.getReactions);
 app.get("/api/replies/:skeetId", dashboardController.getReplies);
 app.post("/api/skeets", dashboardController.createSkeet);
+app.post("/api/skeets/import", dashboardController.importPlannedSkeets);
 app.patch("/api/skeets/:id", dashboardController.updateSkeet);
 app.delete("/api/skeets/:id", dashboardController.deleteSkeet);
 

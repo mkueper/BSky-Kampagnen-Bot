@@ -49,6 +49,43 @@
     }
 }
 
+
+.dashboard-subtabs-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-small);
+    align-items: center;
+}
+
+.dashboard-subtab-actions {
+    display: inline-flex;
+    gap: var(--spacing-x-small);
+    align-items: center;
+}
+
+.dashboard-subtab-actions button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-radius: var(--border-radius);
+    padding: 0.4rem 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-duration) var(--transition-ease),
+        box-shadow var(--transition-duration) var(--transition-ease);
+    box-shadow: var(--box-shadow-light);
+}
+
+.dashboard-subtab-actions button:hover:not(:disabled) {
+    background-color: var(--color-bg-subtle);
+    box-shadow: var(--box-shadow-medium);
+}
+
+.dashboard-subtab-actions button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
 .dashboard-subtabs {
     display: inline-flex;
     align-items: center;

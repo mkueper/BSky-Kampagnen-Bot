@@ -97,6 +97,9 @@ function App() {
     return stored === "light" || stored === "dark";
   });
   const [editingSkeet, setEditingSkeet] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importFileInputRef = useRef(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -193,6 +196,92 @@ function App() {
   useEffect(() => {
     loadSkeets();
   }, [loadSkeets]);
+
+
+const handleExport = async () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  setExporting(true);
+  try {
+    const res = await fetch("/api/skeets/export");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Fehler beim Export der Skeets.");
+    }
+
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const fallbackName = `skeets-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    const filename = match ? match[1] : fallbackName;
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Fehler beim Export der Skeets:", error);
+    if (typeof window !== "undefined") {
+      window.alert(error.message || "Fehler beim Export der Skeets.");
+    }
+  } finally {
+    setExporting(false);
+  }
+};
+
+const handleImportClick = () => {
+  importFileInputRef.current?.click();
+};
+
+const handleImportFileChange = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    return;
+  }
+
+  setImporting(true);
+  try {
+    const text = await file.text();
+    let payload;
+    try {
+      payload = JSON.parse(text);
+    } catch (parseError) {
+      throw new Error("Die ausgewählte Datei enthält kein gültiges JSON.");
+    }
+
+    const res = await fetch("/api/skeets/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Fehler beim Import der Skeets.");
+    }
+
+    await loadSkeets();
+    if (typeof window !== "undefined") {
+      window.alert("Import erfolgreich abgeschlossen.");
+    }
+  } catch (error) {
+    console.error("Fehler beim Import der Skeets:", error);
+    if (typeof window !== "undefined") {
+      window.alert(error.message || "Fehler beim Import der Skeets.");
+    }
+  } finally {
+    setImporting(false);
+    if (event.target) {
+      event.target.value = "";
+    }
+  }
+};
+
 
   /**
    * Likes/Reposts eines Skeets nachladen. Anschließend wird die gesamte
@@ -372,25 +461,42 @@ function App() {
         <div className="dashboard-page">
           <h1>Bluesky Kampagnen-Dashboard</h1>
 
-          <div className="dashboard-subtabs">
-            <button
-              className={classNames(
-                "dashboard-subtab",
-                dashboardView === "planned" && "active"
-              )}
-              onClick={() => setDashboardView("planned")}
-            >
-              🕒 Geplant
-            </button>
-            <button
-              className={classNames(
-                "dashboard-subtab",
-                dashboardView === "published" && "active"
-              )}
-              onClick={() => setDashboardView("published")}
-            >
-              ✅ Veröffentlicht
-            </button>
+          <div className="dashboard-subtabs-row">
+            <div className="dashboard-subtabs">
+              <button
+                className={classNames(
+                  "dashboard-subtab",
+                  dashboardView === "planned" && "active"
+                )}
+                onClick={() => setDashboardView("planned")}
+              >
+                🕒 Geplant
+              </button>
+              <button
+                className={classNames(
+                  "dashboard-subtab",
+                  dashboardView === "published" && "active"
+                )}
+                onClick={() => setDashboardView("published")}
+              >
+                ✅ Veröffentlicht
+              </button>
+            </div>
+            <div className="dashboard-subtab-actions">
+              <button onClick={handleExport} disabled={exporting}>
+                {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
+              </button>
+              <button onClick={handleImportClick} disabled={importing}>
+                {importing ? "⬆️ Import läuft…" : "⬆️ Importieren"}
+              </button>
+              <input
+                type="file"
+                accept="application/json"
+                ref={importFileInputRef}
+                onChange={handleImportFileChange}
+                style={{ display: "none" }}
+              />
+            </div>
           </div>
 
           <div className="dashboard-subtab-content">
