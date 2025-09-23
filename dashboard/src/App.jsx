@@ -393,6 +393,7 @@ const handleImportFileChange = async (event) => {
 
   const plannedSkeets = skeets.filter((s) => !s.postUri);
   const publishedSkeets = skeets.filter((s) => s.postUri);
+  const isBusy = exporting || importing;
 
   return (
     <div className="App">
@@ -485,10 +486,10 @@ const handleImportFileChange = async (event) => {
             {dashboardView === "planned" && (
               <div className="dashboard-subtabs dashboard-subtabs-actions">
                 <span className="dashboard-subtab-label">Aktionen</span>
-                <button onClick={handleExport} disabled={exporting}>
+                <button onClick={handleExport} disabled={isBusy}>
                   {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
                 </button>
-                <button onClick={handleImportClick} disabled={importing}>
+                <button onClick={handleImportClick} disabled={isBusy}>
                   {importing ? "⬆️ Import läuft…" : "⬆️ Importieren"}
                 </button>
                 <input
