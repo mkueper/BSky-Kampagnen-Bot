@@ -30,6 +30,9 @@
     --card-bg: var(--color-surface);
     --card-border: var(--color-border);
     --card-shadow: var(--box-shadow-light);
+    --card-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(247, 250, 255, 0.65));
+    --card-overlay: rgba(255, 255, 255, 0.35);
+    --card-inner-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
     /* Abstände & Radien */
     --spacing-x-small: 0.25rem;
     --spacing-small: 0.5rem;
@@ -80,13 +83,16 @@
     --color-accent-active: #798498;
 
     --color-button-bg: var(--color-accent);
-    --card-bg: var(--color-surface);
-    --card-border: var(--color-border);
-    --card-shadow: var(--box-shadow-light);
-
     --color-button-bg-hover: var(--color-accent-hover);
     --color-button-bg-active: var(--color-accent-active);
     --color-button-border: transparent;
+
+    --card-bg: var(--color-surface);
+    --card-border: var(--color-border);
+    --card-shadow: var(--box-shadow-light);
+    --card-gradient: linear-gradient(135deg, rgba(24, 33, 54, 0.9), rgba(17, 25, 40, 0.78));
+    --card-overlay: rgba(255, 255, 255, 0.08);
+    --card-inner-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
     --color-warning-surface: rgba(252, 211, 77, 0.2);
     --color-success-surface: rgba(74, 222, 128, 0.2);
@@ -110,14 +116,17 @@
         --color-accent-hover: #9ea9b8;
         --color-accent-active: #798498;
 
-    --color-button-bg: var(--color-accent);
-    --card-bg: var(--color-surface);
-    --card-border: var(--color-border);
-    --card-shadow: var(--box-shadow-light);
+        --color-button-bg: var(--color-accent);
+        --color-button-bg-hover: var(--color-accent-hover);
+        --color-button-bg-active: var(--color-accent-active);
+        --color-button-border: transparent;
 
-    --color-button-bg-hover: var(--color-accent-hover);
-    --color-button-bg-active: var(--color-accent-active);
-    --color-button-border: transparent;
+        --card-bg: var(--color-surface);
+        --card-border: var(--color-border);
+        --card-shadow: var(--box-shadow-light);
+        --card-gradient: linear-gradient(135deg, rgba(24, 33, 54, 0.9), rgba(17, 25, 40, 0.78));
+        --card-overlay: rgba(255, 255, 255, 0.08);
+        --card-inner-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
         --color-warning-surface: rgba(252, 211, 77, 0.2);
         --color-success-surface: rgba(74, 222, 128, 0.2);

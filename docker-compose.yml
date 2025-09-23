@@ -12,7 +12,7 @@ services:
     ports:
       - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
     volumes:
-      - bsky-kamp-app-data:/app/data
+      - data:/app/data
 #    depends_on:
 #      - db
 
@@ -25,7 +25,7 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
 
 volumes:
-  bsky-kamp-app-data:
+  data:
 
 #  db:
 #    image: postgres:15

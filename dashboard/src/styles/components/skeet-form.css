@@ -30,8 +30,13 @@ textarea {
     font-size: var(--font-size-base);
     border-radius: var(--border-radius);
     border: 1px solid var(--card-border);
-    background: var(--card-bg);
+    background-color: var(--card-bg);color: var(--color-text);
+    color: var(--color-text);
     transition: border-color var(--transition-duration) var(--transition-ease), box-shadow var(--transition-duration) var(--transition-ease);
+}
+
+textarea::placeholder {
+    color: var(--color-text-muted);
 }
 
 input[type="datetime-local"] {
@@ -98,7 +103,7 @@ textarea:focus-visible {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-x-small);
-    background: var(--card-bg);
+    background-color: var(--card-bg);color: var(--color-text);
     transition: border-color var(--transition-duration) var(--transition-ease), background-color var(--transition-duration) var(--transition-ease), color var(--transition-duration) var(--transition-ease);
 }
 
@@ -153,3 +158,5 @@ textarea:focus-visible {
         justify-content: center;
     }
 }
+
+:root[data-theme="dark"] textarea { background-color: var(--card-bg); color: var(--color-text); }
