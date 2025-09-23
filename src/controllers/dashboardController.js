@@ -11,6 +11,39 @@ const { getReactions: getBlueskyReactions, getReplies } = require("../services/b
 const { hasCredentials: hasMastodonCredentials, getStatus: getMastodonStatus } = require("../services/mastodonClient");
 
 const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
+const ALLOWED_REPEAT_VALUES = new Set(["none", "daily", "weekly", "monthly"]);
+
+function normalizeImportedPlatforms(value) {
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.filter((p) => ALLOWED_PLATFORMS.includes(p))));
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return Array.from(new Set(parsed.filter((p) => ALLOWED_PLATFORMS.includes(p))));
+      }
+    } catch (error) {
+      console.warn("Fehler beim Parsen von targetPlatforms während des Imports:", error);
+    }
+  }
+
+  return ["bluesky"];
+}
+
+function parseOptionalDate(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("scheduledAt ist kein gültiges Datum.");
+  }
+  return parsed;
+}
+
 
 function parsePlatformResults(raw) {
   if (!raw) return {};
@@ -507,6 +540,141 @@ async function deleteSkeet(req, res) {
   }
 }
 
+async function exportPlannedSkeets(req, res) {
+  try {
+    const skeets = await Skeet.findAll({
+      where: { postUri: null },
+      order: [["scheduledAt", "ASC"], ["createdAt", "DESC"]],
+    });
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      count: skeets.length,
+      skeets: skeets.map((entry) => ({
+        content: entry.content,
+        scheduledAt: entry.scheduledAt ? entry.scheduledAt.toISOString() : null,
+        repeat: entry.repeat,
+        repeatDayOfWeek: entry.repeatDayOfWeek,
+        repeatDayOfMonth: entry.repeatDayOfMonth,
+        threadId: entry.threadId,
+        isThreadPost: entry.isThreadPost,
+        targetPlatforms: Array.isArray(entry.targetPlatforms)
+          ? entry.targetPlatforms
+          : ["bluesky"],
+      })),
+    };
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .replace("Z", "");
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="skeets-${timestamp}.json"`
+    );
+    res.send(JSON.stringify(payload, null, 2));
+  } catch (error) {
+    console.error("Fehler beim Export der Skeets:", error);
+    res.status(500).json({ error: "Fehler beim Export der Skeets." });
+  }
+}
+
+async function importPlannedSkeets(req, res) {
+  const body = req.body;
+  const raw = Array.isArray(body?.skeets) ? body.skeets : Array.isArray(body) ? body : null;
+
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return res
+      .status(400)
+      .json({ error: "Erwartet ein Array geplanter Skeets im JSON-Body." });
+  }
+
+  try {
+    const entries = raw.map((item, index) => {
+      if (!item || typeof item !== "object") {
+        throw new Error(`Eintrag ${index + 1}: Ungültige Struktur.`);
+      }
+
+      const content = typeof item.content === "string" ? item.content.trim() : "";
+      if (!content) {
+        throw new Error(`Eintrag ${index + 1}: content ist erforderlich.`);
+      }
+
+      const repeat = typeof item.repeat === "string" ? item.repeat : "none";
+      if (!ALLOWED_REPEAT_VALUES.has(repeat)) {
+        throw new Error(`Eintrag ${index + 1}: Ungültiger repeat-Wert.`);
+      }
+
+      const scheduledAt = parseOptionalDate(item.scheduledAt);
+
+      if (repeat === "none" && !scheduledAt) {
+        throw new Error(
+          `Eintrag ${index + 1}: scheduledAt ist erforderlich, wenn repeat = 'none' ist.`
+        );
+      }
+
+      let repeatDayOfWeek = null;
+      if (repeat === "weekly") {
+        const value = Number(item.repeatDayOfWeek);
+        if (!Number.isInteger(value) || value < 0 || value > 6) {
+          throw new Error(
+            `Eintrag ${index + 1}: repeatDayOfWeek muss zwischen 0 und 6 liegen.`
+          );
+        }
+        repeatDayOfWeek = value;
+      }
+
+      let repeatDayOfMonth = null;
+      if (repeat === "monthly") {
+        const value = Number(item.repeatDayOfMonth);
+        if (!Number.isInteger(value) || value < 1 || value > 31) {
+          throw new Error(
+            `Eintrag ${index + 1}: repeatDayOfMonth muss zwischen 1 und 31 liegen.`
+          );
+        }
+        repeatDayOfMonth = value;
+      }
+
+      const targetPlatforms = normalizeImportedPlatforms(item.targetPlatforms);
+
+      const threadId = item.threadId == null ? null : Number(item.threadId);
+      if (threadId != null && !Number.isInteger(threadId)) {
+        throw new Error(`Eintrag ${index + 1}: threadId muss eine ganze Zahl oder null sein.`);
+      }
+
+      return {
+        content,
+        scheduledAt,
+        repeat,
+        repeatDayOfWeek,
+        repeatDayOfMonth,
+        threadId,
+        isThreadPost: Boolean(item.isThreadPost),
+        targetPlatforms: targetPlatforms.length > 0 ? targetPlatforms : ["bluesky"],
+        platformResults: {},
+        postUri: null,
+        postedAt: null,
+        likesCount: 0,
+        repostsCount: 0,
+      };
+    });
+
+    const created = await Skeet.sequelize.transaction(async (transaction) => {
+      return Skeet.bulkCreate(entries, { validate: true, transaction });
+    });
+
+    res.status(201).json({ imported: created.length, ids: created.map((entry) => entry.id) });
+  } catch (error) {
+    console.error("Fehler beim Import der Skeets:", error);
+    res
+      .status(400)
+      .json({ error: error.message || "Fehler beim Import der Skeets." });
+  }
+}
+
 module.exports = {
   getSkeets,
   createSkeet,
@@ -514,4 +682,6 @@ module.exports = {
   deleteSkeet,
   getReactions: getReactionsController,
   getReplies: getRepliesController,
+  exportPlannedSkeets,
+  importPlannedSkeets,
 };
