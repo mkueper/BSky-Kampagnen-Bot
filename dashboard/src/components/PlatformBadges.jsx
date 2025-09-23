@@ -1,4 +1,6 @@
-const PLATFORM_ORDER = ["bluesky", "mastodon"];
+import './PlatformBadges.css';
+
+const PLATFORM_ORDER = ['bluesky', 'mastodon'];
 const PLATFORM_ICONS = {
   bluesky: "🟦",
   mastodon: "🐘",
