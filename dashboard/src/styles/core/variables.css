@@ -21,6 +21,10 @@
     --color-success-surface: #ecfdf3;
 
     --color-button-text: #ffffff;
+    --color-button-bg: var(--color-accent);
+    --color-button-bg-hover: var(--color-accent-hover);
+    --color-button-bg-active: var(--color-accent-active);
+    --color-button-border: transparent;
     --color-focus: rgba(88, 101, 242, 0.45);
 
     /* Abstände & Radien */
@@ -72,6 +76,11 @@
     --color-accent-hover: #9ea9b8;
     --color-accent-active: #798498;
 
+    --color-button-bg: var(--color-accent);
+    --color-button-bg-hover: var(--color-accent-hover);
+    --color-button-bg-active: var(--color-accent-active);
+    --color-button-border: transparent;
+
     --color-warning-surface: rgba(252, 211, 77, 0.2);
     --color-success-surface: rgba(74, 222, 128, 0.2);
 
@@ -93,6 +102,11 @@
         --color-accent: #8b9aaf;
         --color-accent-hover: #9ea9b8;
         --color-accent-active: #798498;
+
+    --color-button-bg: var(--color-accent);
+    --color-button-bg-hover: var(--color-accent-hover);
+    --color-button-bg-active: var(--color-accent-active);
+    --color-button-border: transparent;
 
         --color-warning-surface: rgba(252, 211, 77, 0.2);
         --color-success-surface: rgba(74, 222, 128, 0.2);
