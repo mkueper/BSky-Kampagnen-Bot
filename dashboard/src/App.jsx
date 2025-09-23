@@ -482,22 +482,24 @@ const handleImportFileChange = async (event) => {
                 ✅ Veröffentlicht
               </button>
             </div>
-            <div className="dashboard-subtabs dashboard-subtabs-actions">
-              <span className="dashboard-subtab-label">📦 Daten</span>
-              <button onClick={handleExport} disabled={exporting}>
-                {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
-              </button>
-              <button onClick={handleImportClick} disabled={importing}>
-                {importing ? "⬆️ Import läuft…" : "⬆️ Importieren"}
-              </button>
-              <input
-                type="file"
-                accept="application/json"
-                ref={importFileInputRef}
-                onChange={handleImportFileChange}
-                style={{ display: "none" }}
-              />
-            </div>
+            {dashboardView === "planned" && (
+              <div className="dashboard-subtabs dashboard-subtabs-actions">
+                <span className="dashboard-subtab-label">Aktionen</span>
+                <button onClick={handleExport} disabled={exporting}>
+                  {exporting ? "⬇️ Export läuft…" : "⬇️ Exportieren"}
+                </button>
+                <button onClick={handleImportClick} disabled={importing}>
+                  {importing ? "⬆️ Import läuft…" : "⬆️ Importieren"}
+                </button>
+                <input
+                  type="file"
+                  accept="application/json"
+                  ref={importFileInputRef}
+                  onChange={handleImportFileChange}
+                  style={{ display: "none" }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="dashboard-subtab-content">

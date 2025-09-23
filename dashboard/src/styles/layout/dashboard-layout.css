@@ -60,49 +60,52 @@
     top: 0;
     z-index: 5;
     background: var(--color-app-bg, var(--color-surface));
-    padding: 0.35rem 0.25rem;
+    padding: 0.25rem 0.25rem;
 }
 
 .dashboard-subtabs-row::after {
     content: "";
     flex-basis: 100%;
     border-bottom: 1px solid var(--color-border);
-    margin-top: var(--spacing-small);
+    margin-top: calc(var(--spacing-small) * 0.75);
 }
 
 .dashboard-subtabs {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-x-small);
+    justify-content: flex-start;
+    margin-left: 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow-light);
-    padding: 0.25rem 0.35rem;
+    padding: 0.2rem 0.35rem;
 }
 
 .dashboard-subtabs-actions {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-x-small);
-    margin-left: auto;
+    justify-content: flex-start;
+    margin-left: 0;
 }
 
-.dashboard-subtabs-actions::before {
+/* .dashboard-subtabs-actions::before {
     content: "";
     display: inline-block;
     width: 1px;
     height: 1.75rem;
     background: var(--color-border);
     margin-right: var(--spacing-x-small);
-}
+} */
 
 .dashboard-subtabs-actions button {
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     color: var(--color-text);
     border-radius: var(--border-radius);
-    padding: 0.35rem 0.75rem;
+    padding: 0.3rem 0.7rem;
     font-weight: 600;
     cursor: pointer;
     transition: background-color var(--transition-duration) var(--transition-ease),
@@ -332,5 +335,34 @@
 
     .badge {
         font-size: 0.75rem;
+    }
+}
+
+
+@media (max-width: 640px) {
+    .dashboard-subtabs-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-small);
+    }
+
+    .dashboard-subtabs,
+    .dashboard-subtabs-actions {
+        width: 100%;
+    }
+
+    .dashboard-subtabs-actions {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .dashboard-subtab-label {
+        display: block;
+        margin-bottom: 0.4rem;
+    }
+
+    .dashboard-subtabs-actions button {
+        width: 100%;
     }
 }
