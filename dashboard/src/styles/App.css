@@ -1,8 +1,0 @@
-/* Globale Style-Kette des Dashboards – Reihenfolge beibehalten */
-@import './core/variables.css';
-@import './core/base.css';
-@import './themes/classic.css';
-@import './layout/dashboard-layout.css';
-@import './components/menu.css';
-@import './components/skeet-form.css';
-@import './components/skeet-card.css';
