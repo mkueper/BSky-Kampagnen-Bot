@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
       postUri: { type: DataTypes.STRING },
       likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
       repostsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
-      postedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+      postedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
       repeat: { type: DataTypes.ENUM("none", "daily", "weekly", "monthly"), defaultValue: "none" },
       repeatDayOfWeek: { type: DataTypes.INTEGER, allowNull: true }, // 0–6
       repeatDayOfMonth: { type: DataTypes.INTEGER, allowNull: true }, // 1–31

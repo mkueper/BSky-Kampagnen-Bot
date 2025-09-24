@@ -1,5 +1,22 @@
 import { useEffect, useState } from "react";
 
+const PLATFORM_LIMITS = {
+  bluesky: 300,
+  mastodon: 500,
+};
+
+function resolveMaxLength(selectedPlatforms) {
+  const limits = selectedPlatforms
+    .map((platform) => PLATFORM_LIMITS[platform])
+    .filter((value) => typeof value === "number");
+
+  if (limits.length === 0) {
+    return PLATFORM_LIMITS.bluesky;
+  }
+
+  return Math.min(...limits);
+}
+
 // Hilfsfunktion für Formatierung
 function getDefaultDateTime() {
   const now = new Date();
@@ -52,6 +69,7 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null);
 
   const isEditing = Boolean(editingSkeet);
+  const maxContentLength = resolveMaxLength(targetPlatforms);
 
   function resetToDefaults() {
     setContent("");
@@ -108,8 +126,11 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (content.length > 300) {
-      alert("Der Skeet darf maximal 300 Zeichen enthalten!");
+    const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+    const submissionLimit = resolveMaxLength(normalizedPlatforms);
+
+    if (content.length > submissionLimit) {
+      alert(`Der Skeet darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten!`);
       return;
     }
 
@@ -120,7 +141,6 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       }
     }
 
-    const normalizedPlatforms = Array.from(new Set(targetPlatforms));
     if (normalizedPlatforms.length === 0) {
       alert("Bitte mindestens eine Plattform auswählen.");
       return;
@@ -194,11 +214,11 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         <div
           style={{
             fontSize: "0.9em",
-            color: content.length > 300 ? "red" : "#333",
+            color: content.length > maxContentLength ? "red" : "#333",
             marginBottom: 8,
           }}
         >
-          {content.length}/300 Zeichen
+          {content.length}/{maxContentLength} Zeichen
         </div>
 
         <label htmlFor="repeat">Wiederholen</label>
