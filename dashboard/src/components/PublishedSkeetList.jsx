@@ -1,5 +1,4 @@
 import PlatformBadges from "./PlatformBadges";
-import { classNames } from "../utils/classNames";
 
 function PublishedSkeetList({
   skeets,
@@ -15,11 +14,16 @@ function PublishedSkeetList({
   formatTime,
 }) {
   if (skeets.length === 0) {
-    return <p>Keine veröffentlichten Skeets.</p>;
+    return (
+      <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
+        <p className="font-medium text-foreground">Noch keine veröffentlichten Skeets.</p>
+        <p className="mt-2">Sobald Beiträge live sind, erscheinen sie hier mit allen Kennzahlen.</p>
+      </div>
+    );
   }
 
   return (
-    <ul className="skeet-list">
+    <div className="space-y-4">
       {skeets.map((skeet) => {
         const activeCardTab = activeCardTabs[skeet.id] ?? "skeet";
         const replies = repliesBySkeet[skeet.id] ?? [];
@@ -29,97 +33,111 @@ function PublishedSkeetList({
         const reactionErrors = reactionStats[skeet.id]?.errors;
 
         return (
-          <li key={skeet.id} className="skeet-item skeet-published">
-            <div className="skeet-card-tabs">
+          <article
+            key={skeet.id}
+            className="rounded-2xl border border-border bg-background-subtle/60 shadow-soft transition hover:-translate-y-0.5 hover:bg-background-elevated hover:shadow-card"
+          >
+            <div className="flex items-center gap-2 border-b border-border-muted px-5 pt-4">
               <button
-                className={classNames(
-                  "skeet-card-tab",
-                  activeCardTab === "skeet" && "active"
-                )}
+                type="button"
                 onClick={() => onShowSkeetContent(skeet.id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  activeCardTab === "skeet"
+                    ? "bg-background-elevated text-foreground shadow-soft"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
               >
-                🗂 Skeet
+                Beitrag
               </button>
               <button
-                className={classNames(
-                  "skeet-card-tab",
-                  activeCardTab === "replies" && "active"
-                )}
+                type="button"
                 onClick={() => onShowRepliesContent(skeet.id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  activeCardTab === "replies"
+                    ? "bg-background-elevated text-foreground shadow-soft"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
               >
-                💬 Antworten
+                Antworten
               </button>
             </div>
 
-            <div className="skeet-card-panel">
+            <div className="space-y-4 px-5 pb-5 pt-4">
               <PlatformBadges skeet={skeet} />
+
               {activeCardTab === "replies" ? (
-                <div className="skeet-card-replies">
+                <div className="rounded-2xl border border-border-muted bg-background-subtle/80 p-4">
                   {isLoadingReplies ? (
-                    <p className="skeet-card-replies-loading">Antworten werden geladen…</p>
+                    <p className="text-sm text-foreground-muted">Antworten werden geladen…</p>
                   ) : replies.length > 0 ? (
-                    <ul className="replies-list">
+                    <ul className="space-y-3 text-sm">
                       {replies.map((reply, index) => (
-                        <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`}>
-                          <p>
-                            <strong>{reply.authorHandle}</strong>
-                          </p>
-                          <p className="reply-content">{reply.content}</p>
+                        <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`} className="rounded-2xl border border-border bg-background-elevated/60 p-4">
+                          <p className="font-medium">{reply.authorHandle}</p>
+                          <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground-muted">{reply.content}</p>
                           {reply.createdAt && (
-                            <p className="reply-meta">{formatTime(reply.createdAt)}</p>
+                            <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground-subtle">
+                              {formatTime(reply.createdAt)}
+                            </p>
                           )}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="skeet-card-replies-empty">Keine Antworten vorhanden.</p>
+                    <p className="text-sm text-foreground-muted">Keine Antworten vorhanden.</p>
                   )}
                 </div>
               ) : (
-                <>
-                  <p>{skeet.content}</p>
+                <div className="space-y-4">
+                  <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
                   {skeet.targetPlatforms?.length > 0 && (
-                    <p className="skeet-platforms">
-                      Plattformen: {skeet.targetPlatforms.join(", ")}
+                    <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
+                      {skeet.targetPlatforms.join(" • ")}
                     </p>
                   )}
                   {skeet.postedAt && (
-                    <p className="skeet-meta">
-                      Gesendet am {formatTime(skeet.postedAt)}
+                    <p className="text-sm text-foreground-muted">
+                      Gesendet am <span className="font-medium text-foreground">{formatTime(skeet.postedAt)}</span>
                     </p>
                   )}
-                  <div className="skeet-actions">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
+                      type="button"
                       onClick={() => onFetchReactions(skeet.id)}
                       disabled={isFetchingReactions}
+                      className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {isFetchingReactions ? "Lädt…" : "Reaktionen anzeigen"}
+                      {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
                     </button>
+                    <p className="text-sm text-foreground-muted">
+                      Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
+                    </p>
                   </div>
-                  <p className="skeet-stats">
-                    Likes: {skeet.likesCount} | Reposts: {skeet.repostsCount}
-                  </p>
+
                   {Object.keys(reactions).length > 0 && (
-                    <div className="skeet-reactions-breakdown">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {Object.entries(reactions).map(([platformId, stats]) => (
-                        <p key={platformId} className="skeet-reactions-entry">
-                          {platformLabels[platformId] || platformId}: Likes {stats.likes} | Reposts {stats.reposts}
-                        </p>
+                        <div key={platformId} className="rounded-2xl border border-border bg-background-subtle/80 p-4 text-sm">
+                          <p className="font-medium text-foreground">
+                            {platformLabels[platformId] || platformId}
+                          </p>
+                          <p className="mt-1 text-foreground-muted">Likes {stats.likes} · Reposts {stats.reposts}</p>
+                        </div>
                       ))}
                       {reactionErrors && (
-                        <p className="skeet-reactions-error">
+                        <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
                           Fehler: {Object.values(reactionErrors).join(", ")}
-                        </p>
+                        </div>
                       )}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
-          </li>
+          </article>
         );
       })}
-    </ul>
+    </div>
   );
 }
 

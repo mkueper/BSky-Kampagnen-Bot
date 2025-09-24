@@ -177,143 +177,175 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-      <div className="form-header">
-        <h2>{isEditing ? "✏️ Skeet bearbeiten" : "📝 Skeetplaner"}</h2>
-
-        <div className="platforms-inline" role="group" aria-label="Plattformen wählen">
-          <label className={`toggle ${targetPlatforms.includes("bluesky") ? "on" : "off"}`}>
-            <input
-              type="checkbox"
-              checked={targetPlatforms.includes("bluesky")}
-              onChange={() => togglePlatform("bluesky")}
-            />
-            Bluesky
-          </label>
-
-          <label className={`toggle ${targetPlatforms.includes("mastodon") ? "on" : "off"}`}>
-            <input
-              type="checkbox"
-              checked={targetPlatforms.includes("mastodon")}
-              onChange={() => togglePlatform("mastodon")}
-            />
-            Mastodon
-          </label>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground">
+            {isEditing ? "Skeet bearbeiten" : "Neuen Skeet planen"}
+          </h2>
+          <p className="mt-1 text-sm text-foreground-muted">
+            Maximal {maxContentLength} Zeichen für die gewählten Plattformen.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Plattformen wählen">
+          {["bluesky", "mastodon"].map((platform) => {
+            const isActive = targetPlatforms.includes(platform);
+            return (
+              <label
+                key={platform}
+                className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                  isActive
+                    ? "border-primary bg-primary/10 text-primary shadow-soft"
+                    : "border-border text-foreground-muted hover:border-primary/50"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={isActive}
+                  onChange={() => togglePlatform(platform)}
+                />
+                <span className="capitalize">{platform}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
 
-      <div className="form-group">
+      <div className="space-y-3">
+        <label htmlFor="skeet-content" className="text-sm font-semibold text-foreground">
+          Skeet-Text
+        </label>
         <textarea
+          id="skeet-content"
           required
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Skeet-Text"
+          placeholder="Was möchtest du veröffentlichen?"
           rows={7}
-          style={{ width: "100%", marginBottom: 8 }}
+          className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
         <div
-          style={{
-            fontSize: "0.9em",
-            color: content.length > maxContentLength ? "red" : "#333",
-            marginBottom: 8,
-          }}
+          className={`text-sm ${content.length > maxContentLength ? "text-destructive" : "text-foreground-muted"}`}
         >
           {content.length}/{maxContentLength} Zeichen
         </div>
-
-        <label htmlFor="repeat">Wiederholen</label>
-        <select
-          id="repeat"
-          value={repeat}
-          onChange={(e) => {
-            const value = e.target.value;
-            setRepeat(value);
-            setRepeatDayOfWeek(null);
-            setRepeatDayOfMonth(null);
-          }}
-        >
-          <option value="none">Keine Wiederholung</option>
-          <option value="daily">Täglich</option>
-          <option value="weekly">Wöchentlich</option>
-          <option value="monthly">Monatlich</option>
-        </select>
       </div>
 
-      {repeat === "weekly" && (
-        <div className="form-group">
-          <label htmlFor="repeatDayOfWeek">Wochentag</label>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="repeat" className="text-sm font-semibold text-foreground">
+            Wiederholungsmuster
+          </label>
           <select
-            id="repeatDayOfWeek"
-            value={repeatDayOfWeek ?? ""}
+            id="repeat"
+            value={repeat}
             onChange={(e) => {
               const value = e.target.value;
-              setRepeatDayOfWeek(value === "" ? null : Number(value));
+              setRepeat(value);
+              setRepeatDayOfWeek(null);
+              setRepeatDayOfMonth(null);
             }}
+            className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
-            <option value="">Bitte wählen</option>
-            <option value="1">Montag</option>
-            <option value="2">Dienstag</option>
-            <option value="3">Mittwoch</option>
-            <option value="4">Donnerstag</option>
-            <option value="5">Freitag</option>
-            <option value="6">Samstag</option>
-            <option value="0">Sonntag</option>
+            <option value="none">Keine Wiederholung</option>
+            <option value="daily">Täglich</option>
+            <option value="weekly">Wöchentlich</option>
+            <option value="monthly">Monatlich</option>
           </select>
         </div>
-      )}
 
-      {repeat === "monthly" && (
-        <div className="form-group">
-          <label htmlFor="repeatDayOfMonth">Tag im Monat (1–31)</label>
+        <div className="space-y-2">
+          <label htmlFor="time" className="text-sm font-semibold text-foreground">
+            Geplante Uhrzeit
+          </label>
           <input
-            id="repeatDayOfMonth"
-            type="number"
-            min="1"
-            max="31"
-            value={repeatDayOfMonth ?? ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              setRepeatDayOfMonth(value === "" ? null : Number(value));
-            }}
+            id="time"
+            type="time"
+            value={scheduledTime}
+            onChange={(e) => setScheduledTime(e.target.value)}
+            className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
-      )}
 
-      {repeat === "none" && (
-        <div className="form-group">
-          <label htmlFor="date">Geplantes Datum:</label>
-          <input
-            id="date"
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-          />
-        </div>
-      )}
+        {repeat === "weekly" && (
+          <div className="space-y-2">
+            <label htmlFor="repeatDayOfWeek" className="text-sm font-semibold text-foreground">
+              Wochentag
+            </label>
+            <select
+              id="repeatDayOfWeek"
+              value={repeatDayOfWeek ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setRepeatDayOfWeek(value === "" ? null : Number(value));
+              }}
+              className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="">Bitte wählen</option>
+              <option value="1">Montag</option>
+              <option value="2">Dienstag</option>
+              <option value="3">Mittwoch</option>
+              <option value="4">Donnerstag</option>
+              <option value="5">Freitag</option>
+              <option value="6">Samstag</option>
+              <option value="0">Sonntag</option>
+            </select>
+          </div>
+        )}
 
-      <div className="form-group">
-        <label htmlFor="time">Geplante Uhrzeit:</label>
-        <input
-          id="time"
-          type="time"
-          value={scheduledTime}
-          onChange={(e) => setScheduledTime(e.target.value)}
-        />
+        {repeat === "monthly" && (
+          <div className="space-y-2">
+            <label htmlFor="repeatDayOfMonth" className="text-sm font-semibold text-foreground">
+              Tag im Monat (1–31)
+            </label>
+            <input
+              id="repeatDayOfMonth"
+              type="number"
+              min="1"
+              max="31"
+              value={repeatDayOfMonth ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setRepeatDayOfMonth(value === "" ? null : Number(value));
+              }}
+              className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        )}
+
+        {repeat === "none" && (
+          <div className="space-y-2">
+            <label htmlFor="date" className="text-sm font-semibold text-foreground">
+              Geplantes Datum
+            </label>
+            <input
+              id="date"
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="form-actions">
+      <div className="flex flex-wrap justify-end gap-3">
         {isEditing && (
           <button
             type="button"
-            onClick={() => {
-              if (onCancelEdit) onCancelEdit();
-            }}
-            className="secondary"
+            onClick={() => onCancelEdit && onCancelEdit()}
+            className="rounded-2xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-background-subtle"
           >
             Abbrechen
           </button>
         )}
-        <button type="submit">{isEditing ? "Skeet aktualisieren" : "Skeet speichern"}</button>
+        <button
+          type="submit"
+          className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card"
+        >
+          {isEditing ? "Skeet aktualisieren" : "Skeet speichern"}
+        </button>
       </div>
     </form>
   );
