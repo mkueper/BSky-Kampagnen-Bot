@@ -12,6 +12,7 @@ const { DataTypes } = require("sequelize");
 const Thread = require("./threadModel")(sequelize, DataTypes);
 const Skeet = require("./skeetModel")(sequelize, DataTypes);
 const Reply = require("./replyModel")(sequelize, DataTypes);
+const Setting = require("./settingModel")(sequelize, DataTypes);
 
 // --- Relationen ---
 // Ein Thread besteht aus vielen Skeets (z. B. Post-Reihen).
@@ -23,4 +24,4 @@ Skeet.hasMany(Reply, { foreignKey: "skeetId", as: "replies" });
 Reply.belongsTo(Skeet, { foreignKey: "skeetId", as: "skeet" });
 
 
-module.exports = { sequelize, Thread, Skeet, Reply };
+module.exports = { sequelize, Thread, Skeet, Reply, Setting };

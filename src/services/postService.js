@@ -6,6 +6,7 @@
  * Profil definiert, wie validiert, normalisiert und gepostet wird.
  */
 const { getProfile } = require("../platforms/registry");
+const settingsService = require("./settingsService");
 
 /**
  * @typedef {{ content: string, scheduledAt?: string | Date }} PostInput
@@ -41,9 +42,17 @@ function isRetryable(error) {
  * ENV: POST_RETRIES, POST_BACKOFF_MS, POST_BACKOFF_MAX_MS
  */
 async function withRetry(fn, opts = {}) {
-  const maxRetries = Number(process.env.POST_RETRIES || opts.retries || 3);
-  const baseMs = Number(process.env.POST_BACKOFF_MS || opts.baseMs || 500);
-  const maxMs = Number(process.env.POST_BACKOFF_MAX_MS || opts.maxMs || 4000);
+  const config = await settingsService.getPostingConfig();
+  const resolve = (fallback, override) => {
+    if (override != null && !Number.isNaN(Number(override))) {
+      return Number(override);
+    }
+    return fallback;
+  };
+
+  const maxRetries = resolve(config.maxRetries, opts.retries);
+  const baseMs = resolve(config.baseMs, opts.baseMs);
+  const maxMs = resolve(config.maxMs, opts.maxMs);
 
   let attempt = 0;
   while (true) {

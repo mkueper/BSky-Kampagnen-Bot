@@ -8,6 +8,7 @@ import './styles/tailwind.css';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
+import { ToastProvider } from './components/ui/ToastProvider.jsx'
 
 if (!document.documentElement.dataset.styleVariant) {
   document.documentElement.dataset.styleVariant = 'classic';
@@ -15,6 +16,8 @@ if (!document.documentElement.dataset.styleVariant) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </StrictMode>,
 )

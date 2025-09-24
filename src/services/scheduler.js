@@ -13,11 +13,13 @@ const { Skeet } = require("../models");
 const { env } = require("../env");
 const { setupPlatforms } = require("../platforms/setup");
 const { sendPost } = require("./postService");
+const settingsService = require("./settingsService");
 
 const MAX_BATCH_SIZE = 10;
 const RETRY_DELAY_MS = 60 * 1000;
 let platformsReady = false;
 let task = null;
+let lastScheduleConfig = null;
 
 /**
  * Registriert Plattformprofile lazy, damit Tests/CLI-Läufe ohne Scheduler
@@ -340,13 +342,15 @@ async function processDueSkeets(now = new Date()) {
 }
 
 /**
- * Initialisiert und startet den Cron-Scheduler.
+ * Initialisiert oder aktualisiert den Cron-Scheduler basierend auf gespeicherten Settings.
  */
-function startScheduler() {
-  const schedule = config.SCHEDULE_TIME;
+async function applySchedulerTask() {
+  const { values } = await settingsService.getSchedulerSettings();
+  const schedule = values.scheduleTime || config.SCHEDULE_TIME;
+  const timeZone = values.timeZone || config.TIME_ZONE;
 
   if (!cron.validate(schedule)) {
-    throw new Error(`Ungültiger Cron-Ausdruck für SCHEDULE_TIME: "${schedule}"`);
+    throw new Error(`Ungültiger Cron-Ausdruck für den Scheduler: "${schedule}"`);
   }
 
   if (task) {
@@ -360,19 +364,33 @@ function startScheduler() {
         console.error("❌ Scheduler-Lauf fehlgeschlagen:", error?.message || error);
       });
     },
-    { timezone: config.TIME_ZONE }
+    { timezone: timeZone }
   );
 
-  console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${config.TIME_ZONE || "system"})`);
+  lastScheduleConfig = { schedule, timeZone };
+  console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${timeZone || "system"})`);
 
-  processDueSkeets().catch((error) => {
+  await processDueSkeets().catch((error) => {
     console.error("❌ Initialer Scheduler-Lauf fehlgeschlagen:", error?.message || error);
   });
 
   return task;
 }
 
+async function startScheduler() {
+  return applySchedulerTask();
+}
+
+async function restartScheduler() {
+  if (task) {
+    task.stop();
+    task = null;
+  }
+  return applySchedulerTask();
+}
+
 module.exports = {
   startScheduler,
+  restartScheduler,
   processDueSkeets,
 };

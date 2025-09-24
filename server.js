@@ -13,6 +13,7 @@ const fs = require("fs");
 const { login: loginBluesky } = require("./src/services/blueskyClient");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("./src/services/mastodonClient");
 const { startScheduler } = require("./src/services/scheduler");
+const settingsController = require("./src/controllers/settingsController");
 const skeetController = require("./src/controllers/skeetController");
 const importExportController = require("./src/controllers/importExportController");
 const engagementController = require("./src/controllers/engagementController");
@@ -40,6 +41,8 @@ app.post("/api/skeets/import", importExportController.importPlannedSkeets);
 
 app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
+app.get("/api/settings/scheduler", settingsController.getSchedulerSettings);
+app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
@@ -104,7 +107,7 @@ app.use((req, res, next) => {
     console.log("✅ DB synchronisiert");
 
     try {
-      startScheduler();
+      await startScheduler();
     } catch (schedulerError) {
       console.error("❌ Scheduler konnte nicht gestartet werden:", schedulerError?.message || schedulerError);
     }
