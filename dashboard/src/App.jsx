@@ -13,9 +13,11 @@ import {
 import PlannedSkeetList from "./components/PlannedSkeetList";
 import PublishedSkeetList from "./components/PublishedSkeetList";
 import SkeetForm from "./SkeetForm";
+import ConfigPanel from "./components/ConfigPanel";
 import { useSkeets } from "./hooks/useSkeets";
 import { formatTime } from "./utils/formatTime";
 import { getRepeatDescription } from "./utils/timeUtils";
+import { useToast } from "./hooks/useToast";
 
 const PLATFORM_LABELS = {
   bluesky: "Bluesky",
@@ -61,6 +63,7 @@ function App() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
+  const toast = useToast();
 
   const {
     plannedSkeets,
@@ -140,9 +143,16 @@ function App() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      toast.success({
+        title: "Export bereit",
+        description: `Datei ${filename} wurde heruntergeladen.`,
+      });
     } catch (error) {
       console.error("Fehler beim Export der Skeets:", error);
-      window.alert(error.message || "Fehler beim Export der Skeets.");
+      toast.error({
+        title: "Export fehlgeschlagen",
+        description: error.message || "Fehler beim Export der Skeets.",
+      });
     } finally {
       setExporting(false);
     }
@@ -174,10 +184,16 @@ function App() {
         throw new Error(data.error || "Fehler beim Import der Skeets.");
       }
       await loadSkeets();
-      window.alert("Import erfolgreich abgeschlossen.");
+      toast.success({
+        title: "Import abgeschlossen",
+        description: "Alle Skeets wurden erfolgreich importiert.",
+      });
     } catch (error) {
       console.error("Fehler beim Import der Skeets:", error);
-      window.alert(error.message || "Fehler beim Import der Skeets.");
+      toast.error({
+        title: "Import fehlgeschlagen",
+        description: error.message || "Fehler beim Import der Skeets.",
+      });
     } finally {
       setImporting(false);
       if (event.target) event.target.value = "";
@@ -200,8 +216,16 @@ function App() {
       }
       setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
       await loadSkeets();
+      toast.success({
+        title: "Skeet gelöscht",
+        description: "Der geplante Skeet wurde entfernt.",
+      });
     } catch (error) {
       console.error("Fehler beim Löschen des Skeets:", error);
+      toast.error({
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim Löschen des Skeets.",
+      });
     }
   };
 
@@ -216,6 +240,10 @@ function App() {
     setEditingSkeet(null);
     setActiveView("dashboard");
     setMenuOpen(false);
+    toast.info({
+      title: "Bearbeitung abgebrochen",
+      description: "Der Skeet wurde nicht verändert.",
+    });
   };
 
   const upcomingSkeet = useMemo(() => {
@@ -442,46 +470,7 @@ function App() {
               </div>
             )}
 
-            {activeView === "config" && (
-              <section className="grid gap-6 md:grid-cols-2">
-                <div className="rounded-3xl border border-border bg-background-elevated p-8 shadow-soft">
-                  <h3 className="text-xl font-semibold">Veröffentlichungsfenster</h3>
-                  <p className="mt-2 text-sm text-foreground-muted">
-                    Plane, wie häufig der Scheduler neue Skeets prüft, steuere die Zeitzone und konfiguriere optional Mastodon.
-                    Weitere Automatisierungsschritte kannst du hier ergänzen.
-                  </p>
-                  <ul className="mt-6 space-y-4 text-sm text-foreground-muted">
-                    <li className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
-                      <span><strong>Cron & Zeitzone:</strong> Werte aus deiner <code>.env</code> wie <code>SCHEDULE_TIME</code> und <code>TIME_ZONE</code>.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
-                      <span><strong>Retry-Strategie:</strong> Passe <code>POST_RETRIES</code> und Backoff-Einstellungen direkt an.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-foreground-muted" aria-hidden="true" />
-                      <span><strong>Security:</strong> Bewahre App-Passwörter sicher in <code>.env</code> oder im Secret-Store auf.</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="rounded-3xl border border-border bg-background-elevated p-8 shadow-soft">
-                  <h3 className="text-xl font-semibold">Next Steps</h3>
-                  <p className="mt-2 text-sm text-foreground-muted">
-                    Dieser Bereich ist vorbereitet für detaillierte UI-Controls (z. B. Pro-Plattform Settings oder Notification-Trigger).
-                    Ergänze hier gerne weitere Sektionen wie automatisierte Antworten oder Analytics.
-                  </p>
-                  <div className="mt-6 rounded-2xl border border-dashed border-border-muted p-6 text-sm text-foreground-muted">
-                    <p className="font-medium text-foreground">Ideen für kommende Features</p>
-                    <ul className="mt-3 space-y-2">
-                      <li>• Webhooks für eingehende Replies</li>
-                      <li>• Automatische Veröffentlichung mehrerer Skeets im Thread</li>
-                      <li>• Export nach CSV / Markdown</li>
-                    </ul>
-                  </div>
-                </div>
-              </section>
-            )}
+            {activeView === "config" && <ConfigPanel />}
 
             {activeView === "skeetplaner" && (
               <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useToast } from "./hooks/useToast";
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -70,6 +71,7 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
 
   const isEditing = Boolean(editingSkeet);
   const maxContentLength = resolveMaxLength(targetPlatforms);
+  const toast = useToast();
 
   function resetToDefaults() {
     setContent("");
@@ -130,19 +132,28 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     const submissionLimit = resolveMaxLength(normalizedPlatforms);
 
     if (content.length > submissionLimit) {
-      alert(`Der Skeet darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten!`);
+      toast.error({
+        title: "Zeichenlimit überschritten",
+        description: `Der Skeet darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten.`,
+      });
       return;
     }
 
     if (repeat === "none") {
       if (!scheduledDateTime || isNaN(scheduledDateTime.getTime())) {
-        alert("Ungültiges Datum oder Uhrzeit.");
+        toast.error({
+          title: "Ungültige Planung",
+          description: "Bitte Datum und Uhrzeit prüfen.",
+        });
         return;
       }
     }
 
     if (normalizedPlatforms.length === 0) {
-      alert("Bitte mindestens eine Plattform auswählen.");
+      toast.error({
+        title: "Keine Plattform gewählt",
+        description: "Bitte mindestens eine Zielplattform auswählen.",
+      });
       return;
     }
 
@@ -170,9 +181,16 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         resetToDefaults();
       }
       if (onSkeetSaved) onSkeetSaved();
+      toast.success({
+        title: isEditing ? "Skeet aktualisiert" : "Skeet gespeichert",
+        description: "Die Änderungen wurden übernommen.",
+      });
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Fehler beim Speichern des Skeets.");
+      toast.error({
+        title: "Speichern fehlgeschlagen",
+        description: data.error || "Fehler beim Speichern des Skeets.",
+      });
     }
   };
 
