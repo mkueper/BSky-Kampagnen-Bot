@@ -18,7 +18,7 @@ module.exports = {
       postUri: { type: Sequelize.STRING, allowNull: true },
       likesCount: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
       repostsCount: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-      postedAt: { type: Sequelize.DATE, allowNull: true, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
+      postedAt: { type: Sequelize.DATE, allowNull: true, defaultValue: null },
 
       // ENUM('none','daily','weekly','monthly') -> als STRING speichern
       repeat: { type: Sequelize.STRING, allowNull: false, defaultValue: 'none' },

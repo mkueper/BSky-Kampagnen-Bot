@@ -36,7 +36,7 @@ function parseOptionalDate(value) {
     return null;
   }
   const parsed = new Date(value);
-  if (Number.isNaN(parsed)) {
+  if (Number.isNaN(parsed.getTime())) {
     throw new Error('scheduledAt ist kein gültiges Datum.');
   }
   return parsed;

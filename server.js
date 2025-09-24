@@ -48,18 +48,20 @@ app.get("/health", (req, res) => {
 
 // Wildcard-Route (nur GET) – leitet unbekannte Pfade an das Dashboard weiter.
 app.use((req, res, next) => {
-  if (req.method === "GET") {
-    console.log("Wildcard Route ausgelöst für:", req.originalUrl);
-    fs.access(INDEX_HTML, fs.constants.F_OK, (err) => {
-      if (err) {
-        console.error("FEHLER: index.html nicht gefunden unter:", INDEX_HTML);
-        return res.status(500).send('Frontend-Build fehlt. Bitte "npm run build" im dashboard ausführen.');
-      }
-      res.sendFile(INDEX_HTML);
-    });
-  } else {
-    next();
+  if (req.method !== "GET" || req.path.startsWith("/api/")) {
+    return next();
   }
+
+  console.log("Wildcard Route ausgelöst für:", req.originalUrl);
+  fs.access(INDEX_HTML, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.error("FEHLER: index.html nicht gefunden unter:", INDEX_HTML);
+      return res
+        .status(500)
+        .send('Frontend-Build fehlt. Bitte "npm run build" im dashboard ausführen.');
+    }
+    res.sendFile(INDEX_HTML);
+  });
 });
 
 // Init-Pipeline: Logins, DB-Setup und Scheduler-Start.
