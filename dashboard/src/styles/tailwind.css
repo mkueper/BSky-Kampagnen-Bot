@@ -43,6 +43,26 @@
     --accent-foreground: 0 0% 100%;
   }
 
+  :root[data-theme="midnight"] {
+    color-scheme: dark;
+    --border: 235 36% 40%;
+    --border-muted: 235 30% 32%;
+    --background: 238 46% 12%;
+    --background-subtle: 237 44% 18%;
+    --background-elevated: 239 36% 22%;
+    --background-inverted: 210 40% 98%;
+    --foreground: 210 40% 96%;
+    --foreground-muted: 215 18% 72%;
+    --foreground-subtle: 215 16% 64%;
+    --foreground-inverted: 239 36% 15%;
+    --primary: 266 89% 70%;
+    --primary-foreground: 210 40% 98%;
+    --destructive: 355 78% 62%;
+    --destructive-foreground: 0 0% 98%;
+    --accent: 193 92% 62%;
+    --accent-foreground: 0 0% 100%;
+  }
+
   body {
     @apply font-sans bg-background text-foreground antialiased;
   }

@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import * as Toast from "@radix-ui/react-toast";
-
-const ToastContext = createContext(null);
+import { ToastContext } from "./toast-context";
 
 let idCounter = 0;
 
@@ -81,10 +80,3 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToastContext() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error("useToastContext muss innerhalb von <ToastProvider> verwendet werden.");
-  }
-  return ctx;
-}

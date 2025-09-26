@@ -5,6 +5,7 @@ import {
   GearIcon,
   HamburgerMenuIcon,
   MoonIcon,
+  ShadowIcon,
   Pencil2Icon,
   SunIcon,
   UploadIcon,
@@ -31,6 +32,14 @@ const NAV_ITEMS = [
   { id: "skeetplaner", label: "Skeet planen", icon: Pencil2Icon },
 ];
 
+const THEMES = ["light", "dark", "midnight"];
+const THEME_CONFIG = {
+  light: { label: "Helles Theme", colorScheme: "light", icon: SunIcon },
+  dark: { label: "Dunkles Theme", colorScheme: "dark", icon: MoonIcon },
+  midnight: { label: "Mitternacht", colorScheme: "dark", icon: ShadowIcon },
+};
+const DEFAULT_THEME = THEMES[0];
+
 function SummaryCard({ title, value, helper }) {
   return (
     <div className="rounded-2xl border border-border bg-background-elevated shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">
@@ -46,17 +55,17 @@ function SummaryCard({ title, value, helper }) {
 function App() {
   const [activeView, setActiveView] = useState("dashboard");
   const [theme, setTheme] = useState(() => {
-    if (typeof window === "undefined") return "light";
+    if (typeof window === "undefined") return DEFAULT_THEME;
     const stored = window.localStorage.getItem("theme");
-    if (stored === "light" || stored === "dark") {
+    if (stored && THEMES.includes(stored)) {
       return stored;
     }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : DEFAULT_THEME;
   });
   const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
     if (typeof window === "undefined") return false;
     const stored = window.localStorage.getItem("theme");
-    return stored === "light" || stored === "dark";
+    return Boolean(stored && THEMES.includes(stored));
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingSkeet, setEditingSkeet] = useState(null);
@@ -92,15 +101,13 @@ function App() {
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    root.dataset.theme = theme;
-    root.style.colorScheme = theme;
+    const resolvedTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME;
+    const themeSettings = THEME_CONFIG[resolvedTheme];
+    root.classList.toggle("dark", resolvedTheme === "dark");
+    root.dataset.theme = resolvedTheme;
+    root.style.colorScheme = themeSettings?.colorScheme ?? "light";
     if (userHasExplicitTheme) {
-      window.localStorage.setItem("theme", theme);
+      window.localStorage.setItem("theme", resolvedTheme);
     } else {
       window.localStorage.removeItem("theme");
     }
@@ -118,9 +125,20 @@ function App() {
     return () => media.removeEventListener("change", listener);
   }, [userHasExplicitTheme]);
 
+  const currentTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME;
+  const currentThemeConfig = THEME_CONFIG[currentTheme];
+  const nextTheme = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length];
+  const nextThemeLabel = THEME_CONFIG[nextTheme]?.label ?? "Theme wechseln";
+  const ThemeIcon = currentThemeConfig?.icon ?? SunIcon;
+
   const handleToggleTheme = () => {
     setUserHasExplicitTheme(true);
-    setTheme((current) => (current === "light" ? "dark" : "light"));
+    setTheme((current) => {
+      const currentTheme = THEMES.includes(current) ? current : DEFAULT_THEME;
+      const currentIndex = THEMES.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % THEMES.length;
+      return THEMES[nextIndex];
+    });
   };
 
   const handleExport = async () => {
@@ -173,7 +191,8 @@ function App() {
       let payload;
       try {
         payload = JSON.parse(text);
-      } catch (parseError) {
+      } catch (error_) {
+        console.error("Ungültiges JSON beim Import der Skeets:", error_);
         throw new Error("Die ausgewählte Datei enthält kein gültiges JSON.");
       }
       const res = await fetch("/api/skeets/import", {
@@ -305,8 +324,10 @@ function App() {
             </div>
 
             <nav className="flex flex-1 flex-col gap-2">
-              {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+              {NAV_ITEMS.map((navItem) => {
+                const { id, label, icon } = navItem;
                 const isActive = id === activeView;
+                const Icon = icon;
                 return (
                   <button
                     key={id}
@@ -367,10 +388,11 @@ function App() {
                   type="button"
                   onClick={handleToggleTheme}
                   className="rounded-2xl border border-border bg-background-subtle p-2 text-foreground transition hover:bg-background"
-                  aria-label={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
-                  title={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
+                  aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+                  title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
                 >
-                  {theme === "light" ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
+                  <ThemeIcon className="h-4 w-4" />
+                  <span className="sr-only">Aktuelles Theme: {currentThemeConfig?.label}</span>
                 </button>
                 <button
                   type="button"

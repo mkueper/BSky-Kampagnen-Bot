@@ -222,7 +222,7 @@ export default function ConfigPanel() {
                 className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
                 placeholder={defaults.timeZone}
               />
-              <p className="text-xs text-foreground-muted">IANA-Zeitzone, z. B. Europe/Berlin oder UTC.</p>
+              <p className="text-xs text-foreground-muted">IANA-Zeitzone, z. B. Europe/Berlin oder UTC.</p>
             </div>
           </div>
 
