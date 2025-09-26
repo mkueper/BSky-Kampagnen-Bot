@@ -20,15 +20,17 @@ tar \
   --exclude='./node_modules' \
   --exclude='./dashboard/node_modules' \
   --exclude='./data' \
+  --exclude='./.env' \
+  --exclude='./.vscode' \
+  --exclude='./.idea' \
+  --exclude='./dashboard/dist' \
   -cf - . | tar -xf - -C "${APP_DIR}"
 
-if compgen -G "data/*.sqlite" > /dev/null; then
-  mkdir -p "${APP_DIR}/data"
-  cp data/*.sqlite "${APP_DIR}/data/"
-fi
+# Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien
+find "${APP_DIR}" -maxdepth 1 -name '.env' -type f -delete
 
-if [[ -f .env ]]; then
-  cp .env "${WORK_DIR}/.env"
+if [[ -f .env.sample ]]; then
+  cp .env.sample "${WORK_DIR}/.env.sample"
 fi
 
 if [[ -f "${IMAGE_TAR}" ]]; then
@@ -38,17 +40,16 @@ fi
 cat <<'INSTRUCTIONS' > "${WORK_DIR}/BUNDLE_USAGE.txt"
 Bundle-Inhalt:
 - app/ … vollständiges Projekt (ohne node_modules, dist)
-- app/data/*.sqlite … aktuelle SQLite-Datenbank
 - optional: vorhandene Image-Tarballs in dist/docker/
 
 Vorgehen auf dem Server:
 1. Archive entpacken (z. B. unzip <bundle>.zip)
 2. In das Verzeichnis app/ wechseln
-3. Optional .env anpassen oder eine neue Datei erstellen
+3. Optional `.env.sample` kopieren und als `.env` anpassen
 4. docker compose build
 5. docker compose up -d
 
-Die SQLite-Datenbank wird via benanntem Volume (`bsky-kamp-app-data`) eingebunden.
+Die SQLite-Datenbank wird beim ersten Start neu angelegt (benanntes Volume `bsky-kamp-app-data`).
 INSTRUCTIONS
 
 pushd "${BUNDLES_DIR}" > /dev/null
