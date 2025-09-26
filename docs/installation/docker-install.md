@@ -41,15 +41,21 @@ cd BSky-Kampagnen-Bot
    ```
 2. Pflichtvariablen in `.env` setzen:
    ```ini
-   BLUESKY_SERVER=https://bsky.social
+   BLUESKY_SERVER_URL=https://bsky.social
    BLUESKY_IDENTIFIER=dein_handle.bsky.social
    BLUESKY_APP_PASSWORD=dein_app_passwort
    ```
-3. Optional: Ports und Zeitzone anpassen (Standard `BACKEND_PORT=3000`, `FRONTEND_PORT=8080`):
+3. Optional: weitere Variablen setzen (Ports, Zeitzone, Retry-Strategie, zusätzliche Plattformen):
    ```ini
    BACKEND_PORT=3000
    FRONTEND_PORT=8080
    VITE_TIME_ZONE=Europe/Berlin
+   POST_RETRIES=4
+   POST_BACKOFF_MS=600
+   POST_BACKOFF_MAX_MS=5000
+   # Mastodon aktivieren
+   # MASTODON_API_URL=https://mastodon.social
+   # MASTODON_ACCESS_TOKEN=token
    ```
 
 > Sensible Daten werden ausschließlich in `.env` abgelegt und nur dem Backend-Container bereitgestellt.
@@ -58,12 +64,14 @@ cd BSky-Kampagnen-Bot
 
 ```bash
 docker compose up --build
+# nach dem Start einmalig (und nach jedem Update) Migrationen anwenden
+docker compose exec backend npm run migrate:prod
 ```
 
 - Frontend: <http://localhost:${FRONTEND_PORT:-8080}>
 - Backend-API: <http://localhost:${BACKEND_PORT:-3000}>
 
-Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d`.
+Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).
 
 ## 4. Logs prüfen
 
@@ -85,5 +93,6 @@ Wenn du mit einer externen Datenbank arbeiten möchtest (z. B. PostgreSQL), ka
 
 - **Netzwerk:** Reverse Proxy (z. B. Traefik/Nginx) mit HTTPS vorschalten. Domains und Zertifikate außerhalb von Docker verwalten.
 - **Backups:** Volume `db_data` regelmäßig sichern. Für PostgreSQL bietet sich `pg_dump` an.
-- **Updates:** Bei neuen Versionen `git pull`, anschließend `docker compose build` und `docker compose up -d` ausführen.
+- **Updates:** Bei neuen Versionen `git pull`, anschließend `docker compose build`, `docker compose up -d` und `docker compose exec backend npm run migrate:prod` ausführen.
 - **Monitoring:** Docker-Healthchecks und Log-Aggregation (z. B. Loki, Elastic) einrichten, um Scheduler-Fehler früh zu erkennen.
+- **Schema & Migrationen:** Details zu Tabellen und Abläufen findest du in `../database.md`.
