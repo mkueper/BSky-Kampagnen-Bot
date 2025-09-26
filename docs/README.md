@@ -6,20 +6,18 @@ Dieser Bereich bündelt die begleitende Dokumentation für den **BSky-Kampagnen-
 
 ## Installationsleitfäden
 
-- **[Allgemeine Übersicht](./installation/installation.md)** – Entscheidungshilfe für die passende Installationsvariante.
-- **[Lokale Installation](./installation/local-install.md)** – Setup für Entwicklung und Tests auf dem eigenen Rechner.
-- **[Manuelle Server-Installation](./installation/server-install.md)** – Betrieb auf einem dedizierten (v)Server ohne Container.
-- **[Docker-Installation](./installation/docker-install.md)** – Betrieb über Docker Compose inklusive Backend, Frontend und Datenbank.
+Alle Varianten sind im Unterordner [`installation`](./installation/README.md) beschrieben:
+
+- Überblick und Entscheidungshilfen (`installation.md`)
+- Lokales Development-Setup (`local-install.md`)
+- Manuelle Server-Installation (`server-install.md`)
+- Deployment mit Docker Compose (`docker-install.md`)
 
 ---
 
 ## Architektur & Prozesse
 
-- **[Systemarchitektur](./diagramme/systemarchitektur.md)** – Überblick über Hauptkomponenten und deren Kommunikation.
-- **[Datenfluss](./diagramme/datenfluss.md)** – Sequenzdiagramm für Planung und Versand eines Posts.
-- **[Lebenszyklus Skeet](./diagramme/lebenszyklus_skeet.md)** – Zustandsdiagramm eines einzelnen Posts.
-- **[Lebenszyklus Thread](./diagramme/lebenszyklus_thread.md)** – Zustandsdiagramm eines mehrteiligen Threads.
-- **[Statusfarben](./diagramme/statusfarben.md)** – Referenz für einheitliche UI- und Diagrammfarben.
+Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`](./diagramme/README.md). Die einzelnen Mermaid-Dateien erläutern Systemarchitektur, Datenfluss sowie Lebenszyklen von Skeets und Threads.
 
 ---
 
