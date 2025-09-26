@@ -21,6 +21,12 @@ Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`
 
 ---
 
+## Datenbank
+
+- **[Datenbankhandbuch](./database.md)** – Tabellenübersicht, Migrationen und Pflegehinweise für Threads, Skeets, Replies und Settings.
+
+---
+
 ## Planung & Rollen
 
 - **[Roadmap](./ROADMAP.md)** – geplanter Funktionsumfang in drei Projektphasen.
