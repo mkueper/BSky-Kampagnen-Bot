@@ -78,3 +78,4 @@ Alternativ kann ein systemd-Service erstellt werden, der `npm start` ausführt.
 - **HTTPS:** Reverse Proxy mit Zertifikatsverwaltung (z. B. Let’s Encrypt) vor das Backend schalten.
 - **Backups:** Datenbank und `.env` regelmäßig sichern; bei PostgreSQL/MySQL automatisierte Dumps einrichten.
 - **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen und Dienst starten.
+- **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen, `npm run migrate:prod` ausführen und anschließend den Dienst starten.
