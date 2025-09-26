@@ -5,10 +5,42 @@
 @layer base {
   :root {
     color-scheme: light;
+    --border: 214 32% 91%;
+    --border-muted: 215 25% 84%;
+    --background: 210 40% 98%;
+    --background-subtle: 211 40% 96%;
+    --background-elevated: 0 0% 100%;
+    --background-inverted: 224 71% 4%;
+    --foreground: 224 71% 4%;
+    --foreground-muted: 220 14% 46%;
+    --foreground-subtle: 220 13% 54%;
+    --foreground-inverted: 210 40% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
   }
 
   .dark {
     color-scheme: dark;
+    --border: 217 33% 24%;
+    --border-muted: 218 25% 30%;
+    --background: 222 47% 11%;
+    --background-subtle: 225 34% 15%;
+    --background-elevated: 220 30% 18%;
+    --background-inverted: 210 40% 98%;
+    --foreground: 210 40% 98%;
+    --foreground-muted: 217 16% 70%;
+    --foreground-subtle: 215 15% 58%;
+    --foreground-inverted: 224 71% 4%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --accent: 199 89% 58%;
+    --accent-foreground: 0 0% 100%;
   }
 
   body {
