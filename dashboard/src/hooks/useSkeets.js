@@ -24,6 +24,7 @@ export function useSkeets() {
   const [loadingReplies, setLoadingReplies] = useState({});
   const [loadingReactions, setLoadingReactions] = useState({});
   const [reactionStats, setReactionStats] = useState({});
+  const [replyErrors, setReplyErrors] = useState({});
 
   const loadSkeets = useCallback(async () => {
     try {
@@ -48,6 +49,15 @@ export function useSkeets() {
         return next;
       });
       setRepliesBySkeet((current) => {
+        const next = {};
+        normalized.forEach((skeet) => {
+          if (current[skeet.id]) {
+            next[skeet.id] = current[skeet.id];
+          }
+        });
+        return next;
+      });
+      setReplyErrors((current) => {
         const next = {};
         normalized.forEach((skeet) => {
           if (current[skeet.id]) {
@@ -87,9 +97,22 @@ export function useSkeets() {
           return;
         }
         const data = await res.json();
-        setRepliesBySkeet((current) => ({ ...current, [id]: data }));
+        const items = Array.isArray(data) ? data : data?.items || [];
+        const errors = Array.isArray(data) ? null : data?.errors || null;
+
+        setRepliesBySkeet((current) => ({ ...current, [id]: items }));
+        setReplyErrors((current) => {
+          const next = { ...current };
+          if (errors && Object.keys(errors).length > 0) {
+            next[id] = errors;
+          } else {
+            delete next[id];
+          }
+          return next;
+        });
       } catch (error) {
         console.error("Fehler beim Laden der Replies:", error);
+        setReplyErrors((current) => ({ ...current, [id]: { general: error.message || "Unbekannter Fehler" } }));
       } finally {
         setLoadingReplies((current) => ({ ...current, [id]: false }));
       }
@@ -146,6 +169,6 @@ export function useSkeets() {
     loadingReplies,
     loadingReactions,
     reactionStats,
+    replyErrors,
   };
 }
-

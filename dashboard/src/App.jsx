@@ -78,6 +78,7 @@ function App() {
     loadingReplies,
     loadingReactions,
     reactionStats,
+    replyErrors,
   } = useSkeets();
 
   useEffect(() => {
@@ -473,15 +474,16 @@ function App() {
                         getRepeatDescription={getRepeatDescription}
                       />
                     ) : (
-                      <PublishedSkeetList
-                        skeets={publishedSkeets}
-                        activeCardTabs={activeCardTabs}
-                        repliesBySkeet={repliesBySkeet}
-                        loadingReplies={loadingReplies}
-                        loadingReactions={loadingReactions}
-                        onShowSkeetContent={showSkeetContent}
-                        onShowRepliesContent={showRepliesContent}
-                        onFetchReactions={fetchReactions}
+          <PublishedSkeetList
+            skeets={publishedSkeets}
+            activeCardTabs={activeCardTabs}
+            repliesBySkeet={repliesBySkeet}
+            replyErrors={replyErrors}
+            loadingReplies={loadingReplies}
+            loadingReactions={loadingReactions}
+            onShowSkeetContent={showSkeetContent}
+            onShowRepliesContent={showRepliesContent}
+            onFetchReactions={fetchReactions}
                         reactionStats={reactionStats}
                         platformLabels={PLATFORM_LABELS}
                         formatTime={formatTime}

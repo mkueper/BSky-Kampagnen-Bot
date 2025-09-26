@@ -16,8 +16,8 @@ async function getReactions(req, res) {
 
 async function getReplies(req, res) {
   try {
-    const replies = await engagementService.fetchReplies(req.params.skeetId);
-    res.json(replies);
+    const payload = await engagementService.fetchReplies(req.params.skeetId);
+    res.json(payload);
   } catch (error) {
     const message = error?.message || 'Fehler beim Laden der Replies.';
     if (message.includes('Skeet nicht gefunden') || message.includes('Bluesky-URI')) {

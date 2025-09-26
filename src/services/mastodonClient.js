@@ -11,6 +11,17 @@ const { env } = require("../env");
 
 let client = null;
 
+function resolveReadClient(overrides) {
+  if (overrides) {
+    return createClient(overrides);
+  }
+  if (client) {
+    return client;
+  }
+  client = createClient();
+  return client;
+}
+
 /**
  * Entfernt einen trailing Slash, damit wir konsistente Basis-URLs bilden.
  */
@@ -96,18 +107,17 @@ async function getStatus(statusId, options) {
   if (!statusId) {
     throw new Error("statusId ist erforderlich, um einen Mastodon-Status abzurufen.");
   }
-
-  let activeClient;
-  if (options) {
-    activeClient = createClient(options);
-  } else if (client) {
-    activeClient = client;
-  } else {
-    activeClient = createClient();
-    client = activeClient;
-  }
-
+  const activeClient = resolveReadClient(options);
   const response = await activeClient.get(`statuses/${statusId}`);
+  return response.data;
+}
+
+async function getStatusContext(statusId, options) {
+  if (!statusId) {
+    throw new Error("statusId ist erforderlich, um Mastodon-Replies abzurufen.");
+  }
+  const activeClient = resolveReadClient(options);
+  const response = await activeClient.get(`statuses/${statusId}/context`);
   return response.data;
 }
 
@@ -118,4 +128,5 @@ module.exports = {
   createClient,
   hasCredentials,
   getStatus,
+  getStatusContext,
 };

@@ -1,6 +1,10 @@
 const { Skeet, Reply } = require('../models');
 const { getReactions: getBlueskyReactions, getReplies: fetchBlueskyReplies } = require('./blueskyClient');
-const { hasCredentials: hasMastodonCredentials, getStatus: getMastodonStatus } = require('./mastodonClient');
+const {
+  hasCredentials: hasMastodonCredentials,
+  getStatus: getMastodonStatus,
+  getStatusContext: getMastodonStatusContext,
+} = require('./mastodonClient');
 
 function parsePlatformResults(raw) {
   if (!raw) return {};
@@ -58,6 +62,67 @@ function normalizeTargetList(skeet) {
     }
   });
   return { platformResults, platformSet };
+}
+
+function decodeHtmlEntities(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity) => {
+    const lower = entity.toLowerCase();
+    if (lower === 'amp') return '&';
+    if (lower === 'lt') return '<';
+    if (lower === 'gt') return '>';
+    if (lower === 'quot') return '"';
+    if (lower === 'apos' || lower === '#39') return "'";
+    if (lower.startsWith('#x')) {
+      const code = Number.parseInt(lower.slice(2), 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    if (lower.startsWith('#')) {
+      const code = Number.parseInt(lower.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    return match;
+  });
+}
+
+function stripHtml(input) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  const withoutTags = input.replace(/<[^>]*>/g, '');
+  return decodeHtmlEntities(withoutTags).trim();
+}
+
+function extractMastodonReplies(descendants) {
+  if (!Array.isArray(descendants)) {
+    return [];
+  }
+
+  return descendants
+    .map((status) => {
+      if (!status || typeof status !== 'object') {
+        return null;
+      }
+      const account = status.account || {};
+      const authorHandle = account.acct || account.username || '';
+      const content = stripHtml(status.content || '');
+      const indexedAt = status.created_at || status.createdAt || new Date().toISOString();
+
+      if (!authorHandle || !content) {
+        return null;
+      }
+
+      return {
+        authorHandle,
+        content,
+        indexedAt,
+        createdAt: indexedAt,
+        platform: 'mastodon',
+      };
+    })
+    .filter(Boolean);
 }
 
 async function collectReactions(skeetId) {
@@ -198,32 +263,82 @@ async function fetchReplies(skeetId) {
   }
 
   const platformResults = parsePlatformResults(skeet.platformResults);
+  const responses = [];
+  const errors = {};
+
   const blueskyEntry = platformResults.bluesky || {};
   const blueskyUri = findFirstAtUri(blueskyEntry.uri, blueskyEntry.raw?.uri, skeet.postUri);
 
-  if (!isAtUri(blueskyUri || '')) {
-    throw new Error('Für diesen Skeet liegt keine gültige Bluesky-URI vor.');
+  if (isAtUri(blueskyUri || '')) {
+    try {
+      const repliesData = await fetchBlueskyReplies(blueskyUri);
+      const blueskyReplies = extractRepliesFromThread(repliesData).map((reply) => ({
+        ...reply,
+        platform: 'bluesky',
+        createdAt: reply.indexedAt,
+      }));
+      responses.push(...blueskyReplies);
+    } catch (error) {
+      errors.bluesky = error?.message || 'Fehler beim Laden der Bluesky-Replies.';
+    }
+  } else if (blueskyEntry.status === 'sent' || isAtUri(skeet.postUri || '')) {
+    errors.bluesky = 'Keine gültige Bluesky-URI für Replies gefunden.';
   }
 
-  const repliesData = await fetchBlueskyReplies(blueskyUri);
-  const replies = extractRepliesFromThread(repliesData);
+  const mastodonEntry = platformResults.mastodon || {};
+  const mastodonConfigured = hasMastodonCredentials();
+  const mastodonUrlCandidate = mastodonEntry.uri || mastodonEntry.raw?.url || mastodonEntry.raw?.uri || null;
+  let mastodonStatusId = mastodonEntry.statusId || null;
+  if (!mastodonStatusId && mastodonUrlCandidate) {
+    mastodonStatusId = extractMastodonStatusId(mastodonUrlCandidate);
+  }
+
+  if (mastodonConfigured && (mastodonStatusId || mastodonUrlCandidate)) {
+    if (mastodonStatusId) {
+      try {
+        const context = await getMastodonStatusContext(mastodonStatusId);
+        const mastodonReplies = extractMastodonReplies(context?.descendants);
+        responses.push(...mastodonReplies);
+      } catch (error) {
+        errors.mastodon = error?.message || 'Fehler beim Laden der Mastodon-Replies.';
+      }
+    } else {
+      errors.mastodon = 'Konnte Mastodon-Status-ID nicht bestimmen.';
+    }
+  } else if ((mastodonEntry.uri || (Array.isArray(skeet.targetPlatforms) && skeet.targetPlatforms.includes('mastodon'))) && !mastodonConfigured) {
+    errors.mastodon = 'Mastodon-Zugangsdaten fehlen.';
+  }
+
+  responses.sort((a, b) => {
+    const timeA = new Date(a.indexedAt || 0).getTime();
+    const timeB = new Date(b.indexedAt || 0).getTime();
+    return timeA - timeB;
+  });
 
   await Reply.sequelize.transaction(async (t) => {
     await Reply.destroy({ where: { skeetId: skeet.id }, transaction: t });
-    if (replies.length > 0) {
+    if (responses.length > 0) {
       await Reply.bulkCreate(
-        replies.map((r) => ({
+        responses.map((reply) => ({
           skeetId: skeet.id,
-          authorHandle: r.authorHandle,
-          content: r.content,
-          createdAt: new Date(r.indexedAt),
+          authorHandle: reply.authorHandle,
+          content: reply.content,
+          createdAt: new Date(reply.createdAt || reply.indexedAt || Date.now()),
         })),
         { transaction: t }
       );
     }
   });
 
-  return replies;
+  const payload = {
+    items: responses,
+  };
+
+  if (Object.keys(errors).length > 0) {
+    payload.errors = errors;
+  }
+
+  return payload;
 }
 
 module.exports = {

@@ -2,10 +2,9 @@
 /**
  * Reply-Modell repräsentiert Antworten, die wir zu einem Skeet abrufen.
  *
- * Da Replies ausschließlich aus Bluesky importiert werden, sind kaum eigene
- * Validierungen notwendig – wir stellen lediglich sicher, dass die Zuordnung
- * zum Skeet sowie der Author-Handle gespeichert werden.
- */
+ * Replies können aus verschiedenen Plattformen stammen; wir speichern sie
+ * normalized für das Dashboard.
+*/
 module.exports = (sequelize, DataTypes) => {
   const Reply = sequelize.define(
     "Reply",
