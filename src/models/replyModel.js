@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
       skeetId: { type: DataTypes.INTEGER, allowNull: false },
       authorHandle: { type: DataTypes.STRING, allowNull: false },
       content: { type: DataTypes.TEXT, allowNull: false },
+      platform: { type: DataTypes.STRING, allowNull: true },
     },
     {
       tableName: "Replies",

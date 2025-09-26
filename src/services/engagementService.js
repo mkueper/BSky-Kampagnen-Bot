@@ -323,6 +323,7 @@ async function fetchReplies(skeetId) {
           skeetId: skeet.id,
           authorHandle: reply.authorHandle,
           content: reply.content,
+          platform: reply.platform || null,
           createdAt: new Date(reply.createdAt || reply.indexedAt || Date.now()),
         })),
         { transaction: t }
