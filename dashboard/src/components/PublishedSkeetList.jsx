@@ -4,6 +4,7 @@ function PublishedSkeetList({
   skeets,
   activeCardTabs,
   repliesBySkeet,
+  replyErrors,
   loadingReplies,
   loadingReactions,
   onShowSkeetContent,
@@ -31,6 +32,7 @@ function PublishedSkeetList({
         const isFetchingReactions = Boolean(loadingReactions[skeet.id]);
         const reactions = reactionStats[skeet.id]?.platforms ?? {};
         const reactionErrors = reactionStats[skeet.id]?.errors;
+        const replyError = replyErrors[skeet.id];
 
         return (
           <article
@@ -67,6 +69,11 @@ function PublishedSkeetList({
 
               {activeCardTab === "replies" ? (
                 <div className="rounded-2xl border border-border-muted bg-background-subtle/80 p-4">
+                  {replyError ? (
+                    <div className="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {Object.values(replyError).join(", ")}
+                    </div>
+                  ) : null}
                   {isLoadingReplies ? (
                     <p className="text-sm text-foreground-muted">Antworten werden geladen…</p>
                   ) : replies.length > 0 ? (
@@ -74,6 +81,11 @@ function PublishedSkeetList({
                       {replies.map((reply, index) => (
                         <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`} className="rounded-2xl border border-border bg-background-elevated/60 p-4">
                           <p className="font-medium">{reply.authorHandle}</p>
+                          {reply.platform ? (
+                            <p className="text-xs uppercase tracking-[0.2em] text-foreground-subtle">
+                              {platformLabels[reply.platform] || reply.platform}
+                            </p>
+                          ) : null}
                           <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground-muted">{reply.content}</p>
                           {reply.createdAt && (
                             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground-subtle">
