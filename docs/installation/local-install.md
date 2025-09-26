@@ -27,18 +27,16 @@ cd BSky-Kampagnen-Bot
 
 ```bash
 npm install
+npm run install:frontend
 ```
 
 ## 3. Frontend bauen
 
 ```bash
-cd dashboard
-npm install
-npm run build
-cd ..
+npm run build:frontend
 ```
 
-> Das Dashboard wird durch `npm run build` in den Ordner `dashboard/dist` gebaut und vom Express-Server ausgeliefert.
+> Das Dashboard wird durch `npm run build:frontend` in den Ordner `dashboard/dist` gebaut und vom Express-Server ausgeliefert.
 
 ## 4. Konfiguration einrichten
 
@@ -48,13 +46,16 @@ cd ..
    ```
 2. Zugangsdaten in `.env` ergänzen und bei Bedarf Ports anpassen:
    ```ini
-   BLUESKY_SERVER=https://bsky.social
+   BLUESKY_SERVER_URL=https://bsky.social
    BLUESKY_IDENTIFIER=dein_handle.bsky.social
    BLUESKY_APP_PASSWORD=dein_app_passwort
+   # optional Mastodon aktivieren
+   # MASTODON_API_URL=https://mastodon.social
+   # MASTODON_ACCESS_TOKEN=token
    BACKEND_PORT=3000
    FRONTEND_PORT=8080
    ```
-3. Optional: Zeitzone und Datenbanktyp anpassen (siehe Kommentare in `.env`).
+3. Optional: Zeitzone, Retry-Strategie und Datenbanktyp anpassen (siehe Kommentare in `.env`).
 
 ## 5. Datenbank vorbereiten (optional, empfohlen)
 
@@ -68,15 +69,17 @@ npm run seed:dev
 
 ```bash
 npm run dev
+# oder ohne nodemon: npm run start:dev
 ```
 
-Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produktionsähnlichen Start verwende `npm start`.
+Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produktionsähnlichen Start verwende `npm run build:all` gefolgt von `npm start`.
 
 ---
 
 ## Zusätzliche Hinweise
 
-- **Datenbank:** Ohne weitere Konfiguration wird eine SQLite-Datei im Projektverzeichnis erstellt. Für PostgreSQL/MySQL entsprechende Verbindungsdaten in `.env` setzen.
+- **Datenbank:** Ohne weitere Konfiguration wird eine SQLite-Datei im Projektverzeichnis erstellt. Für PostgreSQL/MySQL entsprechende Verbindungsdaten in `.env` setzen. Ein Überblick über Tabellen und Migrationen findet sich in `docs/database.md`.
 - **Logs:** Standardmäßig werden Logs in der Konsole ausgegeben. Für lokale Tests kann `npm run dev` mit automatischem Reload genutzt werden.
 - **Sicherheit:** `.env` niemals ins Repository einchecken. Verwende für Tests Dummy-Zugangsdaten.
 - **Backups:** Bei SQLite reicht das Kopieren der Datenbankdatei. Für andere Datenbanken stehen `pg_dump` bzw. `mysqldump` zur Verfügung.
+- **Migrationen:** Nach Updates `npm run migrate:dev` ausführen, damit das Schema aktuell bleibt. Siehe `docs/database.md` für Details.

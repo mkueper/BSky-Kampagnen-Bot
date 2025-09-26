@@ -29,15 +29,13 @@ cd BSky-Kampagnen-Bot
 
 ```bash
 npm install --production
+npm run install:frontend -- --omit=dev
 ```
 
 ## 3. Frontend bauen
 
 ```bash
-cd dashboard
-npm install --production
-npm run build
-cd ..
+npm run build:frontend
 ```
 
 ## 4. Konfiguration hinterlegen
@@ -46,7 +44,19 @@ cd ..
    ```bash
    cp .env.sample .env
    ```
-2. Bluesky-Zugangsdaten und gewünschte Datenbankverbindung eintragen.
+2. Bluesky-Zugangsdaten und gewünschte Datenbankverbindung eintragen (optional Mastodon, Retry-Settings):
+   ```ini
+   BLUESKY_SERVER_URL=https://bsky.social
+   BLUESKY_IDENTIFIER=dein_handle.bsky.social
+   BLUESKY_APP_PASSWORD=dein_app_passwort
+   # Mastodon aktivieren
+   # MASTODON_API_URL=https://mastodon.social
+   # MASTODON_ACCESS_TOKEN=token
+   TIME_ZONE=Europe/Berlin
+   POST_RETRIES=4
+   POST_BACKOFF_MS=600
+   POST_BACKOFF_MAX_MS=5000
+   ```
 3. `.env` nur für berechtigte Benutzer:innen lesbar machen (`chmod 600 .env`).
 
 ## 5. Datenbank migrieren
@@ -61,6 +71,7 @@ npm run seed:prod
 
 ```bash
 npm install -g pm2
+npm run build:all
 pm2 start server.js --name bsky-bot
 pm2 save
 ```
@@ -77,5 +88,4 @@ Alternativ kann ein systemd-Service erstellt werden, der `npm start` ausführt.
 - **Datenbank:** Bei externen Datenbanken sicherstellen, dass Firewalls nur vertrauenswürdige Verbindungen zulassen.
 - **HTTPS:** Reverse Proxy mit Zertifikatsverwaltung (z. B. Let’s Encrypt) vor das Backend schalten.
 - **Backups:** Datenbank und `.env` regelmäßig sichern; bei PostgreSQL/MySQL automatisierte Dumps einrichten.
-- **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen und Dienst starten.
 - **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen, `npm run migrate:prod` ausführen und anschließend den Dienst starten.

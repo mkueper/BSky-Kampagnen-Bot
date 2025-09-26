@@ -17,6 +17,7 @@ Hier findest du einen Überblick über die verfügbaren Installationswege für d
 - Prüfe vorab die Systemvoraussetzungen der gewählten Anleitung (Node.js-Version, Datenbank, Docker, …).
 - Sensible Konfigurationsdateien wie `.env` niemals ins Versionskontrollsystem hochladen.
 - Für produktive Umgebungen empfehlen wir einen regelmäßigen Backup-Plan für Datenbank und Konfiguration.
+- Nach Deployments stets die neuesten Migrationen ausführen (z. B. `npm run migrate:prod` bzw. via Docker `docker compose exec backend npm run migrate:prod`). Weitere Details siehe [`../database.md`](../database.md).
 
 ---
 
