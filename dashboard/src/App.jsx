@@ -12,8 +12,9 @@ import {
 } from "@radix-ui/react-icons";
 import PlannedSkeetList from "./components/PlannedSkeetList";
 import PublishedSkeetList from "./components/PublishedSkeetList";
-import SkeetForm from "./SkeetForm";
+import SkeetForm from "./components/SkeetForm";
 import ConfigPanel from "./components/ConfigPanel";
+import ScrollTopButton from "./components/ScrollTopButton";
 import { useSkeets } from "./hooks/useSkeets";
 import { formatTime } from "./utils/formatTime";
 import { getRepeatDescription } from "./utils/timeUtils";
@@ -33,10 +34,10 @@ const NAV_ITEMS = [
 function SummaryCard({ title, value, helper }) {
   return (
     <div className="rounded-2xl border border-border bg-background-elevated shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">
-      <div className="space-y-1 p-5">
+      <div className="space-y-2 p-5">
         <p className="text-sm font-medium text-foreground-muted">{title}</p>
         <p className="text-3xl font-semibold md:text-4xl">{value}</p>
-        {helper ? <p className="text-xs text-foreground-subtle">{helper}</p> : null}
+        {helper ? <div className="text-xs leading-relaxed text-foreground-subtle">{helper}</div> : null}
       </div>
     </div>
   );
@@ -264,6 +265,19 @@ function App() {
     return { likes, reposts };
   }, [publishedSkeets]);
 
+  const overviewStats = useMemo(() => [
+    { label: "Geplante Skeets", value: plannedSkeets.length },
+    { label: "Veröffentlichte Skeets", value: publishedSkeets.length },
+    { label: "Likes gesamt", value: aggregatedMetrics.likes },
+    { label: "Reposts gesamt", value: aggregatedMetrics.reposts },
+  ], [plannedSkeets.length, publishedSkeets.length, aggregatedMetrics]);
+
+  const upcomingDate = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "dateOnly") : '-';
+  const upcomingTime = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "timeOnly") : null;
+  const upcomingSnippet = upcomingSkeet
+    ? upcomingSkeet.content.slice(0, 48) + (upcomingSkeet.content.length > 48 ? "…" : "")
+    : null;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
@@ -312,22 +326,6 @@ function App() {
               })}
             </nav>
 
-            <div className="mt-6 flex items-center justify-between rounded-2xl bg-background-subtle p-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">Theme</p>
-                <p className="text-sm font-medium">
-                  {theme === "light" ? "Helles Design" : "Dunkles Design"}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-full bg-background-elevated p-2 text-foreground transition hover:bg-primary hover:text-primary-foreground"
-                onClick={handleToggleTheme}
-                aria-label={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
-              >
-                {theme === "light" ? <MoonIcon className="h-5 w-5" /> : <SunIcon className="h-5 w-5" />}
-              </button>
-            </div>
           </div>
         </aside>
 
@@ -366,6 +364,15 @@ function App() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={handleToggleTheme}
+                  className="rounded-2xl border border-border bg-background-subtle p-2 text-foreground transition hover:bg-background"
+                  aria-label={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
+                  title={theme === "light" ? "Dunkles Theme aktivieren" : "Helles Theme aktivieren"}
+                >
+                  {theme === "light" ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
+                </button>
+                <button
+                  type="button"
                   onClick={handleExport}
                   disabled={exporting}
                   className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
@@ -397,16 +404,31 @@ function App() {
             {activeView === "dashboard" && (
               <div className="space-y-8">
                 <section className="grid gap-4 md:grid-cols-3">
-                  <SummaryCard title="Geplante Skeets" value={plannedSkeets.length} helper="Nächste Veröffentlichung im Blick" />
-                  <SummaryCard
-                    title="Veröffentlichte Skeets"
-                    value={publishedSkeets.length}
-                    helper={`Likes ${aggregatedMetrics.likes} • Reposts ${aggregatedMetrics.reposts}`}
-                  />
+                  <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
+                    <div className="flex flex-col gap-4 p-6">
+                      <div>
+                        <h3 className="text-lg font-semibold">Kampagnen-Überblick</h3>
+                        <p className="text-sm text-foreground-muted">Status deiner geplanten und veröffentlichten Skeets.</p>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {overviewStats.map(({ label, value }) => (
+                          <div key={label} className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3">
+                            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
+                            <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
                   <SummaryCard
                     title="Nächster Termin"
-                    value={upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate) : "–"}
-                    helper={upcomingSkeet ? upcomingSkeet.content.slice(0, 48) + (upcomingSkeet.content.length > 48 ? "…" : "") : "Noch nichts geplant"}
+                    value={upcomingDate}
+                    helper={upcomingSkeet ? (
+                      <>
+                        <span className="block">{`${upcomingTime} Uhr`}</span>
+                        <span className="block text-foreground-muted">{upcomingSnippet}</span>
+                      </>
+                    ) : "Noch nichts geplant"}
                   />
                 </section>
 
@@ -478,6 +500,7 @@ function App() {
               </section>
             )}
           </main>
+          <ScrollTopButton />
         </div>
       </div>
     </div>

@@ -13,32 +13,32 @@ module.exports = {
       },
       colors: {
         border: {
-          DEFAULT: 'hsl(214 32% 91%)',
-          muted: 'hsl(215 25% 84%)',
+          DEFAULT: 'hsl(var(--border))',
+          muted: 'hsl(var(--border-muted))',
         },
         background: {
-          DEFAULT: 'hsl(210 40% 98%)',
-          subtle: 'hsl(211 40% 96%)',
-          elevated: 'hsl(0 0% 100%)',
-          inverted: 'hsl(224 71% 4%)',
+          DEFAULT: 'hsl(var(--background))',
+          subtle: 'hsl(var(--background-subtle))',
+          elevated: 'hsl(var(--background-elevated))',
+          inverted: 'hsl(var(--background-inverted))',
         },
         foreground: {
-          DEFAULT: 'hsl(224 71% 4%)',
-          muted: 'hsl(220 14% 46%)',
-          subtle: 'hsl(220 13% 54%)',
-          inverted: 'hsl(210 40% 98%)',
+          DEFAULT: 'hsl(var(--foreground))',
+          muted: 'hsl(var(--foreground-muted))',
+          subtle: 'hsl(var(--foreground-subtle))',
+          inverted: 'hsl(var(--foreground-inverted))',
         },
         primary: {
-          DEFAULT: 'hsl(221 83% 53%)',
-          foreground: 'hsl(210 40% 98%)',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         destructive: {
-          DEFAULT: 'hsl(0 84% 60%)',
-          foreground: 'hsl(0 0% 98%)',
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(199 89% 48%)',
-          foreground: 'hsl(0 0% 100%)',
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
       },
       boxShadow: {

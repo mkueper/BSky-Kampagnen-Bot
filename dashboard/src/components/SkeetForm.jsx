@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useToast } from "./hooks/useToast";
+import { useToast } from "../hooks/useToast";
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
