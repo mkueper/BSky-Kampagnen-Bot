@@ -43,10 +43,10 @@ const DEFAULT_THEME = THEMES[0];
 function SummaryCard({ title, value, helper }) {
   return (
     <div className="rounded-2xl border border-border bg-background-elevated shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">
-      <div className="space-y-2 p-5">
+      <div className="space-y-3 p-5">
         <p className="text-sm font-medium text-foreground-muted">{title}</p>
         <p className="text-3xl font-semibold md:text-4xl">{value}</p>
-        {helper ? <div className="text-xs leading-relaxed text-foreground-subtle">{helper}</div> : null}
+        {helper ? <div className="space-y-2 text-sm leading-relaxed text-foreground-muted">{helper}</div> : null}
       </div>
     </div>
   );
@@ -294,9 +294,12 @@ function App() {
 
   const upcomingDate = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "dateOnly") : '-';
   const upcomingTime = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "timeOnly") : null;
-  const upcomingSnippet = upcomingSkeet
-    ? upcomingSkeet.content.slice(0, 48) + (upcomingSkeet.content.length > 48 ? "…" : "")
-    : null;
+  const upcomingSnippet = useMemo(() => {
+    if (!upcomingSkeet) return null;
+    const normalized = (upcomingSkeet.content ?? "").replace(/\s+/g, " ").trim();
+    if (!normalized) return "Kein Inhalt hinterlegt";
+    return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized;
+  }, [upcomingSkeet]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -447,10 +450,12 @@ function App() {
                     title="Nächster Termin"
                     value={upcomingDate}
                     helper={upcomingSkeet ? (
-                      <>
-                        <span className="block">{`${upcomingTime} Uhr`}</span>
-                        <span className="block text-foreground-muted">{upcomingSnippet}</span>
-                      </>
+                      <div className="space-y-3">
+                        {upcomingTime ? <span className="block font-semibold text-foreground">{`${upcomingTime} Uhr`}</span> : null}
+                        <div className="rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground">
+                          {upcomingSnippet}
+                        </div>
+                      </div>
                     ) : "Noch nichts geplant"}
                   />
                 </section>

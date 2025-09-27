@@ -5,6 +5,7 @@ WORKDIR /app
 ARG APP_PORT=3000
 ENV APP_PORT=${APP_PORT}
 ENV BACKEND_INTERNAL_PORT=${APP_PORT}
+ENV npm_config_workspaces=false
 
 # Dependencies exakt wie im Lockfile installieren (inkl. Build-Schritte der nativen Module).
 COPY package*.json ./

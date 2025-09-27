@@ -1,0 +1,32 @@
+{
+  "$schema": "https://tauri.app/schema.json",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:5175",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "BSky Kampagnen Companion",
+    "version": "0.0.1"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true
+    },
+    "bundle": {
+      "identifier": "dev.bsky.kampagnen.desktop"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "BSky Kampagnen Companion",
+        "width": 1080,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 540,
+        "resizable": true
+      }
+    ]
+  }
+}
