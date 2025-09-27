@@ -24,9 +24,14 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "smoke:masto": "tsx scripts/smokeMastodonPost.ts",
-    "build:frontend": "npm --prefix dashboard run build",
-    "dev:frontend": "npm --prefix dashboard run dev",
-    "install:frontend": "npm --prefix dashboard install",
+    "build:frontend": "npm_config_workspaces=true npm run build --workspace dashboard",
+    "dev:frontend": "npm_config_workspaces=true npm run dev --workspace dashboard",
+    "install:frontend": "npm_config_workspaces=true npm install --workspace dashboard",
+    "install:all": "npm_config_workspaces=true npm install --workspaces --include-workspace-root",
+    "mobile:start": "npm_config_workspaces=true npm run start --workspace apps/mobile",
+    "mobile:web": "npm_config_workspaces=true npm run web --workspace apps/mobile",
+    "desktop:dev": "npm_config_workspaces=true npm run dev --workspace apps/desktop",
+    "desktop:build": "npm_config_workspaces=true npm run tauri:build --workspace apps/desktop",
     "build:all": "npm run build && npm run build:frontend",
     "docker:build": "docker compose build",
     "docker:bundle": "./scripts/docker-bundle.sh"
@@ -48,5 +53,13 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2"
+  },
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "dashboard",
+      "apps/*",
+      "packages/*"
+    ]
   }
 }

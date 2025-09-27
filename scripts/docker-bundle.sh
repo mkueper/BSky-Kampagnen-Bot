@@ -8,25 +8,89 @@ WORK_DIR="${BUNDLES_DIR}/${BUNDLE_NAME}"
 APP_DIR="${WORK_DIR}/app"
 IMAGES_DIR="dist/docker"
 IMAGE_TAR="${IMAGES_DIR}/${IMAGE_PREFIX}-images.tar"
+PROJECT_CONTENT=(
+  "package.json"
+  "package-lock.json"
+  "server.js"
+  "src"
+  "config"
+  "migrations"
+  "tsconfig.json"
+  "tsconfig.build.json"
+  "README.md"
+  "LICENSE"
+)
+
+# for optional in "apps" "packages"; do
+#   if [[ -e "${optional}" ]]; then
+#     PROJECT_CONTENT+=("${optional}")
+#   fi
+# done
+
+if [[ -f .env.sample ]]; then
+  PROJECT_CONTENT+=(".env.sample")
+fi
+
+if [[ -f .npmrc ]]; then
+  PROJECT_CONTENT+=(".npmrc")
+fi
 
 mkdir -p "${BUNDLES_DIR}"
 rm -rf "${WORK_DIR}"
 mkdir -p "${APP_DIR}"
 
-echo "Kopiere Projektdateien (ohne node_modules/dist) in ${APP_DIR}" >&2
-tar \
-  --exclude='./.git' \
-  --exclude='./dist' \
-  --exclude='./node_modules' \
-  --exclude='./dashboard/node_modules' \
-  --exclude='./data' \
-  --exclude='./.env' \
-  --exclude='./.vscode' \
-  --exclude='./.idea' \
-  --exclude='./dashboard/dist' \
-  -cf - . | tar -xf - -C "${APP_DIR}"
+echo "Bundele Backend-Basis in ${APP_DIR}" >&2
+tar -cf - "${PROJECT_CONTENT[@]}" | tar -xf - -C "${APP_DIR}"
 
-# Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien
+if [[ -d dashboard ]]; then
+  echo "Füge Dashboard-Quellcode hinzu (ohne node_modules/dist)" >&2
+  tar \
+    --exclude='./dashboard/node_modules' \
+    --exclude='./dashboard/dist' \
+    --exclude='./dashboard/.env' \
+    --exclude='./dashboard/.env.local' \
+    -cf - dashboard | tar -xf - -C "${APP_DIR}"
+fi
+
+# Entferne alle node_modules-Verzeichnisse, um Bundle schlank zu halten
+find "${APP_DIR}" -type d -name 'node_modules' -prune -exec rm -rf '{}' +
+
+# Docker-Artefakte für beide Container bereitstellen
+mkdir -p "${APP_DIR}/docker"
+cp docker/Dockerfile.backend "${APP_DIR}/docker/Dockerfile.backend"
+cp docker/Dockerfile.frontend "${APP_DIR}/docker/Dockerfile.frontend"
+cp docker/nginx-frontend.conf "${APP_DIR}/docker/nginx-frontend.conf"
+
+cat <<'COMPOSE' > "${APP_DIR}/docker-compose.yml"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    env_file: .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      BACKEND_INTERNAL_PORT: ${BACKEND_INTERNAL_PORT:-3000}
+      APP_PORT: ${BACKEND_INTERNAL_PORT:-3000}
+    ports:
+      - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
+    volumes:
+      - data:/app/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  data:
+COMPOSE
+
+# Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien auf Root-Ebene
 find "${APP_DIR}" -maxdepth 1 -name '.env' -type f -delete
 
 if [[ -f .env.sample ]]; then
@@ -39,7 +103,7 @@ fi
 
 cat <<'INSTRUCTIONS' > "${WORK_DIR}/BUNDLE_USAGE.txt"
 Bundle-Inhalt:
-- app/ … vollständiges Projekt (ohne node_modules, dist)
+- app/ … Backend und Dashboard (ohne node_modules, ohne Dashboard-Build)
 - optional: vorhandene Image-Tarballs in dist/docker/
 
 Vorgehen auf dem Server:
@@ -48,6 +112,10 @@ Vorgehen auf dem Server:
 3. Optional `.env.sample` kopieren und als `.env` anpassen
 4. docker compose build
 5. docker compose up -d
+
+Services:
+- backend → Express-API & Scheduler (Port ${BACKEND_PORT:-3000})
+- frontend → Nginx mit gebuildetem Dashboard (Port ${FRONTEND_PORT:-8080})
 
 Die SQLite-Datenbank wird beim ersten Start neu angelegt (benanntes Volume `bsky-kamp-app-data`).
 INSTRUCTIONS
