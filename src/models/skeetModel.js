@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "Skeets",
       timestamps: true,
+      paranoid: true,
       validate: {
         scheduledRequirement() {
           if (this.repeat === "none" && !this.scheduledAt && !this.postUri) {

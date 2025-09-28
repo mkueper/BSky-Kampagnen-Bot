@@ -13,6 +13,7 @@ import {
 } from "@radix-ui/react-icons";
 import PlannedSkeetList from "./components/PlannedSkeetList";
 import PublishedSkeetList from "./components/PublishedSkeetList";
+import DeletedSkeetList from "./components/DeletedSkeetList";
 import SkeetForm from "./components/SkeetForm";
 import ConfigPanel from "./components/ConfigPanel";
 import ScrollTopButton from "./components/ScrollTopButton";
@@ -78,6 +79,7 @@ function App() {
   const {
     plannedSkeets,
     publishedSkeets,
+    deletedSkeets,
     loadSkeets,
     fetchReactions,
     showSkeetContent,
@@ -239,13 +241,60 @@ function App() {
       await loadSkeets();
       toast.success({
         title: "Skeet gelöscht",
-        description: "Der geplante Skeet wurde entfernt.",
+        description: "Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.",
       });
     } catch (error) {
       console.error("Fehler beim Löschen des Skeets:", error);
       toast.error({
         title: "Löschen fehlgeschlagen",
         description: error.message || "Fehler beim Löschen des Skeets.",
+      });
+    }
+  };
+
+  const handleRestore = async (skeet) => {
+    try {
+      const res = await fetch(`/api/skeets/${skeet.id}/restore`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Reaktivieren des Skeets.");
+      }
+      await loadSkeets();
+      toast.success({
+        title: "Skeet reaktiviert",
+        description: "Der Skeet wurde wiederhergestellt und erscheint erneut in der Übersicht.",
+      });
+    } catch (error) {
+      console.error("Fehler beim Reaktivieren des Skeets:", error);
+      toast.error({
+        title: "Reaktivierung fehlgeschlagen",
+        description: error.message || "Fehler beim Reaktivieren des Skeets.",
+      });
+    }
+  };
+
+  const handlePermanentDelete = async (skeet) => {
+    const confirmed = window.confirm(
+      "Soll dieser Skeet endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden."
+    );
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/skeets/${skeet.id}?permanent=1`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim endgültigen Löschen des Skeets.");
+      }
+      setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
+      await loadSkeets();
+      toast.success({
+        title: "Skeet entfernt",
+        description: "Der Skeet wurde dauerhaft gelöscht.",
+      });
+    } catch (error) {
+      console.error("Fehler beim endgültigen Löschen des Skeets:", error);
+      toast.error({
+        title: "Endgültiges Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim endgültigen Löschen des Skeets.",
       });
     }
   };
@@ -488,34 +537,59 @@ function App() {
                         >
                           Veröffentlicht
                         </Tabs.Trigger>
+                        <Tabs.Trigger
+                          value="deleted"
+                          className={`rounded-full px-4 py-2 transition ${
+                            activeDashboardTab === "deleted"
+                              ? "bg-background-elevated shadow-soft"
+                              : "text-foreground-muted hover:text-foreground"
+                          }`}
+                        >
+                          Papierkorb
+                        </Tabs.Trigger>
                       </Tabs.List>
                     </Tabs.Root>
                   </div>
 
                   <div className="px-6 pb-6">
-                    {activeDashboardTab === "planned" ? (
-                      <PlannedSkeetList
-                        skeets={plannedSkeets}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        getRepeatDescription={getRepeatDescription}
-                      />
-                    ) : (
-          <PublishedSkeetList
-            skeets={publishedSkeets}
-            activeCardTabs={activeCardTabs}
-            repliesBySkeet={repliesBySkeet}
-            replyErrors={replyErrors}
-            loadingReplies={loadingReplies}
-            loadingReactions={loadingReactions}
-            onShowSkeetContent={showSkeetContent}
-            onShowRepliesContent={showRepliesContent}
-            onFetchReactions={fetchReactions}
-                        reactionStats={reactionStats}
-                        platformLabels={PLATFORM_LABELS}
-                        formatTime={formatTime}
-                      />
-                    )}
+                    {(() => {
+                      if (activeDashboardTab === "planned") {
+                        return (
+                          <PlannedSkeetList
+                            skeets={plannedSkeets}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            getRepeatDescription={getRepeatDescription}
+                          />
+                        );
+                      }
+                      if (activeDashboardTab === "published") {
+                        return (
+                          <PublishedSkeetList
+                            skeets={publishedSkeets}
+                            activeCardTabs={activeCardTabs}
+                            repliesBySkeet={repliesBySkeet}
+                            replyErrors={replyErrors}
+                            loadingReplies={loadingReplies}
+                            loadingReactions={loadingReactions}
+                            onShowSkeetContent={showSkeetContent}
+                            onShowRepliesContent={showRepliesContent}
+                            onFetchReactions={fetchReactions}
+                            reactionStats={reactionStats}
+                            platformLabels={PLATFORM_LABELS}
+                            formatTime={formatTime}
+                          />
+                        );
+                      }
+                      return (
+                        <DeletedSkeetList
+                          skeets={deletedSkeets}
+                          onRestore={handleRestore}
+                          onPermanentDelete={handlePermanentDelete}
+                          formatTime={formatTime}
+                        />
+                      );
+                    })()}
                   </div>
                 </section>
               </div>
