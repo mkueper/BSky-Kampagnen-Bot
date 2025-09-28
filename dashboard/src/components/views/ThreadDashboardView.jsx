@@ -103,16 +103,6 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
               Alle gespeicherten Threads inklusive Status und Inhalte im Überblick.
             </p>
           </div>
-          <div>
-            <button
-              type="button"
-              onClick={() => (typeof onReload === "function" ? onReload() : undefined)}
-              disabled={typeof onReload !== "function"}
-              className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Aktualisieren
-            </button>
-          </div>
         </div>
 
         <div className="mt-6">
