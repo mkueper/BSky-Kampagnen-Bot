@@ -71,3 +71,30 @@
     @apply font-display text-foreground;
   }
 }
+
+@layer utilities {
+  .scrollbar-preview {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-muted)) transparent;
+  }
+
+  .scrollbar-preview::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .scrollbar-preview::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  .scrollbar-preview::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border-muted));
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  .scrollbar-preview::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--border));
+  }
+}
