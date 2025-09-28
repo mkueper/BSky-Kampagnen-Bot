@@ -2,7 +2,9 @@ const skeetService = require('../services/skeetService');
 
 async function getSkeets(req, res) {
   try {
-    const skeets = await skeetService.listSkeets();
+    const includeDeleted = ["1", "true", "yes", "all"].includes((req.query.includeDeleted || "").toString().toLowerCase());
+    const onlyDeleted = ["1", "true", "yes"].includes((req.query.onlyDeleted || "").toString().toLowerCase());
+    const skeets = await skeetService.listSkeets({ includeDeleted, onlyDeleted });
     res.json(skeets);
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Skeets.' });
@@ -36,7 +38,8 @@ async function updateSkeet(req, res) {
 async function deleteSkeet(req, res) {
   const { id } = req.params;
   try {
-    await skeetService.deleteSkeet(id);
+    const permanent = ["1", "true", "yes"].includes((req.query.permanent || "").toString().toLowerCase());
+    await skeetService.deleteSkeet(id, { permanent });
     res.status(204).send();
   } catch (error) {
     const message = error?.message || 'Fehler beim Löschen des Skeets.';
@@ -48,9 +51,25 @@ async function deleteSkeet(req, res) {
   }
 }
 
+async function restoreSkeet(req, res) {
+  const { id } = req.params;
+  try {
+    const skeet = await skeetService.restoreSkeet(id);
+    res.json(skeet);
+  } catch (error) {
+    const message = error?.message || 'Fehler beim Reaktivieren des Skeets.';
+    if (message.includes('nicht gefunden')) {
+      res.status(404).json({ error: message });
+    } else {
+      res.status(400).json({ error: message });
+    }
+  }
+}
+
 module.exports = {
   getSkeets,
   createSkeet,
   updateSkeet,
   deleteSkeet,
+  restoreSkeet,
 };

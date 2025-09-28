@@ -28,7 +28,7 @@ export function useSkeets() {
 
   const loadSkeets = useCallback(async () => {
     try {
-      const res = await fetch("/api/skeets");
+      const res = await fetch("/api/skeets?includeDeleted=1");
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "Fehler beim Laden der Skeets.");
@@ -43,27 +43,33 @@ export function useSkeets() {
       setSkeets(normalized);
       setActiveCardTabs((current) => {
         const next = {};
-        normalized.forEach((skeet) => {
-          next[skeet.id] = current[skeet.id] ?? "skeet";
-        });
+        normalized
+          .filter((entry) => !entry.deletedAt)
+          .forEach((skeet) => {
+            next[skeet.id] = current[skeet.id] ?? "skeet";
+          });
         return next;
       });
       setRepliesBySkeet((current) => {
         const next = {};
-        normalized.forEach((skeet) => {
-          if (current[skeet.id]) {
-            next[skeet.id] = current[skeet.id];
-          }
-        });
+        normalized
+          .filter((entry) => !entry.deletedAt)
+          .forEach((skeet) => {
+            if (current[skeet.id]) {
+              next[skeet.id] = current[skeet.id];
+            }
+          });
         return next;
       });
       setReplyErrors((current) => {
         const next = {};
-        normalized.forEach((skeet) => {
-          if (current[skeet.id]) {
-            next[skeet.id] = current[skeet.id];
-          }
-        });
+        normalized
+          .filter((entry) => !entry.deletedAt)
+          .forEach((skeet) => {
+            if (current[skeet.id]) {
+              next[skeet.id] = current[skeet.id];
+            }
+          });
         return next;
       });
     } catch (error) {
@@ -158,8 +164,9 @@ export function useSkeets() {
 
   return {
     skeets,
-    plannedSkeets: skeets.filter((s) => !s.postUri),
-    publishedSkeets: skeets.filter((s) => s.postUri),
+    plannedSkeets: skeets.filter((s) => !s.deletedAt && !s.postUri),
+    publishedSkeets: skeets.filter((s) => !s.deletedAt && s.postUri),
+    deletedSkeets: skeets.filter((s) => Boolean(s.deletedAt)),
     loadSkeets,
     fetchReactions,
     showSkeetContent,

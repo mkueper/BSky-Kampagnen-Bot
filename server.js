@@ -35,6 +35,7 @@ app.get("/api/skeets", skeetController.getSkeets);
 app.post("/api/skeets", skeetController.createSkeet);
 app.patch("/api/skeets/:id", skeetController.updateSkeet);
 app.delete("/api/skeets/:id", skeetController.deleteSkeet);
+app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
 app.post("/api/skeets/import", importExportController.importPlannedSkeets);

@@ -117,13 +117,23 @@ function buildSkeetAttributes(payload, existing = null) {
   return attributes;
 }
 
-async function listSkeets() {
-  return Skeet.findAll({
+async function listSkeets({ includeDeleted = false, onlyDeleted = false } = {}) {
+  const queryOptions = {
     order: [
       ['scheduledAt', 'ASC'],
       ['createdAt', 'DESC'],
     ],
-  });
+  };
+
+  if (includeDeleted || onlyDeleted) {
+    queryOptions.paranoid = false;
+  }
+
+  const skeets = await Skeet.findAll(queryOptions);
+  if (onlyDeleted) {
+    return skeets.filter((entry) => Boolean(entry.deletedAt));
+  }
+  return skeets;
 }
 
 async function createSkeet(payload) {
@@ -147,12 +157,24 @@ async function updateSkeet(id, payload) {
   return skeet;
 }
 
-async function deleteSkeet(id) {
-  const skeet = await Skeet.findByPk(id);
+async function deleteSkeet(id, { permanent = false } = {}) {
+  const skeet = await Skeet.findByPk(id, { paranoid: !permanent });
   if (!skeet) {
     throw new Error('Skeet nicht gefunden.');
   }
-  await skeet.destroy();
+  await skeet.destroy({ force: Boolean(permanent) });
+}
+
+async function restoreSkeet(id) {
+  const skeet = await Skeet.findByPk(id, { paranoid: false });
+  if (!skeet) {
+    throw new Error('Skeet nicht gefunden.');
+  }
+  if (!skeet.deletedAt) {
+    return skeet;
+  }
+  await skeet.restore();
+  return skeet;
 }
 
 module.exports = {
@@ -160,6 +182,7 @@ module.exports = {
   createSkeet,
   updateSkeet,
   deleteSkeet,
+  restoreSkeet,
   normalizeTargetPlatforms,
   ensurePlatforms,
   parseOptionalDate,
