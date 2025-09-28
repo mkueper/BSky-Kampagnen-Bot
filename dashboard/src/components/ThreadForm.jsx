@@ -100,14 +100,13 @@ function computeLimit(selectedPlatforms) {
   return selectedOptions.reduce((min, option) => Math.min(min, option.limit), Infinity);
 }
 
-function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onThreadDeleted, onCancel }) {
+function ThreadForm({ initialThread = null, loading = false, onThreadSaved }) {
   const [threadId, setThreadId] = useState(null);
   const [targetPlatforms, setTargetPlatforms] = useState(["bluesky"]);
   const [source, setSource] = useState("");
   const [appendNumbering, setAppendNumbering] = useState(true);
   const [scheduledAt, setScheduledAt] = useState(() => getDefaultScheduledAt());
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const textareaRef = useRef(null);
   const toast = useToast();
 
@@ -348,41 +347,6 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onTh
     }
   };
 
-  const handleDelete = async () => {
-    if (!isEditMode || deleting || loading) return;
-
-    const descriptor = (initialThread?.title || previewSegments[0]?.raw || `Thread #${threadId}`).trim();
-    const label = descriptor ? descriptor.slice(0, 80) : `Thread #${threadId}`;
-    const confirmed = window.confirm(`Soll "${label}" wirklich gelöscht werden?`);
-    if (!confirmed) return;
-
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/threads/${threadId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Thread konnte nicht gelöscht werden.");
-      }
-
-      toast.success({
-        title: "Thread gelöscht",
-        description: "Der Thread wurde entfernt.",
-      });
-
-      if (typeof onThreadDeleted === "function") {
-        onThreadDeleted({ id: threadId });
-      }
-    } catch (error) {
-      console.error("Thread konnte nicht gelöscht werden:", error);
-      toast.error({
-        title: "Löschen fehlgeschlagen",
-        description: error?.message || "Unbekannter Fehler beim Löschen des Threads.",
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
@@ -397,13 +361,6 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onTh
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <button
-                  type="button"
-                  onClick={handleInsertSeparator}
-                  className="rounded-full border border-border bg-background-subtle px-3 py-1 text-foreground transition hover:bg-background"
-                >
-                  Trenner einfügen
-                </button>
                 <span className="rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted">
                   Limit: {limitLabel}
                 </span>
@@ -520,16 +477,6 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onTh
           STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.
         </p>
         <div className="flex items-center gap-2">
-          {isEditMode && typeof onCancel === "function" ? (
-            <button
-              type="button"
-              className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-              onClick={onCancel}
-              disabled={saving || deleting}
-            >
-              Abbrechen
-            </button>
-          ) : null}
           <button
             type="button"
             className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
@@ -540,20 +487,10 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onTh
                 restoreFromThread(null);
               }
             }}
-            disabled={saving || deleting}
+            disabled={saving}
           >
             Formular zurücksetzen
           </button>
-          {isEditMode ? (
-            <button
-              type="button"
-              className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={handleDelete}
-              disabled={deleting || saving}
-            >
-              {deleting ? "Löschen…" : "Thread löschen"}
-            </button>
-          ) : null}
           <button
             type="submit"
             disabled={hasValidationIssues || saving || loading}
