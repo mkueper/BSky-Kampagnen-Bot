@@ -9,7 +9,7 @@
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("../config");
-const { Skeet } = require("../models");
+const { Skeet, Thread, ThreadSkeet } = require("../models");
 const { env } = require("../env");
 const { setupPlatforms } = require("../platforms/setup");
 const { sendPost } = require("./postService");
@@ -341,6 +341,197 @@ async function processDueSkeets(now = new Date()) {
   }
 }
 
+function ensureMetadataObject(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) || {};
+    } catch (error) {
+      console.warn("❕ Konnte Thread-Metadaten nicht parsen:", error?.message || error);
+      return {};
+    }
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return { ...raw };
+  }
+  return {};
+}
+
+async function dispatchThread(thread) {
+  ensurePlatforms();
+
+  const current = await Thread.findByPk(thread.id, {
+    include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]] }],
+  });
+
+  if (!current) {
+    console.log(`ℹ️ Thread ${thread.id} wurde inzwischen entfernt – überspringe Versand.`);
+    return;
+  }
+
+  if (!current.scheduledAt || new Date(current.scheduledAt) > new Date()) {
+    return;
+  }
+
+  if (!Array.isArray(current.segments) || current.segments.length === 0) {
+    console.warn(`⚠️ Thread ${current.id} besitzt keine Segmente – überspringe.`);
+    await current.update({ status: "failed", metadata: { ...(ensureMetadataObject(current.metadata)), lastError: "Keine Segmente" } });
+    return;
+  }
+
+  const targetPlatforms = getTargetPlatforms(current);
+  const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+  if (!normalizedPlatforms.length) {
+    console.warn(`⚠️ Thread ${current.id} hat keine Zielplattformen – markiere als fehlgeschlagen.`);
+    const metadata = ensureMetadataObject(current.metadata);
+    metadata.lastError = "Keine Zielplattformen";
+    await current.update({ status: "failed", metadata });
+    return;
+  }
+
+  await current.update({ status: "publishing" });
+
+  const metadata = ensureMetadataObject(current.metadata);
+  const platformResults = typeof metadata.platformResults === "object" && !Array.isArray(metadata.platformResults)
+    ? { ...metadata.platformResults }
+    : {};
+
+  const segmentPrimaryInfo = new Array(current.segments.length).fill(null);
+  let overallSuccess = true;
+
+  for (const platformId of normalizedPlatforms) {
+    const platformEnv = resolvePlatformEnv(platformId);
+    const envError = validatePlatformEnv(platformId, platformEnv);
+    if (envError) {
+      platformResults[platformId] = {
+        status: "failed",
+        error: envError,
+        failedAt: new Date().toISOString(),
+      };
+      overallSuccess = false;
+      console.error(`❌ ${envError}`);
+      continue;
+    }
+
+    const segmentResults = [];
+    let platformSuccess = true;
+
+    for (let index = 0; index < current.segments.length; index += 1) {
+      const segment = current.segments[index];
+      try {
+        const res = await sendPost({ content: segment.content }, platformId, platformEnv);
+
+        if (res.ok) {
+          const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
+          segmentResults.push({
+            sequence: segment.sequence,
+            status: "sent",
+            uri: res.uri || "",
+            postedAt: postedAt.toISOString(),
+          });
+
+          if (
+            !segmentPrimaryInfo[index] ||
+            segmentPrimaryInfo[index].platformId !== "bluesky" ||
+            platformId === "bluesky"
+          ) {
+            segmentPrimaryInfo[index] = {
+              platformId,
+              uri: res.uri || "",
+              postedAt,
+            };
+          }
+        } else {
+          platformSuccess = false;
+          segmentResults.push({
+            sequence: segment.sequence,
+            status: "failed",
+            error: res.error || "Unbekannter Fehler",
+            failedAt: new Date().toISOString(),
+          });
+          console.error(
+            `❌ Fehler beim Senden von Thread ${current.id} (Segment ${segment.sequence}) auf ${platformId}:`,
+            res.error || "Unbekannter Fehler"
+          );
+          break;
+        }
+      } catch (unexpected) {
+        platformSuccess = false;
+        segmentResults.push({
+          sequence: segment.sequence,
+          status: "failed",
+          error: unexpected?.message || String(unexpected),
+          failedAt: new Date().toISOString(),
+        });
+        console.error(
+          `❌ Unerwarteter Fehler beim Senden von Thread ${current.id} (Segment ${segment.sequence}) auf ${platformId}:`,
+          unexpected?.message || unexpected
+        );
+        break;
+      }
+    }
+
+    platformResults[platformId] = {
+      status: platformSuccess ? "sent" : "failed",
+      segments: segmentResults,
+      completedAt: new Date().toISOString(),
+    };
+
+    if (!platformSuccess) {
+      overallSuccess = false;
+    }
+  }
+
+  for (let index = 0; index < current.segments.length; index += 1) {
+    const info = segmentPrimaryInfo[index];
+    const segment = current.segments[index];
+    if (info) {
+      await segment.update({
+        remoteId: info.uri,
+        postedAt: info.postedAt,
+      });
+    }
+  }
+
+  metadata.platformResults = platformResults;
+  metadata.lastDispatchAt = new Date().toISOString();
+
+  const updatePayload = {
+    metadata,
+    targetPlatforms: normalizedPlatforms,
+    scheduledAt: null,
+  };
+
+  if (overallSuccess) {
+    updatePayload.status = "published";
+    metadata.lastSuccessAt = new Date().toISOString();
+  } else {
+    updatePayload.status = "failed";
+    metadata.lastError = metadata.lastError || "Fehler beim Versenden";
+  }
+
+  await current.update(updatePayload);
+}
+
+async function processDueThreads(now = new Date()) {
+  const dueThreads = await Thread.findAll({
+    where: {
+      scheduledAt: { [Op.ne]: null, [Op.lte]: now },
+      status: "scheduled",
+    },
+    order: [["scheduledAt", "ASC"]],
+    limit: MAX_BATCH_SIZE,
+  });
+
+  for (const thread of dueThreads) {
+    try {
+      await dispatchThread(thread);
+    } catch (error) {
+      console.error(`❌ Fehler beim Senden von Thread ${thread.id}:`, error?.message || error);
+    }
+  }
+}
+
 /**
  * Initialisiert oder aktualisiert den Cron-Scheduler basierend auf gespeicherten Settings.
  */
@@ -361,7 +552,10 @@ async function applySchedulerTask() {
     schedule,
     () => {
       processDueSkeets().catch((error) => {
-        console.error("❌ Scheduler-Lauf fehlgeschlagen:", error?.message || error);
+        console.error("❌ Scheduler-Lauf (Skeets) fehlgeschlagen:", error?.message || error);
+      });
+      processDueThreads().catch((error) => {
+        console.error("❌ Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
       });
     },
     { timezone: timeZone }
@@ -370,9 +564,14 @@ async function applySchedulerTask() {
   lastScheduleConfig = { schedule, timeZone };
   console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${timeZone || "system"})`);
 
-  await processDueSkeets().catch((error) => {
-    console.error("❌ Initialer Scheduler-Lauf fehlgeschlagen:", error?.message || error);
-  });
+  await Promise.all([
+    processDueSkeets().catch((error) => {
+      console.error("❌ Initialer Scheduler-Lauf (Skeets) fehlgeschlagen:", error?.message || error);
+    }),
+    processDueThreads().catch((error) => {
+      console.error("❌ Initialer Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
+    }),
+  ]);
 
   return task;
 }
@@ -393,4 +592,5 @@ module.exports = {
   startScheduler,
   restartScheduler,
   processDueSkeets,
+  processDueThreads,
 };
