@@ -1,8 +1,29 @@
-import { useThreads } from "../hooks/useThreads";
+function formatScheduledLabel(thread) {
+  if (!thread?.scheduledAt) {
+    return thread?.status === "published" ? "Bereits veröffentlicht" : "Kein Termin geplant";
+  }
 
-function ThreadOverview() {
-  const { threads, loading, error, reload } = useThreads();
+  const date = new Date(thread.scheduledAt);
+  if (Number.isNaN(date.getTime())) {
+    return `Geplant für ${thread.scheduledAt}`;
+  }
 
+  const formatter = new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (thread.status === "scheduled") {
+    return `Wird gepostet um: ${formatter.format(date)}`;
+  }
+
+  return `${thread.status === "published" ? "Veröffentlicht am" : "Geplant für"}: ${formatter.format(date)}`;
+}
+
+function ThreadOverview({ threads, loading, error, onReload, onEditThread, onDeleteThread }) {
   if (loading) {
     return (
       <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
@@ -16,7 +37,7 @@ function ThreadOverview() {
       <section className="rounded-3xl border border-destructive/50 bg-destructive/10 p-6 shadow-soft">
         <header className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-destructive">Threads konnten nicht geladen werden</h3>
-          <button type="button" className="text-sm underline" onClick={reload}>
+          <button type="button" className="text-sm underline" onClick={onReload}>
             Erneut versuchen
           </button>
         </header>
@@ -27,7 +48,7 @@ function ThreadOverview() {
     );
   }
 
-  if (threads.length === 0) {
+  if (!threads || threads.length === 0) {
     return (
       <section className="rounded-3xl border border-border bg-background-elevated p-6 text-center shadow-soft">
         <h3 className="text-lg font-semibold">Noch keine Threads gespeichert</h3>
@@ -47,22 +68,18 @@ function ThreadOverview() {
               <h3 className="text-lg font-semibold text-foreground">
                 {thread.title || `Thread #${thread.id}`}
               </h3>
-              <p className="text-sm text-foreground-muted">
-                {thread.status === "scheduled"
-                  ? `Geplant für ${thread.scheduledAt || "unbekannt"}`
-                  : thread.status === "published"
-                  ? "Bereits veröffentlicht"
-                  : "Entwurf"}
-              </p>
+              <p className="text-sm text-foreground-muted">{formatScheduledLabel(thread)}</p>
             </div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-foreground-muted">
-              {thread.targetPlatforms.join(" · ")}
+              {Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
+                ? thread.targetPlatforms.join(" · ")
+                : "Keine Plattformen"}
             </div>
           </header>
 
           <ul className="mt-4 space-y-2 text-sm">
             {thread.segments.map((segment) => (
-              <li key={segment.id} className="rounded-2xl border border-border bg-background-subtle p-3">
+              <li key={segment.id ?? segment.sequence} className="rounded-2xl border border-border bg-background-subtle p-3">
                 <header className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-foreground-muted">
                   <span>Skeet {segment.sequence + 1}</span>
                   <span>{segment.characterCount} Zeichen</span>
@@ -71,6 +88,23 @@ function ThreadOverview() {
               </li>
             ))}
           </ul>
+
+          <footer className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => onEditThread?.(thread)}
+              className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+            >
+              Bearbeiten
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeleteThread?.(thread)}
+              className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
+            >
+              Löschen
+            </button>
+          </footer>
         </article>
       ))}
     </section>

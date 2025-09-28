@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useToast } from "../hooks/useToast";
 
 const PLATFORM_OPTIONS = [
   { id: "bluesky", label: "Bluesky", limit: 300 },
@@ -46,6 +47,24 @@ function getDefaultScheduledAt() {
   return formatDateTimeLocal(next);
 }
 
+function toDatetimeLocal(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    if (typeof value === "string") {
+      return value.slice(0, 16);
+    }
+    return "";
+  }
+
+  const offsetMinutes = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offsetMinutes * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 function splitRawSegments(source) {
   const normalized = source.replace(/\r\n/g, "\n");
   const lines = normalized.split("\n");
@@ -81,12 +100,50 @@ function computeLimit(selectedPlatforms) {
   return selectedOptions.reduce((min, option) => Math.min(min, option.limit), Infinity);
 }
 
-function ThreadForm() {
+function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onThreadDeleted, onCancel }) {
+  const [threadId, setThreadId] = useState(null);
   const [targetPlatforms, setTargetPlatforms] = useState(["bluesky"]);
   const [source, setSource] = useState("");
   const [appendNumbering, setAppendNumbering] = useState(true);
   const [scheduledAt, setScheduledAt] = useState(() => getDefaultScheduledAt());
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const textareaRef = useRef(null);
+  const toast = useToast();
+
+  const restoreFromThread = (thread) => {
+    if (thread && thread.id) {
+      setThreadId(thread.id);
+      setTargetPlatforms(Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length ? thread.targetPlatforms : ["bluesky"]);
+      setAppendNumbering(Boolean(thread.appendNumbering ?? true));
+      setScheduledAt(thread.scheduledAt ? toDatetimeLocal(thread.scheduledAt) : "");
+      const sourceValue = typeof thread?.metadata?.source === "string" && thread.metadata.source.trim().length
+        ? thread.metadata.source
+        : Array.isArray(thread.segments)
+        ? thread.segments
+            .map((segment) => segment?.content || "")
+            .join("\n---\n")
+        : "";
+      setSource(sourceValue);
+    } else {
+      setThreadId(null);
+      setTargetPlatforms(["bluesky"]);
+      setAppendNumbering(true);
+      setScheduledAt(getDefaultScheduledAt());
+      setSource("");
+    }
+  };
+
+  useEffect(() => {
+    if (loading) return;
+    if (initialThread && initialThread.id) {
+      if (initialThread.id !== threadId) {
+        restoreFromThread(initialThread);
+      }
+    } else if (!initialThread && threadId !== null) {
+      restoreFromThread(null);
+    }
+  }, [initialThread, loading, threadId]);
 
   const limit = useMemo(() => computeLimit(targetPlatforms), [targetPlatforms]);
 
@@ -136,6 +193,7 @@ function ThreadForm() {
   }, [rawSegments, limit, appendNumbering]);
 
   const totalSegments = effectiveSegments.length;
+  const isEditMode = Boolean(threadId);
 
   const previewSegments = useMemo(() => {
     return effectiveSegments.map((segment, index) => {
@@ -207,15 +265,122 @@ function ThreadForm() {
     return previewSegments.some((segment) => segment.isEmpty || segment.exceedsLimit);
   }, [previewSegments, targetPlatforms.length]);
 
-  const handleSubmit = (event) => {
+  const showLoadingState = loading && !threadId;
+
+  if (showLoadingState) {
+    return (
+      <div className="space-y-6">
+        <p className="text-sm text-foreground-muted">Thread wird geladen…</p>
+      </div>
+    );
+  }
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // Placeholder für spätere Implementierung.
-    console.info("Thread payload", {
+    if (saving || loading) return;
+
+    const status = scheduledAt ? "scheduled" : "draft";
+    const scheduledValue = scheduledAt ? scheduledAt : null;
+    const titleCandidate = previewSegments[0]?.raw || "";
+    const normalizedTitle = titleCandidate.trim().slice(0, 120) || null;
+
+    const payload = {
+      title: normalizedTitle,
+      scheduledAt: scheduledValue,
+      status,
       targetPlatforms,
       appendNumbering,
-      scheduledAt,
-      segments: previewSegments.map((segment) => segment.formatted),
-    });
+      metadata: {
+        limit,
+        totalSegments,
+        source,
+      },
+      skeets: previewSegments.map((segment, index) => ({
+        sequence: index,
+        content: segment.formatted,
+        appendNumbering,
+        characterCount: segment.characterCount,
+      })),
+    };
+
+    const endpoint = isEditMode ? `/api/threads/${threadId}` : "/api/threads";
+    const method = isEditMode ? "PATCH" : "POST";
+
+    setSaving(true);
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || (isEditMode ? "Thread konnte nicht aktualisiert werden." : "Thread konnte nicht gespeichert werden."));
+      }
+
+      const thread = await res.json();
+
+      toast.success({
+        title: isEditMode ? "Thread aktualisiert" : "Thread gespeichert",
+        description: `Thread enthält ${totalSegments} Skeet${totalSegments !== 1 ? "s" : ""}.`,
+      });
+
+      if (typeof onThreadSaved === "function") {
+        try {
+          onThreadSaved(thread);
+        } catch (callbackError) {
+          console.error("onThreadSaved Callback hat einen Fehler ausgelöst:", callbackError);
+        }
+      }
+
+      if (!isEditMode) {
+        restoreFromThread(null);
+      }
+    } catch (error) {
+      console.error("Thread konnte nicht gespeichert werden:", error);
+      toast.error({
+        title: isEditMode ? "Aktualisierung fehlgeschlagen" : "Speichern fehlgeschlagen",
+        description: error?.message || "Unbekannter Fehler beim Speichern des Threads.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEditMode || deleting || loading) return;
+
+    const descriptor = (initialThread?.title || previewSegments[0]?.raw || `Thread #${threadId}`).trim();
+    const label = descriptor ? descriptor.slice(0, 80) : `Thread #${threadId}`;
+    const confirmed = window.confirm(`Soll "${label}" wirklich gelöscht werden?`);
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/threads/${threadId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Thread konnte nicht gelöscht werden.");
+      }
+
+      toast.success({
+        title: "Thread gelöscht",
+        description: "Der Thread wurde entfernt.",
+      });
+
+      if (typeof onThreadDeleted === "function") {
+        onThreadDeleted({ id: threadId });
+      }
+    } catch (error) {
+      console.error("Thread konnte nicht gelöscht werden:", error);
+      toast.error({
+        title: "Löschen fehlgeschlagen",
+        description: error?.message || "Unbekannter Fehler beim Löschen des Threads.",
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -355,22 +520,46 @@ function ThreadForm() {
           STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.
         </p>
         <div className="flex items-center gap-2">
+          {isEditMode && typeof onCancel === "function" ? (
+            <button
+              type="button"
+              className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+              onClick={onCancel}
+              disabled={saving || deleting}
+            >
+              Abbrechen
+            </button>
+          ) : null}
           <button
             type="button"
             className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
             onClick={() => {
-              setSource("");
-              setScheduledAt(getDefaultScheduledAt());
+              if (isEditMode && initialThread) {
+                restoreFromThread(initialThread);
+              } else {
+                restoreFromThread(null);
+              }
             }}
+            disabled={saving || deleting}
           >
             Formular zurücksetzen
           </button>
+          {isEditMode ? (
+            <button
+              type="button"
+              className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleDelete}
+              disabled={deleting || saving}
+            >
+              {deleting ? "Löschen…" : "Thread löschen"}
+            </button>
+          ) : null}
           <button
             type="submit"
-            disabled={hasValidationIssues}
+            disabled={hasValidationIssues || saving || loading}
             className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Thread speichern (Coming Soon)
+            {saving ? "Speichern…" : isEditMode ? "Thread aktualisieren" : "Thread speichern"}
           </button>
         </div>
       </footer>
