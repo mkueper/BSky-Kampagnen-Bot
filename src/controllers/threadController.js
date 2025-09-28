@@ -44,11 +44,22 @@ async function updateThread(req, res) {
 
 async function deleteThread(req, res) {
   try {
-    await threadService.deleteThread(req.params.id);
+    const permanent = ["1", "true", "yes"].includes((req.query.permanent || "").toString().toLowerCase());
+    await threadService.deleteThread(req.params.id, { permanent });
     res.status(204).send();
   } catch (error) {
     const status = error?.status === 404 ? 404 : error?.name === "SequelizeValidationError" ? 400 : 500;
     res.status(status).json({ error: error?.message || "Fehler beim Löschen des Threads." });
+  }
+}
+
+async function restoreThread(req, res) {
+  try {
+    const thread = await threadService.restoreThread(req.params.id);
+    res.json(thread);
+  } catch (error) {
+    const status = error?.status === 404 ? 404 : error?.status === 400 ? 400 : 500;
+    res.status(status).json({ error: error?.message || "Fehler beim Wiederherstellen des Threads." });
   }
 }
 
@@ -58,4 +69,5 @@ module.exports = {
   createThread,
   updateThread,
   deleteThread,
+  restoreThread,
 };

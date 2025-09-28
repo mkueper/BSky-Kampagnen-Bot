@@ -5,7 +5,7 @@
  * Aktuell sehr schlank – dient vor allem als Container, um geplante Posts
  * zeitlich oder thematisch zusammenzufassen.
  */
-const THREAD_STATUS = ["draft", "scheduled", "publishing", "published", "failed"];
+const THREAD_STATUS = ["draft", "scheduled", "publishing", "published", "failed", "deleted"];
 
 module.exports = (sequelize, DataTypes) => {
   const Thread = sequelize.define(

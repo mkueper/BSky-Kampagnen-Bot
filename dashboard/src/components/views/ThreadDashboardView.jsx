@@ -17,7 +17,16 @@ function formatDateTime(value) {
   }).format(date);
 }
 
-function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, onDeleteThread }) {
+function ThreadDashboardView({
+  threads,
+  loading,
+  error,
+  onReload,
+  onEditThread,
+  onDeleteThread,
+  onRestoreThread,
+  onDestroyThread,
+}) {
   const [activeTab, setActiveTab] = useState("planned");
   const stats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
@@ -142,6 +151,7 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
                 onReload={onReload}
                 onEditThread={onEditThread}
                 onDeleteThread={onDeleteThread}
+                mode="default"
               />
             </Tabs.Content>
 
@@ -153,6 +163,7 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
                 onReload={onReload}
                 onEditThread={onEditThread}
                 onDeleteThread={onDeleteThread}
+                mode="default"
               />
             </Tabs.Content>
 
@@ -163,8 +174,9 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
                   loading={loading}
                   error={error}
                   onReload={onReload}
-                  onEditThread={onEditThread}
-                  onDeleteThread={onDeleteThread}
+                  onRestoreThread={onRestoreThread}
+                  onDestroyThread={onDestroyThread}
+                  mode="deleted"
                 />
               ) : (
                 <p className="rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted">
