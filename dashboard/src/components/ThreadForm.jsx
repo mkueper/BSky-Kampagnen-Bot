@@ -100,7 +100,7 @@ function computeLimit(selectedPlatforms) {
   return selectedOptions.reduce((min, option) => Math.min(min, option.limit), Infinity);
 }
 
-function ThreadForm({ initialThread = null, loading = false, onThreadSaved }) {
+function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onCancel }) {
   const [threadId, setThreadId] = useState(null);
   const [targetPlatforms, setTargetPlatforms] = useState(["bluesky"]);
   const [source, setSource] = useState("");
@@ -419,6 +419,44 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved }) {
                 />
                 <span className="mt-1 block text-xs text-foreground-muted">Standard: morgen um 09:00 Uhr</span>
               </label>
+
+              <p className="text-xs text-foreground-muted">
+                STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {isEditMode && typeof onCancel === "function" ? (
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                    onClick={onCancel}
+                    disabled={saving}
+                  >
+                    Abbrechen
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                  onClick={() => {
+                    if (isEditMode && initialThread) {
+                      restoreFromThread(initialThread);
+                    } else {
+                      restoreFromThread(null);
+                    }
+                  }}
+                  disabled={saving}
+                >
+                  Formular zurücksetzen
+                </button>
+                <button
+                  type="submit"
+                  disabled={hasValidationIssues || saving || loading}
+                  className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? "Speichern…" : isEditMode ? "Thread aktualisieren" : "Thread speichern"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -471,35 +509,6 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved }) {
           </div>
         </aside>
       </div>
-
-      <footer className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-foreground-muted">
-          STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-            onClick={() => {
-              if (isEditMode && initialThread) {
-                restoreFromThread(initialThread);
-              } else {
-                restoreFromThread(null);
-              }
-            }}
-            disabled={saving}
-          >
-            Formular zurücksetzen
-          </button>
-          <button
-            type="submit"
-            disabled={hasValidationIssues || saving || loading}
-            className="rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? "Speichern…" : isEditMode ? "Thread aktualisieren" : "Thread speichern"}
-          </button>
-        </div>
-      </footer>
     </form>
   );
 }
