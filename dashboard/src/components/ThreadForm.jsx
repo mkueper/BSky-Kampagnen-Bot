@@ -302,13 +302,13 @@ function ThreadForm() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+          <div className="flex flex-col rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Vorschau</h3>
               <span className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{totalSegments} Skeet{totalSegments !== 1 ? "s" : ""}</span>
             </div>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3">
               {previewSegments.map((segment, index) => {
                 const hasIssue = segment.isEmpty || segment.exceedsLimit;
                 return (
