@@ -71,6 +71,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingSkeet, setEditingSkeet] = useState(null);
   const [activeDashboardTab, setActiveDashboardTab] = useState("planned");
+  const [publishedSortOrder, setPublishedSortOrder] = useState("desc");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
@@ -340,6 +341,29 @@ function App() {
     { label: "Likes gesamt", value: aggregatedMetrics.likes },
     { label: "Reposts gesamt", value: aggregatedMetrics.reposts },
   ], [plannedSkeets.length, publishedSkeets.length, aggregatedMetrics]);
+  const sortedPublishedSkeets = useMemo(() => {
+    const items = [...publishedSkeets];
+    const resolveDate = (entry) => {
+      const candidates = [entry.postedAt, entry.scheduledAt, entry.createdAt];
+      for (const value of candidates) {
+        if (!value) continue;
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.getTime();
+        }
+      }
+      return 0;
+    };
+    items.sort((a, b) => {
+      const dateA = resolveDate(a);
+      const dateB = resolveDate(b);
+      if (publishedSortOrder === "asc") {
+        return dateA - dateB;
+      }
+      return dateB - dateA;
+    });
+    return items;
+  }, [publishedSkeets, publishedSortOrder]);
 
   const upcomingDate = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "dateOnly") : '-';
   const upcomingTime = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "timeOnly") : null;
@@ -515,40 +539,60 @@ function App() {
                       <h3 className="text-lg font-semibold">Campaign Activity</h3>
                       <p className="text-sm text-foreground-muted">Verwalte geplante und veröffentlichte Skeets inklusive Replies & Reaktionen.</p>
                     </div>
-                    <Tabs.Root value={activeDashboardTab} onValueChange={setActiveDashboardTab} className="inline-flex rounded-full bg-background-subtle p-1 text-sm font-medium">
-                      <Tabs.List className="flex">
-                        <Tabs.Trigger
-                          value="planned"
-                          className={`rounded-full px-4 py-2 transition ${
-                            activeDashboardTab === "planned"
-                              ? "bg-background-elevated shadow-soft"
-                              : "text-foreground-muted hover:text-foreground"
-                          }`}
+                    <div className="flex flex-col gap-3 text-sm font-medium md:flex-row md:items-center md:gap-3">
+                      <Tabs.Root
+                        value={activeDashboardTab}
+                        onValueChange={(value) => {
+                          setActiveDashboardTab(value);
+                          if (value !== "published") {
+                            setPublishedSortOrder("desc");
+                          }
+                        }}
+                        className="inline-flex rounded-full bg-background-subtle p-1"
+                      >
+                        <Tabs.List className="flex">
+                          <Tabs.Trigger
+                            value="planned"
+                            className={`rounded-full px-4 py-2 transition ${
+                              activeDashboardTab === "planned"
+                                ? "bg-background-elevated shadow-soft"
+                                : "text-foreground-muted hover:text-foreground"
+                            }`}
+                          >
+                            Geplant
+                          </Tabs.Trigger>
+                          <Tabs.Trigger
+                            value="published"
+                            className={`rounded-full px-4 py-2 transition ${
+                              activeDashboardTab === "published"
+                                ? "bg-background-elevated shadow-soft"
+                                : "text-foreground-muted hover:text-foreground"
+                            }`}
+                          >
+                            Veröffentlicht
+                          </Tabs.Trigger>
+                          <Tabs.Trigger
+                            value="deleted"
+                            className={`rounded-full px-4 py-2 transition ${
+                              activeDashboardTab === "deleted"
+                                ? "bg-background-elevated shadow-soft"
+                                : "text-foreground-muted hover:text-foreground"
+                            }`}
+                          >
+                            Papierkorb
+                          </Tabs.Trigger>
+                        </Tabs.List>
+                      </Tabs.Root>
+                      {activeDashboardTab === "published" ? (
+                        <button
+                          type="button"
+                          onClick={() => setPublishedSortOrder((current) => (current === "desc" ? "asc" : "desc"))}
+                          className="self-start rounded-full border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background"
                         >
-                          Geplant
-                        </Tabs.Trigger>
-                        <Tabs.Trigger
-                          value="published"
-                          className={`rounded-full px-4 py-2 transition ${
-                            activeDashboardTab === "published"
-                              ? "bg-background-elevated shadow-soft"
-                              : "text-foreground-muted hover:text-foreground"
-                          }`}
-                        >
-                          Veröffentlicht
-                        </Tabs.Trigger>
-                        <Tabs.Trigger
-                          value="deleted"
-                          className={`rounded-full px-4 py-2 transition ${
-                            activeDashboardTab === "deleted"
-                              ? "bg-background-elevated shadow-soft"
-                              : "text-foreground-muted hover:text-foreground"
-                          }`}
-                        >
-                          Papierkorb
-                        </Tabs.Trigger>
-                      </Tabs.List>
-                    </Tabs.Root>
+                          Sortierung: {publishedSortOrder === "desc" ? "Neueste zuerst" : "Älteste zuerst"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="px-6 pb-6">
@@ -566,7 +610,7 @@ function App() {
                       if (activeDashboardTab === "published") {
                         return (
                           <PublishedSkeetList
-                            skeets={publishedSkeets}
+                            skeets={sortedPublishedSkeets}
                             activeCardTabs={activeCardTabs}
                             repliesBySkeet={repliesBySkeet}
                             replyErrors={replyErrors}
