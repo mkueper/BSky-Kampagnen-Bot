@@ -1,22 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import * as Tabs from "@radix-ui/react-tabs";
+import { useEffect, useRef, useState } from "react";
 import {
   DownloadIcon,
   GearIcon,
-  HamburgerMenuIcon,
   MoonIcon,
-  ShadowIcon,
   Pencil2Icon,
+  ShadowIcon,
   SunIcon,
   UploadIcon,
   ViewHorizontalIcon,
 } from "@radix-ui/react-icons";
-import PlannedSkeetList from "./components/PlannedSkeetList";
-import PublishedSkeetList from "./components/PublishedSkeetList";
-import DeletedSkeetList from "./components/DeletedSkeetList";
+import AppLayout from "./components/layout/AppLayout";
+import DashboardView from "./components/views/DashboardView";
 import SkeetForm from "./components/SkeetForm";
+import ThreadForm from "./components/ThreadForm";
 import ConfigPanel from "./components/ConfigPanel";
-import ScrollTopButton from "./components/ScrollTopButton";
 import { useSkeets } from "./hooks/useSkeets";
 import { formatTime } from "./utils/formatTime";
 import { getRepeatDescription } from "./utils/timeUtils";
@@ -31,7 +28,22 @@ const NAV_ITEMS = [
   { id: "dashboard", label: "Übersicht", icon: ViewHorizontalIcon },
   { id: "config", label: "Konfiguration", icon: GearIcon },
   { id: "skeetplaner", label: "Skeet planen", icon: Pencil2Icon },
+  { id: "threadplaner", label: "Thread planen", icon: Pencil2Icon },
 ];
+
+const HEADER_CAPTIONS = {
+  dashboard: "Übersicht",
+  config: "Konfiguration",
+  skeetplaner: "Skeetplaner",
+  threadplaner: "Threadplaner",
+};
+
+const HEADER_TITLES = {
+  dashboard: "Bluesky Kampagnen-Dashboard",
+  config: "Einstellungen & Automatisierung",
+  skeetplaner: "Skeet planen",
+  threadplaner: "Thread planen",
+};
 
 const THEMES = ["light", "dark", "midnight"];
 const THEME_CONFIG = {
@@ -40,18 +52,6 @@ const THEME_CONFIG = {
   midnight: { label: "Mitternacht", colorScheme: "dark", icon: ShadowIcon },
 };
 const DEFAULT_THEME = THEMES[0];
-
-function SummaryCard({ title, value, helper }) {
-  return (
-    <div className="rounded-2xl border border-border bg-background-elevated shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">
-      <div className="space-y-3 p-5">
-        <p className="text-sm font-medium text-foreground-muted">{title}</p>
-        <p className="text-3xl font-semibold md:text-4xl">{value}</p>
-        {helper ? <div className="space-y-2 text-sm leading-relaxed text-foreground-muted">{helper}</div> : null}
-      </div>
-    </div>
-  );
-}
 
 function App() {
   const [activeView, setActiveView] = useState("dashboard");
@@ -68,10 +68,8 @@ function App() {
     const stored = window.localStorage.getItem("theme");
     return Boolean(stored && THEMES.includes(stored));
   });
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editingSkeet, setEditingSkeet] = useState(null);
   const [activeDashboardTab, setActiveDashboardTab] = useState("planned");
-  const [publishedSortOrder, setPublishedSortOrder] = useState("desc");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef(null);
@@ -310,369 +308,109 @@ function App() {
   const handleCancelEdit = () => {
     setEditingSkeet(null);
     setActiveView("dashboard");
-    setMenuOpen(false);
     toast.info({
       title: "Bearbeitung abgebrochen",
       description: "Der Skeet wurde nicht verändert.",
     });
   };
 
-  const upcomingSkeet = useMemo(() => {
-    const entries = plannedSkeets
-      .map((skeet) => {
-        if (!skeet.scheduledAt) return null;
-        const date = new Date(skeet.scheduledAt);
-        return Number.isNaN(date.getTime()) ? null : { ...skeet, scheduledDate: date };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.scheduledDate - b.scheduledDate);
-    return entries[0] ?? null;
-  }, [plannedSkeets]);
+  const headerCaption = HEADER_CAPTIONS[activeView] ?? "";
+  const headerTitle = HEADER_TITLES[activeView] ?? NAV_ITEMS.find((item) => item.id === activeView)?.label ?? "";
 
-  const aggregatedMetrics = useMemo(() => {
-    const likes = publishedSkeets.reduce((acc, skeet) => acc + (Number(skeet.likesCount) || 0), 0);
-    const reposts = publishedSkeets.reduce((acc, skeet) => acc + (Number(skeet.repostsCount) || 0), 0);
-    return { likes, reposts };
-  }, [publishedSkeets]);
+  const headerActions = (
+    <>
+      <button
+        type="button"
+        onClick={handleToggleTheme}
+        className="rounded-2xl border border-border bg-background-subtle p-2 text-foreground transition hover:bg-background"
+        aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+        title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+      >
+        <ThemeIcon className="h-4 w-4" />
+        <span className="sr-only">Aktuelles Theme: {currentThemeConfig?.label}</span>
+      </button>
+      <button
+        type="button"
+        onClick={handleExport}
+        disabled={exporting}
+        className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <DownloadIcon className="h-4 w-4" />
+        {exporting ? "Export…" : "Export"}
+      </button>
+      <button
+        type="button"
+        onClick={handleImportClick}
+        disabled={importing}
+        className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <UploadIcon className="h-4 w-4" />
+        {importing ? "Import…" : "Import"}
+      </button>
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json"
+        className="hidden"
+        onChange={handleImportFileChange}
+      />
+    </>
+  );
 
-  const overviewStats = useMemo(() => [
-    { label: "Geplante Skeets", value: plannedSkeets.length },
-    { label: "Veröffentlichte Skeets", value: publishedSkeets.length },
-    { label: "Likes gesamt", value: aggregatedMetrics.likes },
-    { label: "Reposts gesamt", value: aggregatedMetrics.reposts },
-  ], [plannedSkeets.length, publishedSkeets.length, aggregatedMetrics]);
-  const sortedPublishedSkeets = useMemo(() => {
-    const items = [...publishedSkeets];
-    const resolveDate = (entry) => {
-      const candidates = [entry.postedAt, entry.scheduledAt, entry.createdAt];
-      for (const value of candidates) {
-        if (!value) continue;
-        const parsed = new Date(value);
-        if (!Number.isNaN(parsed.getTime())) {
-          return parsed.getTime();
-        }
-      }
-      return 0;
-    };
-    items.sort((a, b) => {
-      const dateA = resolveDate(a);
-      const dateB = resolveDate(b);
-      if (publishedSortOrder === "asc") {
-        return dateA - dateB;
-      }
-      return dateB - dateA;
-    });
-    return items;
-  }, [publishedSkeets, publishedSortOrder]);
-
-  const upcomingDate = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "dateOnly") : '-';
-  const upcomingTime = upcomingSkeet ? formatTime(upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate, "timeOnly") : null;
-  const upcomingSnippet = useMemo(() => {
-    if (!upcomingSkeet) return null;
-    const normalized = (upcomingSkeet.content ?? "").replace(/\s+/g, " ").trim();
-    if (!normalized) return "Kein Inhalt hinterlegt";
-    return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized;
-  }, [upcomingSkeet]);
+  let content = null;
+  if (activeView === "dashboard") {
+    content = (
+      <DashboardView
+        plannedSkeets={plannedSkeets}
+        publishedSkeets={publishedSkeets}
+        deletedSkeets={deletedSkeets}
+        onEditSkeet={handleEdit}
+        onDeleteSkeet={handleDelete}
+        onRestoreSkeet={handleRestore}
+        onPermanentDeleteSkeet={handlePermanentDelete}
+        onFetchReactions={fetchReactions}
+        onShowSkeetContent={showSkeetContent}
+        onShowRepliesContent={showRepliesContent}
+        activeCardTabs={activeCardTabs}
+        repliesBySkeet={repliesBySkeet}
+        replyErrors={replyErrors}
+        loadingReplies={loadingReplies}
+        loadingReactions={loadingReactions}
+        reactionStats={reactionStats}
+        formatTime={formatTime}
+        getRepeatDescription={getRepeatDescription}
+        platformLabels={PLATFORM_LABELS}
+        activeTab={activeDashboardTab}
+        onTabChange={setActiveDashboardTab}
+      />
+    );
+  } else if (activeView === "config") {
+    content = <ConfigPanel />;
+  } else if (activeView === "skeetplaner") {
+    content = (
+      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+        <SkeetForm onSkeetSaved={handleFormSaved} editingSkeet={editingSkeet} onCancelEdit={handleCancelEdit} />
+      </section>
+    );
+  } else if (activeView === "threadplaner") {
+    content = (
+      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+        <ThreadForm />
+      </section>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
-        <aside
-          className={`
-            fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200
-            md:static md:block md:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-[110%] md:-translate-x-0"}
-          `}
-        >
-          <div className="flex h-full flex-col p-6">
-            <div className="flex items-center justify-between pb-6">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-foreground-subtle">Control Center</p>
-                <h1 className="mt-1 text-xl font-semibold">Kampagnen-Bot</h1>
-              </div>
-              <button
-                type="button"
-                className="rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground"
-                onClick={() => setMenuOpen(false)}
-              >
-                <HamburgerMenuIcon className="h-5 w-5 rotate-180 md:hidden" />
-                <span className="sr-only">Navigation schließen</span>
-              </button>
-            </div>
-
-            <nav className="flex flex-1 flex-col gap-2">
-              {NAV_ITEMS.map((navItem) => {
-                const { id, label, icon } = navItem;
-                const isActive = id === activeView;
-                const Icon = icon;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      setActiveView(id);
-                      setMenuOpen(false);
-                    }}
-                    className={`
-                      flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition
-                      ${isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"}
-                    `}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-          </div>
-        </aside>
-
-        {menuOpen ? (
-          <div
-            className="fixed inset-0 z-20 bg-gradient-to-br from-black/30 via-black/20 to-black/40 backdrop-blur-sm md:hidden"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
-          />
-        ) : null}
-
-        <div className="ml-0 flex-1 md:ml-8">
-          <header className="sticky top-0 z-10 mb-6 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden"
-                  onClick={() => setMenuOpen(true)}
-                >
-                  <HamburgerMenuIcon className="h-5 w-5" />
-                  <span className="sr-only">Navigation öffnen</span>
-                </button>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
-                    {activeView === "dashboard" ? "Übersicht" : activeView === "config" ? "Konfiguration" : "Skeetplaner"}
-                  </p>
-                  <h2 className="text-xl font-semibold md:text-2xl">
-                    {activeView === "dashboard" && "Bluesky Kampagnen-Dashboard"}
-                    {activeView === "config" && "Einstellungen & Automatisierung"}
-                    {activeView === "skeetplaner" && (editingSkeet ? "Skeet bearbeiten" : "Neuen Skeet planen")}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleToggleTheme}
-                  className="rounded-2xl border border-border bg-background-subtle p-2 text-foreground transition hover:bg-background"
-                  aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-                  title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-                >
-                  <ThemeIcon className="h-4 w-4" />
-                  <span className="sr-only">Aktuelles Theme: {currentThemeConfig?.label}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <DownloadIcon className="h-4 w-4" />
-                  {exporting ? "Export…" : "Export"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleImportClick}
-                  disabled={importing}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <UploadIcon className="h-4 w-4" />
-                  {importing ? "Import…" : "Import"}
-                </button>
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept="application/json"
-                  className="hidden"
-                  onChange={handleImportFileChange}
-                />
-              </div>
-            </div>
-          </header>
-
-          <main className="space-y-8 pb-16">
-            {activeView === "dashboard" && (
-              <div className="space-y-8">
-                <section className="grid gap-4 md:grid-cols-3">
-                  <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
-                    <div className="flex flex-col gap-4 p-6">
-                      <div>
-                        <h3 className="text-lg font-semibold">Kampagnen-Überblick</h3>
-                        <p className="text-sm text-foreground-muted">Status deiner geplanten und veröffentlichten Skeets.</p>
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        {overviewStats.map(({ label, value }) => (
-                          <div key={label} className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3">
-                            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
-                            <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </article>
-                  <SummaryCard
-                    title="Nächster Termin"
-                    value={upcomingDate}
-                    helper={upcomingSkeet ? (
-                      <div className="space-y-3">
-                        {upcomingTime ? <span className="block font-semibold text-foreground">{`${upcomingTime} Uhr`}</span> : null}
-                        <div className="rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground">
-                          {upcomingSnippet}
-                        </div>
-                      </div>
-                    ) : "Noch nichts geplant"}
-                  />
-                </section>
-
-                <section className="rounded-3xl border border-border bg-background-elevated shadow-soft">
-                  <div className="flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Campaign Activity</h3>
-                      <p className="text-sm text-foreground-muted">Verwalte geplante und veröffentlichte Skeets inklusive Replies & Reaktionen.</p>
-                    </div>
-                    <div className="flex flex-col gap-3 text-sm font-medium md:flex-row md:items-center md:gap-3">
-                      <Tabs.Root
-                        value={activeDashboardTab}
-                        onValueChange={(value) => {
-                          setActiveDashboardTab(value);
-                          if (value !== "published") {
-                            setPublishedSortOrder("desc");
-                          }
-                        }}
-                        className="inline-flex rounded-full bg-background-subtle p-1"
-                      >
-                        <Tabs.List className="flex">
-                          <Tabs.Trigger
-                            value="planned"
-                            className={`rounded-full px-4 py-2 transition ${
-                              activeDashboardTab === "planned"
-                                ? "bg-background-elevated shadow-soft"
-                                : "text-foreground-muted hover:text-foreground"
-                            }`}
-                          >
-                            Geplant
-                          </Tabs.Trigger>
-                          <Tabs.Trigger
-                            value="published"
-                            className={`rounded-full px-4 py-2 transition ${
-                              activeDashboardTab === "published"
-                                ? "bg-background-elevated shadow-soft"
-                                : "text-foreground-muted hover:text-foreground"
-                            }`}
-                          >
-                            Veröffentlicht
-                          </Tabs.Trigger>
-                          <Tabs.Trigger
-                            value="deleted"
-                            className={`rounded-full px-4 py-2 transition ${
-                              activeDashboardTab === "deleted"
-                                ? "bg-background-elevated shadow-soft"
-                                : "text-foreground-muted hover:text-foreground"
-                            }`}
-                          >
-                            Papierkorb
-                          </Tabs.Trigger>
-                        </Tabs.List>
-                      </Tabs.Root>
-                      {activeDashboardTab === "published" ? (
-                        <div className="self-start rounded-full border border-border bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted">
-                          <span className="sr-only">Sortierung veröffentlichter Skeets</span>
-                          <div className="mt-1 flex gap-1 text-[0.75rem] normal-case tracking-normal text-foreground">
-                            <button
-                              type="button"
-                              onClick={() => setPublishedSortOrder("desc")}
-                              className={`rounded-full px-3 py-1 transition ${
-                                publishedSortOrder === "desc"
-                                  ? "bg-background shadow-soft"
-                                  : "text-foreground-muted hover:text-foreground"
-                              }`}
-                              aria-pressed={publishedSortOrder === "desc"}
-                            >
-                              Neu zuerst
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPublishedSortOrder("asc")}
-                              className={`rounded-full px-3 py-1 transition ${
-                                publishedSortOrder === "asc"
-                                  ? "bg-background shadow-soft"
-                                  : "text-foreground-muted hover:text-foreground"
-                              }`}
-                              aria-pressed={publishedSortOrder === "asc"}
-                            >
-                              Alt zuerst
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="px-6 pb-6">
-                    {(() => {
-                      if (activeDashboardTab === "planned") {
-                        return (
-                          <PlannedSkeetList
-                            skeets={plannedSkeets}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            getRepeatDescription={getRepeatDescription}
-                          />
-                        );
-                      }
-                      if (activeDashboardTab === "published") {
-                        return (
-                          <PublishedSkeetList
-                            skeets={sortedPublishedSkeets}
-                            activeCardTabs={activeCardTabs}
-                            repliesBySkeet={repliesBySkeet}
-                            replyErrors={replyErrors}
-                            loadingReplies={loadingReplies}
-                            loadingReactions={loadingReactions}
-                            onShowSkeetContent={showSkeetContent}
-                            onShowRepliesContent={showRepliesContent}
-                            onFetchReactions={fetchReactions}
-                            reactionStats={reactionStats}
-                            platformLabels={PLATFORM_LABELS}
-                            formatTime={formatTime}
-                          />
-                        );
-                      }
-                      return (
-                        <DeletedSkeetList
-                          skeets={deletedSkeets}
-                          onRestore={handleRestore}
-                          onPermanentDelete={handlePermanentDelete}
-                          formatTime={formatTime}
-                        />
-                      );
-                    })()}
-                  </div>
-                </section>
-              </div>
-            )}
-
-            {activeView === "config" && <ConfigPanel />}
-
-            {activeView === "skeetplaner" && (
-              <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
-                <SkeetForm onSkeetSaved={handleFormSaved} editingSkeet={editingSkeet} onCancelEdit={handleCancelEdit} />
-              </section>
-            )}
-          </main>
-          <ScrollTopButton />
-        </div>
-      </div>
-    </div>
+    <AppLayout
+      navItems={NAV_ITEMS}
+      activeView={activeView}
+      onSelectView={setActiveView}
+      headerCaption={headerCaption}
+      headerTitle={headerTitle}
+      headerActions={headerActions}
+    >
+      {content}
+    </AppLayout>
   );
 }
 
