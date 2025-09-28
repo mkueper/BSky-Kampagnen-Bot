@@ -18,10 +18,11 @@ function formatDate(value) {
 function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
-    const planned = items.filter((thread) => thread.status === "scheduled" || thread.status === "draft");
-    const published = items.filter((thread) => thread.status === "published");
+    const active = items.filter((thread) => thread.status !== "deleted");
+    const planned = active.filter((thread) => thread.status === "scheduled" || thread.status === "draft");
+    const published = active.filter((thread) => thread.status === "published");
     return {
-      total: items.length,
+      total: active.length,
       planned: planned.length,
       published: published.length,
       next: planned

@@ -30,10 +30,11 @@ function ThreadDashboardView({
   const [activeTab, setActiveTab] = useState("planned");
   const stats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
-    const total = items.length;
-    const scheduled = items.filter((thread) => thread.status === "scheduled").length;
-    const published = items.filter((thread) => thread.status === "published").length;
-    const drafts = items.filter((thread) => thread.status === "draft").length;
+    const active = items.filter((thread) => thread.status !== "deleted");
+    const total = active.length;
+    const scheduled = active.filter((thread) => thread.status === "scheduled").length;
+    const published = active.filter((thread) => thread.status === "published").length;
+    const drafts = active.filter((thread) => thread.status === "draft").length;
 
     return [
       { label: "Threads gesamt", value: total },
@@ -45,7 +46,7 @@ function ThreadDashboardView({
 
   const plannedThreads = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
-    return items.filter((thread) => thread.status === "scheduled" || thread.status === "draft");
+    return items.filter((thread) => thread.status !== "deleted" && (thread.status === "scheduled" || thread.status === "draft"));
   }, [threads]);
 
   const publishedThreads = useMemo(() => {
