@@ -365,6 +365,64 @@ function App() {
     }
   };
 
+  const handleRestoreThread = async (thread) => {
+    if (!thread?.id) return;
+    try {
+      const res = await fetch(`/api/threads/${thread.id}/restore`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Wiederherstellen des Threads.");
+      }
+
+      await reloadThreads();
+
+      toast.success({
+        title: "Thread reaktiviert",
+        description: "Der Thread wurde wiederhergestellt.",
+      });
+    } catch (error) {
+      console.error("Fehler beim Wiederherstellen des Threads:", error);
+      toast.error({
+        title: "Wiederherstellung fehlgeschlagen",
+        description: error.message || "Fehler beim Wiederherstellen des Threads.",
+      });
+    }
+  };
+
+  const handleDestroyThread = async (thread) => {
+    if (!thread?.id) return;
+    const label = thread.title || `Thread #${thread.id}`;
+    const confirmed = window.confirm(
+      `Soll "${label}" endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/threads/${thread.id}?permanent=1`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim endgültigen Löschen des Threads.");
+      }
+
+      if (editingThreadId === thread.id) {
+        setEditingThreadId(null);
+      }
+
+      await reloadThreads();
+
+      toast.success({
+        title: "Thread entfernt",
+        description: "Der Thread wurde dauerhaft gelöscht.",
+      });
+    } catch (error) {
+      console.error("Fehler beim endgültigen Löschen des Threads:", error);
+      toast.error({
+        title: "Endgültiges Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim endgültigen Löschen des Threads.",
+      });
+    }
+  };
+
   const handleFormSaved = () => {
     setEditingSkeet(null);
     loadSkeets();
@@ -483,6 +541,8 @@ function App() {
         onReload={reloadThreads}
         onEditThread={handleEditThread}
         onDeleteThread={handleDeleteThread}
+        onRestoreThread={handleRestoreThread}
+        onDestroyThread={handleDestroyThread}
       />
     );
   } else if (activeView === "config") {

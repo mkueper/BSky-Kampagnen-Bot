@@ -25,7 +25,17 @@ function formatScheduledLabel(thread) {
   return `${thread.status === "published" ? "Veröffentlicht am" : "Geplant für"}: ${formatter.format(date)}`;
 }
 
-function ThreadOverview({ threads, loading, error, onReload, onEditThread, onDeleteThread }) {
+function ThreadOverview({
+  threads,
+  loading,
+  error,
+  onReload,
+  onEditThread,
+  onDeleteThread,
+  onRestoreThread,
+  onDestroyThread,
+  mode = "default",
+}) {
   const [expandedThreads, setExpandedThreads] = useState({});
 
   const handleToggle = (threadId) => {
@@ -79,6 +89,7 @@ function ThreadOverview({ threads, loading, error, onReload, onEditThread, onDel
         const firstSegment = segments[0] || { content: "", characterCount: 0, sequence: 0 };
         const hasMore = segments.length > 1;
         const isExpanded = Boolean(expandedThreads[thread.id]);
+        const isDeletedMode = mode === "deleted";
 
         return (
           <article key={thread.id} className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
@@ -116,20 +127,41 @@ function ThreadOverview({ threads, loading, error, onReload, onEditThread, onDel
                     <span className="text-xs uppercase tracking-[0.2em] text-foreground-muted">Keine weiteren Skeets</span>
                   )}
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onEditThread?.(thread)}
-                      className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-                    >
-                      Bearbeiten
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteThread?.(thread)}
-                      className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
-                    >
-                      Löschen
-                    </button>
+                    {isDeletedMode ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onRestoreThread?.(thread)}
+                          className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                        >
+                          Reaktivieren
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDestroyThread?.(thread)}
+                          className="rounded-2xl border border-destructive bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
+                        >
+                          Endgültig löschen
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEditThread?.(thread)}
+                          className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                        >
+                          Bearbeiten
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteThread?.(thread)}
+                          className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
+                        >
+                          Löschen
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

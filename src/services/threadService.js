@@ -215,7 +215,7 @@ async function updateThread(id, payload = {}) {
   });
 }
 
-async function deleteThread(id) {
+async function deleteThread(id, { permanent = false } = {}) {
   const threadId = Number(id);
   if (!Number.isInteger(threadId)) {
     throw new ValidationError("Ungültige Thread-ID.");
@@ -228,8 +228,61 @@ async function deleteThread(id) {
     throw error;
   }
 
-  await Thread.destroy({ where: { id: threadId } });
-  return { id: threadId };
+  if (permanent) {
+    await Thread.destroy({ where: { id: threadId } });
+    return { id: threadId, permanent: true };
+  }
+
+  if (thread.status === "deleted") {
+    return { id: threadId, status: thread.status };
+  }
+
+  const metadata = thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
+    ? { ...thread.metadata }
+    : {};
+
+  if (!metadata.deletedPreviousStatus) {
+    metadata.deletedPreviousStatus = thread.status;
+  }
+  metadata.deletedAt = new Date().toISOString();
+
+  await thread.update({ status: "deleted", metadata });
+  return { id: threadId, status: "deleted" };
+}
+
+async function restoreThread(id) {
+  const threadId = Number(id);
+  if (!Number.isInteger(threadId)) {
+    throw new ValidationError("Ungültige Thread-ID.");
+  }
+
+  const thread = await Thread.findByPk(threadId);
+  if (!thread) {
+    const error = new Error("Thread nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+
+  if (thread.status !== "deleted") {
+    const error = new Error("Thread ist nicht gelöscht.");
+    error.status = 400;
+    throw error;
+  }
+
+  const metadata = thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
+    ? { ...thread.metadata }
+    : {};
+
+  const previousStatus = metadata.deletedPreviousStatus && Thread.STATUS.includes(metadata.deletedPreviousStatus)
+    ? metadata.deletedPreviousStatus
+    : "draft";
+
+  delete metadata.deletedPreviousStatus;
+  delete metadata.deletedAt;
+
+  await thread.update({ status: previousStatus, metadata });
+
+  return thread.toJSON();
 }
 
 module.exports = {
@@ -238,4 +291,5 @@ module.exports = {
   createThread,
   updateThread,
   deleteThread,
+  restoreThread,
 };
