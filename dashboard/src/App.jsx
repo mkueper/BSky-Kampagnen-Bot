@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   DownloadIcon,
   GearIcon,
+  LayersIcon,
   MoonIcon,
   Pencil2Icon,
   ShadowIcon,
@@ -11,6 +12,7 @@ import {
 } from "@radix-ui/react-icons";
 import AppLayout from "./components/layout/AppLayout";
 import DashboardView from "./components/views/DashboardView";
+import ThreadDashboardView from "./components/views/ThreadDashboardView";
 import SkeetForm from "./components/SkeetForm";
 import ThreadForm from "./components/ThreadForm";
 import ConfigPanel from "./components/ConfigPanel";
@@ -27,23 +29,33 @@ const PLATFORM_LABELS = {
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Übersicht", icon: ViewHorizontalIcon },
-  { id: "config", label: "Konfiguration", icon: GearIcon },
+  {
+    id: "threads",
+    label: "Threads",
+    icon: LayersIcon,
+    children: [
+      { id: "threads-overview", label: "Übersicht" },
+      { id: "threads-plan", label: "Thread planen" },
+    ],
+  },
   { id: "skeetplaner", label: "Skeet planen", icon: Pencil2Icon },
-  { id: "threadplaner", label: "Thread planen", icon: Pencil2Icon },
+  { id: "config", label: "Konfiguration", icon: GearIcon },
 ];
 
 const HEADER_CAPTIONS = {
   dashboard: "Übersicht",
+  "threads-overview": "Threads",
+  "threads-plan": "Threadplaner",
   config: "Konfiguration",
   skeetplaner: "Skeetplaner",
-  threadplaner: "Threadplaner",
 };
 
 const HEADER_TITLES = {
   dashboard: "Bluesky Kampagnen-Dashboard",
+  "threads-overview": "Thread-Übersicht",
+  "threads-plan": "Thread planen",
   config: "Einstellungen & Automatisierung",
   skeetplaner: "Skeet planen",
-  threadplaner: "Thread planen",
 };
 
 const THEMES = ["light", "dark", "midnight"];
@@ -307,7 +319,7 @@ function App() {
 
   const handleEditThread = (thread) => {
     setEditingThreadId(thread?.id ?? null);
-    setActiveView("threadplaner");
+    setActiveView("threads-plan");
   };
 
   const handleDeleteThread = async (thread) => {
@@ -352,14 +364,13 @@ function App() {
   const handleThreadSaved = () => {
     setEditingThreadId(null);
     reloadThreads();
-    setActiveView("dashboard");
-    setActiveDashboardTab("planned");
+    setActiveView("threads-overview");
   };
 
   const handleThreadDeleted = () => {
     setEditingThreadId(null);
     reloadThreads();
-    setActiveView("dashboard");
+    setActiveView("threads-overview");
   };
 
   const handleCancelEdit = () => {
@@ -373,7 +384,7 @@ function App() {
 
   const handleThreadCancel = () => {
     setEditingThreadId(null);
-    setActiveView("dashboard");
+    setActiveView("threads-overview");
     toast.info({
       title: "Bearbeitung abgebrochen",
       description: "Der Thread wurde nicht verändert.",
@@ -448,10 +459,15 @@ function App() {
         platformLabels={PLATFORM_LABELS}
         activeTab={activeDashboardTab}
         onTabChange={setActiveDashboardTab}
+      />
+    );
+  } else if (activeView === "threads-overview") {
+    content = (
+      <ThreadDashboardView
         threads={threads}
-        threadsLoading={threadsLoading}
-        threadsError={threadsError}
-        onReloadThreads={reloadThreads}
+        loading={threadsLoading}
+        error={threadsError}
+        onReload={reloadThreads}
         onEditThread={handleEditThread}
         onDeleteThread={handleDeleteThread}
       />
@@ -464,7 +480,7 @@ function App() {
         <SkeetForm onSkeetSaved={handleFormSaved} editingSkeet={editingSkeet} onCancelEdit={handleCancelEdit} />
       </section>
     );
-  } else if (activeView === "threadplaner") {
+  } else if (activeView === "threads-plan") {
     content = (
       <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
         <ThreadForm

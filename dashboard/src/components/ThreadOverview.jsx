@@ -37,7 +37,12 @@ function ThreadOverview({ threads, loading, error, onReload, onEditThread, onDel
       <section className="rounded-3xl border border-destructive/50 bg-destructive/10 p-6 shadow-soft">
         <header className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-destructive">Threads konnten nicht geladen werden</h3>
-          <button type="button" className="text-sm underline" onClick={onReload}>
+          <button
+            type="button"
+            className="text-sm underline disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => (typeof onReload === "function" ? onReload() : undefined)}
+            disabled={typeof onReload !== "function"}
+          >
             Erneut versuchen
           </button>
         </header>
