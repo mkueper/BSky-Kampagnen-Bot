@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { HamburgerMenuIcon } from "@radix-ui/react-icons";
+import { useEffect, useMemo, useState } from "react";
+import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import ScrollTopButton from "../ScrollTopButton";
 
 /**
@@ -25,9 +25,45 @@ function AppLayout({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const activeNavItemLabel = useMemo(() => {
-    const match = navItems.find((item) => item.id === activeView);
-    return match?.label ?? "";
+    for (const item of navItems) {
+      if (item.id === activeView) {
+        return item.label;
+      }
+      if (Array.isArray(item.children)) {
+        const child = item.children.find((entry) => entry.id === activeView);
+        if (child) {
+          return child.label;
+        }
+      }
+    }
+    return "";
   }, [navItems, activeView]);
+
+  const [openGroups, setOpenGroups] = useState(() => {
+    const initial = {};
+    navItems.forEach((item) => {
+      if (Array.isArray(item.children) && item.children.length > 0) {
+        const isActive = item.children.some((child) => child.id === activeView);
+        initial[item.id] = isActive;
+      }
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    setOpenGroups((current) => {
+      const next = { ...current };
+      navItems.forEach((item) => {
+        if (Array.isArray(item.children) && item.children.length > 0) {
+          const isActive = item.children.some((child) => child.id === activeView);
+          if (isActive) {
+            next[item.id] = true;
+          }
+        }
+      });
+      return next;
+    });
+  }, [activeView, navItems]);
 
   const handleSelectView = (viewId) => {
     onSelectView(viewId);
@@ -61,20 +97,67 @@ function AppLayout({
 
             <nav className="flex flex-1 flex-col gap-2">
               {navItems.map((item) => {
-                const { id, label, icon: Icon } = item;
-                const isActive = id === activeView;
+                const { id, label, icon: Icon, children } = item;
+                const hasChildren = Array.isArray(children) && children.length > 0;
+                const isChildActive = hasChildren ? children.some((child) => child.id === activeView) : false;
+                const isActive = id === activeView || isChildActive;
+
+                if (!hasChildren) {
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleSelectView(id)}
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                        isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
+                      }`}
+                    >
+                      {Icon ? <Icon className="h-5 w-5" /> : null}
+                      <span>{label}</span>
+                    </button>
+                  );
+                }
+
+                const expanded = openGroups[id] ?? false;
+
                 return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => handleSelectView(id)}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                      isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
-                    }`}
-                  >
-                    {Icon ? <Icon className="h-5 w-5" /> : null}
-                    <span>{label}</span>
-                  </button>
+                  <div key={id} className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpenGroups((current) => ({ ...current, [id]: !expanded }))}
+                      className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                        isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        {Icon ? <Icon className="h-5 w-5" /> : null}
+                        {label}
+                      </span>
+                      {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+                    </button>
+
+                    {expanded ? (
+                      <div className="ml-8 flex flex-col gap-2">
+                        {children.map((child) => {
+                          const childActive = child.id === activeView;
+                          return (
+                            <button
+                              key={child.id}
+                              type="button"
+                              onClick={() => handleSelectView(child.id)}
+                              className={`flex items-center gap-3 rounded-2xl px-4 py-2 text-left text-sm transition ${
+                                childActive
+                                  ? "bg-primary text-primary-foreground shadow-soft"
+                                  : "text-foreground-muted hover:bg-background-subtle"
+                              }`}
+                            >
+                              <span>{child.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
                 );
               })}
             </nav>

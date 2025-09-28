@@ -3,7 +3,6 @@ import * as Tabs from "@radix-ui/react-tabs";
 import PlannedSkeetList from "../PlannedSkeetList";
 import PublishedSkeetList from "../PublishedSkeetList";
 import DeletedSkeetList from "../DeletedSkeetList";
-import ThreadOverview from "../ThreadOverview";
 
 /**
  * Zusammenstellung aller Dashboard-Kacheln und Listen.
@@ -34,12 +33,6 @@ function DashboardView({
   platformLabels,
   activeTab,
   onTabChange,
-  threads,
-  threadsLoading,
-  threadsError,
-  onReloadThreads,
-  onEditThread,
-  onDeleteThread,
 }) {
   const [publishedSortOrder, setPublishedSortOrder] = useState("desc");
 
@@ -141,15 +134,6 @@ function DashboardView({
           }
         />
       </section>
-
-      <ThreadOverview
-        threads={threads}
-        loading={threadsLoading}
-        error={threadsError}
-        onReload={onReloadThreads}
-        onEditThread={onEditThread}
-        onDeleteThread={onDeleteThread}
-      />
 
       <section className="rounded-3xl border border-border bg-background-elevated shadow-soft">
         <div className="flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between">
