@@ -75,7 +75,20 @@ const blueskyProfile = {
    */
   toPostPayload(input) {
     const text = this.normalizeContent ? this.normalizeContent(input.content) : input.content;
-    return { text };
+    const payload = { text };
+    if (input.reply && input.reply.root && input.reply.parent) {
+      payload.reply = {
+        root: {
+          uri: input.reply.root.uri,
+          cid: input.reply.root.cid,
+        },
+        parent: {
+          uri: input.reply.parent.uri,
+          cid: input.reply.parent.cid,
+        },
+      };
+    }
+    return payload;
   },
 
   /**
@@ -97,10 +110,12 @@ const blueskyProfile = {
       text: rt.text,
       facets: rt.facets,
       createdAt: new Date().toISOString(),
+      reply: payload.reply,
     });
 
     return {
       uri: res.uri,
+      cid: res.cid,
       postedAt: new Date(),
       raw: res,
     };

@@ -124,7 +124,12 @@ function AppLayout({
                   <div key={id} className="space-y-2">
                     <button
                       type="button"
-                      onClick={() => setOpenGroups((current) => ({ ...current, [id]: !expanded }))}
+                      onClick={() => {
+                        setOpenGroups((current) => ({ ...current, [id]: true }));
+                        if (Array.isArray(children) && children.length > 0) {
+                          handleSelectView(children[0].id);
+                        }
+                      }}
                       className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
                         isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
                       }`}

@@ -61,11 +61,12 @@ function ThreadDashboardView({
 
   const nextScheduled = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
+    const now = new Date();
     const candidates = items
+      .filter((thread) => thread.status === "scheduled" && thread.scheduledAt)
       .map((thread) => {
-        if (!thread?.scheduledAt) return null;
         const date = new Date(thread.scheduledAt);
-        if (Number.isNaN(date.getTime())) return null;
+        if (Number.isNaN(date.getTime()) || date < now) return null;
         return { thread, date };
       })
       .filter(Boolean)
@@ -73,119 +74,115 @@ function ThreadDashboardView({
     return candidates[0] ?? null;
   }, [threads]);
 
+  const overviewStats = stats;
+  const nextThreadFormatted = nextScheduled ? formatDateTime(nextScheduled.thread.scheduledAt) : null;
+  const [nextThreadDate, nextThreadTimeRaw] = nextThreadFormatted
+    ? nextThreadFormatted.split(",").map((part) => part.trim())
+    : ["-", ""];
+  const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : "";
+
+  const nextThreadHelper = nextScheduled ? (
+    <div className="space-y-3">
+      {nextThreadTime ? (
+        <span className="text-sm font-medium text-foreground">{nextThreadTime}</span>
+      ) : null}
+      <div className="rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground">
+        {(nextScheduled.thread.segments?.[0]?.content || "")
+          .toString()
+          .trim() || "Kein Inhalt hinterlegt"}
+      </div>
+    </div>
+  ) : (
+    "Noch nichts geplant"
+  );
+
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 lg:grid-cols-4">
-        {stats.map(({ label, value }) => (
-          <article
-            key={label}
-            className="rounded-3xl border border-border bg-background-elevated px-5 py-4 shadow-soft"
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{value}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
-        <h3 className="text-lg font-semibold">Nächster geplanter Thread</h3>
-        {nextScheduled ? (
-          <div className="mt-4 space-y-2 text-sm text-foreground">
-            <p>
-              Wird gepostet um <strong>{formatDateTime(nextScheduled.thread.scheduledAt)}</strong>
-            </p>
-            <p className="text-foreground-muted">
-              {(nextScheduled.thread.title || nextScheduled.thread.segments?.[0]?.content || "")
-                .toString()
-                .trim() || "Kein Titel hinterlegt"}
-            </p>
+      <section className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
+          <div className="flex flex-col gap-4 p-6">
+            <div>
+              <h3 className="text-lg font-semibold">Thread-Überblick</h3>
+              <p className="text-sm text-foreground-muted">Status deiner geplanten und veröffentlichten Threads.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {overviewStats.map(({ label, value }) => (
+                <div key={label} className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
+                  <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-foreground-muted">Kein geplanter Thread vorhanden.</p>
-        )}
+        </article>
+        <SummaryCard title="Nächster Thread" value={nextThreadDate} helper={nextThreadHelper} />
       </section>
 
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-3xl border border-border bg-background-elevated shadow-soft">
+        <div className="flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-semibold">Thread Activity</h3>
-            <p className="text-sm text-foreground-muted">
-              Alle gespeicherten Threads inklusive Status und Inhalte im Überblick.
-            </p>
+            <p className="text-sm text-foreground-muted">Verwalte geplante und veröffentlichte Threads.</p>
+          </div>
+          <div className="flex flex-col gap-3 text-sm font-medium md:flex-row md:items-center md:gap-3">
+            <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="inline-flex rounded-full bg-background-subtle p-1">
+              <Tabs.List className="flex" role="tablist" aria-orientation="horizontal">
+                {[
+                  { value: "planned", label: "Geplant" },
+                  { value: "published", label: "Veröffentlicht" },
+                  { value: "deleted", label: "Papierkorb" },
+                ].map(({ value, label }) => (
+                  <Tabs.Trigger
+                    key={value}
+                    value={value}
+                    className={`rounded-full px-4 py-2 transition ${
+                      activeTab === value ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+            </Tabs.Root>
           </div>
         </div>
 
-        <div className="mt-6">
-          <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <Tabs.List className="inline-flex rounded-full bg-background-subtle p-1 text-sm font-medium">
-              <Tabs.Trigger
-                value="planned"
-                className={`rounded-full px-4 py-2 transition ${
-                  activeTab === "planned" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
-                }`}
-              >
-                Geplant
-              </Tabs.Trigger>
-              <Tabs.Trigger
-                value="published"
-                className={`rounded-full px-4 py-2 transition ${
-                  activeTab === "published" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
-                }`}
-              >
-                Veröffentlicht
-              </Tabs.Trigger>
-              <Tabs.Trigger
-                value="deleted"
-                className={`rounded-full px-4 py-2 transition ${
-                  activeTab === "deleted" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
-                }`}
-              >
-                Papierkorb
-              </Tabs.Trigger>
-            </Tabs.List>
-
-            <Tabs.Content value="planned">
-              <ThreadOverview
-                threads={plannedThreads}
-                loading={loading}
-                error={error}
-                onReload={onReload}
-                onEditThread={onEditThread}
-                onDeleteThread={onDeleteThread}
-                mode="default"
-              />
-            </Tabs.Content>
-
-            <Tabs.Content value="published">
-              <ThreadOverview
-                threads={publishedThreads}
-                loading={loading}
-                error={error}
-                onReload={onReload}
-                onEditThread={onEditThread}
-                onDeleteThread={onDeleteThread}
-                mode="default"
-              />
-            </Tabs.Content>
-
-            <Tabs.Content value="deleted">
-              {trashedThreads.length > 0 ? (
-                <ThreadOverview
-                  threads={trashedThreads}
-                  loading={loading}
-                  error={error}
-                  onReload={onReload}
-                  onRestoreThread={onRestoreThread}
-                  onDestroyThread={onDestroyThread}
-                  mode="deleted"
-                />
-              ) : (
-                <p className="rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted">
-                  Der Papierkorb ist leer.
-                </p>
-              )}
-            </Tabs.Content>
-          </Tabs.Root>
+        <div className="px-6 pb-6">
+          {activeTab === "planned" ? (
+            <ThreadOverview
+              threads={plannedThreads}
+              loading={loading}
+              error={error}
+              onReload={onReload}
+              onEditThread={onEditThread}
+              onDeleteThread={onDeleteThread}
+              mode="default"
+            />
+          ) : activeTab === "published" ? (
+            <ThreadOverview
+              threads={publishedThreads}
+              loading={loading}
+              error={error}
+              onReload={onReload}
+              onEditThread={onEditThread}
+              onDeleteThread={onDeleteThread}
+              mode="default"
+            />
+          ) : trashedThreads.length > 0 ? (
+            <ThreadOverview
+              threads={trashedThreads}
+              loading={loading}
+              error={error}
+              onReload={onReload}
+              onRestoreThread={onRestoreThread}
+              onDestroyThread={onDestroyThread}
+              mode="deleted"
+            />
+          ) : (
+            <p className="rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted">
+              Der Papierkorb ist leer.
+            </p>
+          )}
         </div>
       </section>
     </div>
@@ -193,3 +190,17 @@ function ThreadDashboardView({
 }
 
 export default ThreadDashboardView;
+
+function SummaryCard({ title, value, helper }) {
+  return (
+    <article className="rounded-3xl border border-border bg-background-elevated shadow-soft">
+      <div className="flex h-full flex-col gap-4 p-6">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{title}</p>
+          <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
+        </div>
+        <div className="text-sm text-foreground-muted">{helper}</div>
+      </div>
+    </article>
+  );
+}

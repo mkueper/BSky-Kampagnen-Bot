@@ -57,7 +57,13 @@ const mastodonProfile = {
    */
   toPostPayload(input) {
     const text = this.normalizeContent ? this.normalizeContent(input.content) : input.content;
-    return { status: text };
+    const payload = { status: text };
+    const reply = input.reply;
+    const inReplyToId = reply?.parent?.statusId || reply?.inReplyToId;
+    if (inReplyToId) {
+      payload.in_reply_to_id = inReplyToId;
+    }
+    return payload;
   },
 
   /**

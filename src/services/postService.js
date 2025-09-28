@@ -97,7 +97,7 @@ async function sendPost(input, platformId, env) {
     throw new Error(check.errors?.join("; ") || "Ungültiger Inhalt.");
   }
 
-  const payload = profile.toPostPayload(input);
+  const payload = profile.toPostPayload ? profile.toPostPayload(input) : { ...input };
 
   try {
     const { result, attempts } = await withRetry(() => profile.post(payload, env));
@@ -108,6 +108,8 @@ async function sendPost(input, platformId, env) {
       attempts,
       uri: result?.uri ?? "",
       postedAt: result?.postedAt ?? new Date().toISOString(),
+      cid: result?.cid ?? null,
+      statusId: result?.statusId ?? null,
       raw: result ?? null,
     };
   } catch (error) {

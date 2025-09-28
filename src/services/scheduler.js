@@ -415,11 +415,21 @@ async function dispatchThread(thread) {
 
     const segmentResults = [];
     let platformSuccess = true;
+    let threadState = platformThreadState[platformId] || null;
 
     for (let index = 0; index < current.segments.length; index += 1) {
       const segment = current.segments[index];
+      const postInput = { content: segment.content };
+
+      if (threadState) {
+        postInput.reply = {
+          root: threadState.root,
+          parent: threadState.parent,
+        };
+      }
+
       try {
-        const res = await sendPost({ content: segment.content }, platformId, platformEnv);
+        const res = await sendPost(postInput, platformId, platformEnv);
 
         if (res.ok) {
           const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
@@ -430,6 +440,27 @@ async function dispatchThread(thread) {
             postedAt: postedAt.toISOString(),
           });
 
+          const meta = {
+            uri: res.uri || "",
+            cid: res.cid || null,
+            statusId: res.statusId || null,
+            postedAt,
+          };
+
+          if (!threadState) {
+            threadState = {
+              root: { uri: meta.uri, cid: meta.cid, statusId: meta.statusId },
+              parent: { uri: meta.uri, cid: meta.cid, statusId: meta.statusId },
+            };
+          } else {
+            threadState = {
+              root: threadState.root,
+              parent: { uri: meta.uri, cid: meta.cid, statusId: meta.statusId },
+            };
+          }
+
+          platformThreadState[platformId] = threadState;
+
           if (
             !segmentPrimaryInfo[index] ||
             segmentPrimaryInfo[index].platformId !== "bluesky" ||
@@ -437,7 +468,7 @@ async function dispatchThread(thread) {
           ) {
             segmentPrimaryInfo[index] = {
               platformId,
-              uri: res.uri || "",
+              uri: meta.uri,
               postedAt,
             };
           }

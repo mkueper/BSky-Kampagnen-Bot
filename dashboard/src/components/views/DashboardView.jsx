@@ -120,7 +120,7 @@ function DashboardView({
           </div>
         </article>
         <SummaryCard
-          title="Nächster Termin"
+          title="Nächster Skeet"
           value={upcomingDate}
           helper={
             upcomingSkeet ? (
