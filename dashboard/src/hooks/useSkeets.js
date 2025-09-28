@@ -17,6 +17,28 @@ function parseTargetPlatforms(value) {
   return [];
 }
 
+function parsePlatformResults(value) {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+      console.warn("Konnte platformResults nicht parsen:", error);
+      return {};
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+
+  return {};
+}
+
 export function useSkeets() {
   const [skeets, setSkeets] = useState([]);
   const [repliesBySkeet, setRepliesBySkeet] = useState({});
@@ -38,6 +60,7 @@ export function useSkeets() {
       const normalized = data.map((item) => ({
         ...item,
         targetPlatforms: parseTargetPlatforms(item.targetPlatforms),
+        platformResults: parsePlatformResults(item.platformResults),
       }));
 
       setSkeets(normalized);
@@ -164,8 +187,20 @@ export function useSkeets() {
 
   return {
     skeets,
-    plannedSkeets: skeets.filter((s) => !s.deletedAt && !s.postUri),
-    publishedSkeets: skeets.filter((s) => !s.deletedAt && s.postUri),
+    plannedSkeets: skeets.filter((s) => {
+      if (s.deletedAt) return false;
+      const isRecurring = typeof s.repeat === "string" && s.repeat !== "none";
+      if (isRecurring) return true;
+      return !s.postUri;
+    }),
+    publishedSkeets: skeets.filter((s) => {
+      if (s.deletedAt) return false;
+      const isRecurring = typeof s.repeat === "string" && s.repeat !== "none";
+      if (isRecurring) {
+        return Boolean(s.postUri);
+      }
+      return Boolean(s.postUri);
+    }),
     deletedSkeets: skeets.filter((s) => Boolean(s.deletedAt)),
     loadSkeets,
     fetchReactions,
