@@ -589,7 +589,7 @@ function App() {
                           onClick={() => setPublishedSortOrder((current) => (current === "desc" ? "asc" : "desc"))}
                           className="self-start rounded-full border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background"
                         >
-                          Sortierung: {publishedSortOrder === "desc" ? "Neueste zuerst" : "Älteste zuerst"}
+                          Sort: {publishedSortOrder === "desc" ? "Neu" : "Alt"}
                         </button>
                       ) : null}
                     </div>

@@ -30,7 +30,24 @@ function PublishedSkeetList({
         const replies = repliesBySkeet[skeet.id] ?? [];
         const isLoadingReplies = Boolean(loadingReplies[skeet.id]);
         const isFetchingReactions = Boolean(loadingReactions[skeet.id]);
-        const reactions = reactionStats[skeet.id]?.platforms ?? {};
+        const storedReactions = (() => {
+          const source = skeet.platformResults && typeof skeet.platformResults === "object" ? skeet.platformResults : {};
+          const entries = {};
+          Object.entries(source).forEach(([platformId, entry]) => {
+            if (!entry || typeof entry !== "object") return;
+            const metrics = entry.metrics;
+            if (!metrics || typeof metrics !== "object") return;
+            const likes = Number(metrics.likes) || 0;
+            const reposts = Number(metrics.reposts) || 0;
+            if (Number.isNaN(likes) && Number.isNaN(reposts)) {
+              return;
+            }
+            entries[platformId] = { likes, reposts };
+          });
+          return entries;
+        })();
+        const fetchedReactions = reactionStats[skeet.id]?.platforms ?? {};
+        const reactions = { ...storedReactions, ...fetchedReactions };
         const reactionErrors = reactionStats[skeet.id]?.errors;
         const replyError = replyErrors[skeet.id];
 
