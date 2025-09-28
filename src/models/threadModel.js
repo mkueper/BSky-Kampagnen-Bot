@@ -5,8 +5,10 @@
  * Aktuell sehr schlank – dient vor allem als Container, um geplante Posts
  * zeitlich oder thematisch zusammenzufassen.
  */
+const THREAD_STATUS = ["draft", "scheduled", "publishing", "published", "failed"];
+
 module.exports = (sequelize, DataTypes) => {
-  return sequelize.define(
+  const Thread = sequelize.define(
     "Thread",
     {
       id: {
@@ -16,16 +18,49 @@ module.exports = (sequelize, DataTypes) => {
       },
       title: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+        defaultValue: null,
       },
-      createdAt: {
+      scheduledAt: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        allowNull: true,
+        defaultValue: null,
+      },
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "draft",
+        validate: {
+          isIn: {
+            args: [THREAD_STATUS],
+            msg: "Ungültiger Thread-Status.",
+          },
+        },
+      },
+      targetPlatforms: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: () => ["bluesky"],
+      },
+      appendNumbering: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
+      metadata: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: () => ({}),
       },
     },
     {
-      timestamps: false, // hier genügt ein manueller createdAt-Timestamp
       tableName: "Threads",
+      timestamps: true,
+      paranoid: false,
     }
   );
+
+  Thread.STATUS = THREAD_STATUS;
+
+  return Thread;
 };

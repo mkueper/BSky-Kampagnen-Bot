@@ -15,11 +15,12 @@ const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require
 const { startScheduler } = require("./src/services/scheduler");
 const settingsController = require("./src/controllers/settingsController");
 const skeetController = require("./src/controllers/skeetController");
+const threadController = require("./src/controllers/threadController");
 const importExportController = require("./src/controllers/importExportController");
 const engagementController = require("./src/controllers/engagementController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
-const { sequelize, Thread, Skeet, Reply } = require("./src/models");
+const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
 
 const app = express();
 const PORT = config.PORT;
@@ -36,6 +37,10 @@ app.post("/api/skeets", skeetController.createSkeet);
 app.patch("/api/skeets/:id", skeetController.updateSkeet);
 app.delete("/api/skeets/:id", skeetController.deleteSkeet);
 app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
+
+app.get("/api/threads", threadController.listThreads);
+app.get("/api/threads/:id", threadController.getThread);
+app.post("/api/threads", threadController.createThread);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
 app.post("/api/skeets/import", importExportController.importPlannedSkeets);

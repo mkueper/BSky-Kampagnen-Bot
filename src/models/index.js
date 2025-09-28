@@ -10,18 +10,26 @@ const sequelize = require("./db");
 const { DataTypes } = require("sequelize");
 
 const Thread = require("./threadModel")(sequelize, DataTypes);
+const ThreadSkeet = require("./threadSkeetModel")(sequelize, DataTypes);
+const SkeetReaction = require("./skeetReactionModel")(sequelize, DataTypes);
 const Skeet = require("./skeetModel")(sequelize, DataTypes);
 const Reply = require("./replyModel")(sequelize, DataTypes);
 const Setting = require("./settingModel")(sequelize, DataTypes);
 
 // --- Relationen ---
 // Ein Thread besteht aus vielen Skeets (z. B. Post-Reihen).
-Thread.hasMany(Skeet, { foreignKey: "threadId", as: "skeets" });
-Skeet.belongsTo(Thread, { foreignKey: "threadId", as: "thread" });
+Thread.hasMany(Skeet, { foreignKey: "threadId", as: "scheduledSkeets" });
+Skeet.belongsTo(Thread, { foreignKey: "threadId", as: "parentThread" });
+
+Thread.hasMany(ThreadSkeet, { foreignKey: "threadId", as: "segments" });
+ThreadSkeet.belongsTo(Thread, { foreignKey: "threadId", as: "thread" });
+
+ThreadSkeet.hasMany(SkeetReaction, { foreignKey: "threadSkeetId", as: "reactions" });
+SkeetReaction.belongsTo(ThreadSkeet, { foreignKey: "threadSkeetId", as: "segment" });
 
 // Ein Skeet erhält mehrere Replies; Replies gehören genau zu einem Skeet.
 Skeet.hasMany(Reply, { foreignKey: "skeetId", as: "replies" });
 Reply.belongsTo(Skeet, { foreignKey: "skeetId", as: "skeet" });
 
 
-module.exports = { sequelize, Thread, Skeet, Reply, Setting };
+module.exports = { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply, Setting };
