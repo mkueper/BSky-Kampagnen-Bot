@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import * as Tabs from "@radix-ui/react-tabs";
 import ThreadOverview from "../ThreadOverview";
 
 function formatDateTime(value) {
@@ -17,6 +18,7 @@ function formatDateTime(value) {
 }
 
 function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, onDeleteThread }) {
+  const [activeTab, setActiveTab] = useState("planned");
   const stats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const total = items.length;
@@ -30,6 +32,21 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
       { label: "Veröffentlicht", value: published },
       { label: "Entwürfe", value: drafts },
     ];
+  }, [threads]);
+
+  const plannedThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : [];
+    return items.filter((thread) => thread.status === "scheduled" || thread.status === "draft");
+  }, [threads]);
+
+  const publishedThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : [];
+    return items.filter((thread) => thread.status === "published");
+  }, [threads]);
+
+  const trashedThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : [];
+    return items.filter((thread) => thread.status === "deleted");
   }, [threads]);
 
   const nextScheduled = useMemo(() => {
@@ -99,14 +116,73 @@ function ThreadDashboardView({ threads, loading, error, onReload, onEditThread, 
         </div>
 
         <div className="mt-6">
-          <ThreadOverview
-            threads={threads}
-            loading={loading}
-            error={error}
-            onReload={onReload}
-            onEditThread={onEditThread}
-            onDeleteThread={onDeleteThread}
-          />
+          <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <Tabs.List className="inline-flex rounded-full bg-background-subtle p-1 text-sm font-medium">
+              <Tabs.Trigger
+                value="planned"
+                className={`rounded-full px-4 py-2 transition ${
+                  activeTab === "planned" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Geplant
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="published"
+                className={`rounded-full px-4 py-2 transition ${
+                  activeTab === "published" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Veröffentlicht
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="deleted"
+                className={`rounded-full px-4 py-2 transition ${
+                  activeTab === "deleted" ? "bg-background-elevated shadow-soft" : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Papierkorb
+              </Tabs.Trigger>
+            </Tabs.List>
+
+            <Tabs.Content value="planned">
+              <ThreadOverview
+                threads={plannedThreads}
+                loading={loading}
+                error={error}
+                onReload={onReload}
+                onEditThread={onEditThread}
+                onDeleteThread={onDeleteThread}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="published">
+              <ThreadOverview
+                threads={publishedThreads}
+                loading={loading}
+                error={error}
+                onReload={onReload}
+                onEditThread={onEditThread}
+                onDeleteThread={onDeleteThread}
+              />
+            </Tabs.Content>
+
+            <Tabs.Content value="deleted">
+              {trashedThreads.length > 0 ? (
+                <ThreadOverview
+                  threads={trashedThreads}
+                  loading={loading}
+                  error={error}
+                  onReload={onReload}
+                  onEditThread={onEditThread}
+                  onDeleteThread={onDeleteThread}
+                />
+              ) : (
+                <p className="rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted">
+                  Der Papierkorb ist leer.
+                </p>
+              )}
+            </Tabs.Content>
+          </Tabs.Root>
         </div>
       </section>
     </div>

@@ -11,6 +11,7 @@ import {
   ViewHorizontalIcon,
 } from "@radix-ui/react-icons";
 import AppLayout from "./components/layout/AppLayout";
+import MainOverviewView from "./components/views/MainOverviewView";
 import DashboardView from "./components/views/DashboardView";
 import ThreadDashboardView from "./components/views/ThreadDashboardView";
 import SkeetForm from "./components/SkeetForm";
@@ -28,7 +29,16 @@ const PLATFORM_LABELS = {
 };
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Übersicht", icon: ViewHorizontalIcon },
+  { id: "overview", label: "Übersicht", icon: ViewHorizontalIcon },
+  {
+    id: "skeets",
+    label: "Skeets",
+    icon: Pencil2Icon,
+    children: [
+      { id: "skeets-overview", label: "Übersicht" },
+      { id: "skeets-plan", label: "Skeet planen" },
+    ],
+  },
   {
     id: "threads",
     label: "Threads",
@@ -38,24 +48,25 @@ const NAV_ITEMS = [
       { id: "threads-plan", label: "Thread planen" },
     ],
   },
-  { id: "skeetplaner", label: "Skeet planen", icon: Pencil2Icon },
   { id: "config", label: "Konfiguration", icon: GearIcon },
 ];
 
 const HEADER_CAPTIONS = {
-  dashboard: "Übersicht",
+  overview: "Übersicht",
+  "skeets-overview": "Skeets",
+  "skeets-plan": "Skeetplaner",
   "threads-overview": "Threads",
   "threads-plan": "Threadplaner",
   config: "Konfiguration",
-  skeetplaner: "Skeetplaner",
 };
 
 const HEADER_TITLES = {
-  dashboard: "Bluesky Kampagnen-Dashboard",
+  overview: "Bluesky Kampagnen-Dashboard",
+  "skeets-overview": "Skeet-Übersicht",
+  "skeets-plan": "Skeet planen",
   "threads-overview": "Thread-Übersicht",
   "threads-plan": "Thread planen",
   config: "Einstellungen & Automatisierung",
-  skeetplaner: "Skeet planen",
 };
 
 const THEMES = ["light", "dark", "midnight"];
@@ -67,7 +78,7 @@ const THEME_CONFIG = {
 const DEFAULT_THEME = THEMES[0];
 
 function App() {
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState("overview");
   const [theme, setTheme] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_THEME;
     const stored = window.localStorage.getItem("theme");
@@ -243,7 +254,7 @@ function App() {
 
   const handleEdit = (skeet) => {
     setEditingSkeet(skeet);
-    setActiveView("skeetplaner");
+    setActiveView("skeets-plan");
   };
 
   const handleDelete = async (skeet) => {
@@ -357,7 +368,7 @@ function App() {
   const handleFormSaved = () => {
     setEditingSkeet(null);
     loadSkeets();
-    setActiveView("dashboard");
+    setActiveView("skeets-overview");
     setActiveDashboardTab("planned");
   };
 
@@ -367,27 +378,12 @@ function App() {
     setActiveView("threads-overview");
   };
 
-  const handleThreadDeleted = () => {
-    setEditingThreadId(null);
-    reloadThreads();
-    setActiveView("threads-overview");
-  };
-
   const handleCancelEdit = () => {
     setEditingSkeet(null);
-    setActiveView("dashboard");
+    setActiveView("skeets-overview");
     toast.info({
       title: "Bearbeitung abgebrochen",
       description: "Der Skeet wurde nicht verändert.",
-    });
-  };
-
-  const handleThreadCancel = () => {
-    setEditingThreadId(null);
-    setActiveView("threads-overview");
-    toast.info({
-      title: "Bearbeitung abgebrochen",
-      description: "Der Thread wurde nicht verändert.",
     });
   };
 
@@ -435,7 +431,15 @@ function App() {
   );
 
   let content = null;
-  if (activeView === "dashboard") {
+  if (activeView === "overview") {
+    content = (
+      <MainOverviewView
+        threads={threads}
+        plannedSkeets={plannedSkeets}
+        publishedSkeets={publishedSkeets}
+      />
+    );
+  } else if (activeView === "skeets-overview") {
     content = (
       <DashboardView
         plannedSkeets={plannedSkeets}
@@ -474,7 +478,7 @@ function App() {
     );
   } else if (activeView === "config") {
     content = <ConfigPanel />;
-  } else if (activeView === "skeetplaner") {
+  } else if (activeView === "skeets-plan") {
     content = (
       <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
         <SkeetForm onSkeetSaved={handleFormSaved} editingSkeet={editingSkeet} onCancelEdit={handleCancelEdit} />
@@ -488,8 +492,6 @@ function App() {
           initialThread={editingThreadId ? editingThread : null}
           loading={Boolean(editingThreadId && loadingEditingThread && !editingThread)}
           onThreadSaved={handleThreadSaved}
-          onThreadDeleted={handleThreadDeleted}
-          onCancel={editingThreadId ? handleThreadCancel : undefined}
         />
       </section>
     );
