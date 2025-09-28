@@ -378,6 +378,15 @@ function App() {
     setActiveView("threads-overview");
   };
 
+  const handleThreadCancel = () => {
+    setEditingThreadId(null);
+    setActiveView("threads-overview");
+    toast.info({
+      title: "Bearbeitung abgebrochen",
+      description: "Der Thread wurde nicht verändert.",
+    });
+  };
+
   const handleCancelEdit = () => {
     setEditingSkeet(null);
     setActiveView("skeets-overview");
@@ -492,6 +501,7 @@ function App() {
           initialThread={editingThreadId ? editingThread : null}
           loading={Boolean(editingThreadId && loadingEditingThread && !editingThread)}
           onThreadSaved={handleThreadSaved}
+          onCancel={editingThreadId ? handleThreadCancel : undefined}
         />
       </section>
     );
