@@ -584,13 +584,35 @@ function App() {
                         </Tabs.List>
                       </Tabs.Root>
                       {activeDashboardTab === "published" ? (
-                        <button
-                          type="button"
-                          onClick={() => setPublishedSortOrder((current) => (current === "desc" ? "asc" : "desc"))}
-                          className="self-start rounded-full border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background"
-                        >
-                          Sort: {publishedSortOrder === "desc" ? "Neu" : "Alt"}
-                        </button>
+                        <div className="self-start rounded-full border border-border bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted">
+                          <span className="sr-only">Sortierung veröffentlichter Skeets</span>
+                          <div className="mt-1 flex gap-1 text-[0.75rem] normal-case tracking-normal text-foreground">
+                            <button
+                              type="button"
+                              onClick={() => setPublishedSortOrder("desc")}
+                              className={`rounded-full px-3 py-1 transition ${
+                                publishedSortOrder === "desc"
+                                  ? "bg-background shadow-soft"
+                                  : "text-foreground-muted hover:text-foreground"
+                              }`}
+                              aria-pressed={publishedSortOrder === "desc"}
+                            >
+                              Neu zuerst
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPublishedSortOrder("asc")}
+                              className={`rounded-full px-3 py-1 transition ${
+                                publishedSortOrder === "asc"
+                                  ? "bg-background shadow-soft"
+                                  : "text-foreground-muted hover:text-foreground"
+                              }`}
+                              aria-pressed={publishedSortOrder === "asc"}
+                            >
+                              Alt zuerst
+                            </button>
+                          </div>
+                        </div>
                       ) : null}
                     </div>
                   </div>
