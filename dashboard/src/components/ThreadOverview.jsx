@@ -1,15 +1,43 @@
 import { useState } from "react";
 
+function parseThreadMetadata(thread) {
+  const raw = thread?.metadata;
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+      console.warn("Konnte Thread-Metadaten nicht parsen:", error);
+      return {};
+    }
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw;
+  }
+  return {};
+}
+
+function resolvePublishedDate(thread) {
+  const metadata = parseThreadMetadata(thread);
+  const candidates = [metadata.lastSuccessAt, metadata.lastDispatchAt, thread?.updatedAt];
+
+  if (Array.isArray(thread?.segments)) {
+    const segmentDate = thread.segments.find((segment) => segment?.postedAt)?.postedAt;
+    candidates.unshift(segmentDate);
+  }
+
+  for (const value of candidates) {
+    if (!value) continue;
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+  return null;
+}
+
 function formatScheduledLabel(thread) {
-  if (!thread?.scheduledAt) {
-    return thread?.status === "published" ? "Bereits veröffentlicht" : "Kein Termin geplant";
-  }
-
-  const date = new Date(thread.scheduledAt);
-  if (Number.isNaN(date.getTime())) {
-    return `Geplant für ${thread.scheduledAt}`;
-  }
-
   const formatter = new Intl.DateTimeFormat("de-DE", {
     day: "2-digit",
     month: "2-digit",
@@ -18,11 +46,28 @@ function formatScheduledLabel(thread) {
     minute: "2-digit",
   });
 
+  if (thread?.status === "published") {
+    const publishedDate = resolvePublishedDate(thread);
+    if (publishedDate) {
+      return `Veröffentlicht am: ${formatter.format(publishedDate)}`;
+    }
+    return "Veröffentlicht";
+  }
+
+  if (!thread?.scheduledAt) {
+    return "Kein Termin geplant";
+  }
+
+  const date = new Date(thread.scheduledAt);
+  if (Number.isNaN(date.getTime())) {
+    return `Geplant für ${thread.scheduledAt}`;
+  }
+
   if (thread.status === "scheduled") {
     return `Wird gepostet um: ${formatter.format(date)}`;
   }
 
-  return `${thread.status === "published" ? "Veröffentlicht am" : "Geplant für"}: ${formatter.format(date)}`;
+  return `Geplant für: ${formatter.format(date)}`;
 }
 
 function ThreadOverview({
