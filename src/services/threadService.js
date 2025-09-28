@@ -142,8 +142,100 @@ async function createThread(payload = {}) {
   });
 }
 
+async function updateThread(id, payload = {}) {
+  const threadId = Number(id);
+  if (!Number.isInteger(threadId)) {
+    throw new ValidationError("Ungültige Thread-ID.");
+  }
+
+  const {
+    title = undefined,
+    scheduledAt = undefined,
+    status = undefined,
+    targetPlatforms = undefined,
+    appendNumbering = undefined,
+    metadata = undefined,
+    skeets = undefined,
+  } = payload;
+
+  const thread = await Thread.findByPk(threadId, {
+    include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]] }],
+  });
+
+  if (!thread) {
+    const error = new Error("Thread nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+
+  const nextTargetPlatforms = targetPlatforms === undefined ? thread.targetPlatforms : sanitizePlatforms(targetPlatforms);
+  const nextAppendNumbering = appendNumbering === undefined ? thread.appendNumbering : Boolean(appendNumbering);
+  const nextMetadata = metadata === undefined || typeof metadata !== "object" || Array.isArray(metadata) ? thread.metadata : metadata;
+
+  const shouldReplaceSkeets = Array.isArray(skeets);
+  const normalizedSkeets = shouldReplaceSkeets ? normalizeSkeets(skeets, nextAppendNumbering) : null;
+
+  return sequelize.transaction(async (transaction) => {
+    await thread.update(
+      {
+        title: title === undefined ? thread.title : title,
+        scheduledAt: scheduledAt === undefined ? thread.scheduledAt : scheduledAt,
+        status: status === undefined ? thread.status : status,
+        targetPlatforms: nextTargetPlatforms,
+        appendNumbering: nextAppendNumbering,
+        metadata: nextMetadata,
+      },
+      { transaction }
+    );
+
+    if (shouldReplaceSkeets) {
+      await ThreadSkeet.destroy({ where: { threadId }, transaction });
+      const segments = normalizedSkeets.map((entry, index) => ({
+        ...entry,
+        threadId,
+        sequence: entry.sequence ?? index,
+      }));
+      await ThreadSkeet.bulkCreate(segments, { transaction });
+    }
+
+    const fresh = await Thread.findByPk(threadId, {
+      include: [
+        {
+          model: ThreadSkeet,
+          as: "segments",
+          order: [["sequence", "ASC"]],
+          include: [{ model: SkeetReaction, as: "reactions", separate: true, order: [["createdAt", "DESC"]] }],
+        },
+      ],
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    return fresh.toJSON();
+  });
+}
+
+async function deleteThread(id) {
+  const threadId = Number(id);
+  if (!Number.isInteger(threadId)) {
+    throw new ValidationError("Ungültige Thread-ID.");
+  }
+
+  const thread = await Thread.findByPk(threadId);
+  if (!thread) {
+    const error = new Error("Thread nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+
+  await Thread.destroy({ where: { id: threadId } });
+  return { id: threadId };
+}
+
 module.exports = {
   listThreads,
   getThread,
   createThread,
+  updateThread,
+  deleteThread,
 };

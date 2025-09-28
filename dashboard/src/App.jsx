@@ -15,6 +15,7 @@ import SkeetForm from "./components/SkeetForm";
 import ThreadForm from "./components/ThreadForm";
 import ConfigPanel from "./components/ConfigPanel";
 import { useSkeets } from "./hooks/useSkeets";
+import { useThreadDetail, useThreads } from "./hooks/useThreads";
 import { formatTime } from "./utils/formatTime";
 import { getRepeatDescription } from "./utils/timeUtils";
 import { useToast } from "./hooks/useToast";
@@ -72,6 +73,7 @@ function App() {
   const [activeDashboardTab, setActiveDashboardTab] = useState("planned");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [editingThreadId, setEditingThreadId] = useState(null);
   const importInputRef = useRef(null);
   const toast = useToast();
 
@@ -90,6 +92,11 @@ function App() {
     reactionStats,
     replyErrors,
   } = useSkeets();
+
+  const { threads, loading: threadsLoading, error: threadsError, reload: reloadThreads } = useThreads();
+  const { thread: editingThread, loading: loadingEditingThread } = useThreadDetail(editingThreadId, {
+    autoLoad: Boolean(editingThreadId),
+  });
 
   useEffect(() => {
     setEditingSkeet((current) => {
@@ -298,11 +305,61 @@ function App() {
     }
   };
 
+  const handleEditThread = (thread) => {
+    setEditingThreadId(thread?.id ?? null);
+    setActiveView("threadplaner");
+  };
+
+  const handleDeleteThread = async (thread) => {
+    if (!thread?.id) return;
+    const label = thread.title || `Thread #${thread.id}`;
+    const confirmed = window.confirm(`Soll "${label}" wirklich gelöscht werden?`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/threads/${thread.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Löschen des Threads.");
+      }
+
+      if (editingThreadId === thread.id) {
+        setEditingThreadId(null);
+      }
+
+      await reloadThreads();
+
+      toast.success({
+        title: "Thread gelöscht",
+        description: "Der Thread wurde entfernt.",
+      });
+    } catch (error) {
+      console.error("Fehler beim Löschen des Threads:", error);
+      toast.error({
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim Löschen des Threads.",
+      });
+    }
+  };
+
   const handleFormSaved = () => {
     setEditingSkeet(null);
     loadSkeets();
     setActiveView("dashboard");
     setActiveDashboardTab("planned");
+  };
+
+  const handleThreadSaved = () => {
+    setEditingThreadId(null);
+    reloadThreads();
+    setActiveView("dashboard");
+    setActiveDashboardTab("planned");
+  };
+
+  const handleThreadDeleted = () => {
+    setEditingThreadId(null);
+    reloadThreads();
+    setActiveView("dashboard");
   };
 
   const handleCancelEdit = () => {
@@ -311,6 +368,15 @@ function App() {
     toast.info({
       title: "Bearbeitung abgebrochen",
       description: "Der Skeet wurde nicht verändert.",
+    });
+  };
+
+  const handleThreadCancel = () => {
+    setEditingThreadId(null);
+    setActiveView("dashboard");
+    toast.info({
+      title: "Bearbeitung abgebrochen",
+      description: "Der Thread wurde nicht verändert.",
     });
   };
 
@@ -382,6 +448,12 @@ function App() {
         platformLabels={PLATFORM_LABELS}
         activeTab={activeDashboardTab}
         onTabChange={setActiveDashboardTab}
+        threads={threads}
+        threadsLoading={threadsLoading}
+        threadsError={threadsError}
+        onReloadThreads={reloadThreads}
+        onEditThread={handleEditThread}
+        onDeleteThread={handleDeleteThread}
       />
     );
   } else if (activeView === "config") {
@@ -395,7 +467,14 @@ function App() {
   } else if (activeView === "threadplaner") {
     content = (
       <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
-        <ThreadForm />
+        <ThreadForm
+          key={editingThreadId || "new"}
+          initialThread={editingThreadId ? editingThread : null}
+          loading={Boolean(editingThreadId && loadingEditingThread && !editingThread)}
+          onThreadSaved={handleThreadSaved}
+          onThreadDeleted={handleThreadDeleted}
+          onCancel={editingThreadId ? handleThreadCancel : undefined}
+        />
       </section>
     );
   }
