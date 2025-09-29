@@ -79,6 +79,7 @@ function ThreadOverview({
   onDeleteThread,
   onRestoreThread,
   onDestroyThread,
+  onRetractThread,
   mode = "default",
 }) {
   const [expandedThreads, setExpandedThreads] = useState({});
@@ -135,6 +136,10 @@ function ThreadOverview({
         const hasMore = segments.length > 1;
         const isExpanded = Boolean(expandedThreads[thread.id]);
         const isDeletedMode = mode === "deleted";
+        const metadata = parseThreadMetadata(thread);
+        const platformResults = metadata.platformResults && typeof metadata.platformResults === 'object' ? metadata.platformResults : {};
+        const hasSentPlatforms = Object.values(platformResults).some((entry) => entry && entry.status === 'sent');
+        const canRetract = !isDeletedMode && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
 
         return (
           <article key={thread.id} className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
@@ -197,6 +202,14 @@ function ThreadOverview({
                           className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
                         >
                           Bearbeiten
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRetractThread?.(thread)}
+                          disabled={!canRetract}
+                          className="rounded-2xl border border-amber-400 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Entfernen
                         </button>
                         <button
                           type="button"

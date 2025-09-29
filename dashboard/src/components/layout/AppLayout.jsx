@@ -71,8 +71,8 @@ function AppLayout({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
+    <div className="h-screen overflow-hidden bg-background text-foreground">
+      <div className="mx-auto flex h-full w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
         <aside
           className={`fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200 md:static md:block md:translate-x-0 ${
             menuOpen ? "translate-x-0" : "-translate-x-[110%] md:-translate-x-0"
@@ -177,7 +177,7 @@ function AppLayout({
           />
         ) : null}
 
-        <div className="ml-0 flex-1 md:ml-8">
+        <div className="ml-0 flex h-full flex-1 flex-col overflow-hidden md:ml-8">
           <header className="sticky top-0 z-10 mb-6 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -203,7 +203,9 @@ function AppLayout({
             </div>
           </header>
 
-          <main className="space-y-8 pb-16">{children}</main>
+          <div id="app-scroll-container" className="flex-1 overflow-y-auto pr-1">
+            <main className="space-y-8 pb-16">{children}</main>
+          </div>
           <ScrollTopButton />
         </div>
       </div>

@@ -122,6 +122,29 @@ async function sendPost(input, platformId, env) {
   }
 }
 
+async function deletePost(platformId, identifiers = {}, env) {
+  if (!platformId) {
+    throw new Error('platformId ist erforderlich.');
+  }
+
+  const profile = getProfile(platformId);
+  if (!profile) {
+    throw new Error(`Unbekannte Plattform: ${platformId}`);
+  }
+
+  if (typeof profile.delete !== 'function') {
+    throw new Error(`Plattform ${platformId} unterstützt das Löschen nicht.`);
+  }
+
+  try {
+    const result = await profile.delete(identifiers, env);
+    return { ok: true, result: result ?? null };
+  } catch (error) {
+    return { ok: false, error: error?.message || String(error) };
+  }
+}
+
 module.exports = {
   sendPost,
+  deletePost,
 };

@@ -281,6 +281,49 @@ function App() {
     }
   };
 
+  const handleRetract = async (skeet) => {
+    if (!skeet?.id) return;
+    const confirmed = window.confirm("Soll dieser veröffentlichte Skeet auf den Plattformen gelöscht werden?");
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/skeets/${skeet.id}/retract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Entfernen des Skeets.");
+      }
+      const data = await res.json();
+      await loadSkeets();
+      const summary = data?.summary || {};
+      const successPlatforms = Object.entries(summary)
+        .filter(([, result]) => result?.ok)
+        .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId);
+      const failedPlatforms = Object.entries(summary)
+        .filter(([, result]) => result && result.ok === false)
+        .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId);
+      const parts = [];
+      if (successPlatforms.length) {
+        parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`);
+      }
+      if (failedPlatforms.length) {
+        parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`);
+      }
+      toast.success({
+        title: 'Skeet entfernt',
+        description: parts.join(' · ') || 'Der Skeet wurde auf allen Plattformen entfernt.',
+      });
+    } catch (error) {
+      console.error('Fehler beim Entfernen des Skeets:', error);
+      toast.error({
+        title: 'Entfernen fehlgeschlagen',
+        description: error.message || 'Fehler beim Entfernen des Skeets.',
+      });
+    }
+  };
+
   const handleRestore = async (skeet) => {
     try {
       const res = await fetch(`/api/skeets/${skeet.id}/restore`, { method: "POST" });
@@ -361,6 +404,54 @@ function App() {
       toast.error({
         title: "Löschen fehlgeschlagen",
         description: error.message || "Fehler beim Löschen des Threads.",
+      });
+    }
+  };
+
+  const handleRetractThread = async (thread) => {
+    if (!thread?.id) return;
+    const label = thread.title || `Thread #${thread.id}`;
+    const confirmed = window.confirm(`Soll "${label}" auf allen Plattformen gelöscht werden?`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/threads/${thread.id}/retract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Entfernen des Threads.");
+      }
+
+      const data = await res.json();
+      await reloadThreads();
+
+      const summary = data?.summary || {};
+      const successPlatforms = Object.entries(summary)
+        .filter(([, result]) => result?.ok)
+        .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId);
+      const failedPlatforms = Object.entries(summary)
+        .filter(([, result]) => result && result.ok === false)
+        .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId);
+      const parts = [];
+      if (successPlatforms.length) {
+        parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`);
+      }
+      if (failedPlatforms.length) {
+        parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`);
+      }
+
+      toast.success({
+        title: 'Thread entfernt',
+        description: parts.join(' · ') || 'Der Thread wurde auf allen Plattformen entfernt.',
+      });
+    } catch (error) {
+      console.error('Fehler beim Entfernen des Threads:', error);
+      toast.error({
+        title: 'Entfernen fehlgeschlagen',
+        description: error.message || 'Fehler beim Entfernen des Threads.',
       });
     }
   };
@@ -514,6 +605,7 @@ function App() {
         deletedSkeets={deletedSkeets}
         onEditSkeet={handleEdit}
         onDeleteSkeet={handleDelete}
+        onRetractSkeet={handleRetract}
         onRestoreSkeet={handleRestore}
         onPermanentDeleteSkeet={handlePermanentDelete}
         onFetchReactions={fetchReactions}
@@ -543,6 +635,7 @@ function App() {
         onDeleteThread={handleDeleteThread}
         onRestoreThread={handleRestoreThread}
         onDestroyThread={handleDestroyThread}
+        onRetractThread={handleRetractThread}
       />
     );
   } else if (activeView === "config") {

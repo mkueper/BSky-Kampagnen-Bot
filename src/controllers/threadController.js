@@ -53,6 +53,17 @@ async function deleteThread(req, res) {
   }
 }
 
+async function retractThread(req, res) {
+  try {
+    const platforms = Array.isArray(req.body?.platforms) ? req.body.platforms : undefined;
+    const result = await threadService.retractThread(req.params.id, { platforms });
+    res.json(result);
+  } catch (error) {
+    const status = error?.status === 404 ? 404 : error?.name === "SequelizeValidationError" ? 400 : 500;
+    res.status(status).json({ error: error?.message || "Fehler beim Entfernen des Threads." });
+  }
+}
+
 async function restoreThread(req, res) {
   try {
     const thread = await threadService.restoreThread(req.params.id);
@@ -69,5 +80,6 @@ module.exports = {
   createThread,
   updateThread,
   deleteThread,
+  retractThread,
   restoreThread,
 };
