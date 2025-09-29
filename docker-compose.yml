@@ -1,6 +1,7 @@
 services:
   # API + Scheduler (Express)
   backend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
@@ -18,6 +19,7 @@ services:
 
   # Statisches React-Dashboard, ausgeliefert über Nginx + API-Proxy
   frontend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
