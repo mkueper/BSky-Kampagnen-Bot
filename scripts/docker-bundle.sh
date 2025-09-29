@@ -21,12 +21,6 @@ PROJECT_CONTENT=(
   "LICENSE"
 )
 
-# for optional in "apps" "packages"; do
-#   if [[ -e "${optional}" ]]; then
-#     PROJECT_CONTENT+=("${optional}")
-#   fi
-# done
-
 if [[ -f .env.sample ]]; then
   PROJECT_CONTENT+=(".env.sample")
 fi
@@ -61,36 +55,11 @@ cp docker/Dockerfile.backend "${APP_DIR}/docker/Dockerfile.backend"
 cp docker/Dockerfile.frontend "${APP_DIR}/docker/Dockerfile.frontend"
 cp docker/nginx-frontend.conf "${APP_DIR}/docker/nginx-frontend.conf"
 
-cat <<'COMPOSE' > "${APP_DIR}/docker-compose.yml"
-services:
-  backend:
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backend
-    env_file: .env
-    environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      BACKEND_INTERNAL_PORT: ${BACKEND_INTERNAL_PORT:-3000}
-      APP_PORT: ${BACKEND_INTERNAL_PORT:-3000}
-    ports:
-      - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
-    volumes:
-      - data:/app/data
-
-  frontend:
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
-    depends_on:
-      - backend
-
-volumes:
-  data:
-COMPOSE
+if [[ ! -f docker-compose.yml ]]; then
+  echo "Fehlende docker-compose.yml im Projektwurzelverzeichnis" >&2
+  exit 1
+fi
+cp docker-compose.yml "${APP_DIR}/docker-compose.yml"
 
 # Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien auf Root-Ebene
 find "${APP_DIR}" -maxdepth 1 -name '.env' -type f -delete
@@ -119,7 +88,7 @@ Services:
 - backend → Express-API & Scheduler (Port ${BACKEND_PORT:-3000})
 - frontend → Nginx mit gebuildetem Dashboard (Port ${FRONTEND_PORT:-8080})
 
-Die SQLite-Datenbank wird beim ersten Start neu angelegt (benanntes Volume `bsky-kamp-app-data`).
+Die SQLite-Datenbank wird beim ersten Start neu angelegt (benanntes Volume `data`, Compose benennt es i. d. R. `<projekt>_data`).
 INSTRUCTIONS
 
 pushd "${BUNDLES_DIR}" > /dev/null
