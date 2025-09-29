@@ -64,6 +64,7 @@ cp docker/nginx-frontend.conf "${APP_DIR}/docker/nginx-frontend.conf"
 cat <<'COMPOSE' > "${APP_DIR}/docker-compose.yml"
 services:
   backend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
@@ -78,6 +79,7 @@ services:
       - data:/app/data
 
   frontend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
