@@ -120,6 +120,21 @@ const blueskyProfile = {
       raw: res,
     };
   },
+
+  async delete(payload, env) {
+    if (!env?.serverUrl || !env?.identifier || !env?.appPassword) {
+      throw new Error("Bluesky-Env unvollständig (serverUrl, identifier, appPassword erforderlich).");
+    }
+
+    const uri = payload?.uri;
+    if (!uri) {
+      throw new Error('Bluesky-URI zum Löschen fehlt.');
+    }
+
+    const agent = await createAgent(env);
+    await agent.deletePost(uri);
+    return { uri };
+  },
 };
 
 module.exports = blueskyProfile;

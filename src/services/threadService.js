@@ -1,5 +1,7 @@
 const { ValidationError } = require("sequelize");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("../models");
+const { deletePost } = require("./postService");
+const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 
 const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
 
@@ -33,6 +35,50 @@ function normalizeSkeets(skeets, appendNumbering) {
       characterCount,
     };
   });
+}
+
+function ensureMetadataObject(raw) {
+  if (!raw) {
+    return {};
+  }
+
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return { ...raw };
+  }
+
+  return {};
+}
+
+function extractMastodonStatusId(uri) {
+  if (!uri) {
+    return null;
+  }
+  const match = String(uri).match(/\/([0-9A-Za-z]+)(?:$|[/?#])/);
+  return match && match[1] ? match[1] : null;
+}
+
+function markThreadSegmentAsDeleted(segment = {}, identifiers = {}) {
+  const next = { ...segment };
+  next.status = 'deleted';
+  next.deletedAt = new Date().toISOString();
+  if (identifiers.uri) {
+    next.deletedUri = identifiers.uri;
+  }
+  if (identifiers.statusId) {
+    next.deletedStatusId = identifiers.statusId;
+  }
+  next.uri = '';
+  next.statusId = null;
+  return next;
 }
 
 async function listThreads({ status } = {}) {
@@ -250,6 +296,176 @@ async function deleteThread(id, { permanent = false } = {}) {
   return { id: threadId, status: "deleted" };
 }
 
+async function retractThread(id, options = {}) {
+  ensurePlatforms();
+
+  const threadId = Number(id);
+  if (!Number.isInteger(threadId)) {
+    throw new ValidationError("Ungültige Thread-ID.");
+  }
+
+  const thread = await Thread.findByPk(threadId, {
+    include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]] }],
+  });
+
+  if (!thread) {
+    const error = new Error("Thread nicht gefunden.");
+    error.status = 404;
+    throw error;
+  }
+
+  const metadata = ensureMetadataObject(thread.metadata);
+  const rawPlatformResults = metadata.platformResults && typeof metadata.platformResults === 'object' && !Array.isArray(metadata.platformResults)
+    ? { ...metadata.platformResults }
+    : {};
+
+  const requested = Array.isArray(options.platforms) ? options.platforms.map((value) => String(value)) : [];
+  const targetsSource = requested.length > 0 ? requested : Object.keys(rawPlatformResults);
+  const targets = targetsSource.filter((platformId) => ALLOWED_PLATFORMS.includes(platformId));
+
+  if (targets.length === 0) {
+    const error = new Error('Für diesen Thread liegen keine veröffentlichten Plattformdaten vor.');
+    error.status = 400;
+    throw error;
+  }
+
+  const updatedPlatformResults = { ...rawPlatformResults };
+  const summary = {};
+  const clearedBskySequences = new Set();
+  let anySuccess = false;
+
+  for (const platformId of targets) {
+    const platformEnv = resolvePlatformEnv(platformId);
+    const envError = validatePlatformEnv(platformId, platformEnv);
+    if (envError) {
+      summary[platformId] = { ok: false, error: envError };
+      continue;
+    }
+
+    const baseResult = rawPlatformResults[platformId] || {};
+    let segments = Array.isArray(baseResult.segments)
+      ? baseResult.segments.map((segment) => ({ ...segment }))
+      : [];
+
+    if (!segments.length && platformId === 'bluesky') {
+      segments = thread.segments
+        .filter((segment) => Boolean(segment.remoteId))
+        .map((segment) => ({
+          sequence: segment.sequence,
+          status: 'sent',
+          uri: segment.remoteId,
+          postedAt: segment.postedAt ? new Date(segment.postedAt).toISOString() : null,
+        }));
+    }
+
+    if (!segments.length) {
+      summary[platformId] = { ok: false, error: 'Keine veröffentlichten Segmentdaten gefunden.' };
+      continue;
+    }
+
+    const sentSegments = segments.filter((segment) => segment.status === 'sent' && (segment.uri || segment.statusId));
+    if (!sentSegments.length) {
+      summary[platformId] = { ok: false, error: 'Keine aktiven Segmente für das Löschen vorhanden.' };
+      continue;
+    }
+
+    const perSegment = new Map();
+    let platformSuccess = true;
+
+    for (const segment of [...sentSegments].reverse()) {
+      const identifiers = {
+        uri: segment.uri || null,
+        statusId: segment.statusId || (platformId === 'mastodon' ? extractMastodonStatusId(segment.uri) : null),
+      };
+
+      if (!identifiers.uri && !identifiers.statusId) {
+        platformSuccess = false;
+        perSegment.set(segment.sequence, { sequence: segment.sequence, ok: false, error: 'Keine Remote-ID gefunden.' });
+        continue;
+      }
+
+      try {
+        const result = await deletePost(platformId, identifiers, platformEnv);
+        if (result.ok) {
+          anySuccess = true;
+          perSegment.set(segment.sequence, { sequence: segment.sequence, ok: true, identifiers });
+          if (platformId === 'bluesky') {
+            clearedBskySequences.add(segment.sequence);
+          }
+        } else {
+          platformSuccess = false;
+          perSegment.set(segment.sequence, { sequence: segment.sequence, ok: false, error: result.error || 'Unbekannter Fehler' });
+        }
+      } catch (error) {
+        platformSuccess = false;
+        perSegment.set(segment.sequence, { sequence: segment.sequence, ok: false, error: error?.message || String(error) });
+      }
+    }
+
+    const updatedSegments = segments.map((segment) => {
+      const outcome = perSegment.get(segment.sequence);
+      if (outcome?.ok) {
+        return markThreadSegmentAsDeleted(segment, outcome.identifiers);
+      }
+      return segment;
+    });
+
+    updatedPlatformResults[platformId] = {
+      ...baseResult,
+      status: platformSuccess ? 'deleted' : 'partial',
+      deletedAt: platformSuccess ? new Date().toISOString() : baseResult.deletedAt ?? null,
+      segments: updatedSegments,
+    };
+
+    summary[platformId] = {
+      ok: platformSuccess,
+      segments: Array.from(perSegment.values()).map(({ sequence, ok, error }) => ({ sequence, ok, error })),
+    };
+  }
+
+  if (anySuccess) {
+    const removalStamp = new Date().toISOString();
+    metadata.platformResults = updatedPlatformResults;
+    metadata.lastRemovalAt = removalStamp;
+
+    await sequelize.transaction(async (transaction) => {
+      await thread.update(
+        {
+          metadata,
+          status: thread.status === 'deleted' ? thread.status : 'draft',
+          scheduledAt: null,
+        },
+        { transaction }
+      );
+
+      if (clearedBskySequences.size > 0) {
+        for (const segment of thread.segments) {
+          if (clearedBskySequences.has(segment.sequence)) {
+            await segment.update({ remoteId: null, postedAt: null }, { transaction });
+          }
+        }
+      }
+    });
+  }
+
+  const fresh = await Thread.findByPk(threadId, {
+    include: [
+      {
+        model: ThreadSkeet,
+        as: 'segments',
+        order: [['sequence', 'ASC']],
+        include: [{ model: SkeetReaction, as: 'reactions', separate: true, order: [['createdAt', 'DESC']] }],
+      },
+    ],
+  });
+
+  return {
+    thread: fresh ? fresh.toJSON() : null,
+    summary,
+    success: anySuccess,
+  };
+}
+
 async function restoreThread(id) {
   const threadId = Number(id);
   if (!Number.isInteger(threadId)) {
@@ -291,5 +507,6 @@ module.exports = {
   createThread,
   updateThread,
   deleteThread,
+  retractThread,
   restoreThread,
 };

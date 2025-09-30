@@ -17,6 +17,7 @@ function DashboardView({
   deletedSkeets,
   onEditSkeet,
   onDeleteSkeet,
+  onRetractSkeet,
   onRestoreSkeet,
   onPermanentDeleteSkeet,
   onFetchReactions,
@@ -213,6 +214,7 @@ function DashboardView({
               onShowSkeetContent={onShowSkeetContent}
               onShowRepliesContent={onShowRepliesContent}
               onFetchReactions={onFetchReactions}
+              onRetract={onRetractSkeet}
               reactionStats={reactionStats}
               platformLabels={platformLabels}
               formatTime={formatTime}

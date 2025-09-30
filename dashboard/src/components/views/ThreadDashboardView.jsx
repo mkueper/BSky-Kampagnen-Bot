@@ -26,6 +26,7 @@ function ThreadDashboardView({
   onDeleteThread,
   onRestoreThread,
   onDestroyThread,
+  onRetractThread,
 }) {
   const [activeTab, setActiveTab] = useState("planned");
   const stats = useMemo(() => {
@@ -156,6 +157,7 @@ function ThreadDashboardView({
               onReload={onReload}
               onEditThread={onEditThread}
               onDeleteThread={onDeleteThread}
+              onRetractThread={onRetractThread}
               mode="default"
             />
           ) : activeTab === "published" ? (
@@ -166,6 +168,7 @@ function ThreadDashboardView({
               onReload={onReload}
               onEditThread={onEditThread}
               onDeleteThread={onDeleteThread}
+              onRetractThread={onRetractThread}
               mode="default"
             />
           ) : trashedThreads.length > 0 ? (

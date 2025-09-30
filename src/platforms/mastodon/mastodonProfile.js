@@ -1,6 +1,25 @@
 const { countGraphemesSync } = require("../../utils/graphemes");
 const { createClient } = require("../../services/mastodonClient");
 
+function resolveStatusId(input) {
+  if (!input) {
+    return null;
+  }
+
+  if (input.statusId) {
+    return String(input.statusId);
+  }
+
+  if (input.uri) {
+    const match = String(input.uri).match(/\/([A-Za-z0-9]+)(?:$|[/?#])/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
 /**
  * Plattformprofil für Mastodon.
  *
@@ -83,6 +102,21 @@ const mastodonProfile = {
       postedAt: new Date(),
       raw: res.data,
     };
+  },
+
+  async delete(payload, env) {
+    if (!env?.apiUrl || !env?.accessToken) {
+      throw new Error("Mastodon-Env unvollständig (apiUrl, accessToken erforderlich).");
+    }
+
+    const statusId = resolveStatusId(payload);
+    if (!statusId) {
+      throw new Error('Status-ID zum Löschen fehlt.');
+    }
+
+    const client = createClient(env);
+    await client.delete(`statuses/${statusId}`);
+    return { statusId };
   },
 };
 

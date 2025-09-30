@@ -10,27 +10,14 @@ const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("../config");
 const { Skeet, Thread, ThreadSkeet } = require("../models");
-const { env } = require("../env");
-const { setupPlatforms } = require("../platforms/setup");
 const { sendPost } = require("./postService");
 const settingsService = require("./settingsService");
+const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 
 const MAX_BATCH_SIZE = 10;
 const RETRY_DELAY_MS = 60 * 1000;
-let platformsReady = false;
 let task = null;
 let lastScheduleConfig = null;
-
-/**
- * Registriert Plattformprofile lazy, damit Tests/CLI-Läufe ohne Scheduler
- * keine Netzwerk-Initialisierung benötigen.
- */
-function ensurePlatforms() {
-  if (!platformsReady) {
-    setupPlatforms();
-    platformsReady = true;
-  }
-}
 
 /**
  * Normalisiert beliebige persistierte Plattformlisten (Array oder JSON-String)
@@ -65,39 +52,6 @@ function normalizeTargetPlatforms(raw) {
 function getTargetPlatforms(skeet) {
   const normalized = normalizeTargetPlatforms(skeet?.targetPlatforms);
   return normalized.length > 0 ? normalized : ["bluesky"];
-}
-
-/**
- * Mapped Plattform-IDs auf die passenden Credentials aus `env`.
- */
-function resolvePlatformEnv(platformId) {
-  switch (platformId) {
-    case "bluesky":
-      return env.bluesky;
-    case "mastodon":
-      return env.mastodon;
-    default:
-      return null;
-  }
-}
-
-/**
- * Prüft, ob notwendige Secrets für die Plattform vorhanden sind.
- */
-function validatePlatformEnv(platformId, platformEnv) {
-  if (platformId === "bluesky") {
-    if (!platformEnv?.identifier || !platformEnv?.appPassword) {
-      return "Bluesky-Credentials fehlen.";
-    }
-  }
-
-  if (platformId === "mastodon") {
-    if (!platformEnv?.apiUrl || !platformEnv?.accessToken) {
-      return "Mastodon-Credentials fehlen.";
-    }
-  }
-
-  return null;
 }
 
 /**
@@ -437,6 +391,7 @@ async function dispatchThread(thread) {
             sequence: segment.sequence,
             status: "sent",
             uri: res.uri || "",
+            statusId: res.statusId || null,
             postedAt: postedAt.toISOString(),
           });
 
