@@ -8,6 +8,8 @@ const STATUS_STYLES = {
   pending: "border-border bg-background-subtle text-foreground-muted",
   sent: "border-transparent bg-emerald-500/90 text-white",
   failed: "border-transparent bg-destructive/90 text-destructive-foreground",
+  partial: "border-transparent bg-amber-500/90 text-black",
+  deleted: "border-border bg-background text-foreground-muted",
 };
 
 const PLATFORM_ACCENTS = {
@@ -38,6 +40,24 @@ function getPlatformSummary(skeet) {
         id: platformId,
         status: "sent",
         title: `${platformId}: gesendet${attempts}${uri}${timestamp}`,
+      };
+    }
+
+    if (entry.status === "deleted") {
+      const deletedAt = entry.deletedAt ? new Date(entry.deletedAt).toLocaleString() : "";
+      return {
+        id: platformId,
+        status: "deleted",
+        title: `${platformId}: entfernt${deletedAt ? `\n${deletedAt}` : ""}`.trim(),
+      };
+    }
+
+    if (entry.status === "partial") {
+      const error = entry.error ? `\n${entry.error}` : "";
+      return {
+        id: platformId,
+        status: "partial",
+        title: `${platformId}: teilweise entfernt${error}`.trim(),
       };
     }
 

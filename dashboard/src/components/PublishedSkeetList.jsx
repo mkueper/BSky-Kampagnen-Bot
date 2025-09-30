@@ -10,6 +10,7 @@ function PublishedSkeetList({
   onShowSkeetContent,
   onShowRepliesContent,
   onFetchReactions,
+  onRetract,
   reactionStats,
   platformLabels,
   formatTime,
@@ -50,6 +51,9 @@ function PublishedSkeetList({
         const reactions = { ...storedReactions, ...fetchedReactions };
         const reactionErrors = reactionStats[skeet.id]?.errors;
         const replyError = replyErrors[skeet.id];
+        const hasSentPlatforms = Object.values(skeet.platformResults || {}).some((entry) => entry && entry.status === 'sent');
+        const canRetract = typeof onRetract === 'function' && (skeet.postUri || hasSentPlatforms);
+        const canFetchReactions = Boolean(skeet.postUri || hasSentPlatforms);
 
         return (
           <article
@@ -133,10 +137,18 @@ function PublishedSkeetList({
                     <button
                       type="button"
                       onClick={() => onFetchReactions(skeet.id)}
-                      disabled={isFetchingReactions}
+                      disabled={!canFetchReactions || isFetchingReactions}
                       className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRetract?.(skeet)}
+                      disabled={!canRetract}
+                      className="rounded-xl border border-amber-400 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Entfernen
                     </button>
                     <p className="text-sm text-foreground-muted">
                       Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>

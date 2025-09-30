@@ -51,6 +51,19 @@ async function deleteSkeet(req, res) {
   }
 }
 
+async function retractSkeet(req, res) {
+  const { id } = req.params;
+  try {
+    const platforms = Array.isArray(req.body?.platforms) ? req.body.platforms : undefined;
+    const result = await skeetService.retractSkeet(id, { platforms });
+    res.json(result);
+  } catch (error) {
+    const message = error?.message || 'Fehler beim Entfernen des Skeets.';
+    const status = error?.status || (message.includes('nicht gefunden') ? 404 : message.includes('keine veröffentlichten Plattformdaten') ? 400 : 500);
+    res.status(status).json({ error: message });
+  }
+}
+
 async function restoreSkeet(req, res) {
   const { id } = req.params;
   try {
@@ -71,5 +84,6 @@ module.exports = {
   createSkeet,
   updateSkeet,
   deleteSkeet,
+  retractSkeet,
   restoreSkeet,
 };
