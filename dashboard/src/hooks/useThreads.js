@@ -50,11 +50,28 @@ function normalizeThread(raw) {
   };
 }
 
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+
+function resolveEnvMs(value, fallback) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return parsed;
+  }
+  return fallback;
+}
+
+const POLL_INTERVAL_MS = resolveEnvMs(import.meta.env.VITE_THREAD_POLL_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS);
+
+function shouldKeepPolling(thread) {
+  return Boolean(thread && thread.status === "publishing");
+}
+
 export function useThreads(options = {}) {
   const { status } = options;
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const loadThreads = useCallback(async () => {
     setLoading(true);
@@ -75,6 +92,7 @@ export function useThreads(options = {}) {
       const data = await res.json();
       const normalized = Array.isArray(data) ? data.map(normalizeThread) : [];
       setThreads(normalized);
+      setAutoRefresh(normalized.some(shouldKeepPolling));
     } catch (err) {
       console.error("Thread-Ladevorgang fehlgeschlagen:", err);
       setError(err);
@@ -86,6 +104,18 @@ export function useThreads(options = {}) {
   useEffect(() => {
     loadThreads();
   }, [loadThreads]);
+
+  useEffect(() => {
+    if (!autoRefresh) {
+      return undefined;
+    }
+
+    const interval = setInterval(() => {
+      loadThreads();
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, loadThreads]);
 
   return {
     threads,

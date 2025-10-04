@@ -140,6 +140,7 @@ function ThreadOverview({
         const platformResults = metadata.platformResults && typeof metadata.platformResults === 'object' ? metadata.platformResults : {};
         const hasSentPlatforms = Object.values(platformResults).some((entry) => entry && entry.status === 'sent');
         const canRetract = !isDeletedMode && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
+        const canEdit = !isDeletedMode && typeof onEditThread === 'function' && thread.status !== 'published';
 
         return (
           <article key={thread.id} className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
@@ -196,13 +197,15 @@ function ThreadOverview({
                       </>
                     ) : (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => onEditThread?.(thread)}
-                          className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-                        >
-                          Bearbeiten
-                        </button>
+                        {canEdit ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditThread?.(thread)}
+                            className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                          >
+                            Bearbeiten
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => onRetractThread?.(thread)}

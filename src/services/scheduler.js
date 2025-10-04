@@ -351,6 +351,7 @@ async function dispatchThread(thread) {
     : {};
 
   const segmentPrimaryInfo = new Array(current.segments.length).fill(null);
+  const platformThreadState = {};
   let overallSuccess = true;
 
   for (const platformId of normalizedPlatforms) {
