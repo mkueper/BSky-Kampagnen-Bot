@@ -39,6 +39,7 @@ app.delete("/api/skeets/:id", skeetController.deleteSkeet);
 app.post("/api/skeets/:id/retract", skeetController.retractSkeet);
 app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
 
+app.get("/api/threads/export", importExportController.exportThreads);
 app.get("/api/threads", threadController.listThreads);
 app.get("/api/threads/:id", threadController.getThread);
 app.post("/api/threads", threadController.createThread);
@@ -46,6 +47,7 @@ app.patch("/api/threads/:id", threadController.updateThread);
 app.delete("/api/threads/:id", threadController.deleteThread);
 app.post("/api/threads/:id/retract", threadController.retractThread);
 app.post("/api/threads/:id/restore", threadController.restoreThread);
+app.post("/api/threads/import", importExportController.importThreads);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
 app.post("/api/skeets/import", importExportController.importPlannedSkeets);

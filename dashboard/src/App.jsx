@@ -28,6 +28,51 @@ const PLATFORM_LABELS = {
   mastodon: "Mastodon",
 };
 
+const JSON_FILE_PICKER_OPTIONS = {
+  types: [
+    {
+      description: "JSON",
+      accept: { "application/json": [".json"] },
+    },
+  ],
+};
+
+async function saveBlobWithPicker(blob, suggestedName) {
+  if (typeof window === "undefined") {
+    throw new Error("Speichern ist nur im Browser verfügbar.");
+  }
+
+  if (typeof window.showSaveFilePicker === "function") {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        ...JSON_FILE_PICKER_OPTIONS,
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return { filename: handle.name || suggestedName, method: "picker" };
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        const abortError = new Error("Speichern abgebrochen");
+        abortError.code = "SAVE_ABORTED";
+        throw abortError;
+      }
+      console.warn("showSaveFilePicker fehlgeschlagen, fallback auf Download-Link:", error);
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = suggestedName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(url);
+  return { filename: suggestedName, method: "download" };
+}
+
 const NAV_ITEMS = [
   { id: "overview", label: "Übersicht", icon: ViewHorizontalIcon },
   {
@@ -174,36 +219,42 @@ function App() {
 
   const handleExport = async () => {
     if (typeof window === "undefined") return;
+
+    const isThreadContext = activeView.startsWith("threads");
+    const endpoint = isThreadContext ? "/api/threads/export" : "/api/skeets/export";
+    const entityLabel = isThreadContext ? "Threads" : "Skeets";
+    const fallbackPrefix = isThreadContext ? "threads" : "skeets";
+
     setExporting(true);
     try {
-      const res = await fetch("/api/skeets/export");
+      const res = await fetch(endpoint);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Fehler beim Export der Skeets.");
+        throw new Error(data.error || `Fehler beim Export der ${entityLabel}.`);
       }
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="?([^";]+)"?/i);
-      const fallback = `skeets-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      const fallback = `${fallbackPrefix}-export-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
       const filename = match ? match[1] : fallback;
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const saveResult = await saveBlobWithPicker(blob, filename);
       toast.success({
-        title: "Export bereit",
-        description: `Datei ${filename} wurde heruntergeladen.`,
+        title: `${entityLabel}-Export bereit`,
+        description: `Datei ${saveResult.filename} wurde gespeichert.`,
       });
     } catch (error) {
-      console.error("Fehler beim Export der Skeets:", error);
-      toast.error({
-        title: "Export fehlgeschlagen",
-        description: error.message || "Fehler beim Export der Skeets.",
-      });
+      if (error?.code === "SAVE_ABORTED") {
+        toast.info({
+          title: "Export abgebrochen",
+          description: "Der Speichervorgang wurde abgebrochen.",
+        });
+      } else {
+        console.error(`Fehler beim Export der ${entityLabel}:`, error);
+        toast.error({
+          title: `${entityLabel}-Export fehlgeschlagen`,
+          description: error?.message || `Fehler beim Export der ${entityLabel}.`,
+        });
+      }
     } finally {
       setExporting(false);
     }
@@ -226,25 +277,33 @@ function App() {
         console.error("Ungültiges JSON beim Import der Skeets:", error_);
         throw new Error("Die ausgewählte Datei enthält kein gültiges JSON.");
       }
-      const res = await fetch("/api/skeets/import", {
+      const threadContext = activeView.startsWith("threads");
+      const endpoint = threadContext ? "/api/threads/import" : "/api/skeets/import";
+      const entityLabel = threadContext ? "Threads" : "Skeets";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Fehler beim Import der Skeets.");
+        throw new Error(data.error || `Fehler beim Import der ${entityLabel}.`);
       }
-      await loadSkeets();
+      if (threadContext) {
+        await reloadThreads();
+      } else {
+        await loadSkeets();
+      }
       toast.success({
-        title: "Import abgeschlossen",
-        description: "Alle Skeets wurden erfolgreich importiert.",
+        title: `${entityLabel}-Import abgeschlossen`,
+        description: `Alle ${entityLabel} wurden erfolgreich importiert.`,
       });
     } catch (error) {
-      console.error("Fehler beim Import der Skeets:", error);
+      console.error("Fehler beim Import:", error);
       toast.error({
         title: "Import fehlgeschlagen",
-        description: error.message || "Fehler beim Import der Skeets.",
+        description: error.message || "Fehler beim Import.",
       });
     } finally {
       setImporting(false);
@@ -548,6 +607,18 @@ function App() {
   const headerCaption = HEADER_CAPTIONS[activeView] ?? "";
   const headerTitle = HEADER_TITLES[activeView] ?? NAV_ITEMS.find((item) => item.id === activeView)?.label ?? "";
 
+  const isThreadContext = activeView.startsWith("threads");
+  const exportButtonLabel = exporting
+    ? "Export…"
+    : isThreadContext
+      ? "Threads exportieren"
+      : "Skeets exportieren";
+  const importButtonLabel = importing
+    ? "Import…"
+    : isThreadContext
+      ? "Threads importieren"
+      : "Skeets importieren";
+
   const headerActions = (
     <>
       <button
@@ -567,7 +638,7 @@ function App() {
         className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
       >
         <DownloadIcon className="h-4 w-4" />
-        {exporting ? "Export…" : "Export"}
+        {exportButtonLabel}
       </button>
       <button
         type="button"
@@ -576,7 +647,7 @@ function App() {
         className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
       >
         <UploadIcon className="h-4 w-4" />
-        {importing ? "Import…" : "Import"}
+        {importButtonLabel}
       </button>
       <input
         ref={importInputRef}

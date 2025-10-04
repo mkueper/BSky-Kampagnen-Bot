@@ -197,7 +197,7 @@ function ThreadForm({ initialThread = null, loading = false, onThreadSaved, onCa
   const previewSegments = useMemo(() => {
     return effectiveSegments.map((segment, index) => {
       const trimmedEnd = segment.replace(/\s+$/u, "");
-      const numbering = appendNumbering ? `\n\n>${index + 1}/${totalSegments}` : "";
+      const numbering = appendNumbering ? `\n\n${index + 1}/${totalSegments}` : "";
       const formattedContent = appendNumbering ? `${trimmedEnd}${numbering}` : trimmedEnd;
       const characterCount = formattedContent.length;
       const isEmpty = trimmedEnd.trim().length === 0;
