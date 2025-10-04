@@ -63,7 +63,8 @@ function resolveEnvMs(value, fallback) {
 const POLL_INTERVAL_MS = resolveEnvMs(import.meta.env.VITE_THREAD_POLL_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS);
 
 function shouldKeepPolling(thread) {
-  return Boolean(thread && thread.status === "publishing");
+ // return Boolean(thread && thread.status === "publishing");
+ return false;
 }
 
 export function useThreads(options = {}) {
