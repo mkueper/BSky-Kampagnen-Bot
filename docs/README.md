@@ -34,6 +34,12 @@ Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`
 
 ---
 
+## Nutzung des Dashboards
+
+- **[Frontend-Benutzerhandbuch](./frontend-user-guide.md)** – Schritt-für-Schritt-Anleitung für Redakteur:innen (Anmeldung, Skeets & Threads, Import/Export, Scheduler).
+
+---
+
 ### Hinweis zu Diagrammen
 
 Die Mermaid-Diagramme lassen sich direkt in GitHub anzeigen. Für Anpassungen empfiehlt sich ein Editor wie [https://mermaid.live](https://mermaid.live/) oder ein kompatibles Diagramm-Tool.

@@ -465,7 +465,7 @@ function ThreadForm ({
                   checked={appendNumbering}
                   onChange={event => setAppendNumbering(event.target.checked)}
                 />
-                Automatische Nummerierung (`&gt;1/x`) anhängen
+                Automatische Nummerierung (`1/x`) anhängen
               </label>
 
               <label className='block text-sm font-medium'>

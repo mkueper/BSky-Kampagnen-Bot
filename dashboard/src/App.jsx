@@ -28,6 +28,7 @@ const PLATFORM_LABELS = {
   mastodon: "Mastodon",
 };
 
+// Einheitliche Picker-Konfiguration für Export-Dateien
 const JSON_FILE_PICKER_OPTIONS = {
   types: [
     {
@@ -37,6 +38,10 @@ const JSON_FILE_PICKER_OPTIONS = {
   ],
 };
 
+/**
+ * Speichert einen Blob bevorzugt über das native File-Save-API und fällt bei
+ * fehlender Unterstützung auf einen klassischen Download-Link zurück.
+ */
 async function saveBlobWithPicker(blob, suggestedName) {
   if (typeof window === "undefined") {
     throw new Error("Speichern ist nur im Browser verfügbar.");
@@ -277,6 +282,7 @@ function App() {
         console.error("Ungültiges JSON beim Import der Skeets:", error_);
         throw new Error("Die ausgewählte Datei enthält kein gültiges JSON.");
       }
+      // Threads nutzen denselben Dialog, werden aber an ein eigenes Endpoint geschickt.
       const threadContext = activeView.startsWith("threads");
       const endpoint = threadContext ? "/api/threads/import" : "/api/skeets/import";
       const entityLabel = threadContext ? "Threads" : "Skeets";

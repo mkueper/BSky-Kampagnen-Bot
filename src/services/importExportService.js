@@ -1,35 +1,6 @@
 const { Skeet } = require('../models');
 const threadService = require('./threadService');
 const skeetService = require('./skeetService');
-const config = require('../config');
-
-const TIME_ZONE = config.TIME_ZONE || 'UTC';
-const localDateTimeFormatter = new Intl.DateTimeFormat('sv-SE', {
-  timeZone: TIME_ZONE,
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
-
-function formatLocalDateTime(value) {
-  if (!value) {
-    return null;
-  }
-
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const parts = localDateTimeFormatter.formatToParts(date);
-  const getPart = (type) => parts.find((part) => part.type === type)?.value || '00';
-
-  return `${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour')}:${getPart('minute')}`;
-}
-
 async function exportPlannedSkeets() {
   const skeets = await Skeet.findAll({
     where: { postUri: null },
@@ -132,7 +103,6 @@ async function exportThreads(options = {}) {
     return {
       title: thread.title || null,
       scheduledAt: scheduledAtValue ? scheduledAtValue.toISOString() : null,
-      scheduledAtLocal: formatLocalDateTime(scheduledAtValue),
       status: thread.status,
       targetPlatforms: Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
         ? thread.targetPlatforms
