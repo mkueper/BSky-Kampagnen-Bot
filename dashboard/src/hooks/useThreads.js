@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function parseJson(value, fallback) {
   if (value == null) {
@@ -63,8 +63,10 @@ function resolveEnvMs(value, fallback) {
 const POLL_INTERVAL_MS = resolveEnvMs(import.meta.env.VITE_THREAD_POLL_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS);
 
 function shouldKeepPolling(thread) {
- // return Boolean(thread && thread.status === "publishing");
- return false;
+  // Automatisches Polling ist momentan komplett deaktiviert.
+  // setAutoRefresh() wird dadurch immer false – ein Reload passiert nur manuell.
+  void thread;
+  return false;
 }
 
 export function useThreads(options = {}) {
@@ -73,6 +75,8 @@ export function useThreads(options = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [pendingFollowUp, setPendingFollowUp] = useState(false);
+  const previousStatusesRef = useRef(new Map());
 
   const loadThreads = useCallback(async () => {
     setLoading(true);
@@ -94,6 +98,21 @@ export function useThreads(options = {}) {
       const normalized = Array.isArray(data) ? data.map(normalizeThread) : [];
       setThreads(normalized);
       setAutoRefresh(normalized.some(shouldKeepPolling));
+
+      let needsFollowUpReload = false;
+      const nextStatuses = new Map();
+      for (const thread of normalized) {
+        const previousStatus = previousStatusesRef.current.get(thread.id);
+        if (previousStatus === "publishing" && thread.status === "published") {
+          needsFollowUpReload = true;
+        }
+        nextStatuses.set(thread.id, thread.status);
+      }
+      previousStatusesRef.current = nextStatuses;
+
+      if (needsFollowUpReload) {
+        setPendingFollowUp(true);
+      }
     } catch (err) {
       console.error("Thread-Ladevorgang fehlgeschlagen:", err);
       setError(err);
@@ -117,6 +136,27 @@ export function useThreads(options = {}) {
 
     return () => clearInterval(interval);
   }, [autoRefresh, loadThreads]);
+
+  useEffect(() => {
+    if (!pendingFollowUp) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadThreads();
+      } finally {
+        if (!cancelled) {
+          setPendingFollowUp(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingFollowUp, loadThreads]);
 
   return {
     threads,
