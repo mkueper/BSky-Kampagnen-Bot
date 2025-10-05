@@ -11,6 +11,8 @@ import {
   ViewHorizontalIcon,
 } from "@radix-ui/react-icons";
 import AppLayout from "./components/layout/AppLayout";
+import Button from "./components/ui/Button";
+import Card from "./components/ui/Card";
 import MainOverviewView from "./components/views/MainOverviewView";
 import DashboardView from "./components/views/DashboardView";
 import ThreadDashboardView from "./components/views/ThreadDashboardView";
@@ -613,21 +615,18 @@ function App() {
 
   const handleFormSaved = async () => {
     setEditingSkeet(null);
-    try {
-      await refreshSkeetsNow({ force: true });
-    } finally {
-      setActiveView("skeets-overview");
-      setActiveDashboardTab("planned");
-    }
+    // Zuerst in die Übersicht wechseln, dann gezielt refreshen
+    setActiveView("skeets-overview");
+    setActiveDashboardTab("planned");
+    await new Promise((r) => setTimeout(r, 0));
+    await refreshSkeetsNow({ force: true });
   };
 
   const handleThreadSaved = async () => {
     setEditingThreadId(null);
-    try {
-      await refreshThreadsNow({ force: true });
-    } finally {
-      setActiveView("threads-overview");
-    }
+    setActiveView("threads-overview");
+    await new Promise((r) => setTimeout(r, 0));
+    await refreshThreadsNow({ force: true });
   };
 
   const handleThreadCancel = () => {
@@ -665,34 +664,24 @@ function App() {
 
   const headerActions = (
     <>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={handleToggleTheme}
-        className="rounded-2xl border border-border bg-background-subtle p-2 text-foreground transition hover:bg-background"
         aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
         title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+        className="p-2"
       >
         <ThemeIcon className="h-4 w-4" />
         <span className="sr-only">Aktuelles Theme: {currentThemeConfig?.label}</span>
-      </button>
-      <button
-        type="button"
-        onClick={handleExport}
-        disabled={exporting}
-        className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm font-medium text-foreground-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
-      >
+      </Button>
+      <Button variant="secondary" onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2">
         <DownloadIcon className="h-4 w-4" />
         {exportButtonLabel}
-      </button>
-      <button
-        type="button"
-        onClick={handleImportClick}
-        disabled={importing}
-        className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
-      >
+      </Button>
+      <Button variant="primary" onClick={handleImportClick} disabled={importing} className="inline-flex items-center gap-2">
         <UploadIcon className="h-4 w-4" />
         {importButtonLabel}
-      </button>
+      </Button>
       <input
         ref={importInputRef}
         type="file"
@@ -757,13 +746,13 @@ function App() {
     content = <ConfigPanel />;
   } else if (activeView === "skeets-plan") {
     content = (
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+      <Card padding="p-6 lg:p-10">
         <SkeetForm onSkeetSaved={handleFormSaved} editingSkeet={editingSkeet} onCancelEdit={handleCancelEdit} />
-      </section>
+      </Card>
     );
   } else if (activeView === "threads-plan") {
     content = (
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+      <Card padding="p-6 lg:p-10">
         <ThreadForm
           key={editingThreadId || "new"}
           initialThread={editingThreadId ? editingThread : null}
@@ -771,7 +760,7 @@ function App() {
           onThreadSaved={handleThreadSaved}
           onCancel={editingThreadId ? handleThreadCancel : undefined}
         />
-      </section>
+      </Card>
     );
   }
 

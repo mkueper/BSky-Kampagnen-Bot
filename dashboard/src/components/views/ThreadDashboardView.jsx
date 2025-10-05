@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
+import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 import ThreadOverview from "../ThreadOverview";
 
 function formatDateTime(value) {
@@ -50,10 +51,27 @@ function ThreadDashboardView({
     return items.filter((thread) => thread.status !== "deleted" && (thread.status === "scheduled" || thread.status === "draft"));
   }, [threads]);
 
+  const [publishedSortOrder, setPublishedSortOrder] = useState("desc");
   const publishedThreads = useMemo(() => {
-    const items = Array.isArray(threads) ? threads : [];
-    return items.filter((thread) => thread.status === "published");
-  }, [threads]);
+    const items = (Array.isArray(threads) ? threads : []).filter((t) => t.status === "published");
+    const resolvePublishedTime = (thread) => {
+      const meta = thread?.metadata || {};
+      // Bevorzugt lastSuccessAt, sonst lastDispatchAt, dann erstes Segment.postedAt, fallback updatedAt
+      const candidates = [meta.lastSuccessAt, meta.lastDispatchAt, thread?.segments?.[0]?.postedAt, thread?.updatedAt];
+      for (const value of candidates) {
+        if (!value) continue;
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) return d.getTime();
+      }
+      return 0;
+    };
+    items.sort((a, b) => {
+      const ta = resolvePublishedTime(a);
+      const tb = resolvePublishedTime(b);
+      return publishedSortOrder === "asc" ? ta - tb : tb - ta;
+    });
+    return items;
+  }, [threads, publishedSortOrder]);
 
   const trashedThreads = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
@@ -145,6 +163,35 @@ function ThreadDashboardView({
                 ))}
               </Tabs.List>
             </Tabs.Root>
+            {activeTab === "published" ? (
+              <div className="self-start rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
+                <span className="sr-only">Sortierung veröffentlichter Threads</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPublishedSortOrder("desc")}
+                    className={`rounded-full p-1 transition ${
+                      publishedSortOrder === "desc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
+                    }`}
+                    aria-pressed={publishedSortOrder === "desc"}
+                    title="Neu zuerst"
+                  >
+                    <ArrowDownIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPublishedSortOrder("asc")}
+                    className={`rounded-full p-1 transition ${
+                      publishedSortOrder === "asc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
+                    }`}
+                    aria-pressed={publishedSortOrder === "asc"}
+                    title="Alt zuerst"
+                  >
+                    <ArrowUpIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 

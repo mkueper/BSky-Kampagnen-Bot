@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useToast } from "../hooks/useToast";
+import Button from "./ui/Button";
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -350,20 +351,13 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
 
       <div className="flex flex-wrap justify-end gap-3">
         {isEditing && (
-          <button
-            type="button"
-            onClick={() => onCancelEdit && onCancelEdit()}
-            className="rounded-2xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-          >
+          <Button type="button" variant="secondary" onClick={() => onCancelEdit && onCancelEdit()}>
             Abbrechen
-          </button>
+          </Button>
         )}
-        <button
-          type="submit"
-          className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card"
-        >
+        <Button type="submit" variant="primary">
           {isEditing ? "Skeet aktualisieren" : "Skeet speichern"}
-        </button>
+        </Button>
       </div>
     </form>
   );

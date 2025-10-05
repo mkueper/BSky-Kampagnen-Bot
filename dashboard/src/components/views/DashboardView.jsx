@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
+import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 import PlannedSkeetList from "../PlannedSkeetList";
 import PublishedSkeetList from "../PublishedSkeetList";
 import DeletedSkeetList from "../DeletedSkeetList";
@@ -166,28 +167,30 @@ function DashboardView({
               </Tabs.List>
             </Tabs.Root>
             {activeTab === "published" ? (
-              <div className="self-start rounded-full border border-border bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted">
+              <div className="self-start rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
                 <span className="sr-only">Sortierung veröffentlichter Skeets</span>
-                <div className="mt-1 flex gap-1 text-[0.75rem] normal-case tracking-normal text-foreground">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setPublishedSortOrder("desc")}
-                    className={`rounded-full px-3 py-1 transition ${
-                      publishedSortOrder === "desc" ? "bg-background shadow-soft" : "text-foreground-muted hover:text-foreground"
+                    className={`rounded-full p-1 transition ${
+                      publishedSortOrder === "desc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
                     }`}
                     aria-pressed={publishedSortOrder === "desc"}
+                    title="Neu zuerst"
                   >
-                    Neu zuerst
+                    <ArrowDownIcon className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setPublishedSortOrder("asc")}
-                    className={`rounded-full px-3 py-1 transition ${
-                      publishedSortOrder === "asc" ? "bg-background shadow-soft" : "text-foreground-muted hover:text-foreground"
+                    className={`rounded-full p-1 transition ${
+                      publishedSortOrder === "asc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
                     }`}
                     aria-pressed={publishedSortOrder === "asc"}
+                    title="Alt zuerst"
                   >
-                    Alt zuerst
+                    <ArrowUpIcon className="h-4 w-4" />
                   </button>
                 </div>
               </div>
