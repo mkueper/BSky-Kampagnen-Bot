@@ -48,6 +48,7 @@ app.patch("/api/threads/:id", threadController.updateThread);
 app.delete("/api/threads/:id", threadController.deleteThread);
 app.post("/api/threads/:id/retract", threadController.retractThread);
 app.post("/api/threads/:id/restore", threadController.restoreThread);
+app.post("/api/threads/:id/engagement/refresh", threadController.refreshEngagement);
 app.post("/api/threads/import", importExportController.importThreads);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);

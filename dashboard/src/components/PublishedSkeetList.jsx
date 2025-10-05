@@ -1,4 +1,6 @@
 import PlatformBadges from "./PlatformBadges";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
 
 function PublishedSkeetList({
   skeets,
@@ -56,10 +58,7 @@ function PublishedSkeetList({
         const canFetchReactions = Boolean(skeet.postUri || hasSentPlatforms);
 
         return (
-          <article
-            key={skeet.id}
-            className="rounded-2xl border border-border bg-background-subtle/60 shadow-soft transition hover:-translate-y-0.5 hover:bg-background-elevated hover:shadow-card"
-          >
+          <Card key={skeet.id}>
             <div className="flex items-center gap-2 border-b border-border-muted px-5 pt-4">
               <button
                 type="button"
@@ -134,22 +133,20 @@ function PublishedSkeetList({
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
                       onClick={() => onFetchReactions(skeet.id)}
                       disabled={!canFetchReactions || isFetchingReactions}
-                      className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="warning"
                       onClick={() => onRetract?.(skeet)}
                       disabled={!canRetract}
-                      className="rounded-xl border border-amber-400 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Entfernen
-                    </button>
+                    </Button>
                     <p className="text-sm text-foreground-muted">
                       Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
                     </p>
@@ -175,7 +172,7 @@ function PublishedSkeetList({
                 </div>
               )}
             </div>
-          </article>
+          </Card>
         );
       })}
     </div>

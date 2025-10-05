@@ -397,7 +397,24 @@ function App() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Fehler beim Reaktivieren des Skeets.");
       }
-      await refreshSkeetsNow();
+      const restored = await res.json().catch(() => null);
+      await refreshSkeetsNow({ force: true });
+      // Navigationslogik: Wenn noch Termin vorhanden, nur auf "Geplant" wechseln,
+      // sonst direkt zur Karte scrollen.
+      setActiveView("skeets-overview");
+      setActiveDashboardTab("planned");
+      const targetId = restored?.id || skeet.id;
+      const hasSchedule = Boolean(restored?.scheduledAt);
+      if (!hasSchedule) {
+        setTimeout(() => {
+          try {
+            const el = document.getElementById(`skeet-${targetId}`);
+            if (el && typeof el.scrollIntoView === "function") {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } catch {}
+        }, 80);
+      }
       toast.success({
         title: "Skeet reaktiviert",
         description: "Der Skeet wurde wiederhergestellt und erscheint erneut in der Übersicht.",
@@ -530,9 +547,23 @@ function App() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Fehler beim Wiederherstellen des Threads.");
       }
-
-      await refreshThreadsNow();
-
+      const restored = await res.json().catch(() => null);
+      await refreshThreadsNow({ force: true });
+      // Navigationslogik: Wenn noch Termin vorhanden, nur auf "Geplant" wechseln,
+      // sonst direkt zur Karte scrollen.
+      setActiveView("threads-overview");
+      const targetId = restored?.id || thread.id;
+      const hasSchedule = Boolean(restored?.scheduledAt);
+      if (!hasSchedule) {
+        setTimeout(() => {
+          try {
+            const el = document.getElementById(`thread-${targetId}`);
+            if (el && typeof el.scrollIntoView === "function") {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } catch {}
+        }, 80);
+      }
       toast.success({
         title: "Thread reaktiviert",
         description: "Der Thread wurde wiederhergestellt.",
@@ -580,17 +611,23 @@ function App() {
     }
   };
 
-  const handleFormSaved = () => {
+  const handleFormSaved = async () => {
     setEditingSkeet(null);
-    refreshSkeetsNow();
-    setActiveView("skeets-overview");
-    setActiveDashboardTab("planned");
+    try {
+      await refreshSkeetsNow({ force: true });
+    } finally {
+      setActiveView("skeets-overview");
+      setActiveDashboardTab("planned");
+    }
   };
 
-  const handleThreadSaved = () => {
+  const handleThreadSaved = async () => {
     setEditingThreadId(null);
-    refreshThreadsNow();
-    setActiveView("threads-overview");
+    try {
+      await refreshThreadsNow({ force: true });
+    } finally {
+      setActiveView("threads-overview");
+    }
   };
 
   const handleThreadCancel = () => {
