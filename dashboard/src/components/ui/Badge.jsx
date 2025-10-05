@@ -1,4 +1,3 @@
-import React from "react";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");

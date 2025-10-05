@@ -563,11 +563,6 @@ function ThreadForm ({
                     <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
                       {segment.formatted || '(leer)'}
                     </pre>
-                    {/* {segment.isEmpty ? (
-                      <p className='mt-2 text-sm text-destructive'>
-                        Segment darf nicht leer sein.
-                      </p>
-                    ) : null} */}
                     {segment.exceedsLimit ? (
                       <p className='mt-1 text-sm text-destructive'>
                         Zeichenlimit überschritten.

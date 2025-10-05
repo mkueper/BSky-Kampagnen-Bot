@@ -83,6 +83,21 @@ BSky-Kampagnen-Bot/
 
 Weitere Details zu Architektur & Diagrammen findest du in `docs/README.md`.
 
+Weitere Dokumentation:
+- API Quick Reference: `docs/api.md`
+- UI‑Richtlinien und Komponenten: `docs/ui.md`
+- Frontend Benutzerhandbuch: `docs/frontend-user-guide.md`
+
+Changelog pflegen:
+- Schnell einen Bullet direkt unter „Unreleased“ einfügen:
+  - `npm run changelog:add -- "Kurzer Eintragstext"`
+- Disziplinierter Ansatz mit Tagesnotizen und Release-Zusammenfassung:
+  - Tägliche Notiz (schreibt in `changelog-unreleased.md`):
+    - `npm run changelog:note -- --section=UI "Sortier-Icons für veröffentlichte Skeets"`
+    - Sektion ist optional (`--section=Backend|UI|Docs|Tooling|…`)
+  - Release erstellen (übernimmt Unreleased-Notizen nach `CHANGELOG.md`):
+    - `npm run changelog:release -- 1.2.3`
+
 ---
 
 ## Wichtige Environment-Variablen (Auszug)
@@ -105,6 +120,21 @@ Weitere Details zu Architektur & Diagrammen findest du in `docs/README.md`.
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
 Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
+
+---
+
+## Umgebungen (dev/prod)
+
+- Dateien:
+  - `.env.dev` – Entwicklung/Test: Bluesky/Mastodon‑Zugangsdaten von leeren Test‑Accounts (keine Follower → kein Spam‑Risiko).
+  - `.env.prod` – Produktion: Zugangsdaten des echten Bot‑/User‑Kontos.
+- Aktive `.env` umschalten:
+  - `npm run switchenv:dev` → kopiert `.env.dev` nach `.env` (alte `.env` wird mit Zeitstempel gesichert)
+  - `npm run switchenv:prod` → kopiert `.env.prod` nach `.env`
+- Empfehlungen:
+  - Preflight prüft Bluesky‑Creds; Mastodon ist optional.
+  - Für Tests niemals Produktions‑Accounts verwenden (Rate‑Limits, Spam‑Risiko).
+  - Nach Umschalten ggf. Dashboard neu bauen, wenn `VITE_*` betroffen ist (`npm run build:frontend`).
 
 ---
 
@@ -160,6 +190,23 @@ Issues, Ideen und Pull Requests sind willkommen! Bitte beachte die bestehenden D
 Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 
 ---
+
+## Contributing
+
+- UI-Konsistenz
+  - Verwende gemeinsame Bausteine: `Button`, `Card`, `Badge` (siehe `docs/ui.md`).
+  - Primäre Aktionen als `Button primary`, sekundäre als `secondary`. Für reine Icons `size="icon"` nutzen.
+- Code-Qualität
+  - Lint ausführen: `npm run lint` (optional `npm run lint:fix`).
+  - Keine unbenutzten Variablen/Imports einchecken.
+- Changelog-Workflow
+  - Schnell: `npm run changelog:add -- "Kurzbeschreibung"` (landet unter „Unreleased“).
+  - Diszipliniert: Tagesnotizen sammeln und beim Release konsolidieren:
+    - Notiz: `npm run changelog:note -- --section=UI "Änderung"` (schreibt nach `changelog-unreleased.md` unter dem heutigen Datum)
+    - Release: `npm run changelog:release -- 1.2.3` (übernimmt Notizen nach `CHANGELOG.md`).
+- Environments
+  - Entwicklung/Test über `.env.dev` (Test-Accounts ohne Follower), Produktion `.env.prod` (echter Bot/User).
+  - Umschalten: `npm run switchenv:dev` / `npm run switchenv:prod`.
 
 ## Lizenz
 

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import Card from "../ui/Card";
 
 function formatDate(value) {
   if (!value) return null;
@@ -73,26 +74,26 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
   return (
     <div className="space-y-8">
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-3xl border border-border bg-background-elevated px-5 py-4 shadow-soft">
+        <Card padding="px-5 py-4">
           <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
           <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
-        </article>
-        <article className="rounded-3xl border border-border bg-background-elevated px-5 py-4 shadow-soft">
+        </Card>
+        <Card padding="px-5 py-4">
           <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
           <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
-        </article>
-        <article className="rounded-3xl border border-border bg-background-elevated px-5 py-4 shadow-soft">
+        </Card>
+        <Card padding="px-5 py-4">
           <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
           <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
-        </article>
-        <article className="rounded-3xl border border-border bg-background-elevated px-5 py-4 shadow-soft">
+        </Card>
+        <Card padding="px-5 py-4">
           <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
           <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
-        </article>
+        </Card>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+        <Card padding="p-6">
           <h3 className="text-lg font-semibold">Nächster Skeet</h3>
           {skeetStats.next ? (
             <div className="mt-3 space-y-2 text-sm">
@@ -104,9 +105,9 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
           ) : (
             <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Skeet.</p>
           )}
-        </article>
+        </Card>
 
-        <article className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+        <Card padding="p-6">
           <h3 className="text-lg font-semibold">Nächster Thread</h3>
           {threadStats.next ? (
             <div className="mt-3 space-y-2 text-sm">
@@ -120,11 +121,11 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
           ) : (
             <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Thread.</p>
           )}
-        </article>
+        </Card>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+        <Card padding="p-6">
           <h3 className="text-lg font-semibold">Bevorstehende Skeets</h3>
           {upcomingSkeets.length ? (
             <ul className="mt-3 space-y-3 text-sm">
@@ -138,9 +139,9 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
           ) : (
             <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Skeets.</p>
           )}
-        </article>
+        </Card>
 
-        <article className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+        <Card padding="p-6">
           <h3 className="text-lg font-semibold">Bevorstehende Threads</h3>
           {upcomingThreads.length ? (
             <ul className="mt-3 space-y-3 text-sm">
@@ -156,7 +157,7 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
           ) : (
             <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Threads.</p>
           )}
-        </article>
+        </Card>
       </section>
     </div>
   );

@@ -1,4 +1,3 @@
-import React from "react";
 
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -14,4 +13,3 @@ export default function Card({ className, children, hover = true, padding = "p-5
     </article>
   );
 }
-

@@ -1,4 +1,6 @@
 /.env
+/.env.prod
+/.env.dev
 /data
 /node_modules
 node_modules/
