@@ -37,6 +37,19 @@ function normalizeSkeets(skeets, appendNumbering) {
   });
 }
 
+// Lokaler Helfer: optionales Datum robust parsen
+// Akzeptiert leere Werte (-> null) und JS-parsebare Strings/Date-Objekte.
+function parseOptionalDate(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new ValidationError("scheduledAt ist kein gültiges Datum.");
+  }
+  return parsed;
+}
+
 function ensureMetadataObject(raw) {
   if (!raw) {
     return {};
@@ -156,7 +169,9 @@ async function createThread(payload = {}) {
     const thread = await Thread.create(
       {
         title,
-        scheduledAt,
+        // Wichtig: Datum parsebar machen (lokale Eingaben von <input type="datetime-local">
+        // werden hier in echte Date-Objekte umgewandelt, DB speichert in UTC.)
+        scheduledAt: parseOptionalDate(scheduledAt),
         status,
         targetPlatforms: normalizedPlatforms,
         appendNumbering,
@@ -225,7 +240,11 @@ async function updateThread(id, payload = {}) {
     await thread.update(
       {
         title: title === undefined ? thread.title : title,
-        scheduledAt: scheduledAt === undefined ? thread.scheduledAt : scheduledAt,
+        // Nur ändern, wenn Feld explizit vorhanden ist; dann robust parsen.
+        scheduledAt:
+          scheduledAt === undefined
+            ? thread.scheduledAt
+            : parseOptionalDate(scheduledAt),
         status: status === undefined ? thread.status : status,
         targetPlatforms: nextTargetPlatforms,
         appendNumbering: nextAppendNumbering,

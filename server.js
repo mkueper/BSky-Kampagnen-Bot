@@ -18,6 +18,7 @@ const skeetController = require("./src/controllers/skeetController");
 const threadController = require("./src/controllers/threadController");
 const importExportController = require("./src/controllers/importExportController");
 const engagementController = require("./src/controllers/engagementController");
+const configController = require("./src/controllers/configController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
@@ -56,6 +57,7 @@ app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
 app.get("/api/settings/scheduler", settingsController.getSchedulerSettings);
 app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
+app.get("/api/client-config", configController.getClientConfig);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
