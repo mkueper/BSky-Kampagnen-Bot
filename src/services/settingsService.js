@@ -11,6 +11,24 @@ const KEYS = {
   postBackoffMaxMs: "POST_BACKOFF_MAX_MS",
 };
 
+// Client-Polling-Konfigurationsschlüssel (werden an das Dashboard exponiert)
+const CLIENT_KEYS = {
+  threadActiveMs: "THREAD_POLL_ACTIVE_MS",
+  threadIdleMs: "THREAD_POLL_IDLE_MS",
+  threadHiddenMs: "THREAD_POLL_HIDDEN_MS",
+  threadMinimalHidden: "THREAD_POLL_MINIMAL_HIDDEN",
+
+  skeetActiveMs: "SKEET_POLL_ACTIVE_MS",
+  skeetIdleMs: "SKEET_POLL_IDLE_MS",
+  skeetHiddenMs: "SKEET_POLL_HIDDEN_MS",
+  skeetMinimalHidden: "SKEET_POLL_MINIMAL_HIDDEN",
+
+  backoffStartMs: "POLL_BACKOFF_START_MS",
+  backoffMaxMs: "POLL_BACKOFF_MAX_MS",
+  jitterRatio: "POLL_JITTER_RATIO",
+  heartbeatMs: "POLL_HEARTBEAT_MS",
+};
+
 function defaults() {
   return {
     scheduleTime: config.SCHEDULE_TIME,
@@ -33,6 +51,14 @@ function toNumber(value, fallback) {
   if (value == null) return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toBool(value, fallback) {
+  if (value == null) return fallback;
+  const s = String(value).toLowerCase().trim();
+  if (s === "1" || s === "true" || s === "yes") return true;
+  if (s === "0" || s === "false" || s === "no") return false;
+  return fallback;
 }
 
 async function getSchedulerSettings() {
@@ -116,3 +142,118 @@ module.exports = {
   saveSchedulerSettings,
   getPostingConfig,
 };
+
+// --- Client-Polling: Lesen/Speichern --------------------------------------
+
+async function getClientPollingSettings() {
+  const map = await getSettingsMap(Object.values(CLIENT_KEYS));
+  const base = require("../config").CLIENT_CONFIG?.polling || {};
+
+  const defaults = {
+    threadActiveMs: toNumber(base?.threads?.activeMs, 8000),
+    threadIdleMs: toNumber(base?.threads?.idleMs, 40000),
+    threadHiddenMs: toNumber(base?.threads?.hiddenMs, 180000),
+    threadMinimalHidden: Boolean(base?.threads?.minimalHidden),
+
+    skeetActiveMs: toNumber(base?.skeets?.activeMs, 8000),
+    skeetIdleMs: toNumber(base?.skeets?.idleMs, 40000),
+    skeetHiddenMs: toNumber(base?.skeets?.hiddenMs, 180000),
+    skeetMinimalHidden: Boolean(base?.skeets?.minimalHidden),
+
+    backoffStartMs: toNumber(base?.backoffStartMs, 10000),
+    backoffMaxMs: toNumber(base?.backoffMaxMs, 300000),
+    jitterRatio: toNumber(base?.jitterRatio, 0.15),
+    heartbeatMs: toNumber(base?.heartbeatMs, 2000),
+  };
+
+  const values = {
+    threadActiveMs: toNumber(map[CLIENT_KEYS.threadActiveMs], defaults.threadActiveMs),
+    threadIdleMs: toNumber(map[CLIENT_KEYS.threadIdleMs], defaults.threadIdleMs),
+    threadHiddenMs: toNumber(map[CLIENT_KEYS.threadHiddenMs], defaults.threadHiddenMs),
+    threadMinimalHidden: toBool(map[CLIENT_KEYS.threadMinimalHidden], defaults.threadMinimalHidden),
+
+    skeetActiveMs: toNumber(map[CLIENT_KEYS.skeetActiveMs], defaults.skeetActiveMs),
+    skeetIdleMs: toNumber(map[CLIENT_KEYS.skeetIdleMs], defaults.skeetIdleMs),
+    skeetHiddenMs: toNumber(map[CLIENT_KEYS.skeetHiddenMs], defaults.skeetHiddenMs),
+    skeetMinimalHidden: toBool(map[CLIENT_KEYS.skeetMinimalHidden], defaults.skeetMinimalHidden),
+
+    backoffStartMs: toNumber(map[CLIENT_KEYS.backoffStartMs], defaults.backoffStartMs),
+    backoffMaxMs: toNumber(map[CLIENT_KEYS.backoffMaxMs], defaults.backoffMaxMs),
+    jitterRatio: (() => {
+      const n = Number(map[CLIENT_KEYS.jitterRatio]);
+      return Number.isFinite(n) && n >= 0 && n <= 1 ? n : defaults.jitterRatio;
+    })(),
+    heartbeatMs: toNumber(map[CLIENT_KEYS.heartbeatMs], defaults.heartbeatMs),
+  };
+
+  const overrides = Object.fromEntries(
+    Object.entries(CLIENT_KEYS).map(([alias, key]) => [alias, map[key] ?? null])
+  );
+
+  return { values, defaults, overrides };
+}
+
+function validateClientPollingInput(v) {
+  const positive = [
+    v.threadActiveMs,
+    v.threadIdleMs,
+    v.threadHiddenMs,
+    v.skeetActiveMs,
+    v.skeetIdleMs,
+    v.skeetHiddenMs,
+    v.backoffStartMs,
+    v.backoffMaxMs,
+    v.heartbeatMs,
+  ];
+  if (positive.some((x) => !Number.isFinite(Number(x)) || Number(x) < 0)) {
+    throw new Error("Polling-Intervalle und Backoff-Werte müssen positive Zahlen sein.");
+  }
+  const jr = Number(v.jitterRatio);
+  if (!(Number.isFinite(jr) && jr >= 0 && jr <= 1)) {
+    throw new Error("POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.");
+  }
+}
+
+async function saveClientPollingSettings(payload = {}) {
+  const { values, defaults } = await getClientPollingSettings();
+  const next = {
+    threadActiveMs: payload.threadActiveMs ?? values.threadActiveMs,
+    threadIdleMs: payload.threadIdleMs ?? values.threadIdleMs,
+    threadHiddenMs: payload.threadHiddenMs ?? values.threadHiddenMs,
+    threadMinimalHidden: payload.threadMinimalHidden ?? values.threadMinimalHidden,
+
+    skeetActiveMs: payload.skeetActiveMs ?? values.skeetActiveMs,
+    skeetIdleMs: payload.skeetIdleMs ?? values.skeetIdleMs,
+    skeetHiddenMs: payload.skeetHiddenMs ?? values.skeetHiddenMs,
+    skeetMinimalHidden: payload.skeetMinimalHidden ?? values.skeetMinimalHidden,
+
+    backoffStartMs: payload.backoffStartMs ?? values.backoffStartMs,
+    backoffMaxMs: payload.backoffMaxMs ?? values.backoffMaxMs,
+    jitterRatio: payload.jitterRatio ?? values.jitterRatio,
+    heartbeatMs: payload.heartbeatMs ?? values.heartbeatMs,
+  };
+
+  validateClientPollingInput(next);
+
+  await Promise.all([
+    setSetting(CLIENT_KEYS.threadActiveMs, next.threadActiveMs, defaults.threadActiveMs),
+    setSetting(CLIENT_KEYS.threadIdleMs, next.threadIdleMs, defaults.threadIdleMs),
+    setSetting(CLIENT_KEYS.threadHiddenMs, next.threadHiddenMs, defaults.threadHiddenMs),
+    setSetting(CLIENT_KEYS.threadMinimalHidden, next.threadMinimalHidden, defaults.threadMinimalHidden),
+
+    setSetting(CLIENT_KEYS.skeetActiveMs, next.skeetActiveMs, defaults.skeetActiveMs),
+    setSetting(CLIENT_KEYS.skeetIdleMs, next.skeetIdleMs, defaults.skeetIdleMs),
+    setSetting(CLIENT_KEYS.skeetHiddenMs, next.skeetHiddenMs, defaults.skeetHiddenMs),
+    setSetting(CLIENT_KEYS.skeetMinimalHidden, next.skeetMinimalHidden, defaults.skeetMinimalHidden),
+
+    setSetting(CLIENT_KEYS.backoffStartMs, next.backoffStartMs, defaults.backoffStartMs),
+    setSetting(CLIENT_KEYS.backoffMaxMs, next.backoffMaxMs, defaults.backoffMaxMs),
+    setSetting(CLIENT_KEYS.jitterRatio, next.jitterRatio, defaults.jitterRatio),
+    setSetting(CLIENT_KEYS.heartbeatMs, next.heartbeatMs, defaults.heartbeatMs),
+  ]);
+
+  return getClientPollingSettings();
+}
+
+module.exports.getClientPollingSettings = getClientPollingSettings;
+module.exports.saveClientPollingSettings = saveClientPollingSettings;

@@ -1,5 +1,19 @@
+/**
+ * @file importExportController.js
+ * @summary Endpunkte für Import/Export von geplanten Skeets und Threads.
+ *
+ * Export liefert JSON-Downloads mit definiertem Schema, Import akzeptiert
+ * entsprechende JSON-Dateien und legt Einträge als Entwürfe/geplante Objekte an.
+ */
 const importExportService = require('../services/importExportService');
 
+/**
+ * GET /api/export/skeets
+ *
+ * Exportiert geplante Skeets als JSON-Datei (Attachment). Dateiname enthält Timestamp.
+ * Antwort: 200 OK (application/json, Content-Disposition: attachment)
+ * Fehler: 500 Internal Server Error
+ */
 async function exportPlannedSkeets(req, res) {
   try {
     const payload = await importExportService.exportPlannedSkeets();
@@ -12,6 +26,14 @@ async function exportPlannedSkeets(req, res) {
   }
 }
 
+/**
+ * POST /api/import/skeets
+ *
+ * Importiert geplante Skeets aus einem JSON-Body. Erwartet ein Array gültiger
+ * Skeet-Objekte gem. Import-Schema.
+ * Antwort: 201 Created mit { imported: number, ids: number[] }
+ * Fehler: 400 Bad Request (Validierung/Format)
+ */
 async function importPlannedSkeets(req, res) {
   try {
     const created = await importExportService.importPlannedSkeets(req.body);
@@ -21,6 +43,13 @@ async function importPlannedSkeets(req, res) {
   }
 }
 
+/**
+ * GET /api/export/threads[?status=scheduled|draft|published|deleted]
+ *
+ * Exportiert Threads (optional nach Status gefiltert) als JSON-Datei.
+ * Antwort: 200 OK (application/json, Attachment)
+ * Fehler: 500 Internal Server Error
+ */
 async function exportThreads(req, res) {
   try {
     const status = req.query.status ? String(req.query.status) : undefined;
@@ -35,6 +64,14 @@ async function exportThreads(req, res) {
   }
 }
 
+/**
+ * POST /api/import/threads
+ *
+ * Importiert Threads aus einem JSON-Body. Erwartet ein Array von Thread-Objekten
+ * gem. Import-Schema. Segmente werden pro Thread neu angelegt.
+ * Antwort: 201 Created mit { imported: number, ids: number[] }
+ * Fehler: 400 Bad Request (Validierung/Format)
+ */
 async function importThreads(req, res) {
   try {
     const created = await importExportService.importThreads(req.body);

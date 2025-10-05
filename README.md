@@ -8,6 +8,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 
 - **Planen & Veröffentlichen** – Skeets erstellen, terminieren, bearbeiten oder löschen; Threads bleiben verknüpft.
 - **Automatischer Scheduler** – Cron-basiert, inklusive Retry-Strategie mit Backoff und Live-Konfiguration aus dem Dashboard.
+- **Konfiguration im Dashboard** – Scheduler (Cron/Zeitzone/Retries) und Dashboard‑Polling (Intervalle, Backoff, Jitter, Heartbeat) bequem änderbar; Änderungen werden in der DB gespeichert und wirken ohne Rebuild.
 - **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten aus Bluesky und Mastodon direkt in der Skeet-Karte anzeigen.
 - **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; aktuell Bluesky und Mastodon.
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
@@ -103,6 +104,21 @@ Weitere Details zu Architektur & Diagrammen findest du in `docs/README.md`.
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
 Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
+
+---
+
+## Konfigurationsprinzipien (Env-Priorität)
+
+- UI‑Overrides im Dashboard haben höchste Priorität; danach gelten:
+  - Serverseitige Variablen ohne Präfix → Build‑Zeit‑Variablen (`VITE_*`) → Defaults.
+  - Beispiel Zeitzone: `TIME_ZONE` → `VITE_TIME_ZONE` → Fallback `Europe/Berlin`.
+  - Beispiel Polling: `POLL_*`/`THREAD_POLL_*`/`SKEET_POLL_*` → `VITE_*` → Defaults.
+- `VITE_*` Variablen werden beim Frontend‑Build in den Client eingebettet und sind im Browser sichtbar.
+- Laufzeit‑Overrides ohne `VITE_` werden per `/api/client-config` an das Dashboard geliefert und können `VITE_*` zur Laufzeit überschreiben.
+- UI‑Overrides (Dashboard) werden dauerhaft in der Datenbank gespeichert und vom Backend in `/api/client-config` gegenüber Env/VITE bevorzugt ausgeliefert.
+- Portauflösung (Server): `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
+
+Sicherheitshinweis: `.env` nicht committen und lokal restriktive Rechte setzen (z. B. `chmod 600 .env`).
 
 ---
 
