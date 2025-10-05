@@ -1,4 +1,6 @@
 import PlatformBadges from "./PlatformBadges";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
 
 function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) {
   if (skeets.length === 0) {
@@ -13,10 +15,7 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
   return (
     <div className="space-y-4">
       {skeets.map((skeet) => (
-        <article
-          key={skeet.id}
-          className="group rounded-2xl border border-border bg-background-subtle/60 p-5 shadow-soft transition hover:-translate-y-0.5 hover:bg-background-elevated hover:shadow-card"
-        >
+        <Card key={skeet.id}>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-3">
               <PlatformBadges skeet={skeet} />
@@ -33,23 +32,11 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
               )}
             </div>
             <div className="flex flex-shrink-0 items-center gap-2 self-end md:self-start">
-              <button
-                type="button"
-                onClick={() => onRestore(skeet)}
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft"
-              >
-                Reaktivieren
-              </button>
-              <button
-                type="button"
-                onClick={() => onPermanentDelete(skeet)}
-                className="rounded-xl bg-destructive/90 px-4 py-2 text-sm font-medium text-destructive-foreground transition hover:bg-destructive"
-              >
-                Endgültig löschen
-              </button>
+              <Button variant="primary" onClick={() => onRestore(skeet)}>Reaktivieren</Button>
+              <Button variant="destructive" onClick={() => onPermanentDelete(skeet)}>Endgültig löschen</Button>
             </div>
           </div>
-        </article>
+        </Card>
       ))}
     </div>
   );

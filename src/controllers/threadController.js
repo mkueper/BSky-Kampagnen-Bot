@@ -15,6 +15,7 @@
  * - Der Controller hält die Antworten bewusst flach und gibt rohe JSON-Objekte der Modelle zurück.
  */
 const threadService = require("../services/threadService");
+const { refreshThreadEngagement } = require("../services/threadEngagementService");
 
 /**
  * GET /api/threads[?status=scheduled|draft|published|deleted]
@@ -183,4 +184,13 @@ module.exports = {
   deleteThread,
   retractThread,
   restoreThread,
+  async refreshEngagement(req, res) {
+    try {
+      const data = await refreshThreadEngagement(req.params.id, { includeReplies: true });
+      res.json(data);
+    } catch (error) {
+      const status = error?.status || 500;
+      res.status(status).json({ error: error?.message || "Fehler beim Aktualisieren der Reaktionen." });
+    }
+  },
 };

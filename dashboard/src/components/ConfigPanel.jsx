@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../hooks/useToast";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
 
 const NUMBER_FIELDS = ["postRetries", "postBackoffMs", "postBackoffMaxMs"];
 
@@ -363,7 +365,7 @@ export default function ConfigPanel() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+      <Card padding="p-6 lg:p-10">
         <div className="flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between">
           <div>
             <h3 className="text-2xl font-semibold">Scheduler & Retries</h3>
@@ -441,27 +443,18 @@ export default function ConfigPanel() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={resetToDefaults}
-                disabled={loading || saving}
-                className="rounded-2xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-background-subtle disabled:opacity-60"
-              >
+              <Button type="button" variant="secondary" onClick={resetToDefaults} disabled={loading || saving}>
                 Zurücksetzen auf Standard
-              </button>
-              <button
-                type="submit"
-                disabled={loading || saving || !hasChanges}
-                className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              </Button>
+              <Button type="submit" variant="primary" disabled={loading || saving || !hasChanges}>
                 {saving ? "Speichern…" : "Einstellungen speichern"}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+      <Card padding="p-6 lg:p-10">
         <div className="flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between">
           <div>
             <h3 className="text-2xl font-semibold">Dashboard-Polling</h3>
@@ -539,25 +532,25 @@ export default function ConfigPanel() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={resetPollToDefaults} disabled={pollLoading||pollSaving} className="rounded-2xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-background-subtle disabled:opacity-60">
+              <Button type="button" variant="secondary" onClick={resetPollToDefaults} disabled={pollLoading || pollSaving}>
                 Zurücksetzen auf Standard
-              </button>
-              <button type="submit" disabled={pollLoading||pollSaving||!pollHasChanges} className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60">
+              </Button>
+              <Button type="submit" variant="primary" disabled={pollLoading || pollSaving || !pollHasChanges}>
                 {pollSaving ? "Speichern…" : "Einstellungen speichern"}
-              </button>
+              </Button>
             </div>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-3xl border border-border bg-background-subtle p-6 shadow-soft lg:p-8">
+      <Card hover={false} padding="p-6 lg:p-8">
         <h4 className="text-lg font-semibold">Tipps</h4>
         <ul className="mt-4 space-y-2 text-sm text-foreground-muted">
           <li>• Cron-Ausdrücke beziehen sich auf die Serverzeit – achte bei Deployment auf die korrekte Zeitzone.</li>
           <li>• Backoff-Werte steuern Wartezeiten zwischen Retry-Versuchen und helfen bei Rate-Limits.</li>
           <li>• Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.</li>
         </ul>
-      </section>
+      </Card>
     </div>
   );
 }

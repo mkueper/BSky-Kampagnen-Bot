@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
 
 function parseThreadMetadata(thread) {
   const raw = thread?.metadata;
@@ -174,7 +176,7 @@ function ThreadOverview({
         })();
 
         return (
-          <article key={thread.id} className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
+          <Card key={thread.id} id={`thread-${thread.id}`}>
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">
@@ -203,11 +205,7 @@ function ThreadOverview({
                     <span>Antworten: <span className="font-medium text-foreground">{reactionTotals.replies}</span></span>
                   </div>
                   {hasMore ? (
-                    <button
-                      type="button"
-                      onClick={() => handleToggle(thread.id)}
-                      className="text-sm font-medium text-primary transition hover:underline"
-                    >
+                    <button type="button" onClick={() => handleToggle(thread.id)} className="text-sm font-medium text-primary transition hover:underline">
                       {isExpanded ? "Weitere Skeets verbergen" : "Weitere Skeets anzeigen"}
                     </button>
                   ) : (
@@ -216,56 +214,42 @@ function ThreadOverview({
                   <div className="flex items-center gap-2">
                     {isDeletedMode ? (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => onRestoreThread?.(thread)}
-                          className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-                        >
-                          Reaktivieren
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDestroyThread?.(thread)}
-                          className="rounded-2xl border border-destructive bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
-                        >
-                          Endgültig löschen
-                        </button>
+                        <Button variant="primary" onClick={() => onRestoreThread?.(thread)}>Reaktivieren</Button>
+                        <Button variant="destructive" onClick={() => onDestroyThread?.(thread)}>Endgültig löschen</Button>
                       </>
                     ) : (
                       <>
                         {flatReplies.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setShowReplies((c) => ({ ...c, [thread.id]: !c[thread.id] }))}
-                            className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-                          >
+                          <Button variant="secondary" onClick={() => setShowReplies((c) => ({ ...c, [thread.id]: !c[thread.id] }))}>
                             {showReplies[thread.id] ? "Antworten verbergen" : `Antworten anzeigen (${flatReplies.length})`}
-                          </button>
+                          </Button>
                         ) : null}
+                        <Button
+                          variant="primary"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/threads/${thread.id}/engagement/refresh`, { method: 'POST' });
+                              if (!res.ok) {
+                                const data = await res.json().catch(() => ({}));
+                                throw new Error(data.error || 'Fehler beim Aktualisieren der Reaktionen.');
+                              }
+                              if (typeof onReload === 'function') onReload();
+                            } catch (e) {
+                              console.error('Engagement-Refresh fehlgeschlagen:', e);
+                            }
+                          }}
+                        >
+                          Reaktionen aktualisieren
+                        </Button>
                         {canEdit ? (
-                          <button
-                            type="button"
-                            onClick={() => onEditThread?.(thread)}
-                            className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
-                          >
-                            Bearbeiten
-                          </button>
+                          <Button variant="secondary" onClick={() => onEditThread?.(thread)}>Bearbeiten</Button>
                         ) : null}
-                        <button
-                          type="button"
-                          onClick={() => onRetractThread?.(thread)}
-                          disabled={!canRetract}
-                          className="rounded-2xl border border-amber-400 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
+                        <Button variant="warning" onClick={() => onRetractThread?.(thread)} disabled={!canRetract}>
                           Entfernen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteThread?.(thread)}
-                          className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/20"
-                        >
+                        </Button>
+                        <Button variant="destructive" onClick={() => onDeleteThread?.(thread)}>
                           Löschen
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>
@@ -307,7 +291,7 @@ function ThreadOverview({
                 </div>
               ) : null}
             </div>
-          </article>
+          </Card>
         );
       })}
     </section>

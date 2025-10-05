@@ -454,12 +454,18 @@ async function retractThread(id, options = {}) {
     const removalStamp = new Date().toISOString();
     metadata.platformResults = updatedPlatformResults;
     metadata.lastRemovalAt = removalStamp;
+    // Nach erfolgreichem Entfernen: Thread in den Papierkorb verschieben.
+    // Vorherigen Status merken, um eine spätere Wiederherstellung zu erlauben.
+    if (thread.status !== 'deleted' && !metadata.deletedPreviousStatus) {
+      metadata.deletedPreviousStatus = thread.status;
+    }
 
     await sequelize.transaction(async (transaction) => {
       await thread.update(
         {
           metadata,
-          status: thread.status === 'deleted' ? thread.status : 'draft',
+          // Statt zurück zu 'draft' wechseln entfernte Threads nun in 'deleted' (Papierkorb).
+          status: 'deleted',
           scheduledAt: null,
         },
         { transaction }
