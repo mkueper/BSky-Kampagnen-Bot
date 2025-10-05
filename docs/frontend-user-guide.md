@@ -117,14 +117,42 @@ Threads planen, veröffentlichen und auswerten möchten.
 
 ## 6. Scheduler und Konfiguration
 
-- Unter **Konfiguration** lässt sich der Cron-Ausdruck für den Scheduler
-  einstellen (Standard: jede Minute prüfen).
-- Die Zeitzone wirkt sich auf lokale Datumsanzeigen im Dashboard aus.
-- Retry-Parameter (z. B. `POST_RETRIES`) steuern, wie oft bei API-Fehlern erneut
-  versucht wird zu posten.
+- Unter **Konfiguration** findest du zwei Bereiche:
+  - "Scheduler & Retries": Cron, Zeitzone sowie Retry‑Werte für das Posten.
+  - "Dashboard‑Polling": Intervalle für Threads/Skeets sowie Backoff, Jitter und Heartbeat, mit denen sich die Live‑Aktualisierung des Dashboards steuern lässt.
+
+- Die Zeitzone wirkt sich auf lokale Datumsanzeigen im Dashboard aus; der Scheduler verwendet serverseitig `TIME_ZONE`.
+- Retry‑Parameter (z. B. `POST_RETRIES`) steuern, wie oft bei API‑Fehlern erneut versucht wird zu posten.
 
 Nach einer Änderung **Speichern** nicht vergessen; der Scheduler lädt sein
 Setup danach automatisch neu.
+
+---
+
+## 6a. Client‑Konfiguration (UI, Server‑Overrides und VITE)
+
+Das Dashboard lädt beim Start eine read‑only Konfiguration über die Route
+`/api/client-config`. Diese Werte steuern u. a. die Polling‑Intervalle und das
+Backoff‑Verhalten der Übersichten.
+
+- Herkunft und Vorrang:
+  - UI‑Overrides: Werte, die im Dashboard unter "Dashboard‑Polling" gespeichert werden (persistiert in der Datenbank).
+  - Laufzeit (Server): Variablen ohne `VITE_` (z. B. `THREAD_POLL_*`, `SKEET_POLL_*`, `POLL_*`).
+  - Build‑Zeit (Client): `VITE_*`‑Variablen, die beim Frontend‑Build eingebettet werden.
+  - Defaults: Feste Rückfallwerte im Backend.
+  - Vorrang: UI‑Overrides → Server‑Variablen → `VITE_*` → Defaults.
+- Relevante Felder in der Client‑Konfiguration (`polling`):
+  - `skeets.activeMs`, `idleMs`, `hiddenMs`, `minimalHidden`
+  - `threads.activeMs`, `idleMs`, `hiddenMs`, `minimalHidden`
+  - `backoffStartMs`, `backoffMaxMs`, `jitterRatio`, `heartbeatMs`
+- Zeitzone und Locale:
+  - Datums-/Zeitformatierung im Dashboard nutzt `VITE_TIME_ZONE` und `VITE_LOCALE`.
+  - Die serverseitige Zeitzone (`TIME_ZONE`) steuert Terminierung des Schedulers.
+
+Praxis‑Tipp: Du kannst Polling‑Werte direkt im Dashboard speichern (wirken sofort
+nach dem Speichern). Alternativ lassen sich die entsprechenden Server‑Variablen
+(`THREAD_POLL_*`, `SKEET_POLL_*`, `POLL_*`) setzen und der Backend‑Prozess neu
+starten. Das Dashboard übernimmt die Werte automatisch über `/api/client-config`.
 
 ---
 
@@ -150,4 +178,3 @@ die Backend-Logs (`npm run dev` o. ä.).
   `src/config.js`.
 
 Viel Erfolg mit deinen Kampagnen!
-

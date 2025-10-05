@@ -39,6 +39,28 @@ export default function ConfigPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Client-Polling Abschnitt
+  const [pollValues, setPollValues] = useState({
+    // threads
+    threadActiveMs: "",
+    threadIdleMs: "",
+    threadHiddenMs: "",
+    threadMinimalHidden: false,
+    // skeets
+    skeetActiveMs: "",
+    skeetIdleMs: "",
+    skeetHiddenMs: "",
+    skeetMinimalHidden: false,
+    // shared
+    backoffStartMs: "",
+    backoffMaxMs: "",
+    jitterRatio: "",
+    heartbeatMs: "",
+  });
+  const [pollDefaults, setPollDefaults] = useState(pollValues);
+  const [pollLoading, setPollLoading] = useState(true);
+  const [pollSaving, setPollSaving] = useState(false);
+
   const hasChanges = useMemo(() => {
     return Object.keys(formValues).some((key) => String(formValues[key]) !== String(initialValues[key] ?? ""));
   }, [formValues, initialValues]);
@@ -91,12 +113,77 @@ export default function ConfigPanel() {
     };
   }, [toast]);
 
+  // Client-Polling laden
+  useEffect(() => {
+    let ignore = false;
+    async function loadPolling() {
+      setPollLoading(true);
+      try {
+        const res = await fetch("/api/settings/client-polling");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Fehler beim Laden der Client-Konfiguration.");
+        }
+        const data = await res.json();
+        const v = data.values || {};
+        const d = data.defaults || {};
+        const nextValues = {
+          threadActiveMs: formatNumberInput(v.threadActiveMs),
+          threadIdleMs: formatNumberInput(v.threadIdleMs),
+          threadHiddenMs: formatNumberInput(v.threadHiddenMs),
+          threadMinimalHidden: Boolean(v.threadMinimalHidden),
+          skeetActiveMs: formatNumberInput(v.skeetActiveMs),
+          skeetIdleMs: formatNumberInput(v.skeetIdleMs),
+          skeetHiddenMs: formatNumberInput(v.skeetHiddenMs),
+          skeetMinimalHidden: Boolean(v.skeetMinimalHidden),
+          backoffStartMs: formatNumberInput(v.backoffStartMs),
+          backoffMaxMs: formatNumberInput(v.backoffMaxMs),
+          jitterRatio: v.jitterRatio == null ? "" : String(v.jitterRatio),
+          heartbeatMs: formatNumberInput(v.heartbeatMs),
+        };
+        const nextDefaults = {
+          threadActiveMs: formatNumberInput(d.threadActiveMs),
+          threadIdleMs: formatNumberInput(d.threadIdleMs),
+          threadHiddenMs: formatNumberInput(d.threadHiddenMs),
+          threadMinimalHidden: Boolean(d.threadMinimalHidden),
+          skeetActiveMs: formatNumberInput(d.skeetActiveMs),
+          skeetIdleMs: formatNumberInput(d.skeetIdleMs),
+          skeetHiddenMs: formatNumberInput(d.skeetHiddenMs),
+          skeetMinimalHidden: Boolean(d.skeetMinimalHidden),
+          backoffStartMs: formatNumberInput(d.backoffStartMs),
+          backoffMaxMs: formatNumberInput(d.backoffMaxMs),
+          jitterRatio: d.jitterRatio == null ? "" : String(d.jitterRatio),
+          heartbeatMs: formatNumberInput(d.heartbeatMs),
+        };
+        if (!ignore) {
+          setPollValues(nextValues);
+          setPollDefaults(nextDefaults);
+        }
+      } catch (error) {
+        console.error("Fehler beim Laden der Client-Konfiguration:", error);
+        toast.error({ title: "Konfiguration", description: error.message || "Client-Config konnte nicht geladen werden." });
+      } finally {
+        if (!ignore) setPollLoading(false);
+      }
+    }
+    loadPolling();
+    return () => { ignore = true; };
+  }, [toast]);
+
   const updateField = (key, value) => {
     setFormValues((current) => ({ ...current, [key]: value }));
   };
 
   const resetToDefaults = () => {
     setFormValues(defaults);
+  };
+
+  const updatePollField = (key, value) => {
+    setPollValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetPollToDefaults = () => {
+    setPollValues(pollDefaults);
   };
 
   const handleSubmit = async (event) => {
@@ -171,6 +258,106 @@ export default function ConfigPanel() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const pollHasChanges = useMemo(() => {
+    return Object.keys(pollValues).some((k) => String(pollValues[k]) !== String(pollDefaults[k] ?? ""));
+  }, [pollValues, pollDefaults]);
+
+  const handlePollSubmit = async (event) => {
+    event.preventDefault();
+    if (!pollHasChanges) {
+      toast.info({ title: "Keine Änderungen", description: "Die Client-Polling-Einstellungen sind bereits aktuell." });
+      return;
+    }
+    const num = (v) => (v === "" || v == null ? null : Number(v));
+    const payload = {
+      threadActiveMs: num(pollValues.threadActiveMs),
+      threadIdleMs: num(pollValues.threadIdleMs),
+      threadHiddenMs: num(pollValues.threadHiddenMs),
+      threadMinimalHidden: Boolean(pollValues.threadMinimalHidden),
+      skeetActiveMs: num(pollValues.skeetActiveMs),
+      skeetIdleMs: num(pollValues.skeetIdleMs),
+      skeetHiddenMs: num(pollValues.skeetHiddenMs),
+      skeetMinimalHidden: Boolean(pollValues.skeetMinimalHidden),
+      backoffStartMs: num(pollValues.backoffStartMs),
+      backoffMaxMs: num(pollValues.backoffMaxMs),
+      jitterRatio: pollValues.jitterRatio === "" ? null : Number(pollValues.jitterRatio),
+      heartbeatMs: num(pollValues.heartbeatMs),
+    };
+
+    // einfache Validierung
+    const mustBePos = [
+      payload.threadActiveMs,
+      payload.threadIdleMs,
+      payload.threadHiddenMs,
+      payload.skeetActiveMs,
+      payload.skeetIdleMs,
+      payload.skeetHiddenMs,
+      payload.backoffStartMs,
+      payload.backoffMaxMs,
+      payload.heartbeatMs,
+    ];
+    if (mustBePos.some((v) => v == null || Number.isNaN(v) || v < 0)) {
+      toast.error({ title: "Ungültige Werte", description: "Intervalle und Backoff müssen positive Zahlen sein." });
+      return;
+    }
+    if (payload.jitterRatio == null || Number.isNaN(payload.jitterRatio) || payload.jitterRatio < 0 || payload.jitterRatio > 1) {
+      toast.error({ title: "Ungültiger Jitter", description: "POLL_JITTER_RATIO muss zwischen 0 und 1 liegen." });
+      return;
+    }
+
+    setPollSaving(true);
+    try {
+      const res = await fetch("/api/settings/client-polling", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Fehler beim Speichern der Client-Konfiguration.");
+      }
+      const data = await res.json();
+      const v = data.values || {};
+      const d = data.defaults || {};
+      const nextValues = {
+        threadActiveMs: formatNumberInput(v.threadActiveMs),
+        threadIdleMs: formatNumberInput(v.threadIdleMs),
+        threadHiddenMs: formatNumberInput(v.threadHiddenMs),
+        threadMinimalHidden: Boolean(v.threadMinimalHidden),
+        skeetActiveMs: formatNumberInput(v.skeetActiveMs),
+        skeetIdleMs: formatNumberInput(v.skeetIdleMs),
+        skeetHiddenMs: formatNumberInput(v.skeetHiddenMs),
+        skeetMinimalHidden: Boolean(v.skeetMinimalHidden),
+        backoffStartMs: formatNumberInput(v.backoffStartMs),
+        backoffMaxMs: formatNumberInput(v.backoffMaxMs),
+        jitterRatio: v.jitterRatio == null ? "" : String(v.jitterRatio),
+        heartbeatMs: formatNumberInput(v.heartbeatMs),
+      };
+      const nextDefaults = {
+        threadActiveMs: formatNumberInput(d.threadActiveMs),
+        threadIdleMs: formatNumberInput(d.threadIdleMs),
+        threadHiddenMs: formatNumberInput(d.threadHiddenMs),
+        threadMinimalHidden: Boolean(d.threadMinimalHidden),
+        skeetActiveMs: formatNumberInput(d.skeetActiveMs),
+        skeetIdleMs: formatNumberInput(d.skeetIdleMs),
+        skeetHiddenMs: formatNumberInput(d.skeetHiddenMs),
+        skeetMinimalHidden: Boolean(d.skeetMinimalHidden),
+        backoffStartMs: formatNumberInput(d.backoffStartMs),
+        backoffMaxMs: formatNumberInput(d.backoffMaxMs),
+        jitterRatio: d.jitterRatio == null ? "" : String(d.jitterRatio),
+        heartbeatMs: formatNumberInput(d.heartbeatMs),
+      };
+      setPollValues(nextValues);
+      setPollDefaults(nextDefaults);
+      toast.success({ title: "Client-Konfiguration gespeichert", description: "Polling & Backoff aktualisiert." });
+    } catch (error) {
+      console.error("Fehler beim Speichern der Client-Konfiguration:", error);
+      toast.error({ title: "Speichern fehlgeschlagen", description: error.message || "Client-Config konnte nicht gespeichert werden." });
+    } finally {
+      setPollSaving(false);
     }
   };
 
@@ -268,6 +455,95 @@ export default function ConfigPanel() {
                 className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Speichern…" : "Einstellungen speichern"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:p-10">
+        <div className="flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between">
+          <div>
+            <h3 className="text-2xl font-semibold">Dashboard-Polling</h3>
+            <p className="text-sm text-foreground-muted">Steuere Intervalle und Backoff für Listen (Threads & Skeets).</p>
+          </div>
+          <div className="text-xs text-foreground-muted">
+            <p>Standardwerte stammen aus deiner .env bzw. Build-Defaults.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handlePollSubmit} className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Threads: Aktiv (ms)</label>
+              <input type="number" min="0" value={pollValues.threadActiveMs} onChange={(e)=>updatePollField('threadActiveMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.threadActiveMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Threads: Idle (ms)</label>
+              <input type="number" min="0" value={pollValues.threadIdleMs} onChange={(e)=>updatePollField('threadIdleMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.threadIdleMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Threads: Hidden (ms)</label>
+              <input type="number" min="0" value={pollValues.threadHiddenMs} onChange={(e)=>updatePollField('threadHiddenMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.threadHiddenMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Threads: Minimal Ping hidden</label>
+              <input type="checkbox" checked={!!pollValues.threadMinimalHidden} onChange={(e)=>updatePollField('threadMinimalHidden', e.target.checked)} disabled={pollLoading||pollSaving} className="h-5 w-5 align-middle" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Skeets: Aktiv (ms)</label>
+              <input type="number" min="0" value={pollValues.skeetActiveMs} onChange={(e)=>updatePollField('skeetActiveMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.skeetActiveMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Skeets: Idle (ms)</label>
+              <input type="number" min="0" value={pollValues.skeetIdleMs} onChange={(e)=>updatePollField('skeetIdleMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.skeetIdleMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Skeets: Hidden (ms)</label>
+              <input type="number" min="0" value={pollValues.skeetHiddenMs} onChange={(e)=>updatePollField('skeetHiddenMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.skeetHiddenMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Skeets: Minimal Ping hidden</label>
+              <input type="checkbox" checked={!!pollValues.skeetMinimalHidden} onChange={(e)=>updatePollField('skeetMinimalHidden', e.target.checked)} disabled={pollLoading||pollSaving} className="h-5 w-5 align-middle" />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Backoff Start (ms)</label>
+              <input type="number" min="0" value={pollValues.backoffStartMs} onChange={(e)=>updatePollField('backoffStartMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.backoffStartMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Backoff Max (ms)</label>
+              <input type="number" min="0" value={pollValues.backoffMaxMs} onChange={(e)=>updatePollField('backoffMaxMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.backoffMaxMs} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Jitter Ratio (0..1)</label>
+              <input type="number" min="0" max="1" step="0.01" value={pollValues.jitterRatio} onChange={(e)=>updatePollField('jitterRatio', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.jitterRatio} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">Heartbeat (ms)</label>
+              <input type="number" min="0" value={pollValues.heartbeatMs} onChange={(e)=>updatePollField('heartbeatMs', e.target.value)} disabled={pollLoading||pollSaving} className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm" placeholder={pollDefaults.heartbeatMs} />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6">
+            <div className="text-xs text-foreground-muted">
+              <p>
+                <span className="font-semibold">Standardwerte:</span> Threads {pollDefaults.threadActiveMs}/{pollDefaults.threadIdleMs}/{pollDefaults.threadHiddenMs}ms,
+                Skeets {pollDefaults.skeetActiveMs}/{pollDefaults.skeetIdleMs}/{pollDefaults.skeetHiddenMs}ms,
+                Backoff {pollDefaults.backoffStartMs}→{pollDefaults.backoffMaxMs}ms, Jitter {pollDefaults.jitterRatio}, Heartbeat {pollDefaults.heartbeatMs}ms
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={resetPollToDefaults} disabled={pollLoading||pollSaving} className="rounded-2xl border border-border px-5 py-2.5 text-sm font-medium text-foreground transition hover:bg-background-subtle disabled:opacity-60">
+                Zurücksetzen auf Standard
+              </button>
+              <button type="submit" disabled={pollLoading||pollSaving||!pollHasChanges} className="rounded-2xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition hover:shadow-card disabled:cursor-not-allowed disabled:opacity-60">
+                {pollSaving ? "Speichern…" : "Einstellungen speichern"}
               </button>
             </div>
           </div>

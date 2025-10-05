@@ -59,6 +59,8 @@ npm run build:frontend
    ```
 3. `.env` nur für berechtigte Benutzer:innen lesbar machen (`chmod 600 .env`).
 
+> Env-Priorität: Serverseitige Variablen (ohne `VITE_`) haben Vorrang vor `VITE_*`, die beim Frontend‑Build in den Client wandern. Laufzeit‑Overrides (`POLL_*`, `THREAD_POLL_*`, `SKEET_POLL_*`) werden über `/api/client-config` an das Dashboard gereicht und überschreiben die `VITE_*`‑Defaults. Portauflösung: `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
+
 ## 5. Datenbank migrieren
 
 ```bash

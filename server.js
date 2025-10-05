@@ -57,6 +57,9 @@ app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
 app.get("/api/settings/scheduler", settingsController.getSchedulerSettings);
 app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
+// Client-Polling-Konfiguration
+app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
+app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
 
 // Health endpoint for liveness checks

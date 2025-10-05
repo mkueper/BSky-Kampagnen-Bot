@@ -57,6 +57,8 @@ npm run build:frontend
    ```
 3. Optional: Zeitzone, Retry-Strategie und Datenbanktyp anpassen (siehe Kommentare in `.env`).
 
+> Hinweis zu Env-Priorität: Serverseitige Variablen ohne `VITE_` überschreiben Build‑Zeit‑Werte (`VITE_*`). Beispiel: `TIME_ZONE` hat Vorrang vor `VITE_TIME_ZONE`. Polling‑Werte können zur Laufzeit über `THREAD_POLL_*`/`SKEET_POLL_*` die `VITE_*`‑Werte ersetzen. Ports werden in dieser Reihenfolge ermittelt: `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
+
 ## 5. Datenbank vorbereiten (optional, empfohlen)
 
 ```bash

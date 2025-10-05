@@ -60,6 +60,8 @@ cd BSky-Kampagnen-Bot
 
 > Sensible Daten werden ausschließlich in `.env` abgelegt und nur dem Backend-Container bereitgestellt.
 
+> Env-Priorität: Serverseitige Variablen ohne `VITE_` überschreiben Build‑Zeit‑Werte (`VITE_*`). Beispiel: `TIME_ZONE` vor `VITE_TIME_ZONE`. Polling‑Parameter können zur Laufzeit via `POLL_*`, `THREAD_POLL_*`, `SKEET_POLL_*` gesetzt werden und landen über `/api/client-config` im Dashboard. Der Server‑Port wird aus `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000` abgeleitet.
+
 ## 3. Container starten
 
 ```bash

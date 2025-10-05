@@ -1,5 +1,22 @@
+/**
+ * @file skeetController.js
+ * @summary HTTP-Controller für einzelne geplante/veröffentlichte Skeets.
+ *
+ * Endpunkte zum Listen, Erstellen, Aktualisieren, Löschen (soft/hard),
+ * Zurückziehen veröffentlichter Posts und Wiederherstellen gelöschter Skeets.
+ */
 const skeetService = require('../services/skeetService');
 
+/**
+ * GET /api/skeets[?includeDeleted=1|true|yes|all][&onlyDeleted=1|true|yes]
+ *
+ * Liefert Skeets sortiert nach `scheduledAt` und `createdAt`.
+ * - `includeDeleted`: inkludiert gelöschte (paranoid=false)
+ * - `onlyDeleted`: liefert ausschließlich gelöschte
+ *
+ * Antwort: 200 OK mit Array von Skeet-Objekten
+ * Fehler: 500 Internal Server Error
+ */
 async function getSkeets(req, res) {
   try {
     const includeDeleted = ["1", "true", "yes", "all"].includes((req.query.includeDeleted || "").toString().toLowerCase());
@@ -11,6 +28,21 @@ async function getSkeets(req, res) {
   }
 }
 
+/**
+ * POST /api/skeets
+ *
+ * Legt einen neuen Skeet an.
+ * Body (JSON):
+ * - content: string (erforderlich)
+ * - scheduledAt?: string | Date | null (bei repeat='none' erforderlich)
+ * - repeat?: 'none' | 'daily' | 'weekly' | 'monthly'
+ * - repeatDayOfWeek?: 0..6 (bei weekly erforderlich)
+ * - repeatDayOfMonth?: 1..31 (bei monthly erforderlich)
+ * - targetPlatforms?: string[]
+ *
+ * Antwort: 201 Created mit Skeet-Objekt
+ * Fehler: 400 Bad Request (Validierung)
+ */
 async function createSkeet(req, res) {
   try {
     const skeet = await skeetService.createSkeet(req.body || {});
@@ -20,6 +52,13 @@ async function createSkeet(req, res) {
   }
 }
 
+/**
+ * PATCH /api/skeets/:id
+ *
+ * Aktualisiert Felder eines Skeets. Nicht gesetzte Felder bleiben unverändert.
+ * Antwort: 200 OK mit aktualisiertem Skeet
+ * Fehler: 400 Bad Request | 404 Not Found
+ */
 async function updateSkeet(req, res) {
   const { id } = req.params;
   try {
@@ -35,6 +74,13 @@ async function updateSkeet(req, res) {
   }
 }
 
+/**
+ * DELETE /api/skeets/:id[?permanent=true]
+ *
+ * Löscht einen Skeet. Standard: Soft-Delete; mit `permanent=true` harte Löschung.
+ * Antwort: 204 No Content
+ * Fehler: 404 Not Found | 500 Internal Server Error
+ */
 async function deleteSkeet(req, res) {
   const { id } = req.params;
   try {
@@ -51,6 +97,14 @@ async function deleteSkeet(req, res) {
   }
 }
 
+/**
+ * POST /api/skeets/:id/retract
+ *
+ * Entfernt veröffentlichte Posts auf den Zielplattformen, soweit möglich.
+ * Body (optional): { platforms?: string[] }
+ * Antwort: 200 OK mit Zusammenfassung
+ * Fehler: 400 | 404 | 500
+ */
 async function retractSkeet(req, res) {
   const { id } = req.params;
   try {
@@ -64,6 +118,13 @@ async function retractSkeet(req, res) {
   }
 }
 
+/**
+ * POST /api/skeets/:id/restore
+ *
+ * Stellt einen gelöschten Skeet wieder her (sofern möglich).
+ * Antwort: 200 OK mit Skeet-Objekt
+ * Fehler: 400 | 404
+ */
 async function restoreSkeet(req, res) {
   const { id } = req.params;
   try {
