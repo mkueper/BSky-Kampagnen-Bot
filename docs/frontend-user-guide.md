@@ -30,9 +30,15 @@ Threads planen, veröffentlichen und auswerten möchten.
 - **Übersicht** listet geplante, veröffentlichte und gelöschte Einzelposts.
 - **Skeet planen** öffnet das Formular zum Erstellen oder Bearbeiten.
 
+In der Ansicht „Veröffentlicht” kannst du die Sortierung umschalten:
+- Pfeil nach unten: Neu zuerst
+- Pfeil nach oben: Alt zuerst
+
 ### Threads
 - **Übersicht** zeigt Multi-Post-Threads sortiert nach Status (geplant, veröffentlicht, Papierkorb).
 - **Thread planen** öffnet den Editor für mehrteilige Kampagnen.
+
+In der Ansicht „Veröffentlicht” kannst du die Sortierung umschalten (Neu/Alt zuerst), analog zu den Skeets.
 
 ### Konfiguration
 - Enthält Scheduler-Einstellungen (Cron-Zeit, Zeitzone) sowie Retry-Konfiguration.
@@ -64,6 +70,8 @@ Threads planen, veröffentlichen und auswerten möchten.
 - Über den Button **Reaktionen abrufen** werden Likes/Reposts/Replies
   synchronisiert.
 
+Tipp: Nach dem Speichern oder Reaktivieren werden die Listen automatisch neu geladen; geplante Einträge erscheinen sofort in „Geplant”.
+
 ---
 
 ## 4. Threads verwalten
@@ -83,8 +91,7 @@ Threads planen, veröffentlichen und auswerten möchten.
   Inkonsistenzen zu vermeiden (nur Entfernen/Zurückziehen möglich).
 
 ### Entfernen und Papierkorb
-- **Entfernen** löscht veröffentlichte Threads von den Plattformen, wenn
-  entsprechende Schlüssel bekannt sind.
+- **Entfernen** löscht veröffentlichte Threads von den Plattformen, wenn entsprechende Schlüssel bekannt sind, und verschiebt den Thread in den Papierkorb.
 - **Löschen** verschiebt Threads in den Papierkorb; von dort kann entweder
   eine Wiederherstellung oder ein permanentes Entfernen erfolgen.
 
@@ -93,6 +100,8 @@ Threads planen, veröffentlichen und auswerten möchten.
   neu, damit der finale Status sichtbar wird.
 - Ist das Polling deaktiviert, nutze den **Aktualisieren**-Button in der
   Thread-Übersicht.
+
+Zusätzlich kannst du pro Thread mit **Reaktionen aktualisieren** ein On‑Demand‑Update anstoßen. Der Backend‑Collector läuft außerdem periodisch und zieht neue Werte automatisch nach.
 
 ---
 

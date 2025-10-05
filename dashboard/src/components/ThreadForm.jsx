@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../hooks/useToast'
+import Button from './ui/Button'
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -489,18 +490,13 @@ function ThreadForm ({
 
               <div className='flex flex-wrap items-center gap-2'>
                 {isEditMode && typeof onCancel === 'function' ? (
-                  <button
-                    type='button'
-                    className='rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle'
-                    onClick={onCancel}
-                    disabled={saving}
-                  >
+                  <Button type='button' variant='secondary' onClick={onCancel} disabled={saving}>
                     Abbrechen
-                  </button>
+                  </Button>
                 ) : null}
-                <button
+                <Button
                   type='button'
-                  className='rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle'
+                  variant='secondary'
                   onClick={() => {
                     if (isEditMode && initialThread) {
                       restoreFromThread(initialThread)
@@ -511,18 +507,14 @@ function ThreadForm ({
                   disabled={saving}
                 >
                   Formular zurücksetzen
-                </button>
-                <button
-                  type='submit'
-                  disabled={hasValidationIssues || saving || loading}
-                  className='rounded-2xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-60'
-                >
+                </Button>
+                <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving
                     ? 'Speichern…'
                     : isEditMode
                     ? 'Thread aktualisieren'
                     : 'Thread speichern'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Planen & Veröffentlichen** – Skeets erstellen, terminieren, bearbeiten oder löschen; Threads bleiben verknüpft.
 - **Automatischer Scheduler** – Cron-basiert, inklusive Retry-Strategie mit Backoff und Live-Konfiguration aus dem Dashboard.
 - **Konfiguration im Dashboard** – Scheduler (Cron/Zeitzone/Retries) und Dashboard‑Polling (Intervalle, Backoff, Jitter, Heartbeat) bequem änderbar; Änderungen werden in der DB gespeichert und wirken ohne Rebuild.
+- **Engagement‑Collector** – Sammelt periodisch Likes/Reposts/Replies (Bluesky, optional Mastodon) für veröffentlichte Threads; On‑Demand Refresh pro Thread möglich.
 - **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten aus Bluesky und Mastodon direkt in der Skeet-Karte anzeigen.
 - **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; aktuell Bluesky und Mastodon.
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
@@ -119,6 +120,22 @@ Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
 - Portauflösung (Server): `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
 
 Sicherheitshinweis: `.env` nicht committen und lokal restriktive Rechte setzen (z. B. `chmod 600 .env`).
+
+---
+
+## API (Advanced)
+
+Diese Endpunkte sind vor allem für die UI und Admin‑Tasks relevant.
+
+- `GET /api/client-config` – Read‑only Client‑Konfiguration (Polling‑Intervalle etc.).
+- `GET /api/settings/scheduler` – Scheduler‑Einstellungen (Cron/Zeitzone/Retries).
+- `PUT /api/settings/scheduler` – Scheduler‑Einstellungen speichern.
+- `GET /api/settings/client-polling` – Client‑Polling‑Einstellungen (DB‑Overrides).
+- `PUT /api/settings/client-polling` – Client‑Polling‑Einstellungen speichern.
+- `POST /api/threads/:id/engagement/refresh` – Engagement (Likes/Reposts/Replies) für einen Thread neu sammeln.
+- `GET /api/reactions/:skeetId` – Reaktionen für einen veröffentlichten Skeet laden (on‑demand).
+
+Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests verwendet werden.
 
 ---
 

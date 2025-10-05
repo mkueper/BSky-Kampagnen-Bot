@@ -1,20 +1,19 @@
-const PLATFORM_ORDER = ['bluesky', 'mastodon'];
-const PLATFORM_ICONS = {
-  bluesky: "🟦",
-  mastodon: "🐘",
-};
+import Badge from "./ui/Badge";
 
-const STATUS_STYLES = {
-  pending: "border-border bg-background-subtle text-foreground-muted",
-  sent: "border-transparent bg-emerald-500/90 text-white",
-  failed: "border-transparent bg-destructive/90 text-destructive-foreground",
-  partial: "border-transparent bg-amber-500/90 text-black",
-  deleted: "border-border bg-background text-foreground-muted",
+const PLATFORM_ORDER = ['bluesky', 'mastodon'];
+const PLATFORM_ICONS = { bluesky: "🟦", mastodon: "🐘" };
+
+const STATUS_VARIANT = {
+  pending: "outline",
+  sent: "success",
+  failed: "destructive",
+  partial: "warning",
+  deleted: "outline",
 };
 
 const PLATFORM_ACCENTS = {
-  bluesky: "ring-offset-2 ring-sky-400/60",
-  mastodon: "ring-offset-2 ring-violet-400/60",
+  bluesky: "ring-offset-2 ring-sky-400/60 hover:ring",
+  mastodon: "ring-offset-2 ring-violet-400/60 hover:ring",
 };
 
 function getPlatformSummary(skeet) {
@@ -81,16 +80,16 @@ function PlatformBadges({ skeet }) {
   return (
     <div className="flex flex-wrap gap-2">
       {items.map(({ id, status, title }) => (
-        <span
+        <Badge
           key={id}
           title={title}
-          className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] shadow-sm transition hover:ring ${
-            STATUS_STYLES[status] || STATUS_STYLES.pending
-          } ${PLATFORM_ACCENTS[id] || ""}`}
+          size="sm"
+          icon={PLATFORM_ICONS[id] ?? "•"}
+          variant={STATUS_VARIANT[status] || 'outline'}
+          className={`${PLATFORM_ACCENTS[id] || ''}`}
         >
-          <span aria-hidden="true">{PLATFORM_ICONS[id] ?? "•"}</span>
           <span className="normal-case tracking-normal capitalize">{status}</span>
-        </span>
+        </Badge>
       ))}
     </div>
   );
