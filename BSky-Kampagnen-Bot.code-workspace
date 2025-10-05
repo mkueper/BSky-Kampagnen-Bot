@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
-		"workbench.activityBar.iconClickBehavior": "focus"
+		"workbench.activityBar.iconClickBehavior": "focus",
+		"chat.disableAIFeatures": true
 	}
 }

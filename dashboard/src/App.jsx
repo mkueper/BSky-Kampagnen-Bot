@@ -155,6 +155,7 @@ function App() {
     publishedSkeets,
     deletedSkeets,
     loadSkeets,
+    refreshNow: refreshSkeetsNow,
     fetchReactions,
     showSkeetContent,
     showRepliesContent,
@@ -164,9 +165,9 @@ function App() {
     loadingReactions,
     reactionStats,
     replyErrors,
-  } = useSkeets();
+  } = useSkeets({ enabled: activeView === 'overview' || activeView === 'skeets-overview' });
 
-  const { threads, loading: threadsLoading, error: threadsError, reload: reloadThreads } = useThreads();
+  const { threads, loading: threadsLoading, error: threadsError, reload: reloadThreads, refreshNow: refreshThreadsNow } = useThreads({ enabled: activeView === 'overview' || activeView === 'threads-overview' });
   const { thread: editingThread, loading: loadingEditingThread } = useThreadDetail(editingThreadId, {
     autoLoad: Boolean(editingThreadId),
   });
@@ -297,9 +298,9 @@ function App() {
         throw new Error(data.error || `Fehler beim Import der ${entityLabel}.`);
       }
       if (threadContext) {
-        await reloadThreads();
+        await refreshThreadsNow();
       } else {
-        await loadSkeets();
+        await refreshSkeetsNow();
       }
       toast.success({
         title: `${entityLabel}-Import abgeschlossen`,
@@ -332,7 +333,7 @@ function App() {
         throw new Error(data.error || "Fehler beim Löschen des Skeets.");
       }
       setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
-      await loadSkeets();
+      await refreshSkeetsNow();
       toast.success({
         title: "Skeet gelöscht",
         description: "Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.",
@@ -361,7 +362,7 @@ function App() {
         throw new Error(data.error || "Fehler beim Entfernen des Skeets.");
       }
       const data = await res.json();
-      await loadSkeets();
+      await refreshSkeetsNow();
       const summary = data?.summary || {};
       const successPlatforms = Object.entries(summary)
         .filter(([, result]) => result?.ok)
@@ -396,7 +397,7 @@ function App() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Fehler beim Reaktivieren des Skeets.");
       }
-      await loadSkeets();
+      await refreshSkeetsNow();
       toast.success({
         title: "Skeet reaktiviert",
         description: "Der Skeet wurde wiederhergestellt und erscheint erneut in der Übersicht.",
@@ -422,7 +423,7 @@ function App() {
         throw new Error(data.error || "Fehler beim endgültigen Löschen des Skeets.");
       }
       setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
-      await loadSkeets();
+      await refreshSkeetsNow();
       toast.success({
         title: "Skeet entfernt",
         description: "Der Skeet wurde dauerhaft gelöscht.",
@@ -458,7 +459,7 @@ function App() {
         setEditingThreadId(null);
       }
 
-      await reloadThreads();
+      await refreshThreadsNow();
 
       toast.success({
         title: "Thread gelöscht",
@@ -491,7 +492,7 @@ function App() {
       }
 
       const data = await res.json();
-      await reloadThreads();
+      await refreshThreadsNow();
 
       const summary = data?.summary || {};
       const successPlatforms = Object.entries(summary)
@@ -530,7 +531,7 @@ function App() {
         throw new Error(data.error || "Fehler beim Wiederherstellen des Threads.");
       }
 
-      await reloadThreads();
+      await refreshThreadsNow();
 
       toast.success({
         title: "Thread reaktiviert",
@@ -564,7 +565,7 @@ function App() {
         setEditingThreadId(null);
       }
 
-      await reloadThreads();
+      await refreshThreadsNow();
 
       toast.success({
         title: "Thread entfernt",
@@ -581,14 +582,14 @@ function App() {
 
   const handleFormSaved = () => {
     setEditingSkeet(null);
-    loadSkeets();
+    refreshSkeetsNow();
     setActiveView("skeets-overview");
     setActiveDashboardTab("planned");
   };
 
   const handleThreadSaved = () => {
     setEditingThreadId(null);
-    reloadThreads();
+    refreshThreadsNow();
     setActiveView("threads-overview");
   };
 
@@ -707,7 +708,7 @@ function App() {
         threads={threads}
         loading={threadsLoading}
         error={threadsError}
-        onReload={reloadThreads}
+        onReload={refreshThreadsNow}
         onEditThread={handleEditThread}
         onDeleteThread={handleDeleteThread}
         onRestoreThread={handleRestoreThread}
