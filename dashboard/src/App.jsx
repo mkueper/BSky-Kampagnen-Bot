@@ -666,10 +666,10 @@ function App() {
     <>
       <Button
         variant="ghost"
+        size="icon"
         onClick={handleToggleTheme}
         aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
         title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-        className="p-2"
       >
         <ThemeIcon className="h-4 w-4" />
         <span className="sr-only">Aktuelles Theme: {currentThemeConfig?.label}</span>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
+import Button from "../ui/Button";
 import ThreadOverview from "../ThreadOverview";
 
 function formatDateTime(value) {
@@ -167,28 +168,24 @@ function ThreadDashboardView({
               <div className="self-start rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
                 <span className="sr-only">Sortierung veröffentlichter Threads</span>
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
+                  <Button
+                    variant={publishedSortOrder === "desc" ? "secondary" : "ghost"}
+                    size="icon"
                     onClick={() => setPublishedSortOrder("desc")}
-                    className={`rounded-full p-1 transition ${
-                      publishedSortOrder === "desc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
-                    }`}
                     aria-pressed={publishedSortOrder === "desc"}
                     title="Neu zuerst"
                   >
                     <ArrowDownIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant={publishedSortOrder === "asc" ? "secondary" : "ghost"}
+                    size="icon"
                     onClick={() => setPublishedSortOrder("asc")}
-                    className={`rounded-full p-1 transition ${
-                      publishedSortOrder === "asc" ? "bg-background shadow-soft text-foreground" : "text-foreground-muted hover:text-foreground"
-                    }`}
                     aria-pressed={publishedSortOrder === "asc"}
                     title="Alt zuerst"
                   >
                     <ArrowUpIcon className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : null}

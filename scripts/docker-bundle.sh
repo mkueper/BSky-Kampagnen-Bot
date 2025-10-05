@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUNDLE_NAME=${1:-bsky-kampagnen-bot-bundle}
+# Standard-Bundle-Namen auf Basis des aktuellen Datums setzen
+# Format: Bsky-Kamp-Bot-YYYY-MM-DD
+STAMP=$(date +%F)
+DEFAULT_BUNDLE_NAME="Bsky-Kamp-Bot-${STAMP}"
+
+BUNDLE_NAME=${1:-${DEFAULT_BUNDLE_NAME}}
 IMAGE_PREFIX=${2:-bsky-kampagnen-bot}
 BUNDLES_DIR="dist/bundles"
 WORK_DIR="${BUNDLES_DIR}/${BUNDLE_NAME}"
@@ -43,6 +48,8 @@ if [[ -d dashboard ]]; then
     --exclude='./dashboard/dist' \
     --exclude='./dashboard/.env' \
     --exclude='./dashboard/.env.local' \
+    --exclude='./dashboard/.env.dev' \
+    --exclude='./dashboard/.env.prod' \
     -cf - dashboard | tar -xf - -C "${APP_DIR}"
 fi
 
@@ -89,6 +96,11 @@ Services:
 - frontend → Nginx mit gebuildetem Dashboard (Port ${FRONTEND_PORT:-8080})
 
 Die SQLite-Datenbank wird beim ersten Start neu angelegt (benanntes Volume `data`, Compose benennt es i. d. R. `<projekt>_data`).
+
+Hinweise zu Environments:
+- Dieses Bundle enthält keine `.env`. Lege auf dem Zielsystem eine `.env` an (siehe `.env.sample`).
+- Für Entwicklung/Test eignen sich `.env.dev` mit Test‑Accounts (keine Follower), für Produktion `.env.prod` mit echten Zugangsdaten.
+- Lokal kann die aktive `.env` mit `npm run switchenv:dev` bzw. `npm run switchenv:prod` umgeschaltet werden.
 INSTRUCTIONS
 
 pushd "${BUNDLES_DIR}" > /dev/null

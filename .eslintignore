@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dashboard/node_modules/
+dashboard/dist/
+data/
+*.sqlite
+*.log
+*.tmp
+coverage/
+scripts/docker-bundle.sh
+
