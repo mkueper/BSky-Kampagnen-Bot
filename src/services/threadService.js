@@ -114,6 +114,14 @@ async function listThreads({ status } = {}) {
         attributes: ["id", "sequence", "content", "characterCount", "appendNumbering", "postedAt", "remoteId"],
         separate: true,
         order: [["sequence", "ASC"]],
+        include: [
+          {
+            model: SkeetReaction,
+            as: "reactions",
+            separate: true,
+            order: [["createdAt", "DESC"]],
+          },
+        ],
       },
     ],
   });

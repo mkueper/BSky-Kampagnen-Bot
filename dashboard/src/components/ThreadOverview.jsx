@@ -83,6 +83,7 @@ function ThreadOverview({
   mode = "default",
 }) {
   const [expandedThreads, setExpandedThreads] = useState({});
+  const [showReplies, setShowReplies] = useState({});
 
   const handleToggle = (threadId) => {
     setExpandedThreads((current) => ({ ...current, [threadId]: !current[threadId] }));
@@ -142,6 +143,36 @@ function ThreadOverview({
         const canRetract = !isDeletedMode && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
         const canEdit = !isDeletedMode && typeof onEditThread === 'function' && thread.status !== 'published';
 
+        // Aggregierte Reaktionen über alle Segmente (falls vorhanden)
+        const reactionTotals = (() => {
+          const acc = { replies: 0, likes: 0, reposts: 0, quotes: 0 };
+          for (const seg of segments) {
+            const reactions = Array.isArray(seg?.reactions) ? seg.reactions : [];
+            for (const r of reactions) {
+              const t = String(r?.type || '').toLowerCase();
+              if (t === 'reply') acc.replies++;
+              else if (t === 'like') acc.likes++;
+              else if (t === 'repost') acc.reposts++;
+              else if (t === 'quote') acc.quotes++;
+            }
+          }
+          return acc;
+        })();
+
+        const flatReplies = (() => {
+          const out = [];
+          for (const seg of segments) {
+            const seq = Number(seg?.sequence) ?? 0;
+            const reactions = Array.isArray(seg?.reactions) ? seg.reactions : [];
+            for (const r of reactions) {
+              if (String(r?.type).toLowerCase() === 'reply') {
+                out.push({ sequence: seq, author: r.authorHandle || r.authorDisplayName || 'Unbekannt', content: r.content || '' });
+              }
+            }
+          }
+          return out;
+        })();
+
         return (
           <article key={thread.id} className="rounded-3xl border border-border bg-background-elevated p-6 shadow-soft">
             <header className="flex flex-wrap items-center justify-between gap-3">
@@ -166,6 +197,11 @@ function ThreadOverview({
                 </header>
                 <p className="whitespace-pre-wrap text-foreground">{firstSegment.content || "(leer)"}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-foreground-muted">
+                    <span>Likes: <span className="font-medium text-foreground">{reactionTotals.likes}</span></span>
+                    <span>Reposts: <span className="font-medium text-foreground">{reactionTotals.reposts}</span></span>
+                    <span>Antworten: <span className="font-medium text-foreground">{reactionTotals.replies}</span></span>
+                  </div>
                   {hasMore ? (
                     <button
                       type="button"
@@ -197,6 +233,15 @@ function ThreadOverview({
                       </>
                     ) : (
                       <>
+                        {flatReplies.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowReplies((c) => ({ ...c, [thread.id]: !c[thread.id] }))}
+                            className="rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle"
+                          >
+                            {showReplies[thread.id] ? "Antworten verbergen" : `Antworten anzeigen (${flatReplies.length})`}
+                          </button>
+                        ) : null}
                         {canEdit ? (
                           <button
                             type="button"
@@ -226,6 +271,24 @@ function ThreadOverview({
                   </div>
                 </div>
               </div>
+
+              {showReplies[thread.id] && flatReplies.length > 0 ? (
+                <div className="rounded-2xl border border-border-muted bg-background-subtle/60 p-4">
+                  <header className="mb-3 text-xs uppercase tracking-[0.2em] text-foreground-muted">
+                    Antworten (neueste zuerst)
+                  </header>
+                  <ul className="space-y-2">
+                    {flatReplies.slice().reverse().map((r, idx) => (
+                      <li key={`${r.sequence}-${idx}`} className="rounded-xl border border-border bg-background p-3">
+                        <div className="mb-1 text-xs text-foreground-muted">Skeet {r.sequence + 1}</div>
+                        <div className="text-sm">
+                          <span className="font-medium">{r.author}</span>: {r.content}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               {isExpanded && hasMore ? (
                 <div className="space-y-2 border-l border-border-muted pl-4 sm:pl-6">
