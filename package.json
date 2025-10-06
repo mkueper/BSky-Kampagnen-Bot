@@ -37,7 +37,8 @@
     "switchenv:prod": "node scripts/switch-env.js prod",
     "changelog:add": "node scripts/changelog-add.js",
     "changelog:note": "node scripts/changelog-note.js",
-    "changelog:release": "node scripts/changelog-release.js"
+    "changelog:release": "node scripts/changelog-release.js",
+    "changelog:lint": "node scripts/changelog-lint.js"
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",
