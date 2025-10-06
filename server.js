@@ -22,6 +22,8 @@ const configController = require("./src/controllers/configController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
+const { createLogger } = require("./src/utils/logging");
+const appLog = createLogger('app');
 
 const app = express();
 const PORT = config.PORT;
@@ -49,6 +51,7 @@ app.delete("/api/threads/:id", threadController.deleteThread);
 app.post("/api/threads/:id/retract", threadController.retractThread);
 app.post("/api/threads/:id/restore", threadController.restoreThread);
 app.post("/api/threads/:id/engagement/refresh", threadController.refreshEngagement);
+app.post("/api/threads/engagement/refresh-all", threadController.refreshAllEngagement);
 app.post("/api/threads/import", importExportController.importThreads);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
@@ -107,13 +110,16 @@ app.use((req, res, next) => {
   try {
     await loginBluesky();
     console.log("✅ Bluesky-Login erfolgreich");
+    appLog.info("Bluesky-Login erfolgreich");
 
     if (hasMastodonCredentials()) {
       try {
         await loginMastodon();
         console.log("✅ Mastodon-Login erfolgreich");
+        appLog.info("Mastodon-Login erfolgreich");
       } catch (mastodonError) {
         console.error("❌ Mastodon-Login fehlgeschlagen:", mastodonError?.message || mastodonError);
+        appLog.error("Mastodon-Login fehlgeschlagen", { error: mastodonError?.message || String(mastodonError) });
       }
     } else {
       console.log("ℹ️ Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
@@ -121,19 +127,24 @@ app.use((req, res, next) => {
 
     await sequelize.authenticate();
     console.log("✅ DB-Verbindung ok");
+    appLog.info("DB-Verbindung ok");
 
     await sequelize.sync(); // ggf. sync({ alter: false }) oder migrations nutzen
     console.log("✅ DB synchronisiert");
+    appLog.info("DB synchronisiert");
 
     try {
       await startScheduler();
+      appLog.info("Scheduler gestartet");
     } catch (schedulerError) {
       console.error("❌ Scheduler konnte nicht gestartet werden:", schedulerError?.message || schedulerError);
+      appLog.error("Scheduler konnte nicht gestartet werden", { error: schedulerError?.message || String(schedulerError) });
     }
 
     app.listen(PORT, () => {
       if (process.env.NODE_ENV !== "test") {
         console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
+        appLog.info("Server läuft", { port: PORT, env: process.env.NODE_ENV || "development", target: process.env.LOG_TARGET || 'console', level: process.env.LOG_LEVEL || 'info', file: process.env.LOG_FILE || 'logs/server.log' });
       }
     });
   } catch (err) {

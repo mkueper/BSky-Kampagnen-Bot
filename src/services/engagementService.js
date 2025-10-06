@@ -1,4 +1,6 @@
 const { Skeet, Reply } = require('../models');
+const { createLogger, isEngagementDebug } = require('../utils/logging');
+const log = createLogger('engagement');
 const { getReactions: getBlueskyReactions, getReplies: fetchBlueskyReplies } = require('./blueskyClient');
 const {
   hasCredentials: hasMastodonCredentials,
@@ -126,6 +128,9 @@ function extractMastodonReplies(descendants) {
 }
 
 async function collectReactions(skeetId) {
+  if (isEngagementDebug()) {
+    log.debug(`Skeet reactions: start | skeetId=${skeetId}`);
+  }
   const skeet = await Skeet.findByPk(skeetId);
   if (!skeet) {
     throw new Error('Skeet nicht gefunden.');
@@ -218,6 +223,10 @@ async function collectReactions(skeetId) {
     payload.errors = errors;
   }
 
+  if (isEngagementDebug()) {
+    const totals = payload?.platforms || {};
+    log.debug(`Skeet reactions: done | skeetId=${skeetId}`, totals);
+  }
   return payload;
 }
 
@@ -257,6 +266,9 @@ function extractRepliesFromThread(thread) {
 }
 
 async function fetchReplies(skeetId) {
+  if (isEngagementDebug()) {
+    log.debug(`Skeet replies: start | skeetId=${skeetId}`);
+  }
   const skeet = await Skeet.findByPk(skeetId);
   if (!skeet) {
     throw new Error('Skeet nicht gefunden.');
@@ -339,6 +351,9 @@ async function fetchReplies(skeetId) {
     payload.errors = errors;
   }
 
+  if (isEngagementDebug()) {
+    log.debug(`Skeet replies: done | skeetId=${skeetId} | count=${(payload?.items || []).length}`);
+  }
   return payload;
 }
 

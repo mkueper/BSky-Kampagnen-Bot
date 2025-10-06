@@ -4,6 +4,8 @@
  * pro Plattform und speichert sie an den Segmenten bzw. im Thread-Metadatenfeld.
  */
 const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("../models");
+const { createLogger, isEngagementDebug } = require("../utils/logging");
+const log = createLogger('engagement');
 const { getReactions: bskyGetReactions, getReplies: bskyGetPostThread } = require("./blueskyClient");
 const {
   hasCredentials: hasMastoCreds,
@@ -104,10 +106,14 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
   let totalReplies = 0;
 
   const mastoEnabled = hasMastoCreds();
+  if (isEngagementDebug()) {
+    log.debug(`Refresh start | thread=${id} | replies=${includeReplies} | mastodonEnabled=${mastoEnabled}`);
+  }
 
   // pro Plattform sammeln
   for (const platformId of ["bluesky", "mastodon"]) {
     const base = platformResults[platformId] || {};
+    const baseSegments = Array.isArray(base.segments) ? base.segments : [];
     const nextSegments = [];
     let platformLikes = 0;
     let platformReposts = 0;
@@ -115,7 +121,11 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
 
     for (const segment of thread.segments) {
       const sequence = Number(segment.sequence) || 0;
-      const uri = String(segment.remoteId || "");
+      // Versuche plattformspezifische Identifikatoren zu verwenden (aus Scheduler-Ergebnis),
+      // falle ansonsten auf den primären `remoteId` zurück.
+      const platformSeg = baseSegments.find((s) => Number(s.sequence) === sequence) || null;
+      const primaryUri = String(segment.remoteId || "");
+      const uri = String(platformSeg?.uri || primaryUri);
       if (!uri) {
         // Segment nicht veröffentlicht
         nextSegments.push(base.segments?.find((s) => s.sequence === sequence) || { sequence, status: "pending" });
@@ -135,8 +145,13 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
             const tree = await bskyGetPostThread(uri);
             replies = extractBskyRepliesFromThread(tree);
           }
+          if (isEngagementDebug()) {
+            log.debug(`Bsky segment | seq=${sequence} | uri=${uri} | likes=${likes} | reposts=${reposts} | replies=${replies.length}`);
+          }
         } else if (platformId === "mastodon" && mastoEnabled) {
-          const statusId = extractMastodonStatusId(uri);
+          // Nur abrufen, wenn es plattformspezifische Identifikatoren gibt.
+          // Fallback von einer Bluesky-URI ist hier bewusst NICHT erlaubt.
+          const statusId = platformSeg?.statusId || (platformSeg?.uri ? extractMastodonStatusId(platformSeg.uri) : null);
           if (statusId) {
             const s = await mastoGetStatus(statusId);
             likes = Number(s?.favourites_count) || 0;
@@ -145,10 +160,18 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
               const ctx = await mastoGetStatusContext(statusId);
               replies = extractMastoRepliesFromContext(ctx);
             }
+            if (isEngagementDebug()) {
+              log.debug(`Masto segment | seq=${sequence} | statusId=${statusId} | likes=${likes} | reposts=${reposts} | replies=${replies.length}`);
+            }
+          } else if (isEngagementDebug()) {
+            log.debug(`Masto skip | seq=${sequence} | reason=no-identifiers`);
           }
         }
       } catch (e) {
         // Ignoriere einzelne Segmentfehler, setze status=partial/failed unten
+        if (isEngagementDebug()) {
+          log.warn(`Fetch error | platform=${platformId} | seq=${sequence} | uri=${uri}`, { error: e?.message || String(e) });
+        }
       }
 
       platformLikes += likes;
@@ -157,7 +180,12 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
       // Replies persistieren: vorhandene löschen, neue schreiben
       if (includeReplies) {
         await sequelize.transaction(async (t) => {
-          await SkeetReaction.destroy({ where: { threadSkeetId: segment.id, type: "reply" }, transaction: t });
+          // Aktualisiere nur die Antworten der aktuellen Plattform, damit
+          // Antworten anderer Plattformen erhalten bleiben.
+          await SkeetReaction.destroy({
+            where: { threadSkeetId: segment.id, type: "reply", metadata: { platform: platformId } },
+            transaction: t,
+          });
           if (Array.isArray(replies) && replies.length > 0) {
             const rows = replies.map((r) => ({
               threadSkeetId: segment.id,
@@ -173,13 +201,14 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
         });
       }
 
-      nextSegments.push({
+      const nextSegEntry = {
         sequence,
         status: "sent",
         uri,
         metrics: { likes, reposts },
         metricsUpdatedAt: nowIso,
-      });
+      };
+      nextSegments.push(nextSegEntry);
     }
 
     totalLikes += platformLikes;
@@ -198,6 +227,9 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
 
   metadata.platformResults = platformResults;
   await thread.update({ metadata });
+  if (isEngagementDebug()) {
+    log.debug(`Refresh done | thread=${id} | totals: likes=${totalLikes}, reposts=${totalReposts}, replies=${totalReplies}`);
+  }
 
   return {
     ok: true,
@@ -230,5 +262,32 @@ async function refreshPublishedThreadsBatch(limit = 3) {
 module.exports = {
   refreshThreadEngagement,
   refreshPublishedThreadsBatch,
-};
+  /**
+   * Aktualisiert Engagement-Daten für alle veröffentlichten Threads in Batches.
+   *
+   * @param {{ batchSize?: number, includeReplies?: boolean }} [options]
+   * @returns {Promise<{ ok: boolean, total: number, processed: number, results: Array }>} Zusammenfassung
+   */
+  async refreshAllPublishedThreads(options = {}) {
+    const batchSize = Number(options.batchSize) > 0 ? Number(options.batchSize) : 10;
+    const includeReplies = Boolean(options.includeReplies);
 
+    const rows = await Thread.findAll({ where: { status: "published" }, attributes: ["id"], order: [["id", "ASC"]] });
+    const ids = rows.map((r) => r.id);
+    const results = [];
+
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const slice = ids.slice(i, i + batchSize);
+      for (const id of slice) {
+        try {
+          const r = await refreshThreadEngagement(id, { includeReplies });
+          results.push({ id, ok: true, totals: r?.totals || null });
+        } catch (e) {
+          results.push({ id, ok: false, error: e?.message || String(e) });
+        }
+      }
+    }
+
+    return { ok: true, total: ids.length, processed: results.length, results };
+  },
+};

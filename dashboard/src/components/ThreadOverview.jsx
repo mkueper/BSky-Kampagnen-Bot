@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useToast } from "../hooks/useToast";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
+const PLATFORM_LABELS = { bluesky: "Bluesky", mastodon: "Mastodon" };
 
 function parseThreadMetadata(thread) {
   const raw = thread?.metadata;
@@ -86,6 +88,8 @@ function ThreadOverview({
 }) {
   const [expandedThreads, setExpandedThreads] = useState({});
   const [showReplies, setShowReplies] = useState({});
+  const [loadingRefresh, setLoadingRefresh] = useState({});
+  const toast = useToast();
 
   const handleToggle = (threadId) => {
     setExpandedThreads((current) => ({ ...current, [threadId]: !current[threadId] }));
@@ -145,7 +149,7 @@ function ThreadOverview({
         const canRetract = !isDeletedMode && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
         const canEdit = !isDeletedMode && typeof onEditThread === 'function' && thread.status !== 'published';
 
-        // Aggregierte Reaktionen über alle Segmente (falls vorhanden)
+        // Aggregierte Reaktionen (Replies aus DB; Likes/Reposts bevorzugt aus Metadata-Totals)
         const reactionTotals = (() => {
           const acc = { replies: 0, likes: 0, reposts: 0, quotes: 0 };
           for (const seg of segments) {
@@ -161,6 +165,37 @@ function ThreadOverview({
           return acc;
         })();
 
+        const metadataTotals = (() => {
+          const total = { likes: 0, reposts: 0, replies: 0 };
+          try {
+            Object.values(platformResults).forEach((entry) => {
+              const t = entry?.totals || {};
+              total.likes += Number(t.likes) || 0;
+              total.reposts += Number(t.reposts) || 0;
+              total.replies += Number(t.replies) || 0;
+            });
+          } catch {}
+          return total;
+        })();
+
+        const displayLikes = metadataTotals.likes || reactionTotals.likes;
+        const displayReposts = metadataTotals.reposts || reactionTotals.reposts;
+        const displayReplies = Math.max(reactionTotals.replies, metadataTotals.replies);
+
+        const perPlatformTotals = (() => {
+          const out = [];
+          try {
+            Object.entries(platformResults).forEach(([platformId, entry]) => {
+              if (!entry || typeof entry !== 'object') return;
+              const t = entry.totals || {};
+              const likes = Number(t.likes) || 0;
+              const reposts = Number(t.reposts) || 0;
+              out.push({ platformId, likes, reposts });
+            });
+          } catch {}
+          return out;
+        })();
+
         const flatReplies = (() => {
           const out = [];
           for (const seg of segments) {
@@ -174,6 +209,34 @@ function ThreadOverview({
           }
           return out;
         })();
+
+        // Ermittele das jüngste metricsUpdatedAt für das erste Segment (sequence)
+        const firstSeq = Number(firstSegment.sequence) || 0;
+        const lastMetricsUpdatedAt = (() => {
+          let latest = 0;
+          try {
+            Object.values(platformResults).forEach((entry) => {
+              if (!entry || typeof entry !== 'object') return;
+              const segs = Array.isArray(entry.segments) ? entry.segments : [];
+              const seg = segs.find((s) => Number(s?.sequence) === firstSeq);
+              const ts = seg?.metricsUpdatedAt || entry.metricsUpdatedAt || null;
+              if (!ts) return;
+              const t = new Date(ts).getTime();
+              if (Number.isFinite(t) && t > latest) latest = t;
+            });
+          } catch {}
+          return latest > 0 ? new Date(latest) : null;
+        })();
+
+        const formatUpdatedAt = (date) => {
+          if (!date) return null;
+          try {
+            return new Intl.DateTimeFormat('de-DE', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            }).format(date);
+          } catch { return null; }
+        };
 
         return (
           <Card key={thread.id} id={`thread-${thread.id}`}>
@@ -200,9 +263,17 @@ function ThreadOverview({
                 <p className="whitespace-pre-wrap text-foreground">{firstSegment.content || "(leer)"}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-3 text-xs text-foreground-muted">
-                    <span>Likes: <span className="font-medium text-foreground">{reactionTotals.likes}</span></span>
-                    <span>Reposts: <span className="font-medium text-foreground">{reactionTotals.reposts}</span></span>
-                    <span>Antworten: <span className="font-medium text-foreground">{reactionTotals.replies}</span></span>
+                    <span>Likes: <span className="font-medium text-foreground">{displayLikes}</span></span>
+                    <span>Reposts: <span className="font-medium text-foreground">{displayReposts}</span></span>
+                    <span>Antworten: <span className="font-medium text-foreground">{displayReplies}</span></span>
+                    {lastMetricsUpdatedAt ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span>·</span>
+                        <span>
+                          Zuletzt aktualisiert: <span className="font-medium text-foreground">{formatUpdatedAt(lastMetricsUpdatedAt)}</span>
+                        </span>
+                      </span>
+                    ) : null}
                   </div>
                   {hasMore ? (
                     <button type="button" onClick={() => handleToggle(thread.id)} className="text-sm font-medium text-primary transition hover:underline">
@@ -227,19 +298,34 @@ function ThreadOverview({
                         <Button
                           variant="primary"
                           onClick={async () => {
+                            setLoadingRefresh((s) => ({ ...s, [thread.id]: true }));
                             try {
                               const res = await fetch(`/api/threads/${thread.id}/engagement/refresh`, { method: 'POST' });
                               if (!res.ok) {
                                 const data = await res.json().catch(() => ({}));
                                 throw new Error(data.error || 'Fehler beim Aktualisieren der Reaktionen.');
                               }
+                              const data = await res.json().catch(() => null);
+                              if (data && data.totals) {
+                                const { likes = 0, reposts = 0, replies = 0 } = data.totals || {};
+                                toast.success({
+                                  title: 'Reaktionen aktualisiert',
+                                  description: `Likes ${likes} · Reposts ${reposts} · Antworten ${replies}`,
+                                });
+                              } else {
+                                toast.success({ title: 'Reaktionen aktualisiert', description: 'Kennzahlen wurden neu geladen.' });
+                              }
                               if (typeof onReload === 'function') onReload();
                             } catch (e) {
                               console.error('Engagement-Refresh fehlgeschlagen:', e);
+                              toast.error({ title: 'Aktualisierung fehlgeschlagen', description: e?.message || 'Fehler beim Aktualisieren der Reaktionen.' });
+                            } finally {
+                              setLoadingRefresh((s) => ({ ...s, [thread.id]: false }));
                             }
                           }}
+                          disabled={Boolean(loadingRefresh[thread.id])}
                         >
-                          Reaktionen aktualisieren
+                          {loadingRefresh[thread.id] ? 'Lädt…' : 'Reaktionen aktualisieren'}
                         </Button>
                         {canEdit ? (
                           <Button variant="secondary" onClick={() => onEditThread?.(thread)}>Bearbeiten</Button>
@@ -254,6 +340,17 @@ function ThreadOverview({
                     )}
                   </div>
                 </div>
+
+                {perPlatformTotals.length > 0 ? (
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {perPlatformTotals.map((p) => (
+                      <div key={p.platformId} className="rounded-2xl border border-border bg-background-subtle/80 p-4 text-sm">
+                        <p className="font-medium text-foreground">{PLATFORM_LABELS[p.platformId] || p.platformId}</p>
+                        <p className="mt-1 text-foreground-muted">Likes {p.likes} · Reposts {p.reposts}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               {showReplies[thread.id] && flatReplies.length > 0 ? (
