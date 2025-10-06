@@ -82,6 +82,9 @@ const mastodonProfile = {
     if (inReplyToId) {
       payload.in_reply_to_id = inReplyToId;
     }
+    if (Array.isArray(input.media) && input.media.length > 0) {
+      payload.media = input.media.slice(0, 4);
+    }
     return payload;
   },
 
@@ -94,7 +97,27 @@ const mastodonProfile = {
     }
 
     const client = createClient(env);
-    const res = await client.post("statuses", payload);
+    const mediaItems = Array.isArray(payload.media) ? payload.media : [];
+    let media_ids = undefined;
+    if (mediaItems.length > 0) {
+      const { uploadMedia } = require('../../services/mastodonClient');
+      const ids = [];
+      for (const m of mediaItems) {
+        try {
+          const id = await uploadMedia(m.path, m.altText || '', env);
+          if (id) ids.push(id);
+        } catch (e) {
+          // ignore single upload error
+        }
+      }
+      if (ids.length > 0) media_ids = ids;
+    }
+
+    const body = { status: payload.status };
+    if (payload.in_reply_to_id) body.in_reply_to_id = payload.in_reply_to_id;
+    if (media_ids) body.media_ids = media_ids;
+
+    const res = await client.post("statuses", body);
 
     return {
       uri: res.data?.url || "",

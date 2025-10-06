@@ -76,6 +76,9 @@ const blueskyProfile = {
   toPostPayload(input) {
     const text = this.normalizeContent ? this.normalizeContent(input.content) : input.content;
     const payload = { text };
+    if (Array.isArray(input.media) && input.media.length > 0) {
+      payload.media = input.media.slice(0, 4);
+    }
     if (input.reply && input.reply.root && input.reply.parent) {
       payload.reply = {
         root: {
@@ -106,11 +109,31 @@ const blueskyProfile = {
     const rt = new RichText({ text });
     await rt.detectFacets(agent);
 
+    let embed = undefined;
+    const media = Array.isArray(payload.media) ? payload.media.slice(0, 4) : [];
+    if (media.length > 0) {
+      const fs = require('fs');
+      const images = [];
+      for (const m of media) {
+        try {
+          const fileBuf = fs.readFileSync(m.path);
+          const uploaded = await agent.uploadBlob(fileBuf, { encoding: m.mime || 'image/jpeg' });
+          images.push({ image: uploaded.data.blob, alt: m.altText || '' });
+        } catch (e) {
+          // skip failed image
+        }
+      }
+      if (images.length > 0) {
+        embed = { $type: 'app.bsky.embed.images', images };
+      }
+    }
+
     const res = await agent.post({
       text: rt.text,
       facets: rt.facets,
       createdAt: new Date().toISOString(),
       reply: payload.reply,
+      embed,
     });
 
     return {

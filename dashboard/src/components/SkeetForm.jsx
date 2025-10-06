@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useToast } from "../hooks/useToast";
 import Button from "./ui/Button";
+import MediaDialog from "./MediaDialog";
+import { useClientConfig } from "../hooks/useClientConfig";
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -73,6 +75,13 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const isEditing = Boolean(editingSkeet);
   const maxContentLength = resolveMaxLength(targetPlatforms);
   const toast = useToast();
+  const { config: clientConfig } = useClientConfig();
+  const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false };
+  const [pendingMedia, setPendingMedia] = useState([]);
+  const [mediaDialog, setMediaDialog] = useState({ open: false });
+  const [editedMediaAlt, setEditedMediaAlt] = useState({});
+  const [removedMedia, setRemovedMedia] = useState({});
+  const [altDialog, setAltDialog] = useState({ open: false, item: null });
 
   function resetToDefaults() {
     setContent("");
@@ -80,6 +89,7 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     setRepeat("none");
     setRepeatDayOfWeek(null);
     setRepeatDayOfMonth(null);
+    setPendingMedia([]);
     const defaults = getDefaultDateParts();
     setScheduledDate(defaults.date);
     setScheduledTime(defaults.time);
@@ -108,6 +118,7 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       const parts = toLocalDateParts(editingSkeet.scheduledAt) ?? getDefaultDateParts();
       setScheduledDate(parts.date);
       setScheduledTime(parts.time);
+      // TODO: Medienanzeige für bestehende Skeets (bearbeiten) kann optional ergänzt werden
     } else {
       resetToDefaults();
     }
@@ -166,6 +177,7 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       repeatDayOfWeek,
       repeatDayOfMonth,
       targetPlatforms: normalizedPlatforms,
+      media: pendingMedia,
     };
 
     const url = isEditing ? `/api/skeets/${editingSkeet.id}` : "/api/skeets";
@@ -249,6 +261,62 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         >
           {content.length}/{maxContentLength} Zeichen
         </div>
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setMediaDialog({ open: true, accept: 'image/*', title: 'Bild hinzufügen' })}
+            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'Bild hinzufügen'}
+          >🖼️</button>
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setMediaDialog({ open: true, accept: 'image/gif', title: 'GIF hinzufügen' })}
+            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'GIF hinzufügen'}
+          >GIF</button>
+        </div>
+        {(() => {
+          const list = [];
+          if (isEditing && Array.isArray(editingSkeet?.media)) {
+            editingSkeet.media.forEach((m) => {
+              if (!removedMedia[m.id] && m.previewUrl) list.push({ type: 'existing', id: m.id, src: m.previewUrl, alt: editedMediaAlt[m.id] ?? (m.altText || ''), pendingIndex: null });
+            });
+          }
+          pendingMedia.forEach((m, idx) => list.push({ type: 'pending', id: null, src: m.data, alt: m.altText || '', pendingIndex: idx }));
+          const items = list.slice(0, imagePolicy.maxCount || 4);
+          return items.length > 0 ? (
+            <>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {items.map((it, idx) => (
+                  <div key={`${it.type}-${it.id ?? idx}`} className="relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                    <img src={it.src} alt={it.alt || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" />
+                    <div className="absolute left-1 top-1 z-10">
+                      <button type="button" className="rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black" onClick={() => setAltDialog({ open: true, item: it })}>{it.alt ? 'ALT' : '+ ALT'}</button>
+                    </div>
+                    <div className="absolute right-1 top-1 z-10">
+                      <button type="button" className="rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black" onClick={async () => {
+                        if (it.type === 'existing') {
+                          try {
+                            const res = await fetch(`/api/skeet-media/${it.id}`, { method: 'DELETE' });
+                            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Löschen fehlgeschlagen');
+                            setRemovedMedia((s) => ({ ...s, [it.id]: true }));
+                          } catch (e) {
+                            toast.error({ title: 'Entfernen fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' });
+                          }
+                        } else {
+                          setPendingMedia((arr) => { const clone = arr.slice(); clone.splice(it.pendingIndex, 1); return clone; });
+                        }
+                      }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-foreground-muted">Medien {items.length}/{imagePolicy.maxCount}</p>
+            </>
+          ) : null;
+        })()}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -284,8 +352,43 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setMediaDialog({ open: true, accept: 'image/*', title: 'Bild hinzufügen' })}
+            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'Bild hinzufügen'}
+          >🖼️</button>
+          <button
+            type="button"
+            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setMediaDialog({ open: true, accept: 'image/gif', title: 'GIF hinzufügen' })}
+            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'GIF hinzufügen'}
+          >GIF</button>
         </div>
+        {pendingMedia.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {pendingMedia.slice(0, 4).map((m, idx) => (
+              <div key={idx} className="relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                <img src={m.data} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" />
+                <div className="absolute left-1 top-1 z-10">
+                  <button type="button" className="rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black" onClick={() => {
+                    const next = window.prompt('Alt‑Text', m.altText || '');
+                    if (next != null) setPendingMedia((arr) => { const clone = arr.slice(); clone[idx] = { ...clone[idx], altText: next }; return clone; });
+                  }}>{m.altText ? 'ALT' : '+ ALT'}</button>
+                </div>
+                <div className="absolute right-1 top-1 z-10">
+                  <button type="button" className="rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black" onClick={() => setPendingMedia((arr) => { const clone = arr.slice(); clone.splice(idx,1); return clone; })}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <p className="text-xs text-foreground-muted">Medien {pendingMedia.length}/{imagePolicy.maxCount}</p>
+      </div>
 
         {repeat === "weekly" && (
           <div className="space-y-2">
@@ -359,6 +462,52 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           {isEditing ? "Skeet aktualisieren" : "Skeet speichern"}
         </Button>
       </div>
+      <MediaDialog
+        mode="upload"
+        open={Boolean(mediaDialog.open)}
+        title={mediaDialog.title || 'Bild hinzufügen'}
+        accept={mediaDialog.accept || 'image/*'}
+        requireAltText={Boolean(imagePolicy.requireAltText)}
+        maxBytes={imagePolicy.maxBytes}
+        allowedMimes={imagePolicy.allowedMimes}
+        onConfirm={(file, alt) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setPendingMedia((arr) => [...arr, { filename: file.name, mime: file.type, data: reader.result, altText: alt || '' }]);
+          };
+          reader.readAsDataURL(file);
+          setMediaDialog({ open: false });
+        }}
+        onClose={() => setMediaDialog({ open: false })}
+      />
+      {altDialog.open && altDialog.item ? (
+        <MediaDialog
+          open={altDialog.open}
+          mode="alt"
+          title={altDialog.item.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+          previewSrc={altDialog.item.src}
+          initialAlt={altDialog.item.alt || ''}
+          requireAltText={Boolean(imagePolicy.requireAltText)}
+          onConfirm={async (_file, newAlt) => {
+            const it = altDialog.item;
+            try {
+              if (it.type === 'existing' && it.id) {
+                const res = await fetch(`/api/skeet-media/${it.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ altText: newAlt }) });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Alt‑Text konnte nicht gespeichert werden.');
+                setEditedMediaAlt((s) => ({ ...s, [it.id]: newAlt }));
+              } else if (it.type === 'pending') {
+                setPendingMedia((arr) => { const clone = arr.slice(); if (clone[it.pendingIndex]) clone[it.pendingIndex] = { ...clone[it.pendingIndex], altText: newAlt }; return clone; });
+              }
+              toast.success({ title: 'Alt‑Text gespeichert' });
+            } catch (e) {
+              toast.error({ title: 'Fehler beim Alt‑Text', description: e?.message || 'Unbekannter Fehler' });
+            } finally {
+              setAltDialog({ open: false, item: null });
+            }
+          }}
+          onClose={() => setAltDialog({ open: false, item: null })}
+        />
+      ) : null}
     </form>
   );
 }

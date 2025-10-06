@@ -261,6 +261,20 @@ function ThreadOverview({
                   <span>{firstSegment.characterCount ?? firstSegment.content?.length ?? 0} Zeichen</span>
                 </header>
                 <p className="whitespace-pre-wrap text-foreground">{firstSegment.content || "(leer)"}</p>
+                {Array.isArray(firstSegment.media) && firstSegment.media.length > 0 ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {firstSegment.media.slice(0, 4).map((m, idx) => (
+                      <div key={m.id || idx} className="relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle/70">
+                        <img
+                          src={m.previewUrl || ''}
+                          alt={m.altText || `Bild ${idx + 1}`}
+                          className="absolute inset-0 h-full w-full object-contain"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-3 text-xs text-foreground-muted">
                     <span>Likes: <span className="font-medium text-foreground">{displayLikes}</span></span>

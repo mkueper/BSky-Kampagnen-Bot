@@ -32,7 +32,12 @@ async function getClientConfig(req, res) {
       heartbeatMs: values?.heartbeatMs ?? base?.heartbeatMs,
     };
 
-    res.json({ polling, locale: config.LOCALE, timeZone: config.TIME_ZONE });
+    res.json({
+      polling,
+      images: config.CLIENT_CONFIG?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false },
+      locale: config.LOCALE,
+      timeZone: config.TIME_ZONE,
+    });
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Client-Konfiguration.' });
   }

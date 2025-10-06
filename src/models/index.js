@@ -14,6 +14,8 @@ const ThreadSkeet = require("./threadSkeetModel")(sequelize, DataTypes);
 const SkeetReaction = require("./skeetReactionModel")(sequelize, DataTypes);
 const Skeet = require("./skeetModel")(sequelize, DataTypes);
 const Reply = require("./replyModel")(sequelize, DataTypes);
+const ThreadSkeetMedia = require("./threadSkeetMediaModel")(sequelize, DataTypes);
+const SkeetMedia = require("./skeetMediaModel")(sequelize, DataTypes);
 const Setting = require("./settingModel")(sequelize, DataTypes);
 
 // --- Relationen ---
@@ -32,4 +34,10 @@ Skeet.hasMany(Reply, { foreignKey: "skeetId", as: "replies" });
 Reply.belongsTo(Skeet, { foreignKey: "skeetId", as: "skeet" });
 
 
-module.exports = { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply, Setting };
+// Associations
+ThreadSkeetMedia.belongsTo(ThreadSkeet, { foreignKey: 'threadSkeetId', as: 'segment' });
+ThreadSkeet.hasMany(ThreadSkeetMedia, { foreignKey: 'threadSkeetId', as: 'media' });
+SkeetMedia.belongsTo(Skeet, { foreignKey: 'skeetId', as: 'skeet' });
+Skeet.hasMany(SkeetMedia, { foreignKey: 'skeetId', as: 'media' });
+
+module.exports = { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply, Setting, ThreadSkeetMedia, SkeetMedia };

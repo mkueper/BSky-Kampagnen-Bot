@@ -1,4 +1,6 @@
-const { Skeet } = require('../models');
+const { Skeet, SkeetMedia } = require('../models');
+const fs = require('fs');
+const path = require('path');
 const { ALLOWED_PLATFORMS } = require('../constants/platforms');
 const { deletePost } = require('./postService');
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('./platformContext');
@@ -168,29 +170,57 @@ function buildSkeetAttributes(payload, existing = null) {
   return attributes;
 }
 
-async function listSkeets({ includeDeleted = false, onlyDeleted = false } = {}) {
-  const queryOptions = {
-    order: [
-      ['scheduledAt', 'ASC'],
-      ['createdAt', 'DESC'],
-    ],
-  };
+async function listSkeets({ includeDeleted = false, onlyDeleted = false, includeMedia = false } = {}) {
+  const include = [];
+  if (includeMedia) {
+    include.push({ model: SkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] });
+  }
+  const queryOptions = { order: [["scheduledAt","ASC"],["createdAt","DESC"]], include };
 
   if (includeDeleted || onlyDeleted) {
     queryOptions.paranoid = false;
   }
 
   const skeets = await Skeet.findAll(queryOptions);
+  const list = skeets.map((s) => s.toJSON());
   if (onlyDeleted) {
-    return skeets.filter((entry) => Boolean(entry.deletedAt));
+    return list.filter((entry) => Boolean(entry.deletedAt));
   }
-  return skeets;
+  // add previewUrl
+  if (includeMedia) {
+    for (const s of list) {
+      if (!Array.isArray(s.media)) continue;
+      s.media = s.media.map((m) => ({ ...m, previewUrl: m?.path ? (`/uploads/` + path.basename(m.path)) : null }));
+    }
+  }
+  return list;
 }
 
 async function createSkeet(payload) {
   const attributes = buildSkeetAttributes(payload);
   attributes.platformResults = {};
-  return Skeet.create(attributes);
+  const skeet = await Skeet.create(attributes);
+  try {
+    const mediaItems = Array.isArray(payload.media) ? payload.media : [];
+    if (mediaItems.length > 0) {
+      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      let order = await SkeetMedia.count({ where: { skeetId: skeet.id } });
+      const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024);
+      for (const m of mediaItems) {
+        if (!m?.data) continue;
+        const buffer = Buffer.from(String(m.data).split(',').pop(), 'base64');
+        if (buffer.length > maxBytes) continue;
+        const base = `${Date.now()}-${String(m.filename || 'image').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0,120)}`;
+        const filePath = path.join(dir, base);
+        fs.writeFileSync(filePath, buffer);
+        await SkeetMedia.create({ skeetId: skeet.id, order, path: filePath, mime: m.mime || 'image/jpeg', size: buffer.length, altText: typeof m.altText === 'string' ? m.altText : null });
+        order += 1;
+        if (order >= 4) break;
+      }
+    }
+  } catch {}
+  return skeet;
 }
 
 async function updateSkeet(id, payload) {

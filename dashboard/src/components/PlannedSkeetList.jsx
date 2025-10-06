@@ -21,6 +21,15 @@ function PlannedSkeetList({ skeets, onEdit, onDelete, getRepeatDescription }) {
               <PlatformBadges skeet={skeet} />
               <p className="text-sm text-foreground-muted">{getRepeatDescription(skeet)}</p>
               <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
+              {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {skeet.media.slice(0, 4).map((m, idx) => (
+                    <div key={m.id || idx} className="relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                      <img src={m.previewUrl || ''} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {skeet.targetPlatforms?.length > 0 && (
                 <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
                   {skeet.targetPlatforms.join(" • ")}

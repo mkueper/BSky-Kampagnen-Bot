@@ -192,7 +192,11 @@ async function dispatchSkeet(skeet) {
     }
 
     try {
-      const res = await sendPost({ content: current.content }, platformId, platformEnv);
+      // Medien laden (falls vorhanden)
+      const { SkeetMedia } = require('../models');
+      const mediaRows = await SkeetMedia.findAll({ where: { skeetId: current.id }, order: [["order","ASC"],["id","ASC"]] });
+      const media = mediaRows.slice(0, 4).map((m) => ({ path: m.path, mime: m.mime, altText: m.altText || '' }));
+      const res = await sendPost({ content: current.content, media }, platformId, platformEnv);
 
       if (res.ok) {
         const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
@@ -317,8 +321,9 @@ function ensureMetadataObject(raw) {
 async function dispatchThread(thread) {
   ensurePlatforms();
 
+  const { ThreadSkeetMedia } = require('../models');
   const current = await Thread.findByPk(thread.id, {
-    include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]] }],
+    include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]], include: [{ model: ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] }],
   });
 
   if (!current) {
@@ -378,6 +383,9 @@ async function dispatchThread(thread) {
     for (let index = 0; index < current.segments.length; index += 1) {
       const segment = current.segments[index];
       const postInput = { content: segment.content };
+      if (Array.isArray(segment.media) && segment.media.length > 0) {
+        postInput.media = segment.media.slice(0, 4).map((m) => ({ path: m.path, mime: m.mime, altText: m.altText || '' }));
+      }
 
       if (threadState) {
         postInput.reply = {

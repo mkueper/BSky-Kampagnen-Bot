@@ -29,14 +29,33 @@
 - Engagement‑Collector (Threads):
   - Verwendet plattformspezifische Mastodon‑IDs/URIs; kein Fallback mehr aus Bluesky‑URIs. Fehlende Identifikatoren werden übersprungen (Debug „Masto skip“).
   - Löscht/erstellt Replies segmentweise pro Plattform (keine Cross‑Plattform‑Überschreibungen).
+- Uploads/Body‑Limit: `server.js` liefert `/uploads` statisch aus; JSON‑Body‑Limit konfigurierbar via `JSON_BODY_LIMIT_MB` (Default 25MB). URL‑encoded Limit entsprechend gesetzt.
+- Skeets: Medien‑Support analog Threads
+  - Modell `SkeetMedia` + Endpunkte: `POST /api/skeets/:id/media`, `PATCH /api/skeet-media/:mediaId`, `DELETE /api/skeet-media/:mediaId`.
+  - `scheduler` postet Skeet‑Medien (bis 4) an Bluesky/Mastodon.
+  - `listSkeets` optional inkl. Medien (mit `previewUrl`).
 
 ### Frontend
 - Threads‑Übersicht:
   - Button „Reaktionen aktualisieren“ mit Ladezustand und Toast‑Feedback (Summen).
   - „Alle aktualisieren“ im Tab „Veröffentlicht“ (ruft Backend‑Bulk‑Refresh, zeigt Ergebnis‑Toast).
   - Erste Karte zeigt jetzt zusätzlich je Plattform „Likes · Reposts“ (Bluesky/Mastodon) und „Zuletzt aktualisiert“.
+- Medien (Threads):
+  - Toolbar je Skeet (🖼️/GIF/😊), Upload‑Dialog mit Vorschau + Alt‑Text (Policy: maxCount/maxBytes/allowedMimes/requireAltText).
+  - 2×2‑Vorschau im Editor; Overlays pro Bild („+ ALT/ALT“, „✕“), Alt‑Editor als Dialog, stabile Modals (Portal + Scroll‑Lock), fester Vorschaubereich (kein Flackern).
+  - Fehler‑Dialog bei zu großen Dateien (client/server‑seitig).
+- Medien (Skeets):
+  - Toolbar + Upload‑Dialog, 2×2‑Vorschau mit Overlays und Alt‑Editor wie bei Threads (Create/ Edit).
+  - Geplante und veröffentlichte Skeet‑Listen zeigen Thumbnails (2×2, lazy).
+- Bestätigungsdialoge: Einheitlicher `ConfirmDialog` ersetzt native `window.confirm` in allen Aktionen (Skeets/Threads).
+- Thread‑Editor:
+  - Minimaler Medien‑Upload pro Segment (Edit‑Modus): Alt‑Text Feld + „Bild hinzufügen“ (JSON‑Upload, Base64). Vorbereitung für Multi‑Media.
 
 ### Tools
 - Neues Script: `npm run tools:set-masto-segment`
   - Setzt Mastodon‑`statusId`/`uri` pro Segment; unterstützt Single, CSV‑Bulk (`--statusIds/--uris`) und Mapping‑Datei (`--file`).
+
+### Datenbank
+- Neue Tabelle `ThreadSkeetMedia` (Medien zu Segmenten) mit Feldern: `threadSkeetId`, `order`, `path`, `mime`, `size`, `altText`.
+- Neue Tabelle `SkeetMedia` (Medien zu Skeets) mit Feldern: `skeetId`, `order`, `path`, `mime`, `size`, `altText`.
 - Engagement‑Services versehen mit Debug‑Ausgaben, steuerbar über `ENGAGEMENT_DEBUG`.

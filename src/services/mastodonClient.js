@@ -14,6 +14,7 @@ const Mastodon = require("mastodon-api");
 const { env } = require("../env");
 const { createLogger } = require("../utils/logging");
 const log = createLogger('mastodon');
+const fs = require('fs');
 
 let client = null;
 
@@ -202,6 +203,25 @@ async function getStatusContext(statusId, options) {
   return response.data;
 }
 
+/**
+ * Lädt ein Bild zu Mastodon hoch und gibt die Media-ID zurück.
+ * @param {string} filePath
+ * @param {string} description
+ * @param {{ apiUrl?: string, accessToken?: string }} [options]
+ */
+async function uploadMedia(filePath, description = '', options) {
+  const activeClient = resolveReadClient(options);
+  const stream = fs.createReadStream(filePath);
+  const payload = { file: stream };
+  if (description) payload.description = description;
+  const response = await activeClient.post('media', payload);
+  const id = response?.data?.id || response?.data?.id_string;
+  if (!id) {
+    log.warn('Mastodon uploadMedia ohne ID', { filePath });
+  }
+  return String(id || '');
+}
+
 module.exports = {
   login,
   getClient,
@@ -210,4 +230,5 @@ module.exports = {
   hasCredentials,
   getStatus,
   getStatusContext,
+  uploadMedia,
 };
