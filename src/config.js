@@ -140,5 +140,16 @@ module.exports = {
         toNumber(process.env.POLL_HEARTBEAT_MS, null) ??
         toNumber(process.env.VITE_POLL_HEARTBEAT_MS, 2000),
     },
+    images: {
+      maxCount: 4,
+      maxBytes:
+        toNumber(process.env.UPLOAD_MAX_BYTES, null) ?? 8 * 1024 * 1024,
+      allowedMimes: (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      requireAltText:
+        toBool(process.env.REQUIRE_ALT_TEXT_IMAGES, false),
+    },
   },
 };

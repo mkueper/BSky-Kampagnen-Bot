@@ -19,6 +19,7 @@ const threadController = require("./src/controllers/threadController");
 const importExportController = require("./src/controllers/importExportController");
 const engagementController = require("./src/controllers/engagementController");
 const configController = require("./src/controllers/configController");
+const mediaController = require("./src/controllers/mediaController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
@@ -31,8 +32,16 @@ const DIST_DIR = path.join(__dirname, "dashboard", "dist");
 const INDEX_HTML = path.join(DIST_DIR, "index.html");
 
 // Statische Dateien
+// Uploads (Bilder) serven
+try {
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+  app.use('/uploads', express.static(UPLOAD_DIR));
+} catch {}
 app.use(express.static(DIST_DIR));
-app.use(express.json());
+// Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
+const JSON_LIMIT_MB = Number(process.env.JSON_BODY_LIMIT_MB || 25);
+app.use(express.json({ limit: `${JSON_LIMIT_MB}mb` }));
+app.use(express.urlencoded({ extended: true, limit: `${JSON_LIMIT_MB}mb` }));
 
 // API-Routen
 app.get("/api/skeets", skeetController.getSkeets);
@@ -65,6 +74,15 @@ app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
 app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
+
+// Media (JSON upload: { filename, mime, data(base64), altText? })
+app.post("/api/threads/:id/segments/:sequence/media", mediaController.addMedia);
+app.patch("/api/media/:mediaId", mediaController.updateMedia);
+app.delete("/api/media/:mediaId", mediaController.deleteMedia);
+// Skeet media
+app.post("/api/skeets/:id/media", mediaController.addSkeetMedia);
+app.patch("/api/skeet-media/:mediaId", mediaController.updateSkeetMedia);
+app.delete("/api/skeet-media/:mediaId", mediaController.deleteSkeetMedia);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {

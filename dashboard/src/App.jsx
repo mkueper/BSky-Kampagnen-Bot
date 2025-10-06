@@ -19,6 +19,7 @@ import ThreadDashboardView from "./components/views/ThreadDashboardView";
 import SkeetForm from "./components/SkeetForm";
 import ThreadForm from "./components/ThreadForm";
 import ConfigPanel from "./components/ConfigPanel";
+import ConfirmDialog from "./components/ui/ConfirmDialog";
 import { useSkeets } from "./hooks/useSkeets";
 import { useThreadDetail, useThreads } from "./hooks/useThreads";
 import { formatTime } from "./utils/formatTime";
@@ -148,6 +149,7 @@ function App() {
   const [activeDashboardTab, setActiveDashboardTab] = useState("planned");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false });
   const [editingThreadId, setEditingThreadId] = useState(null);
   const importInputRef = useRef(null);
   const toast = useToast();
@@ -326,34 +328,42 @@ function App() {
   };
 
   const handleDelete = async (skeet) => {
-    const confirmed = window.confirm("Soll dieser geplante Skeet wirklich gelöscht werden?");
-    if (!confirmed) return;
-    try {
-      const res = await fetch(`/api/skeets/${skeet.id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Fehler beim Löschen des Skeets.");
-      }
-      setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
-      await refreshSkeetsNow();
-      toast.success({
-        title: "Skeet gelöscht",
-        description: "Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.",
-      });
-    } catch (error) {
-      console.error("Fehler beim Löschen des Skeets:", error);
-      toast.error({
-        title: "Löschen fehlgeschlagen",
-        description: error.message || "Fehler beim Löschen des Skeets.",
-      });
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Skeet löschen',
+      description: 'Soll dieser geplante Skeet wirklich gelöscht werden?',
+      confirmLabel: 'Löschen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/skeets/${skeet.id}`, { method: "DELETE" });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || "Fehler beim Löschen des Skeets.");
+          }
+          setEditingSkeet((current) => (current?.id === skeet.id ? null : current));
+          await refreshSkeetsNow();
+          toast.success({ title: 'Skeet gelöscht', description: 'Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.' });
+        } catch (error) {
+          console.error('Fehler beim Löschen des Skeets:', error);
+          toast.error({ title: 'Löschen fehlgeschlagen', description: error.message || 'Fehler beim Löschen des Skeets.' });
+        } finally {
+          setConfirmDialog((c) => ({ ...c, open: false }));
+        }
+      },
+    });
   };
 
   const handleRetract = async (skeet) => {
     if (!skeet?.id) return;
-    const confirmed = window.confirm("Soll dieser veröffentlichte Skeet auf den Plattformen gelöscht werden?");
-    if (!confirmed) return;
-    try {
+    setConfirmDialog({
+      open: true,
+      title: 'Skeet entfernen',
+      description: 'Soll dieser veröffentlichte Skeet auf den Plattformen gelöscht werden?',
+      confirmLabel: 'Entfernen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/skeets/${skeet.id}/retract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -383,13 +393,17 @@ function App() {
         title: 'Skeet entfernt',
         description: parts.join(' · ') || 'Der Skeet wurde auf allen Plattformen entfernt.',
       });
-    } catch (error) {
+        } catch (error) {
       console.error('Fehler beim Entfernen des Skeets:', error);
       toast.error({
         title: 'Entfernen fehlgeschlagen',
         description: error.message || 'Fehler beim Entfernen des Skeets.',
       });
-    }
+        } finally {
+          setConfirmDialog((c) => ({ ...c, open: false }));
+        }
+      },
+    });
   };
 
   const handleRestore = async (skeet) => {
@@ -431,11 +445,14 @@ function App() {
   };
 
   const handlePermanentDelete = async (skeet) => {
-    const confirmed = window.confirm(
-      "Soll dieser Skeet endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden."
-    );
-    if (!confirmed) return;
-    try {
+    setConfirmDialog({
+      open: true,
+      title: 'Skeet endgültig löschen',
+      description: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+      confirmLabel: 'Endgültig löschen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/skeets/${skeet.id}?permanent=1`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -447,13 +464,17 @@ function App() {
         title: "Skeet entfernt",
         description: "Der Skeet wurde dauerhaft gelöscht.",
       });
-    } catch (error) {
+        } catch (error) {
       console.error("Fehler beim endgültigen Löschen des Skeets:", error);
       toast.error({
         title: "Endgültiges Löschen fehlgeschlagen",
         description: error.message || "Fehler beim endgültigen Löschen des Skeets.",
       });
-    }
+        } finally {
+          setConfirmDialog((c) => ({ ...c, open: false }));
+        }
+      },
+    });
   };
 
   const handleEditThread = (thread) => {
@@ -464,10 +485,14 @@ function App() {
   const handleDeleteThread = async (thread) => {
     if (!thread?.id) return;
     const label = thread.title || `Thread #${thread.id}`;
-    const confirmed = window.confirm(`Soll "${label}" wirklich gelöscht werden?`);
-    if (!confirmed) return;
-
-    try {
+    setConfirmDialog({
+      open: true,
+      title: 'Thread löschen',
+      description: `Soll "${label}" wirklich gelöscht werden?`,
+      confirmLabel: 'Löschen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/threads/${thread.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -484,22 +509,30 @@ function App() {
         title: "Thread gelöscht",
         description: "Der Thread wurde entfernt.",
       });
-    } catch (error) {
+        } catch (error) {
       console.error("Fehler beim Löschen des Threads:", error);
       toast.error({
         title: "Löschen fehlgeschlagen",
         description: error.message || "Fehler beim Löschen des Threads.",
       });
-    }
+        } finally {
+          setConfirmDialog((c) => ({ ...c, open: false }));
+        }
+      },
+    });
   };
 
   const handleRetractThread = async (thread) => {
     if (!thread?.id) return;
     const label = thread.title || `Thread #${thread.id}`;
-    const confirmed = window.confirm(`Soll "${label}" auf allen Plattformen gelöscht werden?`);
-    if (!confirmed) return;
-
-    try {
+    setConfirmDialog({
+      open: true,
+      title: 'Thread entfernen',
+      description: `Soll "${label}" auf allen Plattformen gelöscht werden?`,
+      confirmLabel: 'Entfernen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/threads/${thread.id}/retract`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -532,13 +565,17 @@ function App() {
         title: 'Thread entfernt',
         description: parts.join(' · ') || 'Der Thread wurde auf allen Plattformen entfernt.',
       });
-    } catch (error) {
+        } catch (error) {
       console.error('Fehler beim Entfernen des Threads:', error);
       toast.error({
         title: 'Entfernen fehlgeschlagen',
         description: error.message || 'Fehler beim Entfernen des Threads.',
       });
-    }
+        } finally {
+          setConfirmDialog((c) => ({ ...c, open: false }));
+        }
+      },
+    });
   };
 
   const handleRestoreThread = async (thread) => {
@@ -774,6 +811,16 @@ function App() {
       headerActions={headerActions}
     >
       {content}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel={confirmDialog.cancelLabel || 'Abbrechen'}
+        variant={confirmDialog.variant || 'primary'}
+        onConfirm={confirmDialog.onConfirm || (() => setConfirmDialog((c) => ({ ...c, open: false })))}
+        onCancel={() => setConfirmDialog((c) => ({ ...c, open: false }))}
+      />
     </AppLayout>
   );
 }

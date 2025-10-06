@@ -21,7 +21,7 @@ async function getSkeets(req, res) {
   try {
     const includeDeleted = ["1", "true", "yes", "all"].includes((req.query.includeDeleted || "").toString().toLowerCase());
     const onlyDeleted = ["1", "true", "yes"].includes((req.query.onlyDeleted || "").toString().toLowerCase());
-    const skeets = await skeetService.listSkeets({ includeDeleted, onlyDeleted });
+    const skeets = await skeetService.listSkeets({ includeDeleted, onlyDeleted, includeMedia: true });
     res.json(skeets);
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Skeets.' });

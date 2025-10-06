@@ -1,5 +1,7 @@
 const { ValidationError } = require("sequelize");
-const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("../models");
+const { sequelize, Thread, ThreadSkeet, SkeetReaction, ThreadSkeetMedia } = require("../models");
+const fs = require('fs');
+const path = require('path');
 const { deletePost } = require("./postService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 
@@ -71,6 +73,25 @@ function ensureMetadataObject(raw) {
   return {};
 }
 
+function ensureUploadDir() {
+  const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
+  return dir;
+}
+
+function sanitizeFilename(name = '') {
+  return String(name).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120) || 'file';
+}
+
+function saveBase64ToFile({ filename, mime, data }) {
+  const buffer = Buffer.from(String(data).split(',').pop(), 'base64');
+  const dir = ensureUploadDir();
+  const base = `${Date.now()}-${sanitizeFilename(filename || 'image')}`;
+  const filePath = path.join(dir, base);
+  fs.writeFileSync(filePath, buffer);
+  return { path: filePath, mime: mime || 'application/octet-stream', size: buffer.length };
+}
+
 function extractMastodonStatusId(uri) {
   if (!uri) {
     return null;
@@ -121,12 +142,27 @@ async function listThreads({ status } = {}) {
             separate: true,
             order: [["createdAt", "DESC"]],
           },
+          { model: require('../models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
         ],
       },
     ],
   });
 
-  return threads.map((thread) => thread.toJSON());
+  const out = threads.map((thread) => thread.toJSON());
+  try {
+    const path = require('path');
+    for (const t of out) {
+      if (!Array.isArray(t.segments)) continue;
+      for (const seg of t.segments) {
+        if (!Array.isArray(seg.media)) continue;
+        seg.media = seg.media.map((m) => ({
+          ...m,
+          previewUrl: m?.path ? (`/uploads/` + path.basename(m.path)) : null,
+        }));
+      }
+    }
+  } catch {}
+  return out;
 }
 
 async function getThread(id) {
@@ -144,6 +180,7 @@ async function getThread(id) {
             separate: true,
             order: [["createdAt", "DESC"]],
           },
+          { model: require('../models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
         ],
       },
     ],
@@ -155,7 +192,20 @@ async function getThread(id) {
     throw error;
   }
 
-  return thread.toJSON();
+  const out = thread.toJSON();
+  try {
+    const path = require('path');
+    if (Array.isArray(out.segments)) {
+      for (const seg of out.segments) {
+        if (!Array.isArray(seg.media)) continue;
+        seg.media = seg.media.map((m) => ({
+          ...m,
+          previewUrl: m?.path ? (`/uploads/` + path.basename(m.path)) : null,
+        }));
+      }
+    }
+  } catch {}
+  return out;
 }
 
 async function createThread(payload = {}) {
@@ -194,6 +244,44 @@ async function createThread(payload = {}) {
     }));
 
     await ThreadSkeet.bulkCreate(segments, { transaction });
+
+    // Medien aus Payload.skeets[].media (Base64) speichern und zuordnen
+    try {
+      if (Array.isArray(skeets) && skeets.some((s) => Array.isArray(s?.media) && s.media.length > 0)) {
+        const freshForMedia = await Thread.findByPk(thread.id, {
+          include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]] }],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        const segmentBySeq = new Map();
+        for (const seg of freshForMedia.segments) segmentBySeq.set(Number(seg.sequence), seg);
+        for (const entry of skeets) {
+          const seq = Number(entry?.sequence);
+          if (!Number.isFinite(seq)) continue;
+          const seg = segmentBySeq.get(seq);
+          if (!seg) continue;
+          const mediaItems = Array.isArray(entry.media) ? entry.media : [];
+          let order = await ThreadSkeetMedia.count({ where: { threadSkeetId: seg.id }, transaction });
+          for (const m of mediaItems) {
+            if (!m?.data) continue;
+            const saved = saveBase64ToFile({ filename: m.filename, mime: m.mime, data: m.data });
+            await ThreadSkeetMedia.create({
+              threadSkeetId: seg.id,
+              order: order,
+              path: saved.path,
+              mime: saved.mime,
+              size: saved.size,
+              altText: typeof m.altText === 'string' ? m.altText : null,
+            }, { transaction });
+            order += 1;
+            if (order >= 4) break; // Max 4 Bilder pro Segment
+          }
+        }
+      }
+    } catch (mediaErr) {
+      // Medienfehler sollen den Thread nicht verhindern; sie können nachträglich hochgeladen werden
+      console.warn('Medien konnten beim Anlegen nicht gespeichert werden:', mediaErr?.message || mediaErr);
+    }
 
     const fresh = await Thread.findByPk(thread.id, {
       include: [
