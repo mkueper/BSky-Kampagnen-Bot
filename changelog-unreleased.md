@@ -22,4 +22,21 @@
   - `LOG_LEVEL=debug|info|warn|error` (Default `info`)
   - `LOG_TARGET=console|file|both` (Default `console`), `LOG_FILE=logs/server.log`
   - `ENGAGEMENT_DEBUG=true|false` (Default `false`) für detaillierte Debug‑Ausgaben beim Einsammeln von Likes/Reposts/Replies.
+- Health/Startup‑Logs ergänzt (Server, DB, Scheduler, Log‑Ziel) und Login‑Logs für Bluesky/Mastodon.
+
+### Backend
+- Neuer Endpoint: `POST /api/threads/engagement/refresh-all` — aktualisiert Reaktionen aller veröffentlichten Threads (optional in Batches, optional Replies).
+- Engagement‑Collector (Threads):
+  - Verwendet plattformspezifische Mastodon‑IDs/URIs; kein Fallback mehr aus Bluesky‑URIs. Fehlende Identifikatoren werden übersprungen (Debug „Masto skip“).
+  - Löscht/erstellt Replies segmentweise pro Plattform (keine Cross‑Plattform‑Überschreibungen).
+
+### Frontend
+- Threads‑Übersicht:
+  - Button „Reaktionen aktualisieren“ mit Ladezustand und Toast‑Feedback (Summen).
+  - „Alle aktualisieren“ im Tab „Veröffentlicht“ (ruft Backend‑Bulk‑Refresh, zeigt Ergebnis‑Toast).
+  - Erste Karte zeigt jetzt zusätzlich je Plattform „Likes · Reposts“ (Bluesky/Mastodon) und „Zuletzt aktualisiert“.
+
+### Tools
+- Neues Script: `npm run tools:set-masto-segment`
+  - Setzt Mastodon‑`statusId`/`uri` pro Segment; unterstützt Single, CSV‑Bulk (`--statusIds/--uris`) und Mapping‑Datei (`--file`).
 - Engagement‑Services versehen mit Debug‑Ausgaben, steuerbar über `ENGAGEMENT_DEBUG`.
