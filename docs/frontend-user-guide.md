@@ -187,3 +187,31 @@ die Backend-Logs (`npm run dev` o. ä.).
   `src/config.js`.
 
 Viel Erfolg mit deinen Kampagnen!
+
+---
+
+## 9. Screenshots
+
+Die folgenden Screenshots zeigen die wichtigsten Ansichten des Dashboards im Überblick:
+
+### Übersicht
+![Übersicht](./Screenshots/1-BKB-Uebersicht.png)
+
+### Skeets
+- Geplant: ![Skeets – Geplant](./Screenshots/2-BKB-Skeets-Uebersicht-Geplant.png)
+- Veröffentlicht: ![Skeets – Veröffentlicht](./Screenshots/3-BKB-Skeets-Uebersicht-Veroeffentlicht.png)
+- Papierkorb: ![Skeets – Papierkorb](./Screenshots/4-BKB-Skeets-Uebersicht-Papierkorb.png)
+
+#### Skeet planen
+![Skeet planen](./Screenshots/5-BKB-Skeets-Skeet-planen.png)
+
+### Threads
+- Geplant: ![Threads – Geplant](./Screenshots/6-BKB-Threads-Uebersicht-Geplant.png)
+- Veröffentlicht: ![Threads – Veröffentlicht](./Screenshots/7-BKB-Threads-Uebersicht-Veroeffentlicht.png)
+- Papierkorb: ![Threads – Papierkorb](./Screenshots/8-BKB-Threads-Uebersicht-Papierkorb.png)
+
+#### Thread planen
+![Thread planen](./Screenshots/9-BKB-Threads-Thread-planen.png)
+
+### Konfiguration
+![Konfiguration](./Screenshots/10-BKB-Konfiguration.png)

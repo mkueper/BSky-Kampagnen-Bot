@@ -64,3 +64,25 @@ npm run docker:bundle -- mein-bundle mein-prefix
 ```
 
 Das Skript legt unter `dist/bundles/` ein Zip mit vollständigem Projekt (ohne `node_modules`) und aktueller SQLite-Datenbank an. Auf dem Zielsystem entpacken, in `app/` wechseln und `docker compose build && docker compose up -d` ausführen.
+
+---
+
+## Changelog-Linter
+
+- Befehl: `npm run changelog:lint`
+- Zweck: Validiert die Struktur von `changelog-unreleased.md` nach dem Schema
+  `## YYYY-MM-DD` → `### <Sektion>` → `- Eintrag`. Leere Zeilen und einfache Kommentarzeilen (`# ...`) sind erlaubt.
+- Fehlerfälle: Ungültiges Datum, Sektion außerhalb eines Datumsblocks, Bullet außerhalb einer Sektion, unerwartete Freitextzeilen, leere Blöcke.
+
+### Optionaler Git-Hook (pre-commit)
+
+Du kannst den Linter als Pre-Commit-Hook aktivieren, damit fehlerhafte Einträge Commits blockieren:
+
+```bash
+cp scripts/git-hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+Hinweise:
+- Der Hook ist ein Template in `scripts/git-hooks/pre-commit` und wird nicht automatisch installiert.
+- In CI kann `npm run changelog:lint` direkt als Schritt ausgeführt werden.

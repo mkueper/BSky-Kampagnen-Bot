@@ -40,6 +40,14 @@ Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`
 
 ---
 
+## Screenshots
+
+Eine aktuelle Screenshot‑Sammlung findest du im Abschnitt "Screenshots" des
+[Frontend‑Benutzerhandbuchs](./frontend-user-guide.md) sowie direkt im Ordner
+[`docs/Screenshots`](./Screenshots/).
+
+---
+
 ### Hinweis zu Diagrammen
 
 Die Mermaid-Diagramme lassen sich direkt in GitHub anzeigen. Für Anpassungen empfiehlt sich ein Editor wie [https://mermaid.live](https://mermaid.live/) oder ein kompatibles Diagramm-Tool.

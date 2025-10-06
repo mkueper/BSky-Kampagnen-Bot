@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-commit hook: prüft die Struktur der Unreleased-Notizen.
+# Installation:
+#   cp scripts/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+echo "[pre-commit] Prüfe changelog-unreleased.md …"
+if ! npm run --silent changelog:lint; then
+  echo
+  echo "[pre-commit] Fehler im Changelog erkannt. Commit abgebrochen."
+  echo "[pre-commit] Bitte Datei korrigieren und erneut committen."
+  exit 1
+fi
+
+exit 0
+
