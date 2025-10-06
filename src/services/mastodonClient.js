@@ -12,6 +12,8 @@
  */
 const Mastodon = require("mastodon-api");
 const { env } = require("../env");
+const { createLogger } = require("../utils/logging");
+const log = createLogger('mastodon');
 
 let client = null;
 
@@ -121,7 +123,14 @@ function createClient(overrides = {}) {
  */
 async function login(overrides = {}) {
   client = createClient(overrides);
-  await client.get("accounts/verify_credentials");
+  try {
+    const res = await client.get("accounts/verify_credentials");
+    const acct = res?.data?.acct || res?.data?.username || null;
+    log.info("Mastodon Login ok", { apiUrl: normalizeApiUrl(resolveConfig(overrides).apiUrl), acct });
+  } catch (e) {
+    log.error("Mastodon Login fehlgeschlagen", { error: e?.message || String(e) });
+    throw e;
+  }
   return client;
 }
 

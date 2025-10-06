@@ -38,7 +38,8 @@
     "changelog:add": "node scripts/changelog-add.js",
     "changelog:note": "node scripts/changelog-note.js",
     "changelog:release": "node scripts/changelog-release.js",
-    "changelog:lint": "node scripts/changelog-lint.js"
+    "changelog:lint": "node scripts/changelog-lint.js",
+    "tools:set-masto-segment": "node scripts/setMastoSegment.js"
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",

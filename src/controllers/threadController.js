@@ -15,7 +15,7 @@
  * - Der Controller hält die Antworten bewusst flach und gibt rohe JSON-Objekte der Modelle zurück.
  */
 const threadService = require("../services/threadService");
-const { refreshThreadEngagement } = require("../services/threadEngagementService");
+const { refreshThreadEngagement, refreshAllPublishedThreads } = require("../services/threadEngagementService");
 
 /**
  * GET /api/threads[?status=scheduled|draft|published|deleted]
@@ -191,6 +191,18 @@ module.exports = {
     } catch (error) {
       const status = error?.status || 500;
       res.status(status).json({ error: error?.message || "Fehler beim Aktualisieren der Reaktionen." });
+    }
+  },
+  async refreshAllEngagement(req, res) {
+    try {
+      const includeReplies = ["1", "true", "yes"].includes(String(req.query.replies || req.body?.replies || "0").toLowerCase());
+      const batchSizeRaw = req.query.batchSize || req.body?.batchSize;
+      const batchSize = Number(batchSizeRaw);
+      const result = await refreshAllPublishedThreads({ batchSize: Number.isFinite(batchSize) ? batchSize : undefined, includeReplies });
+      res.json(result);
+    } catch (error) {
+      const status = error?.status || 500;
+      res.status(status).json({ error: error?.message || "Fehler beim Aktualisieren der Reaktionen (alle Threads)." });
     }
   },
 };

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useToast } from "../../hooks/useToast";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 import Button from "../ui/Button";
@@ -30,7 +31,9 @@ function ThreadDashboardView({
   onDestroyThread,
   onRetractThread,
 }) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState("planned");
+  const [bulkRefreshing, setBulkRefreshing] = useState(false);
   const stats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -188,6 +191,39 @@ function ThreadDashboardView({
                   </Button>
                 </div>
               </div>
+            ) : null}
+            {activeTab === "published" ? (
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  setBulkRefreshing(true);
+                  try {
+                    const res = await fetch('/api/threads/engagement/refresh-all', { method: 'POST' });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      throw new Error(data.error || 'Fehler beim Aktualisieren der veröffentlichten Threads.');
+                    }
+                    const data = await res.json().catch(() => null);
+                    const total = data?.total ?? 0;
+                    const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
+                    const failCount = Math.max(0, total - okCount);
+                    toast.success({
+                      title: 'Reaktionen aktualisiert',
+                      description: `Threads: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}`,
+                    });
+                    if (typeof onReload === 'function') onReload({ force: true });
+                  } catch (error) {
+                    console.error('Bulk-Refresh fehlgeschlagen:', error);
+                    toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren aller Threads.' });
+                  } finally {
+                    setBulkRefreshing(false);
+                  }
+                }}
+                disabled={bulkRefreshing}
+                title="Alle veröffentlichten Threads aktualisieren"
+              >
+                {bulkRefreshing ? 'Alle aktualisieren…' : 'Alle aktualisieren'}
+              </Button>
             ) : null}
           </div>
         </div>

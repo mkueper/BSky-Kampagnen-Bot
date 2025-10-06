@@ -18,6 +18,12 @@ const env = {
     apiUrl: process.env.MASTODON_API_URL || "https://mastodon.social",
     accessToken: process.env.MASTODON_ACCESS_TOKEN || "",
   },
+  logging: {
+    level: (process.env.LOG_LEVEL || 'info').toLowerCase(),
+    target: (process.env.LOG_TARGET || 'console').toLowerCase(),
+    file: process.env.LOG_FILE || 'logs/server.log',
+    engagementDebug: /^(1|true|yes)$/i.test(String(process.env.ENGAGEMENT_DEBUG || 'false')),
+  },
   timeZone: process.env.TIME_ZONE || "Europe/Berlin",
 };
 
