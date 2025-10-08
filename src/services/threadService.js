@@ -79,6 +79,12 @@ function ensureUploadDir() {
   return dir;
 }
 
+function ensureTempDir() {
+  const dir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
+  return dir;
+}
+
 function sanitizeFilename(name = '') {
   return String(name).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120) || 'file';
 }
@@ -263,8 +269,22 @@ async function createThread(payload = {}) {
           const mediaItems = Array.isArray(entry.media) ? entry.media : [];
           let order = await ThreadSkeetMedia.count({ where: { threadSkeetId: seg.id }, transaction });
           for (const m of mediaItems) {
-            if (!m?.data) continue;
-            const saved = saveBase64ToFile({ filename: m.filename, mime: m.mime, data: m.data });
+            let saved = null;
+            if (m?.data) {
+              saved = saveBase64ToFile({ filename: m.filename, mime: m.mime, data: m.data });
+            } else if (m?.tempId) {
+              try {
+                const tempDir = ensureTempDir();
+                const uploadDir = ensureUploadDir();
+                const tempPath = path.join(tempDir, String(m.tempId));
+                const st = fs.statSync(tempPath);
+                const finalBase = `${Date.now()}-${sanitizeFilename(m.filename || String(m.tempId))}`;
+                const finalPath = path.join(uploadDir, finalBase);
+                fs.renameSync(tempPath, finalPath);
+                saved = { path: finalPath, mime: m.mime || 'application/octet-stream', size: st.size };
+              } catch {}
+            }
+            if (!saved) continue;
             await ThreadSkeetMedia.create({
               threadSkeetId: seg.id,
               order: order,

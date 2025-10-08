@@ -8,7 +8,7 @@
 const importExportService = require('../services/importExportService');
 
 /**
- * GET /api/export/skeets
+ * GET /api/skeets/export
  *
  * Exportiert geplante Skeets als JSON-Datei (Attachment). Dateiname enthält Timestamp.
  * Antwort: 200 OK (application/json, Content-Disposition: attachment)
@@ -16,7 +16,9 @@ const importExportService = require('../services/importExportService');
  */
 async function exportPlannedSkeets(req, res) {
   try {
-    const payload = await importExportService.exportPlannedSkeets();
+    const includeMediaParam = String(req.query.includeMedia || "").toLowerCase();
+    const includeMedia = includeMediaParam === "0" || includeMediaParam === "false" ? false : true;
+    const payload = await importExportService.exportPlannedSkeets({ includeMedia });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').replace('Z', '');
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="skeets-${timestamp}.json"`);
@@ -27,7 +29,7 @@ async function exportPlannedSkeets(req, res) {
 }
 
 /**
- * POST /api/import/skeets
+ * POST /api/skeets/import
  *
  * Importiert geplante Skeets aus einem JSON-Body. Erwartet ein Array gültiger
  * Skeet-Objekte gem. Import-Schema.
@@ -44,7 +46,7 @@ async function importPlannedSkeets(req, res) {
 }
 
 /**
- * GET /api/export/threads[?status=scheduled|draft|published|deleted]
+ * GET /api/threads/export[?status=scheduled|draft|published|deleted]
  *
  * Exportiert Threads (optional nach Status gefiltert) als JSON-Datei.
  * Antwort: 200 OK (application/json, Attachment)
@@ -53,7 +55,9 @@ async function importPlannedSkeets(req, res) {
 async function exportThreads(req, res) {
   try {
     const status = req.query.status ? String(req.query.status) : undefined;
-    const payload = await importExportService.exportThreads({ status });
+    const includeMediaParam = String(req.query.includeMedia || "").toLowerCase();
+    const includeMedia = includeMediaParam === "0" || includeMediaParam === "false" ? false : true;
+    const payload = await importExportService.exportThreads({ status, includeMedia });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').replace('Z', '');
     const suffix = status ? `-${status.toLowerCase()}` : '';
     res.setHeader('Content-Type', 'application/json');
@@ -65,7 +69,7 @@ async function exportThreads(req, res) {
 }
 
 /**
- * POST /api/import/threads
+ * POST /api/threads/import
  *
  * Importiert Threads aus einem JSON-Body. Erwartet ein Array von Thread-Objekten
  * gem. Import-Schema. Segmente werden pro Thread neu angelegt.

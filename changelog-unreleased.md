@@ -59,3 +59,18 @@
 - Neue Tabelle `ThreadSkeetMedia` (Medien zu Segmenten) mit Feldern: `threadSkeetId`, `order`, `path`, `mime`, `size`, `altText`.
 - Neue Tabelle `SkeetMedia` (Medien zu Skeets) mit Feldern: `skeetId`, `order`, `path`, `mime`, `size`, `altText`.
 - Engagement‑Services versehen mit Debug‑Ausgaben, steuerbar über `ENGAGEMENT_DEBUG`.
+
+## 2025-10-08
+
+### Import/Export
+- Export/Import unterstützen jetzt Medien mit ALT‑Text
+  - Threads: `segments[].media[]` wird mit `{ filename, mime, altText, data(base64) }` roundtrippfähig exportiert und importiert (max. 4 pro Segment).
+  - Skeets: `skeets[].media[]` analog (max. 4 pro Skeet).
+- Duplikat‑Schutz beim Import
+  - Threads: gleicher `title` + `scheduledAt` und identische Segment‑Texte → Eintrag wird übersprungen.
+  - Skeets: gleicher `content` + Termin/Repeat‑Kombination → Eintrag wird übersprungen.
+- Hinweis: Große Exporte durch Base64 möglich; `JSON_BODY_LIMIT_MB` (Default 25MB) steuert das Upload‑Limit.
+- Serverseitiger Engagement‑Collector drosselbar nach Client‑Präsenz
+  - Neuer Endpoint `POST /api/heartbeat` vom Frontend‑Master‑Tab.
+  - Scheduler nutzt aktive/idle Minimalintervalle: `ENGAGEMENT_ACTIVE_MIN_MS` (Default 2 Min) und `ENGAGEMENT_IDLE_MIN_MS` (Default 20 Min).
+  - Idle‑Schwelle konfigurierbar: `CLIENT_IDLE_THRESHOLD_MS` (Default 20 Min ohne Heartbeat).

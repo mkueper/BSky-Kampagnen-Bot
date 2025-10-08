@@ -16,6 +16,7 @@ function PublishedSkeetList({
   reactionStats,
   platformLabels,
   formatTime,
+  getItemRef,
 }) {
   if (skeets.length === 0) {
     return (
@@ -58,7 +59,7 @@ function PublishedSkeetList({
         const canFetchReactions = Boolean(skeet.postUri || hasSentPlatforms);
 
         return (
-          <Card key={skeet.id}>
+          <Card key={skeet.id} ref={typeof getItemRef === 'function' ? getItemRef(skeet.id) : undefined}>
             <div className="flex items-center gap-2 border-b border-border-muted px-5 pt-4">
               <button
                 type="button"

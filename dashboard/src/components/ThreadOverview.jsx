@@ -85,6 +85,7 @@ function ThreadOverview({
   onDestroyThread,
   onRetractThread,
   mode = "default",
+  getItemRef,
 }) {
   const [expandedThreads, setExpandedThreads] = useState({});
   const [showReplies, setShowReplies] = useState({});
@@ -239,7 +240,7 @@ function ThreadOverview({
         };
 
         return (
-          <Card key={thread.id} id={`thread-${thread.id}`}>
+          <Card key={thread.id} id={`thread-${thread.id}`} ref={typeof getItemRef === 'function' ? getItemRef(thread.id) : undefined}>
             <header className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">
@@ -397,6 +398,20 @@ function ThreadOverview({
                         <span>{segment.characterCount} Zeichen</span>
                       </header>
                       <p className="whitespace-pre-wrap text-foreground">{segment.content}</p>
+                      {Array.isArray(segment.media) && segment.media.length > 0 ? (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {segment.media.slice(0, 4).map((m, idx) => (
+                            <div key={m.id || idx} className="relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                              <img
+                                src={m.previewUrl || ''}
+                                alt={m.altText || `Bild ${idx + 1}`}
+                                className="absolute inset-0 h-full w-full object-contain"
+                                loading="lazy"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>

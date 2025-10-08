@@ -265,43 +265,74 @@ function ThreadForm ({
   };
   const handleUploadMedia = async (index, file, altTextOverride) => {
     if (!file) return;
-    const reader = new FileReader();
     setMediaBusy((s) => ({ ...s, [index]: true }));
-    reader.onload = async () => {
-      try {
-        const base64 = reader.result;
-        if (isEditMode && threadId) {
-          const res = await fetch(`/api/threads/${threadId}/segments/${index}/media`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' }),
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || 'Upload fehlgeschlagen.');
+    try {
+      if (isEditMode && threadId) {
+        // Direkt am Segment des existierenden Threads hochladen
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result;
+            const res = await fetch(`/api/threads/${threadId}/segments/${index}/media`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || 'Upload fehlgeschlagen.');
+            }
+            toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          } catch (e) {
+            const msg = e?.message || '';
+            if (/zu groß|too large|413/i.test(msg)) {
+              setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            } else {
+              toast.error({ title: 'Medien-Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            }
+          } finally {
+            setMediaBusy((s) => ({ ...s, [index]: false }));
           }
-        } else {
-          // Create-Modus: im State puffern; Backend erhält Base64 im POST /api/threads
-          setPendingMedia((s) => {
-            const arr = Array.isArray(s[index]) ? s[index].slice() : [];
-            arr.push({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' });
-            return { ...s, [index]: arr };
-          });
-        }
-        toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
-      } catch (e) {
-        console.error('Medien-Upload fehlgeschlagen:', e);
-        const msg = e?.message || '';
-        if (/zu groß|too large|413/i.test(msg)) {
-          setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
-        } else {
-          toast.error({ title: 'Medien-Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
-        }
-      } finally {
-        setMediaBusy((s) => ({ ...s, [index]: false }));
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Entwurf: Temporär hochladen und Vorschau sofort anzeigen
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result;
+            const res = await fetch('/api/uploads/temp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || 'Temporärer Upload fehlgeschlagen.');
+            }
+            const info = await res.json();
+            setPendingMedia((s) => {
+              const arr = Array.isArray(s[index]) ? s[index].slice() : [];
+              arr.push({ tempId: info.tempId, mime: info.mime, previewUrl: info.previewUrl, altText: info.altText || '' });
+              return { ...s, [index]: arr };
+            });
+            toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          } catch (e) {
+            const msg = e?.message || '';
+            if (/zu groß|too large|413/i.test(msg)) {
+              setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            } else {
+              toast.error({ title: 'Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            }
+          } finally {
+            setMediaBusy((s) => ({ ...s, [index]: false }));
+          }
+        };
+        reader.readAsDataURL(file);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      setMediaBusy((s) => ({ ...s, [index]: false }));
+    }
   };
 
   // Media Dialog State
@@ -702,7 +733,7 @@ function ThreadForm ({
                         }
                       }
                       const pend = Array.isArray(pendingMedia[segment.id]) ? pendingMedia[segment.id] : [];
-                      pend.forEach((m, idx) => list.push({ type: 'pending', id: null, src: m.data, alt: m.altText || '', pendingIndex: idx }));
+                      pend.forEach((m, idx) => list.push({ type: 'pending', id: null, src: (m.previewUrl || m.data), alt: m.altText || '', pendingIndex: idx }));
                       const items = list.slice(0, imagePolicy.maxCount || 4);
                       if (items.length === 0) return null;
                       return (

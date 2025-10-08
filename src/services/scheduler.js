@@ -14,13 +14,13 @@ const { sendPost } = require("./postService");
 const settingsService = require("./settingsService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 const { refreshPublishedThreadsBatch } = require("./threadEngagementService");
+const presence = require("./presenceService");
 
 const MAX_BATCH_SIZE = 10;
 const RETRY_DELAY_MS = 60 * 1000;
 let task = null;
 let lastScheduleConfig = null;
 let lastEngagementRunAt = 0;
-const ENGAGEMENT_MIN_INTERVAL_MS = 120000; // alle 2 Minuten
 
 /**
  * Normalisiert beliebige persistierte Plattformlisten (Array oder JSON-String)
@@ -555,9 +555,13 @@ async function applySchedulerTask() {
       processDueThreads().catch((error) => {
         console.error("❌ Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
       });
-      // Engagement-Refresh throttlen (alle 2 Minuten eine kleine Batch)
+      // Engagement-Refresh: dynamisch je nach Client-Präsenz
       const now = Date.now();
-      if (now - lastEngagementRunAt >= ENGAGEMENT_MIN_INTERVAL_MS) {
+      const lastSeen = presence.getLastSeen() || 0;
+      const idleThreshold = config.CLIENT_IDLE_THRESHOLD_MS;
+      const isActiveClients = lastSeen > 0 && (now - lastSeen) < idleThreshold;
+      const minInterval = isActiveClients ? config.ENGAGEMENT_ACTIVE_MIN_MS : config.ENGAGEMENT_IDLE_MIN_MS;
+      if (now - lastEngagementRunAt >= minInterval) {
         lastEngagementRunAt = now;
         refreshPublishedThreadsBatch(3).catch((error) => {
           console.error("❌ Engagement-Refresh fehlgeschlagen:", error?.message || error);

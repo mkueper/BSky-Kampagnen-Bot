@@ -20,6 +20,8 @@ const importExportController = require("./src/controllers/importExportController
 const engagementController = require("./src/controllers/engagementController");
 const configController = require("./src/controllers/configController");
 const mediaController = require("./src/controllers/mediaController");
+const uploadController = require("./src/controllers/uploadController");
+const heartbeatController = require("./src/controllers/heartbeatController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
@@ -36,6 +38,11 @@ const INDEX_HTML = path.join(DIST_DIR, "index.html");
 try {
   const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
   app.use('/uploads', express.static(UPLOAD_DIR));
+} catch {}
+// Temporäre Uploads (Entwurf) serven
+try {
+  const TEMP_DIR = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
+  app.use('/temp', express.static(TEMP_DIR));
 } catch {}
 app.use(express.static(DIST_DIR));
 // Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
@@ -68,12 +75,15 @@ app.post("/api/skeets/import", importExportController.importPlannedSkeets);
 
 app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
+app.post("/api/engagement/refresh-many", engagementController.refreshMany);
 app.get("/api/settings/scheduler", settingsController.getSchedulerSettings);
 app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 // Client-Polling-Konfiguration
 app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
 app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
+// Client-Heartbeat (Präsenz)
+app.post("/api/heartbeat", heartbeatController.postHeartbeat);
 
 // Media (JSON upload: { filename, mime, data(base64), altText? })
 app.post("/api/threads/:id/segments/:sequence/media", mediaController.addMedia);
@@ -83,6 +93,8 @@ app.delete("/api/media/:mediaId", mediaController.deleteMedia);
 app.post("/api/skeets/:id/media", mediaController.addSkeetMedia);
 app.patch("/api/skeet-media/:mediaId", mediaController.updateSkeetMedia);
 app.delete("/api/skeet-media/:mediaId", mediaController.deleteSkeetMedia);
+// Temp uploads for thread draft media
+app.post("/api/uploads/temp", uploadController.uploadTemp);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {

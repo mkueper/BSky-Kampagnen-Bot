@@ -152,4 +152,14 @@ module.exports = {
         toBool(process.env.REQUIRE_ALT_TEXT_IMAGES, false),
     },
   },
+  /** Serverseitige Steuerung des Engagement-Collectors */
+  ENGAGEMENT_ACTIVE_MIN_MS:
+    toNumber(process.env.ENGAGEMENT_ACTIVE_MIN_MS, 120000), // 2 Min
+  ENGAGEMENT_IDLE_MIN_MS:
+    toNumber(process.env.ENGAGEMENT_IDLE_MIN_MS, 1200000), // 20 Min
+  CLIENT_IDLE_THRESHOLD_MS:
+    toNumber(process.env.CLIENT_IDLE_THRESHOLD_MS, 1200000), // 20 Min ohne Heartbeat => idle
+  /** Bulk-Refresh Limits */
+  BULK_REFRESH_MAX_IDS: toNumber(process.env.BULK_REFRESH_MAX_IDS, 50),
+  BULK_REFRESH_CONCURRENCY: toNumber(process.env.BULK_REFRESH_CONCURRENCY, 4),
 };
