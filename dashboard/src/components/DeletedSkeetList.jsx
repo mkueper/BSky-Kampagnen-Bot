@@ -24,7 +24,7 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
                   Gelöscht am <span className="font-medium text-foreground">{formatTime(skeet.deletedAt)}</span>
                 </p>
               ) : null}
-              <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
+              <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
               {skeet.targetPlatforms?.length > 0 && (
                 <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
                   {skeet.targetPlatforms.join(" • ")}

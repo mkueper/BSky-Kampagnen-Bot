@@ -177,8 +177,8 @@ function AppLayout({
           />
         ) : null}
 
-        <div className="ml-0 flex h-full flex-1 flex-col overflow-hidden md:ml-8">
-          <header className="sticky top-0 z-10 mb-6 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
+        <div className="ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden md:ml-8">
+           <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button
@@ -203,8 +203,8 @@ function AppLayout({
             </div>
           </header>
 
-          <div id="app-scroll-container" className="flex-1 overflow-y-auto pr-1">
-            <main className="min-h-full space-y-8 pb-16">{children}</main>
+          <div id="app-scroll-container" className="flex-1 min-h-0 overflow-y-auto pr-1 pt-4" style={{ scrollbarGutter: 'stable' }}>
+             <main className="space-y-8 pb-6 md:pb-8">{children}</main>
           </div>
           <ScrollTopButton position="bottom-left" />
         </div>

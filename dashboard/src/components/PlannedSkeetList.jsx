@@ -20,7 +20,7 @@ function PlannedSkeetList({ skeets, onEdit, onDelete, getRepeatDescription }) {
             <div className="space-y-3">
               <PlatformBadges skeet={skeet} />
               <p className="text-sm text-foreground-muted">{getRepeatDescription(skeet)}</p>
-              <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
+              <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
               {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {skeet.media.slice(0, 4).map((m, idx) => (

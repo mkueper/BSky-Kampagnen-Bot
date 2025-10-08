@@ -534,12 +534,12 @@ function ThreadForm ({
             <header className='space-y-3'>
               <div>
                 <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
-                <p className='text-sm text-foreground-muted'>
+                {/* <p className='text-sm text-foreground-muted'>
                   Schreibe den gesamten Thread in einem Feld. Du kannst `---`
                   oder STRG+Enter nutzen, um Skeets abzusetzen. Längere
                   Abschnitte werden automatisch passend zerschnitten – wenn
                   möglich am Satzende.
-                </p>
+                </p> */}
               </div>
               <div className='flex flex-wrap items-center gap-3 text-sm'>
                 <span className='rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted'>
