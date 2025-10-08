@@ -736,6 +736,8 @@ function App() {
         threads={threads}
         plannedSkeets={plannedSkeets}
         publishedSkeets={publishedSkeets}
+        onOpenSkeetsOverview={() => setActiveView('skeets-overview')}
+        onOpenThreadsOverview={() => setActiveView('threads-overview')}
       />
     );
   } else if (activeView === "skeets-overview") {

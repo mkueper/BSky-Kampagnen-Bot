@@ -189,6 +189,10 @@ export function createPollingController({
     stopBeating();
     beatTimer = setInterval(() => {
       sendBeat();
+      // Server-Heartbeat nur vom Master-Tab senden
+      if (isMaster && typeof fetch === 'function') {
+        try { fetch('/api/heartbeat', { method: 'POST' }); } catch {}
+      }
       // Wenn lange kein fremder Beat gesehen wurde, übernehme Master-Rolle
       // (Die Logik für „isMaster“ sitzt in onMessage)
     }, heartbeatMs);

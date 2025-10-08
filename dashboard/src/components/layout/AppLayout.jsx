@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import ScrollTopButton from "../ScrollTopButton";
+import ScrollTopButton from "../ui/ScrollTopButton";
 
 /**
  * High-level layout wrapper for the dashboard application.
@@ -204,9 +204,9 @@ function AppLayout({
           </header>
 
           <div id="app-scroll-container" className="flex-1 overflow-y-auto pr-1">
-            <main className="space-y-8 pb-16">{children}</main>
+            <main className="min-h-full space-y-8 pb-16">{children}</main>
           </div>
-          <ScrollTopButton />
+          <ScrollTopButton position="bottom-left" />
         </div>
       </div>
     </div>

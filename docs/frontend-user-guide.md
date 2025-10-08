@@ -113,11 +113,19 @@ Zusätzlich kannst du pro Thread mit **Reaktionen aktualisieren** ein On‑Deman
 2. Klicke oben rechts auf **Skeets exportieren** bzw. **Threads exportieren**.
 3. Es öffnet sich der Dateidialog deines Browsers (oder es wird direkt eine
    JSON-Datei heruntergeladen).
+4. Hinweis: Exporte enthalten jetzt eingebettete Bilder (Base64) inklusive ALT‑Texten. Die Dateien können dadurch deutlich größer sein. Wenn du nur Metadaten brauchst, kannst du die Medien per API mit `?includeMedia=0` weglassen.
 
 ### Import
 1. Klicke oben rechts auf **Skeets importieren** oder **Threads importieren**.
 2. Wähle eine JSON-Datei im passenden Format (siehe Beispiel) aus.
 3. Nach erfolgreichem Import erscheinen die neuen Einträge als Entwürfe.
+4. Duplikate werden automatisch übersprungen:
+   - Threads: gleicher Titel und Termin sowie identische Segment‑Texte.
+   - Skeets: gleicher Inhalt plus Termin/Repeat‑Kombination.
+
+Medien & ALT‑Texte
+- Beim Export werden pro Segment/Skeet bis zu 4 Bilder mit `{ mime, altText, data }` eingebettet. `filename` ist optional und wird beim Import nur als Hinweis verwendet.
+- Beim Import werden die Bilder gespeichert und ALT‑Texte übernommen. Die Bilder erscheinen in den Editoren und Übersichten mit Vorschau.
 
 > Hinweis: Threads übernehmen zusätzlich eine lokale Zeit (`scheduledAtLocal`)
 > zur Orientierung. Für den Scheduler ist weiterhin `scheduledAt` (UTC) maßgeblich.

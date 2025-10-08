@@ -247,76 +247,70 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         <label htmlFor="skeet-content" className="text-sm font-semibold text-foreground">
           Skeet-Text
         </label>
-        <textarea
-          id="skeet-content"
-          required
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Was möchtest du veröffentlichen?"
-          rows={7}
-          className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <div
-          className={`text-sm ${content.length > maxContentLength ? "text-destructive" : "text-foreground-muted"}`}
-        >
-          {content.length}/{maxContentLength} Zeichen
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setMediaDialog({ open: true, accept: 'image/*', title: 'Bild hinzufügen' })}
-            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
-            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'Bild hinzufügen'}
-          >🖼️</button>
-          <button
-            type="button"
-            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setMediaDialog({ open: true, accept: 'image/gif', title: 'GIF hinzufügen' })}
-            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
-            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'GIF hinzufügen'}
-          >GIF</button>
-        </div>
-        {(() => {
-          const list = [];
-          if (isEditing && Array.isArray(editingSkeet?.media)) {
-            editingSkeet.media.forEach((m) => {
-              if (!removedMedia[m.id] && m.previewUrl) list.push({ type: 'existing', id: m.id, src: m.previewUrl, alt: editedMediaAlt[m.id] ?? (m.altText || ''), pendingIndex: null });
-            });
-          }
-          pendingMedia.forEach((m, idx) => list.push({ type: 'pending', id: null, src: m.data, alt: m.altText || '', pendingIndex: idx }));
-          const items = list.slice(0, imagePolicy.maxCount || 4);
-          return items.length > 0 ? (
-            <>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {items.map((it, idx) => (
-                  <div key={`${it.type}-${it.id ?? idx}`} className="relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle">
-                    <img src={it.src} alt={it.alt || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" />
-                    <div className="absolute left-1 top-1 z-10">
-                      <button type="button" className="rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black" onClick={() => setAltDialog({ open: true, item: it })}>{it.alt ? 'ALT' : '+ ALT'}</button>
-                    </div>
-                    <div className="absolute right-1 top-1 z-10">
-                      <button type="button" className="rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black" onClick={async () => {
-                        if (it.type === 'existing') {
-                          try {
-                            const res = await fetch(`/api/skeet-media/${it.id}`, { method: 'DELETE' });
-                            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Löschen fehlgeschlagen');
-                            setRemovedMedia((s) => ({ ...s, [it.id]: true }));
-                          } catch (e) {
-                            toast.error({ title: 'Entfernen fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' });
-                          }
-                        } else {
-                          setPendingMedia((arr) => { const clone = arr.slice(); clone.splice(it.pendingIndex, 1); return clone; });
-                        }
-                      }}>✕</button>
-                    </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Editor */}
+          <div>
+            <textarea
+              id="skeet-content"
+              required
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Was möchtest du veröffentlichen?"
+              rows={10}
+              className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <div
+              className={`mt-2 text-sm ${content.length > maxContentLength ? "text-destructive" : "text-foreground-muted"}`}
+            >
+              {content.length}/{maxContentLength} Zeichen
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setMediaDialog({ open: true, accept: 'image/*', title: 'Bild hinzufügen' })}
+                disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+                title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'Bild hinzufügen'}
+              >🖼️</button>
+              <button
+                type="button"
+                className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setMediaDialog({ open: true, accept: 'image/gif', title: 'GIF hinzufügen' })}
+                disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
+                title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'GIF hinzufügen'}
+              >GIF</button>
+            </div>
+          </div>
+          {/* Vorschau */}
+          <div className="rounded-2xl border border-border bg-background p-4 shadow-soft min-h-[320px] max-h-[320px] flex flex-col">
+            <header className="mb-2 text-xs uppercase tracking-[0.2em] text-foreground-muted">Vorschau</header>
+            <div className="mt-1 flex-1 overflow-auto pr-2">
+              <p className="whitespace-pre-wrap break-words leading-relaxed text-foreground">{content || '(kein Inhalt)'}</p>
+              {(() => {
+                const list = [];
+                if (isEditing && Array.isArray(editingSkeet?.media)) {
+                  editingSkeet.media.forEach((m) => {
+                    if (!removedMedia[m.id] && m.previewUrl) list.push({ src: m.previewUrl, alt: editedMediaAlt[m.id] ?? (m.altText || '') });
+                  });
+                }
+                pendingMedia.forEach((m) => list.push({ src: m.previewUrl || m.data, alt: m.altText || '' }));
+                const items = list.slice(0, imagePolicy.maxCount || 4);
+                if (items.length === 0) return null;
+                const hClass = items.length > 2 ? 'h-20' : 'h-28';
+                return (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {items.map((it, idx) => (
+                      <div key={idx} className={`relative ${hClass} overflow-hidden rounded-xl border border-border bg-background-subtle`}>
+                        <img src={it.src} alt={it.alt || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <p className="text-xs text-foreground-muted">Medien {items.length}/{imagePolicy.maxCount}</p>
-            </>
-          ) : null;
-        })()}
+                );
+              })()}
+            </div>
+            <div className="pt-2 text-xs text-foreground-muted">Medien {(isEditing && Array.isArray(editingSkeet?.media) ? editingSkeet.media.filter((m)=>!removedMedia[m.id]).length : 0) + pendingMedia.length}/{imagePolicy.maxCount}</div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -352,43 +346,8 @@ function SkeetForm({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
             className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setMediaDialog({ open: true, accept: 'image/*', title: 'Bild hinzufügen' })}
-            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
-            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'Bild hinzufügen'}
-          >🖼️</button>
-          <button
-            type="button"
-            className="rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => setMediaDialog({ open: true, accept: 'image/gif', title: 'GIF hinzufügen' })}
-            disabled={content.trim().length === 0 || pendingMedia.length >= (imagePolicy.maxCount || 4)}
-            title={content.trim().length === 0 ? 'Bitte zuerst Text eingeben' : pendingMedia.length >= (imagePolicy.maxCount || 4) ? `Maximal ${imagePolicy.maxCount} Bilder` : 'GIF hinzufügen'}
-          >GIF</button>
+          />
         </div>
-        {pendingMedia.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2">
-            {pendingMedia.slice(0, 4).map((m, idx) => (
-              <div key={idx} className="relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle">
-                <img src={m.data} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" />
-                <div className="absolute left-1 top-1 z-10">
-                  <button type="button" className="rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black" onClick={() => {
-                    const next = window.prompt('Alt‑Text', m.altText || '');
-                    if (next != null) setPendingMedia((arr) => { const clone = arr.slice(); clone[idx] = { ...clone[idx], altText: next }; return clone; });
-                  }}>{m.altText ? 'ALT' : '+ ALT'}</button>
-                </div>
-                <div className="absolute right-1 top-1 z-10">
-                  <button type="button" className="rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black" onClick={() => setPendingMedia((arr) => { const clone = arr.slice(); clone.splice(idx,1); return clone; })}>✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <p className="text-xs text-foreground-muted">Medien {pendingMedia.length}/{imagePolicy.maxCount}</p>
-      </div>
 
         {repeat === "weekly" && (
           <div className="space-y-2">

@@ -1,18 +1,29 @@
-const { Skeet } = require('../models');
+const { Skeet, Thread, ThreadSkeet } = require('../models');
 const threadService = require('./threadService');
 const skeetService = require('./skeetService');
-async function exportPlannedSkeets() {
-  const skeets = await Skeet.findAll({
-    where: { postUri: null },
-    order: [['scheduledAt', 'ASC'], ['createdAt', 'DESC']],
-  });
+const fs = require('fs');
+const path = require('path');
+
+function fileToDataUrl(filePath, mime) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    const b64 = buf.toString('base64');
+    const safeMime = mime || 'application/octet-stream';
+    return `data:${safeMime};base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
+async function exportPlannedSkeets({ includeMedia = true } = {}) {
+  const all = await skeetService.listSkeets({ includeDeleted: false, includeMedia });
+  const skeets = all.filter((s) => !s.postUri);
 
   return {
     exportedAt: new Date().toISOString(),
     count: skeets.length,
     skeets: skeets.map((entry) => ({
       content: entry.content,
-      scheduledAt: entry.scheduledAt ? entry.scheduledAt.toISOString() : null,
+      scheduledAt: entry.scheduledAt ? new Date(entry.scheduledAt).toISOString() : null,
       repeat: entry.repeat,
       repeatDayOfWeek: entry.repeatDayOfWeek,
       repeatDayOfMonth: entry.repeatDayOfMonth,
@@ -21,6 +32,16 @@ async function exportPlannedSkeets() {
       targetPlatforms: Array.isArray(entry.targetPlatforms)
         ? entry.targetPlatforms
         : ['bluesky'],
+      media: includeMedia && Array.isArray(entry.media)
+        ? entry.media.slice(0, 4)
+            .map((m) => ({
+              filename: m?.path ? path.basename(m.path) : (m?.filename || 'image'),
+              mime: m?.mime || 'application/octet-stream',
+              altText: m?.altText || null,
+              data: m?.path ? fileToDataUrl(m.path, m.mime) : null,
+            }))
+            .filter((m) => Boolean(m.data))
+        : undefined,
     })),
   };
 }
@@ -60,9 +81,29 @@ async function importPlannedSkeets(body) {
       threadId: item.threadId,
       isThreadPost: item.isThreadPost,
       targetPlatforms: item.targetPlatforms,
+      media: Array.isArray(item.media) ? item.media : undefined,
     };
 
+    // Dedup anhand Inhalt + Termin/Repeat-Feldern
+    const where = {
+      content: payload.content,
+      repeat: payload.repeat ?? 'none',
+    };
+    if (payload.repeat === 'weekly') {
+      where.repeatDayOfWeek = payload.repeatDayOfWeek ?? null;
+    }
+    if (payload.repeat === 'monthly') {
+      where.repeatDayOfMonth = payload.repeatDayOfMonth ?? null;
+    }
+    if ((payload.repeat ?? 'none') === 'none') {
+      where.scheduledAt = payload.scheduledAt ? new Date(payload.scheduledAt) : null;
+    }
+
     try {
+      const existing = await Skeet.findOne({ where });
+      if (existing) {
+        continue; // Duplikat, überspringen
+      }
       const skeet = await skeetService.createSkeet(payload);
       created.push(skeet);
     } catch (error) {
@@ -74,7 +115,7 @@ async function importPlannedSkeets(body) {
 }
 
 async function exportThreads(options = {}) {
-  const { status } = options;
+  const { status, includeMedia = true } = options;
   const threads = await threadService.listThreads();
 
   const allowedStatuses = status
@@ -115,6 +156,17 @@ async function exportThreads(options = {}) {
             content: segment.content,
             appendNumbering: Boolean(segment.appendNumbering),
             characterCount: segment.characterCount,
+            media: includeMedia && Array.isArray(segment.media)
+              ? segment.media
+                  .slice(0, 4)
+                  .map((m) => ({
+                    filename: m?.path ? path.basename(m.path) : (m?.filename || 'image'),
+                    mime: m?.mime || 'application/octet-stream',
+                    altText: m?.altText || null,
+                    data: m?.path ? fileToDataUrl(m.path, m.mime) : null,
+                  }))
+                  .filter((m) => Boolean(m.data))
+              : undefined,
           }))
         : [],
     };
@@ -193,6 +245,12 @@ async function importThreads(body) {
     }
 
     const segments = sanitizeThreadSegments(entry.segments, appendNumbering, index);
+    // Medien vom Original beibehalten (per sequence matchen)
+    const withMedia = segments.map((seg, i) => {
+      const orig = Array.isArray(entry.segments) ? entry.segments[i] : null;
+      const media = orig && Array.isArray(orig.media) ? orig.media : undefined;
+      return media ? { ...seg, media } : seg;
+    });
 
     const payload = {
       title: entry.title ?? null,
@@ -201,10 +259,30 @@ async function importThreads(body) {
       targetPlatforms: entry.targetPlatforms,
       appendNumbering,
       metadata,
-      skeets: segments,
+      skeets: withMedia,
     };
 
     try {
+      // Dedup: gleicher Title/ScheduledAt + identische Inhalte
+      const title = payload.title || null;
+      const scheduledAt = payload.scheduledAt ? new Date(payload.scheduledAt) : null;
+      const candidates = await Thread.findAll({ where: { title, scheduledAt } });
+      let isDuplicate = false;
+      for (const cand of candidates) {
+        const existingSegs = await ThreadSkeet.findAll({ where: { threadId: cand.id }, order: [["sequence","ASC"]] });
+        if (existingSegs.length !== segments.length) continue;
+        let equal = true;
+        for (let i = 0; i < segments.length; i++) {
+          const a = String(segments[i].content || '').trim();
+          const b = String(existingSegs[i]?.content || '').trim();
+          if (a !== b) { equal = false; break; }
+        }
+        if (equal) { isDuplicate = true; break; }
+      }
+      if (isDuplicate) {
+        continue; // überspringen
+      }
+
       const thread = await threadService.createThread(payload);
       created.push(thread);
     } catch (error) {

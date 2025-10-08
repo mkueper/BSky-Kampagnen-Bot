@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useToast } from "../../hooks/useToast";
 import * as Tabs from "@radix-ui/react-tabs";
-import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
+import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from "@radix-ui/react-icons";
 import Button from "../ui/Button";
 import ThreadOverview from "../ThreadOverview";
+import { useVisibleIds } from "../../hooks/useVisibleIds";
+import FloatingToolbar from "../ui/FloatingToolbar";
 
 function formatDateTime(value) {
   if (!value) return null;
@@ -34,6 +36,8 @@ function ThreadDashboardView({
   const toast = useToast();
   const [activeTab, setActiveTab] = useState("planned");
   const [bulkRefreshing, setBulkRefreshing] = useState(false);
+  const [bulkIncludeReplies, setBulkIncludeReplies] = useState(false);
+  const { getRefForId, visibleIds } = useVisibleIds();
   const stats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -168,7 +172,7 @@ function ThreadDashboardView({
               </Tabs.List>
             </Tabs.Root>
             {activeTab === "published" ? (
-              <div className="self-start rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
+              <div className="self-start flex items-center gap-2 rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
                 <span className="sr-only">Sortierung veröffentlichter Threads</span>
                 <div className="flex items-center gap-1">
                   <Button
@@ -190,41 +194,63 @@ function ThreadDashboardView({
                     <ArrowUpIcon className="h-4 w-4" />
                   </Button>
                 </div>
+                <span role="separator" aria-orientation="vertical" className="mx-1 h-5 w-px bg-border" />
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-foreground-muted">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-border"
+                      checked={bulkIncludeReplies}
+                      onChange={(e) => setBulkIncludeReplies(Boolean(e.target.checked))}
+                    />
+                    <span className="text-xs">Replies</span>
+                  </label>
+                  <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Alle sichtbaren aktualisieren"
+                  title="Alle sichtbaren aktualisieren"
+                  onClick={async () => {
+                    setBulkRefreshing(true);
+                    try {
+                      const ids = threads
+                        .filter((t) => t.status === 'published')
+                        .map((t) => t.id)
+                        .filter((id) => visibleIds.includes(id));
+                      if (!ids.length) {
+                        toast.info({ title: 'Keine sichtbaren Einträge', description: 'Scrolle die Liste, um Einträge sichtbar zu machen.' });
+                      } else {
+                        const res = await fetch('/api/engagement/refresh-many', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ entity: 'thread', ids, includeReplies: Boolean(bulkIncludeReplies) }),
+                        });
+                        if (!res.ok) {
+                          const data = await res.json().catch(() => ({}));
+                          throw new Error(data.error || 'Fehler beim Aktualisieren der sichtbaren Threads.');
+                        }
+                        const data = await res.json().catch(() => null);
+                        const total = data?.total ?? ids.length;
+                        const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
+                        const failCount = Math.max(0, total - okCount);
+                        toast.success({ title: 'Sichtbare aktualisiert', description: `Threads: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}` });
+                        if (typeof onReload === 'function') onReload({ force: true });
+                      }
+                    } catch (error) {
+                      console.error('Bulk-Refresh (sichtbar) fehlgeschlagen:', error);
+                      toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren.' });
+                    } finally {
+                      setBulkRefreshing(false);
+                    }
+                  }}
+                  disabled={bulkRefreshing || !threads.some((t) => t.status === 'published' && visibleIds.includes(t.id))}
+                >
+                    <ReloadIcon className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ) : null}
-            {activeTab === "published" ? (
-              <Button
-                variant="primary"
-                onClick={async () => {
-                  setBulkRefreshing(true);
-                  try {
-                    const res = await fetch('/api/threads/engagement/refresh-all', { method: 'POST' });
-                    if (!res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      throw new Error(data.error || 'Fehler beim Aktualisieren der veröffentlichten Threads.');
-                    }
-                    const data = await res.json().catch(() => null);
-                    const total = data?.total ?? 0;
-                    const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
-                    const failCount = Math.max(0, total - okCount);
-                    toast.success({
-                      title: 'Reaktionen aktualisiert',
-                      description: `Threads: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}`,
-                    });
-                    if (typeof onReload === 'function') onReload({ force: true });
-                  } catch (error) {
-                    console.error('Bulk-Refresh fehlgeschlagen:', error);
-                    toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren aller Threads.' });
-                  } finally {
-                    setBulkRefreshing(false);
-                  }
-                }}
-                disabled={bulkRefreshing}
-                title="Alle veröffentlichten Threads aktualisieren"
-              >
-                {bulkRefreshing ? 'Alle aktualisieren…' : 'Alle aktualisieren'}
-              </Button>
-            ) : null}
+            {/* Entfernt: alter "Alle aktualisieren"-Button für Threads */}
           </div>
         </div>
 
@@ -239,6 +265,7 @@ function ThreadDashboardView({
               onDeleteThread={onDeleteThread}
               onRetractThread={onRetractThread}
               mode="default"
+              getItemRef={getRefForId}
             />
           ) : activeTab === "published" ? (
             <ThreadOverview
@@ -250,6 +277,7 @@ function ThreadDashboardView({
               onDeleteThread={onDeleteThread}
               onRetractThread={onRetractThread}
               mode="default"
+              getItemRef={getRefForId}
             />
           ) : trashedThreads.length > 0 ? (
             <ThreadOverview
@@ -260,6 +288,7 @@ function ThreadDashboardView({
               onRestoreThread={onRestoreThread}
               onDestroyThread={onDestroyThread}
               mode="deleted"
+              getItemRef={getRefForId}
             />
           ) : (
             <p className="rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted">
@@ -268,6 +297,77 @@ function ThreadDashboardView({
           )}
         </div>
       </section>
+
+      {activeTab === 'published' ? (
+        <FloatingToolbar ariaLabel="Thread-Aktionen" variant="primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`text-inherit ${publishedSortOrder === 'desc' ? 'bg-primary-foreground/20' : ''} hover:bg-primary-foreground/15`}
+            onClick={() => setPublishedSortOrder('desc')}
+            aria-pressed={publishedSortOrder === 'desc'}
+            aria-label="Neu zuerst sortieren"
+            title="Neu zuerst"
+          >
+            <ArrowDownIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`text-inherit ${publishedSortOrder === 'asc' ? 'bg-primary-foreground/20' : ''} hover:bg-primary-foreground/15`}
+            onClick={() => setPublishedSortOrder('asc')}
+            aria-pressed={publishedSortOrder === 'asc'}
+            aria-label="Alt zuerst sortieren"
+            title="Alt zuerst"
+          >
+            <ArrowUpIcon className="h-4 w-4" />
+          </Button>
+          <span role="separator" aria-orientation="vertical" className="mx-1 h-5 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-inherit hover:bg-primary-foreground/15"
+            aria-label="Alle sichtbaren aktualisieren"
+            title="Alle sichtbaren aktualisieren"
+            onClick={async () => {
+              setBulkRefreshing(true);
+              try {
+                const ids = threads
+                  .filter((t) => t.status === 'published')
+                  .map((t) => t.id)
+                  .filter((id) => visibleIds.includes(id));
+                if (!ids.length) {
+                  toast.info({ title: 'Keine sichtbaren Einträge', description: 'Scrolle die Liste, um Einträge sichtbar zu machen.' });
+                } else {
+                  const res = await fetch('/api/engagement/refresh-many', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entity: 'thread', ids, includeReplies: Boolean(bulkIncludeReplies) }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || 'Fehler beim Aktualisieren der sichtbaren Threads.');
+                  }
+                  const data = await res.json().catch(() => null);
+                  const total = data?.total ?? ids.length;
+                  const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
+                  const failCount = Math.max(0, total - okCount);
+                  toast.success({ title: 'Sichtbare aktualisiert', description: `Threads: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}` });
+                  if (typeof onReload === 'function') onReload({ force: true });
+                }
+              } catch (error) {
+                console.error('Bulk-Refresh (sichtbar) fehlgeschlagen:', error);
+                toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren.' });
+              } finally {
+                setBulkRefreshing(false);
+              }
+            }}
+            disabled={bulkRefreshing || !threads.some((t) => t.status === 'published' && visibleIds.includes(t.id))}
+          >
+            <ReloadIcon className="h-4 w-4" />
+          </Button>
+        </FloatingToolbar>
+      ) : null}
     </div>
   );
 }

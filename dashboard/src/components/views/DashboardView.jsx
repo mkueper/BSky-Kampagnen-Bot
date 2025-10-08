@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
-import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
+import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from "@radix-ui/react-icons";
+import { useToast } from "../../hooks/useToast";
 import Button from "../ui/Button";
 import PlannedSkeetList from "../PlannedSkeetList";
 import PublishedSkeetList from "../PublishedSkeetList";
 import DeletedSkeetList from "../DeletedSkeetList";
+import { useVisibleIds } from "../../hooks/useVisibleIds";
+import FloatingToolbar from "../ui/FloatingToolbar";
 
 /**
  * Zusammenstellung aller Dashboard-Kacheln und Listen.
@@ -37,7 +40,9 @@ function DashboardView({
   activeTab,
   onTabChange,
 }) {
+  const toast = useToast();
   const [publishedSortOrder, setPublishedSortOrder] = useState("desc");
+  const { getRefForId, visibleIds } = useVisibleIds();
 
   useEffect(() => {
     if (activeTab !== "published") {
@@ -168,7 +173,7 @@ function DashboardView({
               </Tabs.List>
             </Tabs.Root>
             {activeTab === "published" ? (
-              <div className="self-start rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
+              <div className="self-start flex items-center gap-2 rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted">
                 <span className="sr-only">Sortierung veröffentlichter Skeets</span>
                 <div className="flex items-center gap-1">
                   <Button
@@ -190,6 +195,43 @@ function DashboardView({
                     <ArrowUpIcon className="h-4 w-4" />
                   </Button>
                 </div>
+                <span role="separator" aria-orientation="vertical" className="mx-1 h-5 w-px bg-border" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Alle sichtbaren aktualisieren"
+                  title="Alle sichtbaren aktualisieren"
+                  onClick={async () => {
+                    try {
+                      const ids = sortedPublishedSkeets.map((s) => s.id).filter((id) => visibleIds.includes(id));
+                      if (!ids.length) {
+                        toast.info({ title: 'Keine sichtbaren Einträge', description: 'Scrolle die Liste, um Einträge sichtbar zu machen.' });
+                        return;
+                      }
+                      const res = await fetch('/api/engagement/refresh-many', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entity: 'skeet', ids }),
+                      });
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || 'Fehler beim Aktualisieren der sichtbaren Skeets.');
+                      }
+                      const data = await res.json().catch(() => null);
+                      const total = data?.total ?? ids.length;
+                      const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
+                      const failCount = Math.max(0, total - okCount);
+                      toast.success({ title: 'Sichtbare aktualisiert', description: `Skeets: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}` });
+                      onTabChange('published');
+                    } catch (error) {
+                      console.error('Skeets sichtbar aktualisieren fehlgeschlagen:', error);
+                      toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren.' });
+                    }
+                  }}
+                  disabled={!sortedPublishedSkeets.some((s) => visibleIds.includes(s.id))}
+                >
+                  <ReloadIcon className="h-4 w-4" />
+                </Button>
               </div>
             ) : null}
           </div>
@@ -218,6 +260,7 @@ function DashboardView({
               reactionStats={reactionStats}
               platformLabels={platformLabels}
               formatTime={formatTime}
+              getItemRef={getRefForId}
             />
           ) : (
             <DeletedSkeetList
@@ -229,6 +272,71 @@ function DashboardView({
           )}
         </div>
       </section>
+
+      {activeTab === 'published' ? (
+        <FloatingToolbar ariaLabel="Skeet-Aktionen" variant="primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`text-inherit ${publishedSortOrder === 'desc' ? 'bg-primary-foreground/20' : ''} hover:bg-primary-foreground/15`}
+            onClick={() => setPublishedSortOrder('desc')}
+            aria-pressed={publishedSortOrder === 'desc'}
+            aria-label="Neu zuerst sortieren"
+            title="Neu zuerst"
+          >
+            <ArrowDownIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`text-inherit ${publishedSortOrder === 'asc' ? 'bg-primary-foreground/20' : ''} hover:bg-primary-foreground/15`}
+            onClick={() => setPublishedSortOrder('asc')}
+            aria-pressed={publishedSortOrder === 'asc'}
+            aria-label="Alt zuerst sortieren"
+            title="Alt zuerst"
+          >
+            <ArrowUpIcon className="h-4 w-4" />
+          </Button>
+          <span role="separator" aria-orientation="vertical" className="mx-1 h-5 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-inherit hover:bg-primary-foreground/15"
+            aria-label="Alle sichtbaren aktualisieren"
+            title="Alle sichtbaren aktualisieren"
+            onClick={async () => {
+              try {
+                const ids = sortedPublishedSkeets.map((s) => s.id).filter((id) => visibleIds.includes(id));
+                if (!ids.length) {
+                  toast.info({ title: 'Keine sichtbaren Einträge', description: 'Scrolle die Liste, um Einträge sichtbar zu machen.' });
+                  return;
+                }
+                const res = await fetch('/api/engagement/refresh-many', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ entity: 'skeet', ids }),
+                });
+                if (!res.ok) {
+                  const data = await res.json().catch(() => ({}));
+                  throw new Error(data.error || 'Fehler beim Aktualisieren der sichtbaren Skeets.');
+                }
+                const data = await res.json().catch(() => null);
+                const total = data?.total ?? ids.length;
+                const okCount = Array.isArray(data?.results) ? data.results.filter((r) => r.ok).length : 0;
+                const failCount = Math.max(0, total - okCount);
+                toast.success({ title: 'Sichtbare aktualisiert', description: `Skeets: ${okCount} aktualisiert${failCount ? ` · ${failCount} fehlgeschlagen` : ''}` });
+                onTabChange('published');
+              } catch (error) {
+                console.error('Skeets sichtbar aktualisieren fehlgeschlagen:', error);
+                toast.error({ title: 'Aktualisierung fehlgeschlagen', description: error?.message || 'Fehler beim Aktualisieren.' });
+              }
+            }}
+            disabled={!sortedPublishedSkeets.some((s) => visibleIds.includes(s.id))}
+          >
+            <ReloadIcon className="h-4 w-4" />
+          </Button>
+        </FloatingToolbar>
+      ) : null}
     </div>
   );
 }
