@@ -107,7 +107,7 @@ function PublishedSkeetList({
                               {platformLabels[reply.platform] || reply.platform}
                             </p>
                           ) : null}
-                          <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground-muted">{reply.content}</p>
+                          <p className="mt-1 whitespace-pre-line break-words leading-relaxed text-foreground-muted">{reply.content}</p>
                           {reply.createdAt && (
                             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground-subtle">
                               {formatTime(reply.createdAt)}
@@ -122,7 +122,7 @@ function PublishedSkeetList({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
+                  <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
                   {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {skeet.media.slice(0, 4).map((m, idx) => (

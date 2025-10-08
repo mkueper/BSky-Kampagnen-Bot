@@ -109,7 +109,7 @@ function DashboardView({
   }, [publishedSkeets, publishedSortOrder]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <section className="grid gap-4 md:grid-cols-3">
         <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
           <div className="flex flex-col gap-4 p-6">
