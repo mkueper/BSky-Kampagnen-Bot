@@ -147,7 +147,20 @@ function ThreadOverview({
         const metadata = parseThreadMetadata(thread);
         const platformResults = metadata.platformResults && typeof metadata.platformResults === 'object' ? metadata.platformResults : {};
         const hasSentPlatforms = Object.values(platformResults).some((entry) => entry && entry.status === 'sent');
-        const canRetract = !isDeletedMode && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
+        const isDemo = (() => {
+          try {
+            // Demo-Kennzeichen: Segment-Flags oder demo:// IDs
+            const anyDemoInPR = Object.values(platformResults).some((entry) => {
+              if (!entry || typeof entry !== 'object') return false;
+              if (entry.demo === true) return true;
+              const segs = Array.isArray(entry.segments) ? entry.segments : [];
+              return segs.some((s) => s && s.demo === true);
+            });
+            const segDemoId = Array.isArray(segments) && segments.some((seg) => typeof seg?.remoteId === 'string' && seg.remoteId.startsWith('demo://'));
+            return Boolean(anyDemoInPR || segDemoId);
+          } catch { return false; }
+        })();
+        const canRetract = !isDeletedMode && !isDemo && typeof onRetractThread === 'function' && (thread.status === 'published' || hasSentPlatforms);
         const canEdit = !isDeletedMode && typeof onEditThread === 'function' && thread.status !== 'published';
 
         // Aggregierte Reaktionen (Replies aus DB; Likes/Reposts bevorzugt aus Metadata-Totals)
@@ -310,6 +323,7 @@ function ThreadOverview({
                             {showReplies[thread.id] ? "Antworten verbergen" : `Antworten anzeigen (${flatReplies.length})`}
                           </Button>
                         ) : null}
+                        {!isDemo && (
                         <Button
                           variant="primary"
                           onClick={async () => {
@@ -342,12 +356,15 @@ function ThreadOverview({
                         >
                           {loadingRefresh[thread.id] ? 'Lädt…' : 'Reaktionen aktualisieren'}
                         </Button>
+                        )}
                         {canEdit ? (
                           <Button variant="secondary" onClick={() => onEditThread?.(thread)}>Bearbeiten</Button>
                         ) : null}
-                        <Button variant="warning" onClick={() => onRetractThread?.(thread)} disabled={!canRetract}>
-                          Entfernen
-                        </Button>
+                        {canRetract ? (
+                          <Button variant="warning" onClick={() => onRetractThread?.(thread)}>
+                            Entfernen
+                          </Button>
+                        ) : null}
                         <Button variant="destructive" onClick={() => onDeleteThread?.(thread)}>
                           Löschen
                         </Button>
