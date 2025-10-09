@@ -658,16 +658,18 @@ async function applySchedulerTask() {
         console.error("❌ Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
       });
       // Engagement-Refresh: dynamisch je nach Client-Präsenz
-      const now = Date.now();
-      const lastSeen = presence.getLastSeen() || 0;
-      const idleThreshold = config.CLIENT_IDLE_THRESHOLD_MS;
-      const isActiveClients = lastSeen > 0 && (now - lastSeen) < idleThreshold;
-      const minInterval = isActiveClients ? config.ENGAGEMENT_ACTIVE_MIN_MS : config.ENGAGEMENT_IDLE_MIN_MS;
-      if (now - lastEngagementRunAt >= minInterval) {
-        lastEngagementRunAt = now;
-        refreshPublishedThreadsBatch(3).catch((error) => {
-          console.error("❌ Engagement-Refresh fehlgeschlagen:", error?.message || error);
-        });
+      if (!config.DISCARD_MODE) {
+        const now = Date.now();
+        const lastSeen = presence.getLastSeen() || 0;
+        const idleThreshold = config.CLIENT_IDLE_THRESHOLD_MS;
+        const isActiveClients = lastSeen > 0 && (now - lastSeen) < idleThreshold;
+        const minInterval = isActiveClients ? config.ENGAGEMENT_ACTIVE_MIN_MS : config.ENGAGEMENT_IDLE_MIN_MS;
+        if (now - lastEngagementRunAt >= minInterval) {
+          lastEngagementRunAt = now;
+          refreshPublishedThreadsBatch(3).catch((error) => {
+            console.error("❌ Engagement-Refresh fehlgeschlagen:", error?.message || error);
+          });
+        }
       }
     },
     { timezone: timeZone }
