@@ -162,4 +162,6 @@ module.exports = {
   /** Bulk-Refresh Limits */
   BULK_REFRESH_MAX_IDS: toNumber(process.env.BULK_REFRESH_MAX_IDS, 50),
   BULK_REFRESH_CONCURRENCY: toNumber(process.env.BULK_REFRESH_CONCURRENCY, 4),
+  /** Demo-/Discard-Modus: Scheduler verwirft fällige Posts statt zu senden */
+  DISCARD_MODE: toBool(process.env.SCHEDULER_DISCARD_MODE, false),
 };

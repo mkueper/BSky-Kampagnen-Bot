@@ -283,6 +283,8 @@ async function dispatchSkeet(skeet) {
  * Holt fällige Skeets aus der Datenbank und versucht, sie zu versenden.
  */
 async function processDueSkeets(now = new Date()) {
+  const discardMode = Boolean(config.DISCARD_MODE);
+
   const dueSkeets = await Skeet.findAll({
     where: {
       scheduledAt: { [Op.ne]: null, [Op.lte]: now },
@@ -295,6 +297,50 @@ async function processDueSkeets(now = new Date()) {
 
   for (const skeet of dueSkeets) {
     try {
+      if (discardMode) {
+        // Demo: Nicht senden, sondern als "veröffentlicht" markieren
+        const current = await Skeet.findByPk(skeet.id);
+        if (current) {
+          const targetPlatforms = getTargetPlatforms(current);
+          const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+          const now = new Date();
+          const nowIso = now.toISOString();
+
+          const results = {};
+          for (const platformId of normalizedPlatforms) {
+            results[platformId] = {
+              status: "sent",
+              uri: "",
+              postedAt: nowIso,
+              attempts: 0,
+              demo: true,
+            };
+          }
+
+          const primaryPlatform = normalizedPlatforms.includes("bluesky")
+            ? "bluesky"
+            : normalizedPlatforms[0] || "bluesky";
+          const fakeUri = `demo://${primaryPlatform}/skeet/${current.id}`;
+
+          const updates = {
+            platformResults: results,
+            targetPlatforms: normalizedPlatforms.length > 0 ? normalizedPlatforms : ["bluesky"],
+            postUri: fakeUri,
+            postedAt: now,
+          };
+
+          if (current.repeat === "none") {
+            updates.scheduledAt = null;
+          } else {
+            const nextRun = calculateNextScheduledAt(current);
+            updates.scheduledAt = nextRun ?? null;
+          }
+
+          await current.update(updates);
+          console.log(`✅ Discard-Mode: Skeet ${current.id} als veröffentlicht markiert (Demo)`);
+        }
+        continue;
+      }
       await dispatchSkeet(skeet);
     } catch (error) {
       console.error(`❌ Fehler beim Senden von Skeet ${skeet.id}:`, error?.message || error);
@@ -512,6 +558,8 @@ async function dispatchThread(thread) {
 }
 
 async function processDueThreads(now = new Date()) {
+  const discardMode = Boolean(config.DISCARD_MODE);
+
   const dueThreads = await Thread.findAll({
     where: {
       scheduledAt: { [Op.ne]: null, [Op.lte]: now },
@@ -523,6 +571,60 @@ async function processDueThreads(now = new Date()) {
 
   for (const thread of dueThreads) {
     try {
+      if (discardMode) {
+        const { ThreadSkeetMedia } = require('../models');
+        const current = await Thread.findByPk(thread.id, {
+          include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]], include: [{ model: ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] }],
+        });
+        if (current) {
+          const targetPlatforms = getTargetPlatforms(current);
+          const normalizedPlatforms = Array.from(new Set(targetPlatforms));
+          const now = new Date();
+          const nowIso = now.toISOString();
+
+          const metadata = ensureMetadataObject(current.metadata);
+          const platformResults = {};
+
+          for (const platformId of normalizedPlatforms) {
+            const segmentResults = [];
+            for (const segment of current.segments || []) {
+              segmentResults.push({
+                sequence: segment.sequence,
+                status: "sent",
+                uri: "",
+                postedAt: nowIso,
+                demo: true,
+              });
+            }
+            platformResults[platformId] = {
+              status: "sent",
+              segments: segmentResults,
+              completedAt: nowIso,
+            };
+          }
+
+          // Segmente mit Dummy-RemoteId/postedAt versehen
+          if (Array.isArray(current.segments)) {
+            for (const segment of current.segments) {
+              await segment.update({ remoteId: `demo://thread/${current.id}/seg/${segment.sequence}`, postedAt: now });
+            }
+          }
+
+          metadata.platformResults = platformResults;
+          metadata.lastDispatchAt = nowIso;
+          metadata.lastSuccessAt = nowIso;
+
+          await current.update({
+            metadata,
+            targetPlatforms: normalizedPlatforms,
+            scheduledAt: null,
+            status: "published",
+          });
+
+          console.log(`✅ Discard-Mode: Thread ${current.id} als veröffentlicht markiert (Demo)`);
+        }
+        continue;
+      }
       await dispatchThread(thread);
     } catch (error) {
       console.error(`❌ Fehler beim Senden von Thread ${thread.id}:`, error?.message || error);
