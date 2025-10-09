@@ -124,11 +124,17 @@ app.use((req, res, next) => {
   // --- Preflight: prüfe notwendige Umgebungsvariablen
   try {
     const report = runPreflight();
+    const demoMode = Boolean(config.DISCARD_MODE);
 
     if (report.bluesky.critical) {
-      console.error("❌ Preflight fehlgeschlagen (Bluesky):", report.bluesky.issues.join("; "));
-      report.bluesky.hints.forEach(h => console.error("   Hinweis:", h));
-      process.exit(1);
+      if (demoMode) {
+        console.warn("⚠️  Preflight (Bluesky) kritisch, aber Demo-/Discard-Modus ist aktiv – fahre ohne Login fort.");
+        report.bluesky.hints.forEach(h => console.warn("   Hinweis:", h));
+      } else {
+        console.error("❌ Preflight fehlgeschlagen (Bluesky):", report.bluesky.issues.join("; "));
+        report.bluesky.hints.forEach(h => console.error("   Hinweis:", h));
+        process.exit(1);
+      }
     }
 
     report.mastodon.warnings.forEach(w => console.warn("⚠️  Preflight:", w));
@@ -138,21 +144,27 @@ app.use((req, res, next) => {
   }
 
   try {
-    await loginBluesky();
-    console.log("✅ Bluesky-Login erfolgreich");
-    appLog.info("Bluesky-Login erfolgreich");
+    const demoMode = Boolean(config.DISCARD_MODE);
+    if (!demoMode) {
+      await loginBluesky();
+      console.log("✅ Bluesky-Login erfolgreich");
+      appLog.info("Bluesky-Login erfolgreich");
 
-    if (hasMastodonCredentials()) {
-      try {
-        await loginMastodon();
-        console.log("✅ Mastodon-Login erfolgreich");
-        appLog.info("Mastodon-Login erfolgreich");
-      } catch (mastodonError) {
-        console.error("❌ Mastodon-Login fehlgeschlagen:", mastodonError?.message || mastodonError);
-        appLog.error("Mastodon-Login fehlgeschlagen", { error: mastodonError?.message || String(mastodonError) });
+      if (hasMastodonCredentials()) {
+        try {
+          await loginMastodon();
+          console.log("✅ Mastodon-Login erfolgreich");
+          appLog.info("Mastodon-Login erfolgreich");
+        } catch (mastodonError) {
+          console.error("❌ Mastodon-Login fehlgeschlagen:", mastodonError?.message || mastodonError);
+          appLog.error("Mastodon-Login fehlgeschlagen", { error: mastodonError?.message || String(mastodonError) });
+        }
+      } else {
+        console.log("ℹ️ Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
       }
     } else {
-      console.log("ℹ️ Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
+      console.log("ℹ️ Demo-/Discard-Modus aktiv – Logins zu Bluesky/Mastodon werden übersprungen.");
+      appLog.info("Demo-/Discard-Modus: Logins übersprungen");
     }
 
     await sequelize.authenticate();
