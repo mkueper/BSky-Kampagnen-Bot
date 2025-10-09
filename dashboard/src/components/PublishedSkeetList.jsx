@@ -55,8 +55,14 @@ function PublishedSkeetList({
         const reactionErrors = reactionStats[skeet.id]?.errors;
         const replyError = replyErrors[skeet.id];
         const hasSentPlatforms = Object.values(skeet.platformResults || {}).some((entry) => entry && entry.status === 'sent');
-        const canRetract = typeof onRetract === 'function' && (skeet.postUri || hasSentPlatforms);
-        const canFetchReactions = Boolean(skeet.postUri || hasSentPlatforms);
+        const isDemo = (() => {
+          try {
+            if (typeof skeet.postUri === 'string' && skeet.postUri.startsWith('demo://')) return true;
+            return Object.values(skeet.platformResults || {}).some((entry) => entry && entry.demo === true);
+          } catch { return false; }
+        })();
+        const canRetract = !isDemo && typeof onRetract === 'function' && (skeet.postUri || hasSentPlatforms);
+        const canFetchReactions = !isDemo && Boolean(skeet.postUri || hasSentPlatforms);
 
         return (
           <Card key={skeet.id} ref={typeof getItemRef === 'function' ? getItemRef(skeet.id) : undefined}>
@@ -143,20 +149,23 @@ function PublishedSkeetList({
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      variant="primary"
-                      onClick={() => onFetchReactions(skeet.id)}
-                      disabled={!canFetchReactions || isFetchingReactions}
-                    >
-                      {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
-                    </Button>
-                    <Button
-                      variant="warning"
-                      onClick={() => onRetract?.(skeet)}
-                      disabled={!canRetract}
-                    >
-                      Entfernen
-                    </Button>
+                    {canFetchReactions ? (
+                      <Button
+                        variant="primary"
+                        onClick={() => onFetchReactions(skeet.id)}
+                        disabled={isFetchingReactions}
+                      >
+                        {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
+                      </Button>
+                    ) : null}
+                    {canRetract ? (
+                      <Button
+                        variant="warning"
+                        onClick={() => onRetract?.(skeet)}
+                      >
+                        Entfernen
+                      </Button>
+                    ) : null}
                     <p className="text-sm text-foreground-muted">
                       Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
                     </p>
