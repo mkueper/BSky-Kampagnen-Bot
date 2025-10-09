@@ -70,3 +70,4 @@ module.exports = {
     // Kein ENUM-Cleanup nötig für SQLite
   },
 };
+

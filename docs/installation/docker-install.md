@@ -75,6 +75,8 @@ docker compose exec backend npm run migrate:prod
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).
 
+> Hinweis: Setze in deiner `.env` für den Backend-Container `DB_SYNC=false`, damit in Produktion ausschließlich Migrationen laufen und `sequelize.sync()` übersprungen wird. In der lokalen Entwicklung kannst du `DB_SYNC=true` setzen.
+
 ## 4. Logs prüfen
 
 ```bash

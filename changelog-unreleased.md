@@ -74,3 +74,24 @@
   - Neuer Endpoint `POST /api/heartbeat` vom Frontend‑Master‑Tab.
   - Scheduler nutzt aktive/idle Minimalintervalle: `ENGAGEMENT_ACTIVE_MIN_MS` (Default 2 Min) und `ENGAGEMENT_IDLE_MIN_MS` (Default 20 Min).
   - Idle‑Schwelle konfigurierbar: `CLIENT_IDLE_THRESHOLD_MS` (Default 20 Min ohne Heartbeat).
+
+### Schema & Migrationen
+- Baseline-Migration hinzugefügt: `migrations/00000000000000-baseline-rebuild.js` konsolidiert das gesamte aktuelle Schema (Threads/Skeets/Reactions/Media/Settings) in einem Schritt.
+- Bestehende Migrationen nach `migrations/_archive/` verschoben (nur Baseline bleibt aktiv).
+- Idempotente Guards ergänzt (Tabellen/Spalten/Indizes werden vor `add*/create*` geprüft) — behebt Fehler wie `SQLITE_ERROR: index ... already exists` auf bestehenden Datenbanken.
+- Neue Skripte:
+  - `db:reset:*` löscht die DB‑Datei (SQLite) und baut frisch über Migrationen auf.
+  - `meta:clean:*` räumt `SequelizeMeta` auf und behält nur die Baseline‑Migration.
+
+### Backend/Config
+- `sequelize.sync()` per ENV steuerbar: in Prod standardmäßig aus, via `DB_SYNC=false` in `.env` erzwungen (Dev per Default an). Start‑Logs entsprechend angepasst.
+- Beispiel‑Envs aktualisiert: `.env.dev` (DB_SYNC=true), `.env.prod` (DB_SYNC=false). `.env.sample` dokumentiert die Option.
+- Doku ergänzt: Hinweise zu Migration‑Only‑Betrieb (Server/Docker/Local).
+
+### Frontend – UI/Editor
+- SkeetForm: Hook‑Fehler behoben (kein `useState` mehr auf Modul‑Top‑Level).
+- SkeetForm/ThreadForm: Zielplattform‑Buttons vereinheitlicht (Pill‑Stil, mindestens eine Plattform bleibt aktiv).
+- SkeetForm/ThreadForm: Info‑Buttons + Modals mit kompakten Hinweisen (Inhalt/Vorschau). „Bilder werden beim Speichern …“ aus der Vorschau in Info‑Dialog verlegt.
+- SkeetForm: Dezente Buttons (statt blau), Emoji/GIF/Medien‑Buttons bleiben sichtbar. Icons vergrößert (🖼️/😊).
+- SkeetForm: Überschriftengrößen an ThreadForm angepasst; Info‑Buttons auf Desktop neben Überschriften ausgerichtet.
+

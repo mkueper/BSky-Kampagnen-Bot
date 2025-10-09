@@ -159,9 +159,16 @@ app.use((req, res, next) => {
     console.log("✅ DB-Verbindung ok");
     appLog.info("DB-Verbindung ok");
 
-    await sequelize.sync(); // ggf. sync({ alter: false }) oder migrations nutzen
-    console.log("✅ DB synchronisiert");
-    appLog.info("DB synchronisiert");
+    const syncFlag = (process.env.DB_SYNC || "").toLowerCase();
+    const shouldSync = syncFlag === "true" || (process.env.NODE_ENV !== "production" && syncFlag !== "false");
+    if (shouldSync) {
+      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
+      console.log("✅ DB synchronisiert (sequelize.sync)");
+      appLog.info("DB synchronisiert (sequelize.sync)");
+    } else {
+      console.log("ℹ️ sequelize.sync() übersprungen – Migrationen verwenden");
+      appLog.info("sequelize.sync() übersprungen – Migrationen verwenden");
+    }
 
     try {
       await startScheduler();

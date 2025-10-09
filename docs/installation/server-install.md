@@ -69,6 +69,8 @@ npm run migrate:prod
 npm run seed:prod
 ```
 
+> Hinweis: In Produktion sollte das Schema ausschließlich per Migrationen verwaltet werden. Stelle sicher, dass `DB_SYNC=false` in deiner `.env` gesetzt ist, damit `sequelize.sync()` übersprungen wird. Für lokale Entwicklung kannst du `DB_SYNC=true` setzen.
+
 ## 6. Dienst starten (Beispiel mit pm2)
 
 ```bash
