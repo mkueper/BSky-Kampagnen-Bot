@@ -3,6 +3,9 @@ import { useToast } from '../hooks/useToast'
 import Button from './ui/Button'
 import MediaDialog from './MediaDialog'
 import { useClientConfig } from '../hooks/useClientConfig'
+import { weekdayOrder, weekdayLabel } from '../utils/weekday'
+import Modal from './ui/Modal'
+import { InfoCircledIcon } from '@radix-ui/react-icons'
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -65,6 +68,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const { date: defaultDate, time: defaultTime } = getDefaultDateParts()
 
   const [content, setContent] = useState('')
+  const [repeatDaysOfWeek, setRepeatDaysOfWeek] = useState([]) // number[]: 0=So … 6=Sa
   const [targetPlatforms, setTargetPlatforms] = useState(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -110,6 +114,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const textareaRef = useRef(null)
   const previewRef = useRef(null)
   const [coupledHeight, setCoupledHeight] = useState(null)
+  const locale = typeof navigator !== 'undefined' ? navigator.language : 'de-DE'
+  const order = weekdayOrder(locale)
+  const [infoContentOpen, setInfoContentOpen] = useState(false)
+  const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
 
   useEffect(
     () => {
@@ -154,6 +162,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   useEffect(() => {
     if (editingSkeet) {
       setContent(editingSkeet.content ?? '')
+      setRepeat(editingSkeet.repeat ?? 'none')
       setTargetPlatforms(
         Array.isArray(editingSkeet.targetPlatforms) &&
           editingSkeet.targetPlatforms.length > 0
@@ -222,6 +231,27 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       }
     }
 
+    if (repeat === 'weekly') {
+      if (!repeatDaysOfWeek || repeatDaysOfWeek.length === 0) {
+        toast.error({
+          title: 'Bitte Wochentage wählen',
+          description: 'Mindestens einen Tag markieren.'
+        })
+        return
+      }
+    }
+
+    if (repeat === 'monthly') {
+      const d = Number(repeatDayOfMonth)
+      if (!Number.isInteger(d) || d < 1 || d > 31) {
+        toast.error({
+          title: 'Ungültiger Monatstag',
+          description: 'Bitte einen Wert von 1 bis 31 wählen.'
+        })
+        return
+      }
+    }
+
     if (normalizedPlatforms.length === 0) {
       toast.error({
         title: 'Keine Plattform gewählt',
@@ -237,8 +267,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           ? scheduledDateTime
           : null,
       repeat,
-      repeatDayOfWeek,
+      repeatDaysOfWeek,
       repeatDayOfMonth,
+      repeatDayOfWeek:
+        Array.isArray(repeatDaysOfWeek) && repeatDaysOfWeek.length
+          ? repeatDaysOfWeek[0]
+          : null,
       targetPlatforms: normalizedPlatforms,
       media: pendingMedia
     }
@@ -311,33 +345,65 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       </div>
 
       <div className='space-y-3'>
-        {/* Überschriftenzeile für Desktop: Texte auf einer Ebene */}
+        {/* Überschriftenzeile für Desktop: mit Info-Buttons, sauber neben den Labels ausgerichtet */}
         <div className='hidden lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6'>
-          <label
-            htmlFor='skeet-content'
-            className='text-sm font-semibold text-foreground self-end'
-          >
-            Skeet-Text
-          </label>
+          <div className='flex items-center justify-between self-end'>
+            <label htmlFor='skeet-content' className='text-lg font-semibold text-foreground'>
+              Skeet-Text
+            </label>
+            <button
+              type='button'
+              className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+              aria-label='Hinweis zu Skeet-Text anzeigen'
+              onClick={() => setInfoContentOpen(true)}
+              title='Hinweis anzeigen'
+            >
+              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+              Info
+            </button>
+          </div>
           <div />
-          <label className='text-sm font-semibold text-foreground self-end'>
-            Vorschau
-          </label>
+          <div className='flex items-center justify-between self-end'>
+            <label className='text-lg font-semibold text-foreground'>
+              Vorschau
+            </label>
+            <button
+              type='button'
+              className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+              aria-label='Hinweis zur Vorschau anzeigen'
+              onClick={() => setInfoPreviewOpen(true)}
+              title='Hinweis anzeigen'
+            >
+              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+              Info
+            </button>
+          </div>
         </div>
         <div className='grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'>
           {/* Editor */}
           <div>
-            {/* Mobile-Label für Editor */}
-            <label
-              htmlFor='skeet-content'
-              className='text-sm font-semibold text-foreground lg:hidden'
-            >
-              Skeet-Text
-            </label>
+            {/* Mobile-Label für Editor + Info */}
+            <div className='flex items-center justify-between lg:hidden'>
+              <label
+                htmlFor='skeet-content'
+                className='text-lg font-semibold text-foreground'
+              >
+                Skeet-Text
+              </label>
+              <button
+                type='button'
+                className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                aria-label='Hinweis zu Skeet-Text anzeigen'
+                onClick={() => setInfoContentOpen(true)}
+                title='Hinweis anzeigen'
+              >
+                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+                Info
+              </button>
+            </div>
             <textarea
               ref={textareaRef}
               id='skeet-content'
-              required
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder='Was möchtest du veröffentlichen?'
@@ -356,7 +422,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             <div className='mt-2 flex items-center gap-2 lg:hidden'>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-1 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -364,23 +430,18 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                     title: 'Bild hinzufügen'
                   })
                 }
-                disabled={
-                  content.trim().length === 0 ||
-                  pendingMedia.length >= (imagePolicy.maxCount || 4)
-                }
+                disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
-                  content.trim().length === 0
-                    ? 'Bitte zuerst Text eingeben'
-                    : pendingMedia.length >= (imagePolicy.maxCount || 4)
+                  pendingMedia.length >= (imagePolicy.maxCount || 4)
                     ? `Maximal ${imagePolicy.maxCount} Bilder`
                     : 'Bild hinzufügen'
                 }
               >
-                🖼️
+                <span className='text-base md:text-lg leading-none'>🖼️</span>
               </button>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-1 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -388,14 +449,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                     title: 'GIF hinzufügen'
                   })
                 }
-                disabled={
-                  content.trim().length === 0 ||
-                  pendingMedia.length >= (imagePolicy.maxCount || 4)
-                }
+                disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
-                  content.trim().length === 0
-                    ? 'Bitte zuerst Text eingeben'
-                    : pendingMedia.length >= (imagePolicy.maxCount || 4)
+                  pendingMedia.length >= (imagePolicy.maxCount || 4)
                     ? `Maximal ${imagePolicy.maxCount} Bilder`
                     : 'GIF hinzufügen'
                 }
@@ -404,11 +460,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               </button>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-1 text-xs text-foreground hover:bg-background'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
                 onClick={() => {}}
               >
-                😊
+                <span className='text-base md:text-lg leading-none'>😊</span>
               </button>
             </div>
           </div>
@@ -417,7 +473,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             <div className='flex flex-col items-center gap-2'>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-2 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -425,18 +481,15 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                     title: 'Bild hinzufügen'
                   })
                 }
-                disabled={
-                  content.trim().length === 0 ||
-                  pendingMedia.length >= (imagePolicy.maxCount || 4)
-                }
+                disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 aria-label='Bild hinzufügen'
                 title='Bild hinzufügen'
               >
-                🖼️
+                <span className='text-base md:text-lg leading-none'>🖼️</span>
               </button>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-2 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -444,10 +497,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                     title: 'GIF hinzufügen'
                   })
                 }
-                disabled={
-                  content.trim().length === 0 ||
-                  pendingMedia.length >= (imagePolicy.maxCount || 4)
-                }
+                disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 aria-label='GIF hinzufügen'
                 title='GIF hinzufügen'
               >
@@ -455,22 +505,34 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               </button>
               <button
                 type='button'
-                className='rounded-full border border-border bg-primary px-3 py-2 text-xs text-foreground hover:bg-background'
+                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
                 onClick={() => {
                   /* Emoji Picker später */
                 }}
               >
-                😊
+                <span className='text-base md:text-lg leading-none'>😊</span>
               </button>
             </div>
           </div>
           {/* Vorschau */}
           <div>
-            {/* Mobile-Label für Vorschau (auf Desktop via Headerzeile geregelt) */}
-            <label className='text-sm font-semibold text-foreground lg:hidden'>
-              Vorschau
-            </label>
+            {/* Mobile-Label + Info */}
+            <div className='flex items-center justify-between lg:hidden'>
+              <label className='text-lg font-semibold text-foreground'>
+                Vorschau
+              </label>
+              <button
+                type='button'
+                className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                aria-label='Hinweis zur Vorschau anzeigen'
+                onClick={() => setInfoPreviewOpen(true)}
+                title='Hinweis anzeigen'
+              >
+                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+                Info
+              </button>
+            </div>
             <div
               ref={previewRef}
               className='rounded-2xl border border-border bg-background py-3 px-4 shadow-soft flex flex-col overflow-hidden'
@@ -525,10 +587,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                 ? editingSkeet.media.filter(m => !removedMedia[m.id]).length
                 : 0) + pendingMedia.length}
               /{imagePolicy.maxCount}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className='grid gap-6 md:grid-cols-2'>
         <div className='space-y-2'>
@@ -546,6 +608,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               setRepeat(value)
               setRepeatDayOfWeek(null)
               setRepeatDayOfMonth(null)
+              setRepeatDaysOfWeek([])
             }}
             className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
           >
@@ -574,30 +637,47 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
 
         {repeat === 'weekly' && (
           <div className='space-y-2'>
-            <label
-              htmlFor='repeatDayOfWeek'
-              className='text-sm font-semibold text-foreground'
-            >
-              Wochentag
+            <label className='text-sm font-semibold text-foreground'>
+              Wochentage
             </label>
-            <select
-              id='repeatDayOfWeek'
-              value={repeatDayOfWeek ?? ''}
-              onChange={e => {
-                const value = e.target.value
-                setRepeatDayOfWeek(value === '' ? null : Number(value))
-              }}
-              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-            >
-              <option value=''>Bitte wählen</option>
-              <option value='1'>Montag</option>
-              <option value='2'>Dienstag</option>
-              <option value='3'>Mittwoch</option>
-              <option value='4'>Donnerstag</option>
-              <option value='5'>Freitag</option>
-              <option value='6'>Samstag</option>
-              <option value='0'>Sonntag</option>
-            </select>
+            <div className='grid grid-cols-7 gap-2'>
+              {order.map(idx => {
+                const active = repeatDaysOfWeek.includes(idx)
+                return (
+                  <label
+                    key={idx}
+                    className={`inline-flex justify-center rounded-xl border px-2 py-1 text-sm cursor-pointer
+                    ${
+                      active
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-foreground-muted hover:border-primary/50'
+                    }`}
+                    aria-pressed={active}
+                  >
+                    <input
+                      type='checkbox'
+                      className='sr-only'
+                      checked={active}
+                      onChange={() =>
+                        setRepeatDaysOfWeek(prev =>
+                          prev.includes(idx)
+                            ? prev.filter(d => d !== idx)
+                            : [...prev, idx]
+                        )
+                      }
+                      aria-label={weekdayLabel(idx, locale, 'long')}
+                    />
+                    {
+                      weekdayLabel(
+                        idx,
+                        locale,
+                        'short'
+                      ) /* z. B. "Mo", "Di", … */
+                    }
+                  </label>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -683,6 +763,43 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         }}
         onClose={() => setMediaDialog({ open: false })}
       />
+      {/* Info: Skeet-Text */}
+      {infoContentOpen ? (
+        <Modal
+          open={infoContentOpen}
+          title='Hinweis: Skeet-Text'
+          onClose={() => setInfoContentOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoContentOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.
+            </p>
+            <p>
+              Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* Info: Vorschau */}
+      {infoPreviewOpen ? (
+        <Modal
+          open={infoPreviewOpen}
+          title='Hinweis: Vorschau'
+          onClose={() => setInfoPreviewOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder je Skeet.
+            </p>
+            <p>
+              Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
       {altDialog.open && altDialog.item ? (
         <MediaDialog
           open={altDialog.open}

@@ -3,6 +3,8 @@ import { useToast } from '../hooks/useToast'
 import { useClientConfig } from '../hooks/useClientConfig'
 import MediaDialog from './MediaDialog'
 import Button from './ui/Button'
+import Modal from './ui/Modal'
+import { InfoCircledIcon } from '@radix-ui/react-icons'
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -352,6 +354,8 @@ function ThreadForm ({
   };
   const closeAltDialog = () => setAltDialog({ open: false, segmentIndex: null, item: null });
   const [uploadError, setUploadError] = useState({ open: false, message: '' });
+  const [infoThreadOpen, setInfoThreadOpen] = useState(false);
+  const [infoPreviewOpen, setInfoPreviewOpen] = useState(false);
 
   const handleRemoveMedia = async (segmentIndex, item) => {
     if (item.type === 'existing') {
@@ -374,14 +378,16 @@ function ThreadForm ({
     }
   };
 
-  const handleTogglePlatform = platformId => {
-    setTargetPlatforms(current => {
+  const handleTogglePlatform = (platformId) => {
+    setTargetPlatforms((current) => {
       if (current.includes(platformId)) {
-        return current.filter(id => id !== platformId)
+        // Mindestens eine Plattform muss aktiv bleiben
+        if (current.length === 1) return current;
+        return current.filter((id) => id !== platformId);
       }
-      return [...current, platformId]
-    })
-  }
+      return [...current, platformId];
+    });
+  };
 
   const handleInsertSeparator = () => {
     const textarea = textareaRef.current
@@ -424,10 +430,15 @@ function ThreadForm ({
     if (!targetPlatforms.length) {
       return true
     }
-    return previewSegments.some(
-      segment => segment.isEmpty || segment.exceedsLimit
-    )
-  }, [previewSegments, targetPlatforms.length])
+    return previewSegments.some(segment => {
+      const noText = segment.isEmpty
+      const mediaCount = getMediaCount(segment.id)
+      const noMedia = mediaCount === 0
+      const textMissingButMediaPresent = noText && !noMedia
+      if (textMissingButMediaPresent) return false
+      return noText || segment.exceedsLimit
+    })
+  }, [previewSegments, targetPlatforms.length, pendingMedia, initialThread, isEditMode])
 
   const showLoadingState = loading && !threadId
 
@@ -532,14 +543,17 @@ function ThreadForm ({
         <div className='space-y-4'>
           <div className='rounded-3xl border border-border bg-background-elevated p-6 shadow-soft'>
             <header className='space-y-3'>
-              <div>
+              <div className='flex items-center justify-between'>
                 <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
-                {/* <p className='text-sm text-foreground-muted'>
-                  Schreibe den gesamten Thread in einem Feld. Du kannst `---`
-                  oder STRG+Enter nutzen, um Skeets abzusetzen. Längere
-                  Abschnitte werden automatisch passend zerschnitten – wenn
-                  möglich am Satzende.
-                </p> */}
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                  aria-label='Hinweis zu Thread-Inhalt anzeigen'
+                  onClick={() => setInfoThreadOpen(true)}
+                  title='Hinweis anzeigen'
+                >
+                  <InfoCircledIcon width={14} height={14} /> Info
+                </button>
               </div>
               <div className='flex flex-wrap items-center gap-3 text-sm'>
                 <span className='rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted'>
@@ -562,28 +576,31 @@ function ThreadForm ({
                 <legend className='text-sm font-semibold'>
                   Zielplattformen
                 </legend>
-                <div className='flex flex-wrap gap-3 text-sm'>
-                  {PLATFORM_OPTIONS.map(option => {
-                    const checked = targetPlatforms.includes(option.id)
+                <div className='flex flex-wrap items-center gap-2' role='group' aria-label='Zielplattformen wählen'>
+                  {PLATFORM_OPTIONS.map((option) => {
+                    const isActive = targetPlatforms.includes(option.id);
                     return (
                       <label
                         key={option.id}
-                        className='inline-flex items-center gap-2 rounded-full border border-border bg-background-subtle px-3 py-1 transition hover:bg-background'
+                        className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                          isActive
+                            ? 'border-primary bg-primary/10 text-primary shadow-soft'
+                            : 'border-border text-foreground-muted hover:border-primary/50'
+                        }`}
+                        title={`${option.label} (${option.limit})`}
                       >
                         <input
                           type='checkbox'
-                          className='rounded border-border text-primary focus:ring-primary'
-                          checked={checked}
+                          className='sr-only'
+                          checked={isActive}
                           onChange={() => handleTogglePlatform(option.id)}
                         />
-                        <span>
-                          {option.label}{' '}
-                          <span className='text-xs text-foreground-muted'>
-                            ({option.limit})
-                          </span>
+                        <span className='capitalize'>
+                          {option.label.toLowerCase()}
+                          <span className='ml-1 text-xs text-foreground-muted'>({option.limit})</span>
                         </span>
                       </label>
-                    )
+                    );
                   })}
                 </div>
               </fieldset>
@@ -652,7 +669,18 @@ function ThreadForm ({
         <aside className='space-y-4'>
           <div className='flex flex-col rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden'>
             <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold'>Vorschau</h3>
+              <div className='flex items-center gap-2'>
+                <h3 className='text-lg font-semibold'>Vorschau</h3>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                  aria-label='Hinweis zur Vorschau anzeigen'
+                  onClick={() => setInfoPreviewOpen(true)}
+                  title='Hinweis anzeigen'
+                >
+                  <InfoCircledIcon width={14} height={14} /> Info
+                </button>
+              </div>
               <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
                 {totalSegments} Skeet{totalSegments !== 1 ? 's' : ''}
               </span>
@@ -693,29 +721,27 @@ function ThreadForm ({
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => openMediaDialog(segment.id)}
-                          title={segment.isEmpty
-                            ? 'Bitte zuerst Text für diesen Skeet eingeben'
-                            : getMediaCount(segment.id) >= imagePolicy.maxCount
+                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
                               : 'Bild hinzufügen'}
-                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount || segment.isEmpty}
+                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
                         >
-                          🖼️
+                          <span className='text-base md:text-lg leading-none'>🖼️</span>
                         </button>
                         <button
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => openMediaDialog(segment.id, { gif: true })}
-                          title={segment.isEmpty
-                            ? 'Bitte zuerst Text für diesen Skeet eingeben'
-                            : getMediaCount(segment.id) >= imagePolicy.maxCount
+                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
                               : 'GIF hinzufügen'}
-                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount || segment.isEmpty}
+                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
                         >
                           GIF
                         </button>
-                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => { /* Emoji Picker später */ }} title='Emoji einfügen'>😊</button>
+                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => { /* Emoji Picker später */ }} title='Emoji einfügen'>
+                          <span className='text-base md:text-lg leading-none'>😊</span>
+                        </button>
                       </div>
                     </header>
                     <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
@@ -762,9 +788,6 @@ function ThreadForm ({
                       );
                     })()}
                     <div className='mt-2 text-xs text-foreground-muted'>Medien {getMediaCount(segment.id)}/{imagePolicy.maxCount}</div>
-                    {!isEditMode ? (
-                      <p className='mt-1 text-xs text-foreground-muted'>Bilder werden beim Speichern hochgeladen (max. {imagePolicy.maxCount}/Segment).</p>
-                    ) : null}
                     {segment.exceedsLimit ? (
                       <p className='mt-1 text-sm text-destructive'>
                         Zeichenlimit überschritten.
@@ -796,6 +819,55 @@ function ThreadForm ({
           actions={<Button variant='primary' onClick={() => setUploadError({ open: false, message: '' })}>OK</Button>}
         >
           <p className='text-sm text-foreground'>{uploadError.message || 'Die Bilddatei konnte nicht hochgeladen werden.'}</p>
+        </Modal>
+      ) : null}
+
+      {/* Info: Thread-Inhalt */}
+      {infoThreadOpen ? (
+        <Modal
+          open={infoThreadOpen}
+          title="Hinweis: Thread-Inhalt"
+          onClose={() => setInfoThreadOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoThreadOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Schreibe den gesamten Thread in ein Feld. Du kannst <code className='rounded bg-background-subtle px-1 py-0.5'>---</code> als Trenner nutzen
+              oder mit <kbd className='rounded bg-background-subtle px-1 py-0.5'>STRG</kbd>+<kbd className='rounded bg-background-subtle px-1 py-0.5'>Enter</kbd> einen Trenner einfügen.
+            </p>
+            <p>
+              Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung
+              richtet sich nach den gewählten Plattformen (kleinster Wert gilt).
+            </p>
+            <p>
+              Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Skeet.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* Info: Vorschau */}
+      {infoPreviewOpen ? (
+        <Modal
+          open={infoPreviewOpen}
+          title="Hinweis: Vorschau"
+          onClose={() => setInfoPreviewOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.
+            </p>
+            <p>
+              Bilder werden beim Speichern hochgeladen (max. {imagePolicy?.maxCount ?? 4} je Skeet).
+            </p>
+            <p>
+              Der Zähler zeigt die aktuelle Zeichenanzahl je Skeet im Verhältnis zum Limit der ausgewählten Plattformen.
+            </p>
+            <p>
+              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
+            </p>
+          </div>
         </Modal>
       ) : null}
       {altDialog.open && altDialog.item ? (

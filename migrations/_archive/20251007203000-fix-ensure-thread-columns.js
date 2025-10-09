@@ -71,3 +71,4 @@ module.exports = {
     // No-op: we don't drop columns in defensive fix to avoid data loss and table recreation.
   },
 };
+
