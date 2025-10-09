@@ -527,6 +527,8 @@ export default function ConfigPanel () {
                 ))}
               </div>
 
+              {null}
+
               <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
                 <div className='text-xs text-foreground-muted'>
                   <p>
