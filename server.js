@@ -24,7 +24,7 @@ const uploadController = require("./src/controllers/uploadController");
 const heartbeatController = require("./src/controllers/heartbeatController");
 const { runPreflight } = require("./src/utils/preflight");
 const config = require("./src/config");
-const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
+//const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
 const { createLogger } = require("./src/utils/logging");
 const appLog = createLogger('app');
 
@@ -38,12 +38,12 @@ const INDEX_HTML = path.join(DIST_DIR, "index.html");
 try {
   const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
   app.use('/uploads', express.static(UPLOAD_DIR));
-} catch {}
+} catch (e) { console.error("Fehler beim Upload des Mediums", e); }
 // Temporäre Uploads (Entwurf) serven
 try {
   const TEMP_DIR = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
   app.use('/temp', express.static(TEMP_DIR));
-} catch {}
+} catch (e) { console.error("Upload des Mediums ins temp Verzeichnis fehlgeschlagen", e); }
 app.use(express.static(DIST_DIR));
 // Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
 const JSON_LIMIT_MB = Number(process.env.JSON_BODY_LIMIT_MB || 25);
@@ -167,14 +167,14 @@ app.use((req, res, next) => {
       appLog.info("Demo-/Discard-Modus: Logins übersprungen");
     }
 
-    await sequelize.authenticate();
+//    await sequelize.authenticate();
     console.log("✅ DB-Verbindung ok");
     appLog.info("DB-Verbindung ok");
 
     const syncFlag = (process.env.DB_SYNC || "").toLowerCase();
     const shouldSync = syncFlag === "true" || (process.env.NODE_ENV !== "production" && syncFlag !== "false");
     if (shouldSync) {
-      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
+//      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
       console.log("✅ DB synchronisiert (sequelize.sync)");
       appLog.info("DB synchronisiert (sequelize.sync)");
     } else {

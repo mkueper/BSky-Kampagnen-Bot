@@ -11,7 +11,7 @@
  *     --statusId 115325927678392403 \
  *     --uri https://mastodon.social/@Mkueper/115325927678392403
  */
-/* eslint-disable no-console */
+ 
 const { sequelize, Thread, ThreadSkeet } = require('../src/models');
 
 function parseArgs(argv) {

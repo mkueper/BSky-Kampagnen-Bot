@@ -79,12 +79,14 @@ export default function ScrollTopButton({
         ro = new ResizeObserver(updateOffsets);
         ro.observe(container);
       }
-    } catch {}
+    } catch (e) {
+      console.error("Fehler beim Initialisieren des ResizeObserver:", e);
+    }
 
     return () => {
       scrollTarget.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", onResize);
-      try { ro && container && ro.unobserve(container); } catch {}
+      try { ro && container && ro.unobserve(container); } catch (e) { console.error(e); }
     };
   }, [containerId, threshold, updateOffsets]);
 

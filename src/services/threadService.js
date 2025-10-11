@@ -62,6 +62,7 @@ function ensureMetadataObject(raw) {
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (error) {
+      console.warn('Konnte metadata nicht parsen:', error);
       return {};
     }
   }
@@ -75,13 +76,17 @@ function ensureMetadataObject(raw) {
 
 function ensureUploadDir() {
   const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
-  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
+  try { 
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); 
+  } catch (e){
+    console.error(e); 
+  }
   return dir;
 }
 
 function ensureTempDir() {
   const dir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
-  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch {}
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch (e) { console.error(e);}
   return dir;
 }
 
@@ -167,7 +172,7 @@ async function listThreads({ status } = {}) {
         }));
       }
     }
-  } catch {}
+  } catch (e){console.error(e);}
   return out;
 }
 
@@ -210,7 +215,7 @@ async function getThread(id) {
         }));
       }
     }
-  } catch {}
+  } catch (e) { console.error(e); }
   return out;
 }
 
@@ -282,7 +287,7 @@ async function createThread(payload = {}) {
                 const finalPath = path.join(uploadDir, finalBase);
                 fs.renameSync(tempPath, finalPath);
                 saved = { path: finalPath, mime: m.mime || 'application/octet-stream', size: st.size };
-              } catch {}
+              } catch (e) { console.error(e); }
             }
             if (!saved) continue;
             await ThreadSkeetMedia.create({

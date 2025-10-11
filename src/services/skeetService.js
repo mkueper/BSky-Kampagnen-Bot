@@ -17,6 +17,7 @@ function normalizeTargetPlatforms(raw) {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
     } catch (error) {
+        console.warn('Konnte targetPlatforms nicht parsen:', error);
       return [];
     }
   }
@@ -45,6 +46,7 @@ function parsePlatformResults(raw) {
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (error) {
+      console.warn('Konnte platformResults nicht parsen:', error);
       return {};
     }
   }
@@ -219,7 +221,7 @@ async function createSkeet(payload) {
         if (order >= 4) break;
       }
     }
-  } catch {}
+  } catch (e) { console.error("Fehler beim erstellen des Skeet", e); }
   return skeet;
 }
 
@@ -255,7 +257,7 @@ async function updateSkeet(id, payload) {
         if (order >= 4) break;
       }
     }
-  } catch {}
+  } catch (e) { console.error("Fehler beim aktialisieren des Skeet", e); }
   return skeet;
 }
 

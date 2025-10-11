@@ -191,7 +191,7 @@ export function createPollingController({
       sendBeat();
       // Server-Heartbeat nur vom Master-Tab senden
       if (isMaster && typeof fetch === 'function') {
-        try { fetch('/api/heartbeat', { method: 'POST' }); } catch {}
+        try { fetch('/api/heartbeat', { method: 'POST' }); } catch (e)  {console.error(e); }
       }
       // Wenn lange kein fremder Beat gesehen wurde, übernehme Master-Rolle
       // (Die Logik für „isMaster“ sitzt in onMessage)
@@ -281,7 +281,7 @@ export function createPollingController({
       window.removeEventListener('touchstart', onInteract);
     }
 
-    try { bc && bc.close(); } catch {}
+    try { bc && bc.close(); } catch (e) { console.error(e); }
     log('stopped');
   }
 

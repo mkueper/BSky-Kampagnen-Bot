@@ -77,7 +77,9 @@ async function deleteMedia(req, res) {
     if (!Number.isInteger(mediaId)) return res.status(400).json({ error: 'Ungültige ID.' });
     const row = await ThreadSkeetMedia.findByPk(mediaId);
     if (!row) return res.status(404).json({ error: 'Medium nicht gefunden.' });
-    try { fs.unlinkSync(row.path); } catch {}
+    try { fs.unlinkSync(row.path); 
+
+    } catch (e) { console.error(e); }
     await row.destroy();
     res.json({ ok: true });
   } catch (error) {
@@ -137,7 +139,9 @@ async function deleteSkeetMedia(req, res) {
     if (!Number.isInteger(mediaId)) return res.status(400).json({ error: 'Ungültige ID.' });
     const row = await SkeetMedia.findByPk(mediaId);
     if (!row) return res.status(404).json({ error: 'Medium nicht gefunden.' });
-    try { fs.unlinkSync(row.path); } catch {}
+    try { fs.unlinkSync(row.path); 
+
+    } catch (e) { console.warn(e); }
     await row.destroy();
     res.json({ ok: true });
   } catch (error) {

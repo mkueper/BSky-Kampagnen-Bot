@@ -253,8 +253,7 @@ function ThreadForm ({
   }, [effectiveSegments, appendNumbering, totalSegments, limit])
 
   // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
-  const [mediaAlt, setMediaAlt] = useState({});
-  const [mediaBusy, setMediaBusy] = useState({});
+  const [mediaAlt] = useState({});
   const [pendingMedia, setPendingMedia] = useState({}); // create-mode media per segment id/index
   const getMediaCount = (index) => {
     const pending = Array.isArray(pendingMedia[index]) ? pendingMedia[index].length : 0;
@@ -267,7 +266,6 @@ function ThreadForm ({
   };
   const handleUploadMedia = async (index, file, altTextOverride) => {
     if (!file) return;
-    setMediaBusy((s) => ({ ...s, [index]: true }));
     try {
       if (isEditMode && threadId) {
         // Direkt am Segment des existierenden Threads hochladen
@@ -292,8 +290,6 @@ function ThreadForm ({
             } else {
               toast.error({ title: 'Medien-Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
             }
-          } finally {
-            setMediaBusy((s) => ({ ...s, [index]: false }));
           }
         };
         reader.readAsDataURL(file);
@@ -326,14 +322,13 @@ function ThreadForm ({
             } else {
               toast.error({ title: 'Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
             }
-          } finally {
-            setMediaBusy((s) => ({ ...s, [index]: false }));
           }
         };
         reader.readAsDataURL(file);
       }
     } catch (e) {
-      setMediaBusy((s) => ({ ...s, [index]: false }));
+      console.error("Fehler beim Hochladen des Bildes im Thread", e)
+      toast.error({ title: 'Upload fehlgeschlagen', description: e})
     }
   };
 
@@ -688,14 +683,10 @@ function ThreadForm ({
 
             <div className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'>
               {previewSegments.map((segment, index) => {
-                const hasIssue = segment.isEmpty || segment.exceedsLimit
                 return (
                   <article
                     key={segment.id}
                     className={`rounded-2xl border ${
-                      // hasIssue
-                      // ? 'border-destructive bg-destructive/10'
-                      // : 'border-border bg-background-subtle'
                       'border-border bg-background-subtle'
                     } p-4 shadow-soft`}
                   >
