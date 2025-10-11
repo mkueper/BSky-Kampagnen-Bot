@@ -107,7 +107,7 @@ const mastodonProfile = {
           const id = await uploadMedia(m.path, m.altText || '', env);
           if (id) ids.push(id);
         } catch (e) {
-          // ignore single upload error
+          console.warn(e);
         }
       }
       if (ids.length > 0) media_ids = ids;

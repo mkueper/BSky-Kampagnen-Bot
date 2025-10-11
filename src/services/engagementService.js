@@ -14,6 +14,7 @@ function parsePlatformResults(raw) {
     try {
       return JSON.parse(raw);
     } catch (error) {
+      console.warn('Konnte platformResults nicht parsen:', error);
       return {};
     }
   }
@@ -47,6 +48,7 @@ function extractMastodonStatusId(uri) {
     const segments = parsed.pathname.split('/').filter(Boolean);
     return segments.pop() || null;
   } catch (error) {
+    console.warn('Ungültige Mastodon-URI', error);
     const fallbackSegments = uri.split('/').filter(Boolean);
     return fallbackSegments.pop() || null;
   }

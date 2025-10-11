@@ -120,7 +120,7 @@ const blueskyProfile = {
           const uploaded = await agent.uploadBlob(fileBuf, { encoding: m.mime || 'image/jpeg' });
           images.push({ image: uploaded.data.blob, alt: m.altText || '' });
         } catch (e) {
-          // skip failed image
+            console.warin(e);
         }
       }
       if (images.length > 0) {

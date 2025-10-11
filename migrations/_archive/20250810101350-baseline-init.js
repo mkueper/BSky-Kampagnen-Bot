@@ -63,7 +63,7 @@ module.exports = {
     // Wenn du es STRICT willst, könnten wir Trigger basteln. Für jetzt: App-seitig validieren (Model.validate).
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Replies');
     await queryInterface.dropTable('Skeets');
     await queryInterface.dropTable('Threads');

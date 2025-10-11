@@ -19,9 +19,10 @@ function extractMastodonStatusId(uri) {
     const parsed = new URL(uri);
     const parts = parsed.pathname.split("/").filter(Boolean);
     return parts.pop() || null;
-  } catch (e) {
-    const parts = String(uri).split("/").filter(Boolean);
-    return parts.pop() || null;
+  } catch {
+      console.warn("Ungültige Mastodon-URI")
+      const parts = String(uri).split("/").filter(Boolean);
+      return parts.pop() || null;
   }
 }
 

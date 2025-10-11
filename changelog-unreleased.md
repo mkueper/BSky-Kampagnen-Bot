@@ -8,6 +8,13 @@
 # ### <Section>
 # - Eintrag
 
+## 2025-10-11
+
+### Code Quality
+- Umfangreiches Linting des gesamten Code-Repositorys durchgeführt und ca. 70 Fehler und Warnungen behoben.
+- Behobene Probleme umfassen ungenutzte Variablen, leere Code-Blöcke, redundante Logik und ungültige Leerzeichen.
+- Dies verbessert die allgemeine Code-Qualität, Lesbarkeit und Wartbarkeit der Anwendung.
+
 ## 2025-10-06
 
 ### Dokumentation
@@ -94,4 +101,3 @@
 - SkeetForm/ThreadForm: Info‑Buttons + Modals mit kompakten Hinweisen (Inhalt/Vorschau). „Bilder werden beim Speichern …“ aus der Vorschau in Info‑Dialog verlegt.
 - SkeetForm: Dezente Buttons (statt blau), Emoji/GIF/Medien‑Buttons bleiben sichtbar. Icons vergrößert (🖼️/😊).
 - SkeetForm: Überschriftengrößen an ThreadForm angepasst; Info‑Buttons auf Desktop neben Überschriften ausgerichtet.
-

@@ -35,7 +35,7 @@ function ensureLogFile(filePath) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-  } catch {}
+  } catch (e) { console.error("Fehler beim Erstellen des Log-Verzeichnisses", e); }
 }
 
 function shouldLog(level) {
@@ -53,7 +53,7 @@ function formatLine(level, scope, message, meta) {
   if (meta !== undefined) {
     try {
       parts.push(typeof meta === 'string' ? meta : JSON.stringify(meta));
-    } catch {}
+    } catch (e) { console.error("Fehler beim Formatieren des Datums", e); }
   }
   return parts.join(' | ');
 }
@@ -67,14 +67,13 @@ function writeLine(line) {
       ensureLogFile(config.file);
       fs.appendFileSync(config.file, line + '\n');
     } catch (e) {
-      // Wenn Dateiausgabe fehlschlägt, wenigstens die Konsole nutzen
-      // eslint-disable-next-line no-console
-      console.log(line);
+        console.warn( "Dateiausgabe fehlgeschlagen", e )
+        console.log(line);
     }
   }
 
   if (toConsole) {
-    // eslint-disable-next-line no-console
+     
     console.log(line);
   }
 }

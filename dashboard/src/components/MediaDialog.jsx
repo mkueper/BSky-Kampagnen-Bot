@@ -40,7 +40,7 @@ export default function MediaDialog({
       setLoaded(false);
       // Kein Auto-Fokus erzwingen, um Scroll-Jumps zu vermeiden
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open, initialAlt, previewSrc]);
 
   useEffect(() => {

@@ -5,7 +5,6 @@ import MediaDialog from './MediaDialog'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import Modal from './ui/Modal'
-import { InfoCircledIcon } from '@radix-ui/react-icons'
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -86,7 +85,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           }
         }
       }
-    } catch {}
+    } catch (e){ console.log(e) }
     // Fallback: beide Plattformen
     return ['bluesky', 'mastodon']
   })
@@ -109,11 +108,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const [pendingMedia, setPendingMedia] = useState([])
   const [mediaDialog, setMediaDialog] = useState({ open: false })
   const [editedMediaAlt, setEditedMediaAlt] = useState({})
-  const [removedMedia, setRemovedMedia] = useState({})
+  const [removedMedia] = useState({})
   const [altDialog, setAltDialog] = useState({ open: false, item: null })
   const textareaRef = useRef(null)
   const previewRef = useRef(null)
-  const [coupledHeight, setCoupledHeight] = useState(null)
+  const [coupledHeight] = useState(null)
   const locale = typeof navigator !== 'undefined' ? navigator.language : 'de-DE'
   const order = weekdayOrder(locale)
   const [infoContentOpen, setInfoContentOpen] = useState(false)
@@ -358,7 +357,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               onClick={() => setInfoContentOpen(true)}
               title='Hinweis anzeigen'
             >
-              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
               Info
             </button>
           </div>
@@ -374,7 +373,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               onClick={() => setInfoPreviewOpen(true)}
               title='Hinweis anzeigen'
             >
-              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+              <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
               Info
             </button>
           </div>
@@ -397,7 +396,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                 onClick={() => setInfoContentOpen(true)}
                 title='Hinweis anzeigen'
               >
-                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
                 Info
               </button>
             </div>
@@ -529,7 +528,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                 onClick={() => setInfoPreviewOpen(true)}
                 title='Hinweis anzeigen'
               >
-                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fill-rule='evenodd' clip-rule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
+                <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
                 Info
               </button>
             </div>
@@ -773,7 +772,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         >
           <div className='space-y-2 text-sm text-foreground'>
             <p>
-              Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.
+              Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.
             </p>
             <p>
               Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.

@@ -19,7 +19,7 @@ const presence = require("./presenceService");
 const MAX_BATCH_SIZE = 10;
 const RETRY_DELAY_MS = 60 * 1000;
 let task = null;
-let lastScheduleConfig = null;
+//let lastScheduleConfig = null;
 let lastEngagementRunAt = 0;
 
 /**
@@ -675,7 +675,7 @@ async function applySchedulerTask() {
     { timezone: timeZone }
   );
 
-  lastScheduleConfig = { schedule, timeZone };
+  //lastScheduleConfig = { schedule, timeZone };
   console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${timeZone || "system"})`);
 
   await Promise.all([

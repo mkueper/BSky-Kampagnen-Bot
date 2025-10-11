@@ -41,8 +41,8 @@
     "build:all": "npm run build && npm run build:frontend",
     "docker:build": "docker compose build",
     "docker:bundle": "./scripts/docker-bundle.sh",
-    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx --max-warnings=0",
-    "lint:fix": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint . --ext .js,.jsx --fix",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
     "switchenv:dev": "node scripts/switch-env.js dev",
     "switchenv:prod": "node scripts/switch-env.js prod",
     "changelog:add": "node scripts/changelog-add.js",
@@ -75,6 +75,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.46.0",
     "vitest": "^3.2.4"
   },
   "private": true,
