@@ -172,7 +172,7 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 ## Tests & Qualitätssicherung
 
 - **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build:frontend`).
-- **Linting/Formatting:** aktuell kein automatisches Setup – kann bei Bedarf ergänzt werden.
+- **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
 - **Bundle (inkl. Datenbank):** `npm run docker:bundle` erstellt ein Zip (`dist/bundles/…`) mit Docker-Compose-Dateien, vollständigem Projekt (ohne `node_modules`/`dist`) und der aktuellen SQLite-Datenbank – ideal zum Kopieren auf einen Server.
 

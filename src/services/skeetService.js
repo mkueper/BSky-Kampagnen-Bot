@@ -235,6 +235,27 @@ async function updateSkeet(id, payload) {
     attributes.postedAt = null;
   }
   await skeet.update(attributes);
+  // Optional: neue Medien anhängen (Base64 oder temp-Dateien werden in diesem Flow nicht verwendet)
+  try {
+    const mediaItems = Array.isArray(payload.media) ? payload.media : [];
+    if (mediaItems.length > 0) {
+      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      let order = await SkeetMedia.count({ where: { skeetId: skeet.id } });
+      const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024);
+      for (const m of mediaItems) {
+        if (!m?.data) continue;
+        const buffer = Buffer.from(String(m.data).split(',').pop(), 'base64');
+        if (buffer.length > maxBytes) continue;
+        const base = `${Date.now()}-${String(m.filename || 'image').replace(/[^A-Za-z0-9._-]+/g, '_').slice(0,120)}`;
+        const filePath = path.join(dir, base);
+        fs.writeFileSync(filePath, buffer);
+        await SkeetMedia.create({ skeetId: skeet.id, order, path: filePath, mime: m.mime || 'image/jpeg', size: buffer.length, altText: typeof m.altText === 'string' ? m.altText : null });
+        order += 1;
+        if (order >= 4) break;
+      }
+    }
+  } catch {}
   return skeet;
 }
 
