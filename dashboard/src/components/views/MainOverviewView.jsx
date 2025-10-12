@@ -16,7 +16,7 @@ function formatDate(value) {
   }).format(date);
 }
 
-function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
+function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeetsOverview, onOpenThreadsOverview }) {
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -50,8 +50,26 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
     };
   }, [plannedSkeets, publishedSkeets]);
 
-  // Aktivitätsseite: nur Kennzahlen – Detailübersichten liegen in den Bereichen
-  // "Skeets" und "Threads" und werden nicht mehr in der Aktivität dupliziert.
+  const upcomingSkeets = useMemo(() => {
+    const planned = Array.isArray(plannedSkeets) ? plannedSkeets : [];
+    return planned
+      .map((skeet) => ({ skeet, date: new Date(skeet.scheduledAt || 0) }))
+      .filter(({ date }) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => a.date - b.date)
+      .slice(0, 3)
+      .map(({ skeet }) => skeet);
+  }, [plannedSkeets]);
+
+  const upcomingThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : [];
+    return items
+      .filter((thread) => thread.status === "scheduled")
+      .map((thread) => ({ thread, date: new Date(thread.scheduledAt || 0) }))
+      .filter(({ date }) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => a.date - b.date)
+      .slice(0, 3)
+      .map(({ thread }) => thread);
+  }, [threads]);
 
   return (
     <div className="space-y-8">
@@ -74,7 +92,101 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
         </Card>
       </section>
 
-      {null}
+      <section className="grid gap-4 md:grid-cols-2">
+        <Card
+          padding="p-6"
+          onClick={typeof onOpenSkeetsOverview === 'function' ? () => onOpenSkeetsOverview() : undefined}
+          onKeyDown={typeof onOpenSkeetsOverview === 'function' ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenSkeetsOverview();
+            }
+          } : undefined}
+          className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
+          aria-label="Zur Skeet-Übersicht wechseln"
+          title="Zur Skeet-Übersicht wechseln"
+          role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
+          tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
+        >
+          <h3 className="text-lg font-semibold">Nächster Skeet</h3>
+          {skeetStats.next ? (
+            <div className="mt-3 space-y-2 text-sm">
+              <p className="font-medium text-foreground">{formatDate(skeetStats.next.scheduledAt)}</p>
+              <p className="text-foreground-muted">
+                {(skeetStats.next.content || "").toString().trim() || "Kein Inhalt vorhanden"}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Skeet.</p>
+          )}
+        </Card>
+
+        <Card
+          padding="p-6"
+          onClick={typeof onOpenThreadsOverview === 'function' ? () => onOpenThreadsOverview() : undefined}
+          onKeyDown={typeof onOpenThreadsOverview === 'function' ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenThreadsOverview();
+            }
+          } : undefined}
+          className={typeof onOpenThreadsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
+          aria-label="Zur Thread-Übersicht wechseln"
+          title="Zur Thread-Übersicht wechseln"
+          role={typeof onOpenThreadsOverview === 'function' ? 'button' : undefined}
+          tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
+        >
+          <h3 className="text-lg font-semibold">Nächster Thread</h3>
+          {threadStats.next ? (
+            <div className="mt-3 space-y-2 text-sm">
+              <p className="font-medium text-foreground">{formatDate(threadStats.next.scheduledAt)}</p>
+              <p className="text-foreground-muted">
+                {(threadStats.next.title || threadStats.next.segments?.[0]?.content || "")
+                  .toString()
+                  .trim() || "Kein Titel hinterlegt"}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Thread.</p>
+          )}
+        </Card>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card padding="p-6">
+          <h3 className="text-lg font-semibold">Bevorstehende Skeets</h3>
+          {upcomingSkeets.length ? (
+            <ul className="mt-3 space-y-3 text-sm">
+              {upcomingSkeets.map((skeet) => (
+                <li key={skeet.id} className="rounded-2xl border border-border bg-background-subtle p-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(skeet.scheduledAt)}</p>
+                  <p className="mt-1 text-foreground">{skeet.content?.toString().trim() || "(kein Inhalt)"}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Skeets.</p>
+          )}
+        </Card>
+
+        <Card padding="p-6">
+          <h3 className="text-lg font-semibold">Bevorstehende Threads</h3>
+          {upcomingThreads.length ? (
+            <ul className="mt-3 space-y-3 text-sm">
+              {upcomingThreads.map((thread) => (
+                <li key={thread.id} className="rounded-2xl border border-border bg-background-subtle p-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(thread.scheduledAt)}</p>
+                  <p className="mt-1 text-foreground">
+                    {(thread.title || thread.segments?.[0]?.content || "").toString().trim() || "(kein Titel)"}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Threads.</p>
+          )}
+        </Card>
+      </section>
     </div>
   );
 }
