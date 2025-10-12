@@ -71,7 +71,7 @@
     // ESLint (Flat Config) & Auto-Fix on Save
     "eslint.useFlatConfig": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
+      "source.fixAll.eslint": "explicit"
     },
     "eslint.workingDirectories": [
       { "mode": "auto" }
@@ -83,8 +83,9 @@
       "typescriptreact"
     ],
 
-    // TypeScript: Workspace-TS nutzen
-    "typescript.tsdk": "node_modules/typescript/lib",
+    // TypeScript: Workspace-TS (Root) nutzen
+    // In Multi-Root-Workspaces relativ pro Ordner aufgelöst; daher explizit der Root-Ordner "Alles".
+    "typescript.tsdk": "${workspaceFolder:Alles}/node_modules/typescript/lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
 
     // Dateizuordnungen

@@ -6,15 +6,15 @@
   "license": "ISC",
   "author": "Michael Küper & S.A.R.A.H.",
   "type": "commonjs",
-  "main": "server.js",
+  "main": "backend/server.js",
   "scripts": {
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "start": "node server.js",
-    "start:dev": "node scripts/switch-env.js dev if-missing && NODE_ENV=development node server.js",
-    "start:test": "NODE_ENV=test node server.js",
-    "start:prod": "node scripts/switch-env.js prod if-missing && NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon backend/server.js",
+    "start": "node backend/server.js",
+    "start:dev": "node scripts/switch-env.js dev if-missing && NODE_ENV=development node backend/server.js",
+    "start:test": "NODE_ENV=test node backend/server.js",
+    "start:prod": "node scripts/switch-env.js prod if-missing && NODE_ENV=production node backend/server.js",
     "migrate:dev": "NODE_ENV=development sequelize db:migrate",
     "migrate:test": "NODE_ENV=test sequelize db:migrate",
     "migrate:prod": "NODE_ENV=production sequelize db:migrate",
@@ -81,13 +81,13 @@
   },
   "private": true,
   "_moduleAliases": {
-    "@api": "src/api",
-    "@core": "src/core",
-    "@data": "src/data",
-    "@platforms": "src/platforms",
-    "@utils": "src/utils",
-    "@config": "src/config.js",
-    "@env": "src/env.js"
+    "@api": "backend/src/api",
+    "@core": "backend/src/core",
+    "@data": "backend/src/data",
+    "@platforms": "backend/src/platforms",
+    "@utils": "backend/src/utils",
+    "@config": "backend/src/config.js",
+    "@env": "backend/src/env.js"
   },
   "workspaces": {
     "packages": [
