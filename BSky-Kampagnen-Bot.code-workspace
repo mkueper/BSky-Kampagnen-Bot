@@ -1,11 +1,179 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
-		"workbench.activityBar.iconClickBehavior": "focus",
-		"chat.disableAIFeatures": true
-	}
+  "folders": [
+    {
+      "name": "Dashboard",
+      "path": "dashboard"
+    },
+    {
+      "name": "Backend",
+      "path": "backend"
+    },
+    {
+      "name": "Migration",
+      "path": "migrations"
+    },
+    {
+      "name": "Docker",
+      "path": "docker"
+    },
+    {
+      "name": "Skripte",
+      "path": "scripts"
+    },
+    {
+      "name": "Dokumentation",
+      "path": "docs"
+    },
+    {
+      "name": "Tests",
+      "path": "tests"
+    },
+    {
+      "name": "Daten",
+      "path": "data"
+    },
+    {
+      "name": "Alles",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Explorer-Darstellung
+    "explorer.compactFolders": false,
+    "explorer.sortOrder": "type",
+    // Editor-Formatierung
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    // JavaScript/TypeScript
+    "javascript.updateImportsOnFileMove.enabled": "always",
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    // Terminalstandard (z. B. bash)
+    "terminal.integrated.defaultProfile.linux": "bash",
+    // Node / npm / pnpm Einstellungen
+    "npm.packageManager": "npm",
+    // Praktisch für Logs
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.next": true,
+      "**/.turbo": true
+    },
+
+    // Suche: dieselben Ausschlüsse wie im Explorer
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.next": true,
+      "**/.turbo": true
+    },
+
+    // ESLint (Flat Config) & Auto-Fix on Save
+    "eslint.useFlatConfig": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true
+    },
+    "eslint.workingDirectories": [
+      { "mode": "auto" }
+    ],
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact"
+    ],
+
+    // TypeScript: Workspace-TS nutzen
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+
+    // Dateizuordnungen
+    "files.associations": {
+      "*.mjs": "javascript",
+      "*.cjs": "javascript"
+    }
+  },
+  // Debug/Run Konfigurationen
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "pwa-node",
+        "request": "launch",
+        "name": "Backend: Dev (Inspect)",
+        "cwd": "${workspaceFolder:Alles}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "console": "integratedTerminal",
+        "env": {
+          "NODE_ENV": "development",
+          "NODE_OPTIONS": "--inspect=9229"
+        },
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "pwa-node",
+        "request": "attach",
+        "name": "Backend: Attach 9229",
+        "port": 9229,
+        "restart": true,
+        "cwd": "${workspaceFolder:Alles}",
+        "skipFiles": ["<node_internals>/**"]
+      },
+      {
+        "type": "pwa-chrome",
+        "request": "launch",
+        "name": "Dashboard (Chrome)",
+        "url": "http://localhost:5173",
+        "webRoot": "${workspaceFolder:Dashboard}/src",
+        "preLaunchTask": "Dashboard: Vite Dev"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "App: Backend + Dashboard",
+        "configurations": [
+          "Backend: Dev (Inspect)",
+          "Dashboard (Chrome)"
+        ],
+        "stopAll": true
+      }
+    ]
+  },
+  // Aufgaben (Tasks) für Dev-Server
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Backend: Dev Server",
+        "type": "npm",
+        "script": "dev",
+        "options": {
+          "cwd": "${workspaceFolder:Alles}"
+        },
+        "problemMatcher": [],
+        "detail": "Start Nodemon backend dev server"
+      },
+      {
+        "label": "Dashboard: Vite Dev",
+        "type": "npm",
+        "script": "dev",
+        "options": {
+          "cwd": "${workspaceFolder:Dashboard}"
+        },
+        "isBackground": true,
+        "problemMatcher": [
+          {
+            "base": "$eslint-stylish",
+            "background": {
+              "activeOnStart": true,
+              "beginsPattern": "Local:\\s*http://localhost:5173",
+              "endsPattern": "Local:\\s*http://localhost:5173"
+            }
+          }
+        ],
+        "detail": "Start Vite dev server for dashboard"
+      }
+    ]
+  }
 }
