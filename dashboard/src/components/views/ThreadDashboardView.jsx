@@ -144,32 +144,14 @@ function ThreadDashboardView ({
 
   return (
     <div className='space-y-4'>
-      {/* <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
-          <div className="flex flex-col gap-4 p-6">
-            <div>
-              <h3 className="text-lg font-semibold">Thread-Überblick</h3>
-              <p className="text-sm text-foreground-muted">Status deiner geplanten und veröffentlichten Threads.</p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {overviewStats.map(({ label, value }) => (
-                <div key={label} className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
-                  <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </article>
-        <SummaryCard title="Nächster Thread" value={nextThreadDate} helper={nextThreadHelper} />
-      </section> */}
+      
 
       <section className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between'>
           <div>
             <h3 className='text-lg font-semibold'>Thread Aktivität</h3>
             <p className='text-sm text-foreground-muted'>
-              Verwalte geplante und veröffentlichte Threads inklusive Replies
+              Verwalte geplante und veröffentlichte Threads inklusive Antworten
               &amp; Reaktionen.
             </p>
           </div>
@@ -243,11 +225,12 @@ function ThreadDashboardView ({
                       type='checkbox'
                       className='h-3.5 w-3.5 rounded border-border'
                       checked={bulkIncludeReplies}
+                      disabled={bulkRefreshing}
                       onChange={e =>
                         setBulkIncludeReplies(Boolean(e.target.checked))
                       }
                     />
-                    <span className='text-xs'>Replies</span>
+                    <span className='text-xs'>Antworten</span>
                   </label>
                   <Button
                     variant='ghost'
@@ -329,11 +312,10 @@ function ThreadDashboardView ({
                 </div>
               </div>
             ) : null}
-            {/* Entfernt: alter "Alle aktualisieren"-Button für Threads */}
           </div>
         </div>
 
-        <div className='px-6 pb-6'>
+        <div className='px-6 pt-6 pb-6'>
           {activeTab === 'planned' ? (
             <ThreadOverview
               threads={plannedThreads}
@@ -486,21 +468,3 @@ function ThreadDashboardView ({
 }
 
 export default ThreadDashboardView
-
-function SummaryCard ({ title, value, helper }) {
-  return (
-    <article className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
-      <div className='flex h-full flex-col gap-4 p-6'>
-        <div>
-          <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
-            {title}
-          </p>
-          <p className='mt-2 text-3xl font-semibold text-foreground md:text-4xl'>
-            {value}
-          </p>
-        </div>
-        <div className='text-sm text-foreground-muted'>{helper}</div>
-      </div>
-    </article>
-  )
-}

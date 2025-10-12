@@ -27,6 +27,7 @@ Threads planen, veröffentlichen und auswerten möchten.
 - Listet anstehende Veröffentlichungen inklusive Uhrzeit.
 
 ### Skeets
+- **Aktivität** zeigt Kennzahlen (Geplant, Veröffentlicht, Likes/Reposts gesamt) sowie rechts die Karte „Nächster Post“ mit Datum/Uhrzeit und Vorschau.
 - **Übersicht** listet geplante, veröffentlichte und gelöschte Einzelposts.
 - **Skeet planen** öffnet das Formular zum Erstellen oder Bearbeiten.
 
@@ -35,6 +36,7 @@ In der Ansicht „Veröffentlicht” kannst du die Sortierung umschalten:
 - Pfeil nach oben: Alt zuerst
 
 ### Threads
+- **Aktivität** zeigt Kennzahlen (Geplant, Veröffentlicht, Likes/Reposts gesamt) sowie rechts die Karte „Nächster Post“ mit Datum/Uhrzeit und Vorschau.
 - **Übersicht** zeigt Multi-Post-Threads sortiert nach Status (geplant, veröffentlicht, Papierkorb).
 - **Thread planen** öffnet den Editor für mehrteilige Kampagnen.
 

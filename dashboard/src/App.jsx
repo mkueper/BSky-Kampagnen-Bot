@@ -13,6 +13,8 @@ import {
 import AppLayout from './components/layout/AppLayout'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
+import SummaryCard from './components/ui/SummaryCard'
+import ActivityPanel from './components/ui/ActivityPanel'
 import MainOverviewView from './components/views/MainOverviewView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
@@ -121,10 +123,10 @@ const HEADER_CAPTIONS = {
 const HEADER_TITLES = {
   overview: 'Bluesky Kampagnen-Dashboard',
   skeets: 'Skeets',
-  'skeets-overview': 'Skeet-Übersicht',
+  'skeets-overview': 'Skeet Übersicht',
   'skeets-plan': 'Skeet planen',
   threads: 'Threads',
-  'threads-overview': 'Thread-Übersicht',
+  'threads-overview': 'Thread Übersicht',
   'threads-plan': 'Thread planen',
   config: 'Einstellungen & Automatisierung'
 }
@@ -422,6 +424,34 @@ function App () {
     ]
   }, [threads])
 
+  const activityStatsThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : []
+    const planned = items.filter(
+      t => t.status === 'scheduled' || t.status === 'draft'
+    ).length
+    const publishedItems = items.filter(t => t.status === 'published')
+    let likes = 0
+    let reposts = 0
+    try {
+      for (const thread of publishedItems) {
+        const pr = thread?.metadata?.platformResults || {}
+        Object.values(pr).forEach(entry => {
+          const t = entry?.totals || {}
+          likes += Number(t.likes) || 0
+          reposts += Number(t.reposts) || 0
+        })
+      }
+    } catch (e) {
+      console.error('Fehler bei Aggregation der Thread-Metriken:', e)
+    }
+    return [
+      { label: 'Geplante Threads', value: planned },
+      { label: 'Veröffentlichte Threads', value: publishedItems.length },
+      { label: 'Likes gesamt', value: likes },
+      { label: 'Reposts gesamt', value: reposts }
+    ]
+  }, [threads])
+
   const nextScheduledThread = useMemo(() => {
     const items = Array.isArray(threads) ? threads : []
     const now = new Date()
@@ -578,7 +608,7 @@ function App () {
       toast.success({
         title: 'Skeet reaktiviert',
         description:
-          'Der Skeet wurde wiederhergestellt und erscheint erneut in der Skeet-Übersicht.'
+          'Der Skeet wurde wiederhergestellt und erscheint erneut in der Skeet Übersicht.'
       })
     } catch (error) {
       console.error('Fehler beim Reaktivieren des Skeets:', error)
@@ -785,40 +815,46 @@ function App () {
   const handleDestroyThread = async thread => {
     if (!thread?.id) return
     const label = thread.title || `Thread #${thread.id}`
-    const confirmed = window.confirm(
-      `Soll "${label}" endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden.`
-    )
-    if (!confirmed) return
+    setConfirmDialog({
+      open: true,
+      title: 'Thread endgültig löschen',
+      description: `Soll "${label}" endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden.`,
+      confirmLabel: 'Endgültig löschen',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/threads/${thread.id}?permanent=1`, {
+            method: 'DELETE'
+          })
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}))
+            throw new Error(
+              data.error || 'Fehler beim endgültigen Löschen des Threads.'
+            )
+          }
 
-    try {
-      const res = await fetch(`/api/threads/${thread.id}?permanent=1`, {
-        method: 'DELETE'
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(
-          data.error || 'Fehler beim endgültigen Löschen des Threads.'
-        )
+          if (editingThreadId === thread.id) {
+            setEditingThreadId(null)
+          }
+
+          await refreshThreadsNow()
+
+          toast.success({
+            title: 'Thread entfernt',
+            description: 'Der Thread wurde dauerhaft gelöscht.'
+          })
+        } catch (error) {
+          console.error('Fehler beim endgültigen Löschen des Threads:', error)
+          toast.error({
+            title: 'Endgültiges Löschen fehlgeschlagen',
+            description:
+              error.message || 'Fehler beim endgültigen Löschen des Threads.'
+          })
+        } finally {
+          setConfirmDialog(c => ({ ...c, open: false }))
+        }
       }
-
-      if (editingThreadId === thread.id) {
-        setEditingThreadId(null)
-      }
-
-      await refreshThreadsNow()
-
-      toast.success({
-        title: 'Thread entfernt',
-        description: 'Der Thread wurde dauerhaft gelöscht.'
-      })
-    } catch (error) {
-      console.error('Fehler beim endgültigen Löschen des Threads:', error)
-      toast.error({
-        title: 'Endgültiges Löschen fehlgeschlagen',
-        description:
-          error.message || 'Fehler beim endgültigen Löschen des Threads.'
-      })
-    }
+    })
   }
 
   const handleFormSaved = async () => {
@@ -939,133 +975,50 @@ function App () {
     content = (
       <>
         <section className='grid gap-4 md:grid-cols-3'>
-          <article className='rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2'>
-            <div className='flex flex-col gap-4 p-6'>
-              <div>
-                <h3 className='text-lg font-semibold'>Skeets Übersicht</h3>
-                <p className='text-sm text-foreground-muted'>
-                  Status deiner geplanten und veröffentlichten Skeets.
-                </p>
-              </div>
-              <div className='grid gap-4 sm:grid-cols-2'>
-                {overviewStatsSkeets.map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'
-                  >
-                    <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
-                      {label}
-                    </p>
-                    <p className='mt-2 text-3xl font-semibold text-foreground md:text-4xl'>
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </article>
+          <ActivityPanel
+            className='md:col-span-2'
+            title='Skeet Aktivität'
+            description='Status deiner geplanten und veröffentlichten Skeets.'
+            items={overviewStatsSkeets}
+          />
           <SummaryCard
             title='Nächster Skeet'
             value={upcomingSkeetDate}
-            helper={
-              upcomingSkeet ? (
-                <div className='space-y-3'>
-                  {upcomingSkeetTime ? (
-                    <span className='block font-semibold text-foreground'>{`${upcomingSkeetTime} Uhr`}</span>
-                  ) : null}
-                  <div className='rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground'>
-                    {upcomingSkeetSnippet}
-                  </div>
-                </div>
-              ) : (
-                'Noch nichts geplant'
-              )
+            time={upcomingSkeetTime ? `${upcomingSkeetTime} Uhr` : null}
+            snippet={
+              typeof upcomingSkeetSnippet !== 'undefined' && upcomingSkeet
+                ? upcomingSkeetSnippet
+                : 'Noch nichts geplant'
             }
           />
         </section>
 
-        {/* <Card padding='p-6 lg:p-10' className='mt-4'>
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <Button
-              onClick={() => setActiveView('skeets-overview')}
-              className='justify-start'
-            >
-              Skeet-Übersicht öffnen
-            </Button>
-            <Button
-              onClick={() => setActiveView('skeets-plan')}
-              variant='secondary'
-              className='justify-start'
-            >
-              Skeet planen
-            </Button>
-          </div>
-        </Card> */}
+        
       </>
     )
   } else if (activeView === 'threads') {
     content = (
       <>
         <section className='grid gap-4 md:grid-cols-3'>
-          <article className='rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2'>
-            <div className='flex flex-col gap-4 p-6'>
-              <div>
-                <h3 className='text-lg font-semibold'>Threads Übersicht</h3>
-                <p className='text-sm text-foreground-muted'>
-                  Status deiner geplanten und veröffentlichten Threads.
-                </p>
-              </div>
-              <div className='grid gap-4 sm:grid-cols-2'>
-                {overviewStatsThreads.map(({ label, value }) => (
-                  <div
-                    key={label}
-                    className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'
-                  >
-                    <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
-                      {label}
-                    </p>
-                    <p className='mt-2 text-3xl font-semibold text-foreground md:text-4xl'>
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </article>
+          <ActivityPanel
+            className='md:col-span-2'
+            title='Thread Aktivität'
+            description='Status deiner geplanten und veröffentlichten Threads.'
+            items={activityStatsThreads}
+          />
           <SummaryCard
             title='Nächster Thread'
             value={nextThreadDate}
-            helper={
-              nextScheduledThread ? (
-                <div className='space-y-3'>
-                  {nextThreadTime ? (
-                    <span className='text-sm font-medium text-foreground'>
-                      {nextThreadTime}
-                    </span>
-                  ) : null}
-                  <div className='rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground'>
-                    {(nextScheduledThread.thread.segments?.[0]?.content || '')
-                      .toString()
-                      .trim() || 'Kein Inhalt hinterlegt'}
-                  </div>
-                </div>
-              ) : (
-                'Noch nichts geplant'
-              )
+            time={nextThreadTime || null}
+            snippet={
+              nextScheduledThread
+                ? (nextScheduledThread.thread.segments?.[0]?.content || '')
+                    .toString()
+                    .trim() || 'Kein Inhalt hinterlegt'
+                : 'Noch nichts geplant'
             }
           />
         </section>
-
-        {/* <Card padding='p-6 lg:p-10' className='mt-4'>
-          <div className='grid gap-4 sm:grid-cols-2'>
-            <Button onClick={() => setActiveView('threads-overview')} className='justify-start'>
-              Thread-Übersicht öffnen
-            </Button>
-            <Button onClick={() => setActiveView('threads-plan')} variant='secondary' className='justify-start'>
-              Thread planen
-            </Button>
-          </div>
-        </Card> */}
       </>
     )
   } else if (activeView === 'skeets-overview') {
@@ -1161,25 +1114,6 @@ function App () {
         onCancel={() => setConfirmDialog(c => ({ ...c, open: false }))}
       />
     </AppLayout>
-  )
-}
-
-function SummaryCard ({ title, value, helper }) {
-  return (
-    <article className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
-      <div className='flex flex-col gap-3 p-6'>
-        <div>
-          <h3 className='text-lg font-semibold'>{title}</h3>
-          <p className='text-sm text-foreground-muted'>Nächster Termin</p>
-        </div>
-        <div className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'>
-          <p className='text-3xl font-semibold text-foreground md:text-4xl'>
-            {value}
-          </p>
-        </div>
-        {helper ? <div>{helper}</div> : null}
-      </div>
-    </article>
   )
 }
 

@@ -103,8 +103,8 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
             }
           } : undefined}
           className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label="Zur Skeet-Übersicht wechseln"
-          title="Zur Skeet-Übersicht wechseln"
+          aria-label="Zur Skeet Übersicht wechseln"
+          title="Zur Skeet Übersicht wechseln"
           role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
           tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
         >
@@ -131,8 +131,8 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
             }
           } : undefined}
           className={typeof onOpenThreadsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label="Zur Thread-Übersicht wechseln"
-          title="Zur Thread-Übersicht wechseln"
+          aria-label="Zur Thread Übersicht wechseln"
+          title="Zur Thread Übersicht wechseln"
           role={typeof onOpenThreadsOverview === 'function' ? 'button' : undefined}
           tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
         >

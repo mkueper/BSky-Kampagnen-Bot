@@ -56,7 +56,8 @@
 ### Dokumentation
 - README/Installationsguides präzisiert: `build:all` baut das Dashboard, Backend benötigt keinen Build.
 - Server‑Installationsguide: `pm2 start backend/server.js` statt `server.js` im Root.
- - README: CI‑Badge und kurzer Abschnitt zu CI ergänzt.
+- README: CI‑Badge und kurzer Abschnitt zu CI ergänzt.
+ - Frontend‑Benutzerhandbuch aktualisiert: Bereiche „Aktivität“ (Skeets/Threads) und Karte „Nächster Post“ ergänzt; Begriffe („Antworten“) konsistent.
 
 ### Frontend/UX
 - Threads-Übersicht (Mobile): Aktionsleiste nutzt `flex-wrap`; Buttons umbrechen nicht mehr aus dem View.
@@ -64,6 +65,12 @@
 - Metrik-Zeile („Likes · Reposts · Antworten“) bei geplanten Threads ausgeblendet; stattdessen „Geplant“.
 - Header-Aktionen (Mobile): Titelzeile ohne Umbruch; Buttons in zweite Zeile (overflow-x auto), Desktop weiterhin eine Zeile.
 - Export/Import: Icon-Buttons auf Mobile (Text ab `sm` sichtbar); Buttons in Übersicht/Konfiguration ausgeblendet.
+ - SummaryCard als gemeinsame Komponente extrahiert (einheitliches Styling, Zeit fett, Props `time`/`snippet`, Standard‑Untertitel „Nächster Post“).
+ - Neue `ActivityPanel`‑Komponente für „Skeet Aktivität“/„Thread Aktivität“ in den Gruppenseiten neben der SummaryCard.
+ - Wortlaut vereinheitlicht („Antworten“ statt „Replies“, „Skeet Übersicht“/„Thread Übersicht“, Navigationseinträge „Aktivität“).
+ - Endgültiges Löschen (Threads) nutzt jetzt den bestehenden `ConfirmDialog` statt `window.confirm`.
+ - UI‑Abstand unter der Header‑Trennlinie erhöht (`pt-6`) in Skeets/Threads Aktivität.
+ - Auskommentierte, veraltete Blöcke entfernt (Aufräumarbeiten).
 
 ### Logging
 - Backend-Logs vereinheitlicht (nutzt `createLogger` statt `console.*` in Kernpfaden wie Scheduler/Media/Engagement).

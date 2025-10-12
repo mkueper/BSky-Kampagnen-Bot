@@ -128,45 +128,14 @@ function DashboardView ({
 
   return (
     <div className='space-y-4'>
-      {/* <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2">
-          <div className="flex flex-col gap-4 p-6">
-            <div>
-              <h3 className="text-lg font-semibold">Kampagnen-Überblick</h3>
-              <p className="text-sm text-foreground-muted">Status deiner geplanten und veröffentlichten Skeets.</p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {overviewStats.map(({ label, value }) => (
-                <div key={label} className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">{label}</p>
-                  <p className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">{value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </article>
-        <SummaryCard
-          title="Nächster Skeet"
-          value={upcomingDate}
-          helper={
-            upcomingSkeet ? (
-              <div className="space-y-3">
-                {upcomingTime ? <span className="block font-semibold text-foreground">{`${upcomingTime} Uhr`}</span> : null}
-                <div className="rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground">{upcomingSnippet}</div>
-              </div>
-            ) : (
-              "Noch nichts geplant"
-            )
-          }
-        />
-      </section> */}
+      
 
       <section className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between'>
           <div>
             <h3 className='text-lg font-semibold'>Skeet Aktivität</h3>
             <p className='text-sm text-foreground-muted'>
-              Verwalte geplante und veröffentlichte Skeets inklusive Replies
+              Verwalte geplante und veröffentlichte Skeets inklusive Antworten
               &amp; Reaktionen.
             </p>
           </div>
@@ -309,7 +278,7 @@ function DashboardView ({
           </div>
         </div>
 
-        <div className='px-6 pb-6'>
+        <div className='px-6 pt-6 pb-6'>
           {activeTab === 'planned' ? (
             <PlannedSkeetList
               skeets={plannedSkeets}
@@ -441,22 +410,6 @@ function DashboardView ({
           </Button>
         </FloatingToolbar>
       ) : null}
-    </div>
-  )
-}
-
-function SummaryCard ({ title, value, helper }) {
-  return (
-    <div className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
-      <div className='space-y-3 p-5'>
-        <p className='text-sm font-medium text-foreground-muted'>{title}</p>
-        <p className='text-3xl font-semibold md:text-4xl'>{value}</p>
-        {helper ? (
-          <div className='space-y-2 text-sm leading-relaxed text-foreground-muted'>
-            {helper}
-          </div>
-        ) : null}
-      </div>
     </div>
   )
 }
