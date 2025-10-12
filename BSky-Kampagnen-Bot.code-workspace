@@ -1,8 +1,13 @@
 {
   "folders": [
-    {
-      "path": "."
-    }
+    { "name": "Backend", "path": "backend" },
+    { "name": "Dashboard", "path": "dashboard" },
+    { "name": "Documents", "path": "docs" },
+    { "name": "Migrations", "path": "migrations" },
+    { "name": "Scripts", "path": "scripts" },
+    { "name": "Tests", "path": "tests" },
+    { "name": "Docker", "path": "docker" },
+    { "path": "." }
   ],
   "settings": {
     // Explorer-Darstellung
