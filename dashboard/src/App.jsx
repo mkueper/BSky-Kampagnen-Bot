@@ -85,7 +85,7 @@ async function saveBlobWithPicker (blob, suggestedName) {
 }
 
 const NAV_ITEMS = [
-  { id: 'overview', label: 'Übersicht', icon: ViewHorizontalIcon },
+  { id: 'overview', label: 'Aktivität', icon: ViewHorizontalIcon },
   {
     id: 'skeets',
     label: 'Skeets',
@@ -108,7 +108,7 @@ const NAV_ITEMS = [
 ]
 
 const HEADER_CAPTIONS = {
-  overview: 'Übersicht',
+  overview: 'Aktivität',
   'skeets-overview': 'Skeets',
   'skeets-plan': 'Skeetplaner',
   'threads-overview': 'Threads',
@@ -117,7 +117,7 @@ const HEADER_CAPTIONS = {
 }
 
 const HEADER_TITLES = {
-  overview: 'Bluesky Kampagnen-Dashboard',
+  overview: 'Aktivität',
   'skeets-overview': 'Skeet-Übersicht',
   'skeets-plan': 'Skeet planen',
   'threads-overview': 'Thread-Übersicht',
@@ -478,7 +478,7 @@ function App () {
       toast.success({
         title: 'Skeet reaktiviert',
         description:
-          'Der Skeet wurde wiederhergestellt und erscheint erneut in der Übersicht.'
+          'Der Skeet wurde wiederhergestellt und erscheint erneut in der Skeet-Übersicht.'
       })
     } catch (error) {
       console.error('Fehler beim Reaktivieren des Skeets:', error)
