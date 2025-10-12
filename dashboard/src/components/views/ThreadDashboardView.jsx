@@ -7,21 +7,6 @@ import ThreadOverview from '../ThreadOverview'
 import { useVisibleIds } from '../../hooks/useVisibleIds'
 import FloatingToolbar from '../ui/FloatingToolbar'
 
-function formatDateTime (value) {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return new Intl.DateTimeFormat('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
-}
-
 function ThreadDashboardView ({
   threads,
   loading,
@@ -38,25 +23,6 @@ function ThreadDashboardView ({
   const [bulkRefreshing, setBulkRefreshing] = useState(false)
   const [bulkIncludeReplies, setBulkIncludeReplies] = useState(false)
   const { getRefForId, visibleIds } = useVisibleIds()
-  const stats = useMemo(() => {
-    const items = Array.isArray(threads) ? threads : []
-    const active = items.filter(thread => thread.status !== 'deleted')
-    const total = active.length
-    const scheduled = active.filter(
-      thread => thread.status === 'scheduled'
-    ).length
-    const published = active.filter(
-      thread => thread.status === 'published'
-    ).length
-    const drafts = active.filter(thread => thread.status === 'draft').length
-
-    return [
-      { label: 'Threads gesamt', value: total },
-      { label: 'Geplant', value: scheduled },
-      { label: 'Veröffentlicht', value: published },
-      { label: 'Entwürfe', value: drafts }
-    ]
-  }, [threads])
 
   const plannedThreads = useMemo(() => {
     const items = Array.isArray(threads) ? threads : []
@@ -101,46 +67,7 @@ function ThreadDashboardView ({
     return items.filter(thread => thread.status === 'deleted')
   }, [threads])
 
-  const nextScheduled = useMemo(() => {
-    const items = Array.isArray(threads) ? threads : []
-    const now = new Date()
-    const candidates = items
-      .filter(thread => thread.status === 'scheduled' && thread.scheduledAt)
-      .map(thread => {
-        const date = new Date(thread.scheduledAt)
-        if (Number.isNaN(date.getTime()) || date < now) return null
-        return { thread, date }
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.date - b.date)
-    return candidates[0] ?? null
-  }, [threads])
-
-  const overviewStats = stats
-  const nextThreadFormatted = nextScheduled
-    ? formatDateTime(nextScheduled.thread.scheduledAt)
-    : null
-  const [nextThreadDate, nextThreadTimeRaw] = nextThreadFormatted
-    ? nextThreadFormatted.split(',').map(part => part.trim())
-    : ['-', '']
-  const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : ''
-
-  const nextThreadHelper = nextScheduled ? (
-    <div className='space-y-3'>
-      {nextThreadTime ? (
-        <span className='text-sm font-medium text-foreground'>
-          {nextThreadTime}
-        </span>
-      ) : null}
-      <div className='rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground'>
-        {(nextScheduled.thread.segments?.[0]?.content || '')
-          .toString()
-          .trim() || 'Kein Inhalt hinterlegt'}
-      </div>
-    </div>
-  ) : (
-    'Noch nichts geplant'
-  )
+  // Hinweis: Zusammenfassungs- und Nächster-Thread-Anzeigen sind hier nicht aktiv
 
   return (
     <div className='space-y-4'>

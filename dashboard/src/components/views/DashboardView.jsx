@@ -50,60 +50,7 @@ function DashboardView ({
     }
   }, [activeTab])
 
-  const upcomingSkeet = useMemo(() => {
-    const entries = plannedSkeets
-      .map(skeet => {
-        if (!skeet.scheduledAt) return null
-        const date = new Date(skeet.scheduledAt)
-        return Number.isNaN(date.getTime())
-          ? null
-          : { ...skeet, scheduledDate: date }
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.scheduledDate - b.scheduledDate)
-    return entries[0] ?? null
-  }, [plannedSkeets])
-
-  const upcomingDate = upcomingSkeet
-    ? formatTime(
-        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
-        'dateOnly'
-      )
-    : '-'
-  const upcomingTime = upcomingSkeet
-    ? formatTime(
-        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
-        'timeOnly'
-      )
-    : null
-  const upcomingSnippet = useMemo(() => {
-    if (!upcomingSkeet) return null
-    const normalized = (upcomingSkeet.content ?? '').replace(/\s+/g, ' ').trim()
-    if (!normalized) return 'Kein Inhalt hinterlegt'
-    return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized
-  }, [upcomingSkeet])
-
-  const aggregatedMetrics = useMemo(() => {
-    const likes = publishedSkeets.reduce(
-      (acc, skeet) => acc + (Number(skeet.likesCount) || 0),
-      0
-    )
-    const reposts = publishedSkeets.reduce(
-      (acc, skeet) => acc + (Number(skeet.repostsCount) || 0),
-      0
-    )
-    return { likes, reposts }
-  }, [publishedSkeets])
-
-  const overviewStats = useMemo(
-    () => [
-      { label: 'Geplante Skeets', value: plannedSkeets.length },
-      { label: 'Veröffentlichte Skeets', value: publishedSkeets.length },
-      { label: 'Likes gesamt', value: aggregatedMetrics.likes },
-      { label: 'Reposts gesamt', value: aggregatedMetrics.reposts }
-    ],
-    [plannedSkeets.length, publishedSkeets.length, aggregatedMetrics]
-  )
+  // Hinweis: Übersicht und Nächster Skeet werden in diesem View nicht verwendet
 
   const sortedPublishedSkeets = useMemo(() => {
     const items = [...publishedSkeets]

@@ -408,21 +408,7 @@ function App () {
     return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized
   }, [upcomingSkeet])
 
-  // --- Threads: Übersichtskarten für Gruppen-Landing (verschoben aus ThreadDashboard)
-  const overviewStatsThreads = useMemo(() => {
-    const items = Array.isArray(threads) ? threads : []
-    const active = items.filter(t => t.status !== 'deleted')
-    const total = active.length
-    const scheduled = active.filter(t => t.status === 'scheduled').length
-    const publishedCount = active.filter(t => t.status === 'published').length
-    const drafts = active.filter(t => t.status === 'draft').length
-    return [
-      { label: 'Threads gesamt', value: total },
-      { label: 'Geplant', value: scheduled },
-      { label: 'Veröffentlicht', value: publishedCount },
-      { label: 'Entwürfe', value: drafts }
-    ]
-  }, [threads])
+  // Hinweis: Übersichtskarten für Threads werden aktuell nicht verwendet
 
   const activityStatsThreads = useMemo(() => {
     const items = Array.isArray(threads) ? threads : []
