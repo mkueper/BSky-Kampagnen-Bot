@@ -1,7 +1,9 @@
-const { Skeet, SkeetMedia } = require('../models');
+const { Skeet, SkeetMedia } = require('../../data/models');
+const { createLogger } = require('../../utils/logging');
+const log = createLogger('skeet');
 const fs = require('fs');
 const path = require('path');
-const { ALLOWED_PLATFORMS } = require('../constants/platforms');
+const { ALLOWED_PLATFORMS } = require('../../constants/platforms');
 const { deletePost } = require('./postService');
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('./platformContext');
 
@@ -17,7 +19,7 @@ function normalizeTargetPlatforms(raw) {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
     } catch (error) {
-        console.warn('Konnte targetPlatforms nicht parsen:', error);
+      log.warn('Konnte targetPlatforms nicht parsen', { error: error?.message || String(error) });
       return [];
     }
   }
@@ -46,7 +48,7 @@ function parsePlatformResults(raw) {
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (error) {
-      console.warn('Konnte platformResults nicht parsen:', error);
+      log.warn('Konnte platformResults nicht parsen', { error: error?.message || String(error) });
       return {};
     }
   }
@@ -221,7 +223,7 @@ async function createSkeet(payload) {
         if (order >= 4) break;
       }
     }
-  } catch (e) { console.error("Fehler beim erstellen des Skeet", e); }
+  } catch (e) { log.error("Fehler beim Erstellen des Skeet", { error: e?.message || String(e) }); }
   return skeet;
 }
 
@@ -257,7 +259,7 @@ async function updateSkeet(id, payload) {
         if (order >= 4) break;
       }
     }
-  } catch (e) { console.error("Fehler beim aktialisieren des Skeet", e); }
+  } catch (e) { log.error("Fehler beim Aktualisieren des Skeet", { error: e?.message || String(e) }); }
   return skeet;
 }
 

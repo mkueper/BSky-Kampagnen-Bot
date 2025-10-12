@@ -1,5 +1,6 @@
-const { countGraphemesSync } = require("../../utils/graphemes");
-const { BskyAgent, RichText } = require("@atproto/api");
+const { countGraphemesSync } = require("@utils/graphemes");
+const { createLogger } = require("@utils/logging");
+const log = createLogger('platform:bluesky');
 
 /**
  * Plattformprofil für Bluesky.
@@ -30,6 +31,8 @@ const { BskyAgent, RichText } = require("@atproto/api");
  * @returns {Promise<BskyAgent>}
  */
 async function createAgent(env) {
+  // Lazy import to avoid requiring optional deps during unit tests
+  const { BskyAgent } = require("@atproto/api");
   const agent = new BskyAgent({ service: env.serverUrl });
   await agent.login({
     identifier: env.identifier,
@@ -106,6 +109,8 @@ const blueskyProfile = {
     const agent = await createAgent(env);
 
     const text = payload.text;
+    // Lazy import RichText to avoid hard dep during tests
+    const { RichText } = require("@atproto/api");
     const rt = new RichText({ text });
     await rt.detectFacets(agent);
 
@@ -120,7 +125,7 @@ const blueskyProfile = {
           const uploaded = await agent.uploadBlob(fileBuf, { encoding: m.mime || 'image/jpeg' });
           images.push({ image: uploaded.data.blob, alt: m.altText || '' });
         } catch (e) {
-            console.warin(e);
+          log.warn('Bild-Upload fehlgeschlagen', { error: e?.message || String(e) });
         }
       }
       if (images.length > 0) {

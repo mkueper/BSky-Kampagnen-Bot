@@ -8,13 +8,15 @@
  */
 const cron = require("node-cron");
 const { Op } = require("sequelize");
-const config = require("../config");
-const { Skeet, Thread, ThreadSkeet } = require("../models");
+const config = require("@config");
+const { Skeet, Thread, ThreadSkeet } = require("@data/models");
 const { sendPost } = require("./postService");
 const settingsService = require("./settingsService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 const { refreshPublishedThreadsBatch } = require("./threadEngagementService");
 const presence = require("./presenceService");
+const { createLogger } = require("@utils/logging");
+const log = createLogger('scheduler');
 
 const MAX_BATCH_SIZE = 10;
 const RETRY_DELAY_MS = 60 * 1000;
@@ -40,7 +42,7 @@ function normalizeTargetPlatforms(raw) {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? Array.from(new Set(parsed)) : [];
     } catch (error) {
-      console.warn("❕ Konnte targetPlatforms nicht parsen:", error?.message || error);
+      log.warn("Konnte targetPlatforms nicht parsen", { error: error?.message || String(error) });
       return [];
     }
   }
@@ -134,7 +136,7 @@ function ensureResultsObject(raw) {
     try {
       return JSON.parse(raw);
     } catch (error) {
-      console.error("❌ Konnte platformResults nicht parsen:", error?.message || error);
+      log.error("Konnte platformResults nicht parsen", { error: error?.message || String(error) });
       return {};
     }
   }
@@ -157,7 +159,7 @@ async function dispatchSkeet(skeet) {
 
   const current = await Skeet.findByPk(skeet.id);
   if (!current) {
-    console.log(`ℹ️ Skeet ${skeet.id} wurde inzwischen gelöscht – überspringe Versand.`);
+    log.info(`Skeet ${skeet.id} wurde inzwischen gelöscht – überspringe Versand.`);
     return;
   }
 
@@ -187,13 +189,13 @@ async function dispatchSkeet(skeet) {
         error: envError,
         failedAt: new Date().toISOString(),
       };
-      console.error(`❌ ${envError}`);
+      log.error(envError);
       continue;
     }
 
     try {
       // Medien laden (falls vorhanden)
-      const { SkeetMedia } = require('../models');
+      const { SkeetMedia } = require('../../data/models');
       const mediaRows = await SkeetMedia.findAll({ where: { skeetId: current.id }, order: [["order","ASC"],["id","ASC"]] });
       const media = mediaRows.slice(0, 4).map((m) => ({ path: m.path, mime: m.mime, altText: m.altText || '' }));
       const res = await sendPost({ content: current.content, media }, platformId, platformEnv);
@@ -217,7 +219,7 @@ async function dispatchSkeet(skeet) {
 
         results[platformId] = resultEntry;
         successOrder.push({ platformId, uri: res.uri || "", postedAt });
-        console.log(`✅ Skeet ${current.id} auf ${platformId} veröffentlicht (${res.uri || "ohne URI"})`);
+        log.info("Skeet veröffentlicht", { id: current.id, platform: platformId, uri: res.uri || "" });
       } else {
         results[platformId] = {
           status: "failed",
@@ -225,10 +227,7 @@ async function dispatchSkeet(skeet) {
           failedAt: new Date().toISOString(),
           attempts: res.attempts || 1,
         };
-        console.error(
-          `❌ Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
-          res.error || "Unbekannter Fehler"
-        );
+        log.error("Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: res.error || "Unbekannter Fehler" });
       }
     } catch (unexpected) {
       results[platformId] = {
@@ -236,10 +235,7 @@ async function dispatchSkeet(skeet) {
         error: unexpected?.message || String(unexpected),
         failedAt: new Date().toISOString(),
       };
-      console.error(
-        `❌ Unerwarteter Fehler beim Senden von Skeet ${current.id} auf ${platformId}:`,
-        unexpected?.message || unexpected
-      );
+      log.error("Unerwarteter Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: unexpected?.message || String(unexpected) });
     }
   }
 
@@ -337,13 +333,13 @@ async function processDueSkeets(now = new Date()) {
           }
 
           await current.update(updates);
-          console.log(`✅ Discard-Mode: Skeet ${current.id} als veröffentlicht markiert (Demo)`);
+          log.info("Discard-Mode: Skeet als veröffentlicht markiert (Demo)", { id: current.id });
         }
         continue;
       }
       await dispatchSkeet(skeet);
     } catch (error) {
-      console.error(`❌ Fehler beim Senden von Skeet ${skeet.id}:`, error?.message || error);
+      log.error("Fehler beim Senden eines Skeets", { id: skeet.id, error: error?.message || String(error) });
     }
   }
 }
@@ -354,7 +350,7 @@ function ensureMetadataObject(raw) {
     try {
       return JSON.parse(raw) || {};
     } catch (error) {
-      console.warn("❕ Konnte Thread-Metadaten nicht parsen:", error?.message || error);
+      log.warn("Konnte Thread-Metadaten nicht parsen", { error: error?.message || String(error) });
       return {};
     }
   }
@@ -367,13 +363,13 @@ function ensureMetadataObject(raw) {
 async function dispatchThread(thread) {
   ensurePlatforms();
 
-  const { ThreadSkeetMedia } = require('../models');
+  const { ThreadSkeetMedia } = require('../../data/models');
   const current = await Thread.findByPk(thread.id, {
     include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]], include: [{ model: ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] }],
   });
 
   if (!current) {
-    console.log(`ℹ️ Thread ${thread.id} wurde inzwischen entfernt – überspringe Versand.`);
+    log.info(`Thread ${thread.id} wurde inzwischen entfernt – überspringe Versand.`);
     return;
   }
 
@@ -382,7 +378,7 @@ async function dispatchThread(thread) {
   }
 
   if (!Array.isArray(current.segments) || current.segments.length === 0) {
-    console.warn(`⚠️ Thread ${current.id} besitzt keine Segmente – überspringe.`);
+    log.warn("Thread besitzt keine Segmente – überspringe", { id: current.id });
     await current.update({ status: "failed", metadata: { ...(ensureMetadataObject(current.metadata)), lastError: "Keine Segmente" } });
     return;
   }
@@ -390,7 +386,7 @@ async function dispatchThread(thread) {
   const targetPlatforms = getTargetPlatforms(current);
   const normalizedPlatforms = Array.from(new Set(targetPlatforms));
   if (!normalizedPlatforms.length) {
-    console.warn(`⚠️ Thread ${current.id} hat keine Zielplattformen – markiere als fehlgeschlagen.`);
+    log.warn("Thread hat keine Zielplattformen – markiere als fehlgeschlagen", { id: current.id });
     const metadata = ensureMetadataObject(current.metadata);
     metadata.lastError = "Keine Zielplattformen";
     await current.update({ status: "failed", metadata });
@@ -418,7 +414,7 @@ async function dispatchThread(thread) {
         failedAt: new Date().toISOString(),
       };
       overallSuccess = false;
-      console.error(`❌ ${envError}`);
+      log.error(envError);
       continue;
     }
 
@@ -493,10 +489,7 @@ async function dispatchThread(thread) {
             error: res.error || "Unbekannter Fehler",
             failedAt: new Date().toISOString(),
           });
-          console.error(
-            `❌ Fehler beim Senden von Thread ${current.id} (Segment ${segment.sequence}) auf ${platformId}:`,
-            res.error || "Unbekannter Fehler"
-          );
+          log.error("Fehler beim Senden eines Thread-Segments", { id: current.id, seq: segment.sequence, platform: platformId, error: res.error || "Unbekannter Fehler" });
           break;
         }
       } catch (unexpected) {
@@ -507,10 +500,7 @@ async function dispatchThread(thread) {
           error: unexpected?.message || String(unexpected),
           failedAt: new Date().toISOString(),
         });
-        console.error(
-          `❌ Unerwarteter Fehler beim Senden von Thread ${current.id} (Segment ${segment.sequence}) auf ${platformId}:`,
-          unexpected?.message || unexpected
-        );
+        log.error("Unerwarteter Fehler beim Senden eines Thread-Segments", { id: current.id, seq: segment.sequence, platform: platformId, error: unexpected?.message || String(unexpected) });
         break;
       }
     }
@@ -572,7 +562,7 @@ async function processDueThreads(now = new Date()) {
   for (const thread of dueThreads) {
     try {
       if (discardMode) {
-        const { ThreadSkeetMedia } = require('../models');
+        const { ThreadSkeetMedia } = require('../../data/models');
         const current = await Thread.findByPk(thread.id, {
           include: [{ model: ThreadSkeet, as: "segments", order: [["sequence", "ASC"]], include: [{ model: ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] }],
         });
@@ -621,13 +611,13 @@ async function processDueThreads(now = new Date()) {
             status: "published",
           });
 
-          console.log(`✅ Discard-Mode: Thread ${current.id} als veröffentlicht markiert (Demo)`);
+          log.info("Discard-Mode: Thread als veröffentlicht markiert (Demo)", { id: current.id });
         }
         continue;
       }
       await dispatchThread(thread);
     } catch (error) {
-      console.error(`❌ Fehler beim Senden von Thread ${thread.id}:`, error?.message || error);
+      log.error("Fehler beim Senden eines Threads", { id: thread.id, error: error?.message || String(error) });
     }
   }
 }
@@ -652,10 +642,10 @@ async function applySchedulerTask() {
     schedule,
     () => {
       processDueSkeets().catch((error) => {
-        console.error("❌ Scheduler-Lauf (Skeets) fehlgeschlagen:", error?.message || error);
+        log.error("Scheduler-Lauf (Skeets) fehlgeschlagen", { error: error?.message || String(error) });
       });
       processDueThreads().catch((error) => {
-        console.error("❌ Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
+        log.error("Scheduler-Lauf (Threads) fehlgeschlagen", { error: error?.message || String(error) });
       });
       // Engagement-Refresh: dynamisch je nach Client-Präsenz
       if (!config.DISCARD_MODE) {
@@ -667,7 +657,7 @@ async function applySchedulerTask() {
         if (now - lastEngagementRunAt >= minInterval) {
           lastEngagementRunAt = now;
           refreshPublishedThreadsBatch(3).catch((error) => {
-            console.error("❌ Engagement-Refresh fehlgeschlagen:", error?.message || error);
+            log.error("Engagement-Refresh fehlgeschlagen", { error: error?.message || String(error) });
           });
         }
       }
@@ -676,14 +666,14 @@ async function applySchedulerTask() {
   );
 
   //lastScheduleConfig = { schedule, timeZone };
-  console.log(`🕑 Scheduler aktiv – Cron: ${schedule} (Zeitzone: ${timeZone || "system"})`);
+  log.info("Scheduler aktiv", { cron: schedule, timezone: timeZone || "system" });
 
   await Promise.all([
     processDueSkeets().catch((error) => {
-      console.error("❌ Initialer Scheduler-Lauf (Skeets) fehlgeschlagen:", error?.message || error);
+      log.error("Initialer Scheduler-Lauf (Skeets) fehlgeschlagen", { error: error?.message || String(error) });
     }),
     processDueThreads().catch((error) => {
-      console.error("❌ Initialer Scheduler-Lauf (Threads) fehlgeschlagen:", error?.message || error);
+      log.error("Initialer Scheduler-Lauf (Threads) fehlgeschlagen", { error: error?.message || String(error) });
     }),
   ]);
 

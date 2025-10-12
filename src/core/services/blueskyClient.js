@@ -6,8 +6,8 @@
  * Replies bereit. Die Agent-Instanz wird einmalig erzeugt und wiederverwendet,
  * um Rate-Limits zu schonen.
  */
-const { env } = require("../env");
-const { createLogger } = require("../utils/logging");
+const { env } = require("@env");
+const { createLogger } = require("@utils/logging");
 const log = createLogger('bluesky');
 
 const { serverUrl, identifier, appPassword } = env.bluesky;
@@ -69,9 +69,8 @@ async function postSkeet(text) {
   try {
     const uri = post?.uri || post?.data?.uri || null;
     log.info("Bluesky Post gesendet", { uri });
-  } catch (e) { console.error("Bluesky Post senden fehlgeschlagen", e); }
-  if (!post) 
-  return post.data;
+  } catch (e) { log.error("Bluesky Post senden fehlgeschlagen", { error: e?.message || String(e) }); }
+  return post?.data ?? post ?? null;
 }
 
 /**
@@ -86,7 +85,7 @@ async function getReactions(postUri) {
     const likeCount = Array.isArray(out.likes) ? out.likes.length : 0;
     const repostCount = Array.isArray(out.reposts) ? out.reposts.length : 0;
     log.debug("Bluesky Reactions geladen", { uri: postUri, likes: likeCount, reposts: repostCount });
-  } catch (e) { console.error("Bluesky Reactions laden fehlgeschlagen", e); }
+  } catch (e) { log.error("Bluesky Reactions laden fehlgeschlagen", { error: e?.message || String(e) }); }
   return out;
 }
 
@@ -99,7 +98,7 @@ async function getReplies(postUri) {
   try {
     const repliesLen = Array.isArray(thread?.data?.thread?.replies) ? thread.data.thread.replies.length : 0;
     log.debug("Bluesky Thread geladen", { uri: postUri, repliesTopLevel: repliesLen });
-  } catch (e) { console.error("Bluesky Thread laden fehlgeschlagen", e); }
+  } catch (e) { log.error("Bluesky Thread laden fehlgeschlagen", { error: e?.message || String(e) }); }
   return thread.data.thread;
 }
 

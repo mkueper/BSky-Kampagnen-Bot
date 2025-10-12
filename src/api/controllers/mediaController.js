@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Thread, ThreadSkeet, ThreadSkeetMedia, Skeet, SkeetMedia } = require('../models');
+const { Thread, ThreadSkeet, ThreadSkeetMedia, Skeet, SkeetMedia } = require('@data/models');
 
 function ensureUploadDir() {
   const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');

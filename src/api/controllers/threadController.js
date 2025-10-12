@@ -14,8 +14,8 @@
  *   übernimmt robustes Parsen und wandelt nach UTC.
  * - Der Controller hält die Antworten bewusst flach und gibt rohe JSON-Objekte der Modelle zurück.
  */
-const threadService = require("../services/threadService");
-const { refreshThreadEngagement, refreshAllPublishedThreads } = require("../services/threadEngagementService");
+const threadService = require("@core/services/threadService");
+const { refreshThreadEngagement, refreshAllPublishedThreads } = require("@core/services/threadEngagementService");
 
 /**
  * GET /api/threads[?status=scheduled|draft|published|deleted]

@@ -1,7 +1,7 @@
 const { Op } = require("sequelize");
 const cron = require("node-cron");
-const config = require("../config");
-const { Setting } = require("../models");
+const config = require("@config");
+const { Setting } = require("@data/models");
 
 const KEYS = {
   scheduleTime: "SCHEDULE_TIME",
@@ -147,7 +147,7 @@ module.exports = {
 
 async function getClientPollingSettings() {
   const map = await getSettingsMap(Object.values(CLIENT_KEYS));
-  const base = require("../config").CLIENT_CONFIG?.polling || {};
+  const base = require("@config").CLIENT_CONFIG?.polling || {};
 
   const defaults = {
     threadActiveMs: toNumber(base?.threads?.activeMs, 8000),

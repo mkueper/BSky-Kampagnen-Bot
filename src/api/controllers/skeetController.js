@@ -5,7 +5,7 @@
  * Endpunkte zum Listen, Erstellen, Aktualisieren, Löschen (soft/hard),
  * Zurückziehen veröffentlichter Posts und Wiederherstellen gelöschter Skeets.
  */
-const skeetService = require('../services/skeetService');
+const skeetService = require('@core/services/skeetService');
 
 /**
  * GET /api/skeets[?includeDeleted=1|true|yes|all][&onlyDeleted=1|true|yes]

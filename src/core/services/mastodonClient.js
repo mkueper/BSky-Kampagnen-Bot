@@ -11,8 +11,8 @@
  * einplanen oder alternative Workflows starten.
  */
 const Mastodon = require("mastodon-api");
-const { env } = require("../env");
-const { createLogger } = require("../utils/logging");
+const { env } = require("@env");
+const { createLogger } = require("@utils/logging");
 const log = createLogger('mastodon');
 const fs = require('fs');
 

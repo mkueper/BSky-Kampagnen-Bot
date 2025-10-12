@@ -5,7 +5,7 @@
  * Export liefert JSON-Downloads mit definiertem Schema, Import akzeptiert
  * entsprechende JSON-Dateien und legt Einträge als Entwürfe/geplante Objekte an.
  */
-const importExportService = require('../services/importExportService');
+const importExportService = require('@core/services/importExportService');
 
 /**
  * GET /api/skeets/export

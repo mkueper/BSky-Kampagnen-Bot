@@ -5,8 +5,8 @@
  * Wird vom Dashboard verwendet, um Polling-Intervalle, Locale und Zeitzone
  * zu kennen. Es werden ausschließlich unkritische Werte exponiert.
  */
-const config = require('../config');
-const settingsService = require('../services/settingsService');
+const config = require('@config');
+const settingsService = require('@core/services/settingsService');
 
 async function getClientConfig(req, res) {
   try {

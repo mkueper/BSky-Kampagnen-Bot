@@ -5,8 +5,10 @@
  * Dadurch bleibt der Rest des Codes unabhängig von konkreten APIs; jedes
  * Profil definiert, wie validiert, normalisiert und gepostet wird.
  */
-const { getProfile } = require("../platforms/registry");
-const settingsService = require("./settingsService");
+const { getProfile } = require("@platforms/registry");
+const settingsService = require("@core/services/settingsService");
+const { createLogger } = require('@utils/logging');
+const log = createLogger('post');
 
 /**
  * @typedef {{ content: string, scheduledAt?: string | Date }} PostInput
@@ -68,7 +70,7 @@ async function withRetry(fn, opts = {}) {
       const delay = Math.min(maxMs, baseMs * Math.pow(2, attempt - 1));
       const jitter = Math.floor(Math.random() * Math.floor(delay * 0.25));
       const wait = delay + jitter;
-      console.warn(`⚠️  Post fehlgeschlagen (Versuch ${attempt}/${maxRetries}). Warte ${wait}ms…`, err?.message || err);
+      log.warn('Post fehlgeschlagen – Retry', { attempt, maxRetries, wait, error: err?.message || String(err) });
       await sleep(wait);
     }
   }

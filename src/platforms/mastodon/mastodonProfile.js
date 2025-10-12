@@ -1,5 +1,6 @@
-const { countGraphemesSync } = require("../../utils/graphemes");
-const { createClient } = require("../../services/mastodonClient");
+const { countGraphemesSync } = require("@utils/graphemes");
+const { createLogger } = require("@utils/logging");
+const log = createLogger('platform:mastodon');
 
 function resolveStatusId(input) {
   if (!input) {
@@ -96,18 +97,19 @@ const mastodonProfile = {
       throw new Error("Mastodon-Env unvollständig (apiUrl, accessToken erforderlich).");
     }
 
+    // Lazy import to avoid requiring optional deps during unit tests
+    const { createClient, uploadMedia } = require("@core/services/mastodonClient");
     const client = createClient(env);
     const mediaItems = Array.isArray(payload.media) ? payload.media : [];
     let media_ids = undefined;
     if (mediaItems.length > 0) {
-      const { uploadMedia } = require('../../services/mastodonClient');
       const ids = [];
       for (const m of mediaItems) {
         try {
           const id = await uploadMedia(m.path, m.altText || '', env);
           if (id) ids.push(id);
         } catch (e) {
-          console.warn(e);
+          log.warn('Mastodon Medien-Upload fehlgeschlagen', { error: e?.message || String(e) });
         }
       }
       if (ids.length > 0) media_ids = ids;
@@ -137,6 +139,7 @@ const mastodonProfile = {
       throw new Error('Status-ID zum Löschen fehlt.');
     }
 
+    const { createClient } = require("@core/services/mastodonClient");
     const client = createClient(env);
     await client.delete(`statuses/${statusId}`);
     return { statusId };

@@ -1,4 +1,4 @@
-const { Skeet, Thread, ThreadSkeet } = require('../models');
+const { Skeet, Thread, ThreadSkeet } = require('../../data/models');
 const threadService = require('./threadService');
 const skeetService = require('./skeetService');
 const fs = require('fs');

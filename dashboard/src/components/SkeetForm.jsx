@@ -92,7 +92,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const [scheduledDate, setScheduledDate] = useState(defaultDate)
   const [scheduledTime, setScheduledTime] = useState(defaultTime)
   const [repeat, setRepeat] = useState('none')
-  const [repeatDayOfWeek, setRepeatDayOfWeek] = useState(null)
+  // Single weekly day is derived from repeatDaysOfWeek[0]
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null)
 
   const isEditing = Boolean(editingSkeet)
@@ -150,7 +150,6 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     setContent('')
     setTargetPlatforms(['bluesky'])
     setRepeat('none')
-    setRepeatDayOfWeek(null)
     setRepeatDayOfMonth(null)
     setPendingMedia([])
     const defaults = getDefaultDateParts()
@@ -169,11 +168,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           : ['bluesky']
       )
       setRepeat(editingSkeet.repeat ?? 'none')
-      setRepeatDayOfWeek(
-        editingSkeet.repeat === 'weekly' && editingSkeet.repeatDayOfWeek != null
-          ? Number(editingSkeet.repeatDayOfWeek)
-          : null
-      )
+      if (editingSkeet.repeat === 'weekly' && editingSkeet.repeatDayOfWeek != null) {
+        setRepeatDaysOfWeek([Number(editingSkeet.repeatDayOfWeek)])
+      } else {
+        setRepeatDaysOfWeek([])
+      }
       setRepeatDayOfMonth(
         editingSkeet.repeat === 'monthly' &&
           editingSkeet.repeatDayOfMonth != null
@@ -603,12 +602,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             id='repeat'
             value={repeat}
             onChange={e => {
-              const value = e.target.value
-              setRepeat(value)
-              setRepeatDayOfWeek(null)
-              setRepeatDayOfMonth(null)
-              setRepeatDaysOfWeek([])
-            }}
+          const value = e.target.value
+          setRepeat(value)
+          setRepeatDayOfMonth(null)
+          setRepeatDaysOfWeek([])
+        }}
             className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
           >
             <option value='none'>Keine Wiederholung</option>

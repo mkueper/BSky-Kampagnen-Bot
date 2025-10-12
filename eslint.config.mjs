@@ -33,13 +33,20 @@ export default tseslint.config(
     },
   },
 
-  // 3. CJS/Module config files
+  // 3. CJS/Module config files and root ESM configs
   {
-    files: ["**/*.cjs", "migrations/**/*.js", "dashboard/tailwind.config.mjs"],
+    files: [
+      "**/*.cjs",
+      "migrations/**/*.js",
+      "dashboard/tailwind.config.mjs",
+      "vitest.config.mjs",
+      "eslint.config.mjs"
+    ],
     languageOptions: {
       globals: {
         ...globals.node,
         module: "readonly",
+        URL: "readonly"
       },
     }
   },
@@ -89,6 +96,21 @@ export default tseslint.config(
     settings: {
       react: {
         version: "detect",
+      },
+    },
+  }
+  ,
+  // 7. Test files (Vitest globals)
+  {
+    files: ["src/**/*.test.js", "tests/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        describe: "readonly",
+        it: "readonly",
+        test: "readonly",
+        expect: "readonly",
+        vi: "readonly",
       },
     },
   }

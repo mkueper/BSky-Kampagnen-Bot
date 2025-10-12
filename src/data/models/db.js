@@ -10,7 +10,8 @@ const { Sequelize } = require("sequelize");
 const path = require("path");
 
 // CLI-Config laden (Root/config/config.js)
-const dbConfig = require(path.join(__dirname, "../../config/config.js"));
+// Nutzt das Projekt-Root (process.cwd()), da Models verschoben wurden
+const dbConfig = require(path.resolve(process.cwd(), "config", "config.js"));
 
 // Umgebung bestimmen (default: development)
 const env = process.env.NODE_ENV || "development";

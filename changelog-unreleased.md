@@ -8,6 +8,49 @@
 # ### <Section>
 # - Eintrag
 
+## 2025-10-12
+
+### Struktur/Architektur
+- Projektstruktur modularisiert:
+  - Controller nach `src/api/controllers/` verschoben.
+  - Services nach `src/core/services/` verschoben.
+  - Models nach `src/data/models/` verschoben.
+- Pfade im Code angepasst; `server.js` lädt Controller/Services/Models aus den neuen Orten.
+- DB-Config-Ladepfad robust gemacht (`src/data/models/db.js` lädt `config/config.js` über `process.cwd()`), verhindert Pfadfehler nach Umzug.
+
+### Alias-Imports
+- Alias-Pfade eingeführt (Editor/Tests/Runtime): `@api`, `@core`, `@data`, `@platforms`, `@utils`, `@config`, `@env`.
+- Vitest: `resolve.alias` + `tests/setup.alias.js` (lädt `module-alias/register`) für CJS-`require` mit Aliases.
+- Node-Laufzeit: `server.js` lädt `module-alias/register` optional (kein Startabbruch ohne Dependency).
+- package.json: `_moduleAliases` ergänzt; tsconfig `paths` hinzugefügt.
+
+### Tests
+- Neue Unit-Tests:
+  - `src/platforms/profiles.test.js` (Bluesky/Mastodon: validate/toPostPayload).
+  - `src/core/services/platformContext.test.js` (Credential-Validierung).
+  - Controller-Tests: `mediaController` (MIME/Größe) und `uploadController` (Data-URL/Größe) mit isolierten Mocks.
+- SDK-Imports (Bluesky/Mastodon) auf Lazy-Import umgestellt, damit Tests ohne externe Abhängigkeiten laufen.
+
+### Lint/Tooling
+- ESLint-Config erweitert:
+  - Test-Globals (`describe`, `it`, `expect`, `vi`).
+  - ESM-Konfigdateien (`vitest.config.mjs`, `eslint.config.mjs`) inkl. `URL`-Global.
+- Frontend: ungenutzte Zustandsvariable in `SkeetForm.jsx` entfernt; Validierungs-Logik konsolidiert.
+
+### Frontend/UX
+- Threads-Übersicht (Mobile): Aktionsleiste nutzt `flex-wrap`; Buttons umbrechen nicht mehr aus dem View.
+- Replies-/Reaktionen-Buttons: nur bei veröffentlichten/gesendeten Threads sichtbar.
+- Metrik-Zeile („Likes · Reposts · Antworten“) bei geplanten Threads ausgeblendet; stattdessen „Geplant“.
+- Header-Aktionen (Mobile): Titelzeile ohne Umbruch; Buttons in zweite Zeile (overflow-x auto), Desktop weiterhin eine Zeile.
+- Export/Import: Icon-Buttons auf Mobile (Text ab `sm` sichtbar); Buttons in Übersicht/Konfiguration ausgeblendet.
+
+### Logging
+- Backend-Logs vereinheitlicht (nutzt `createLogger` statt `console.*` in Kernpfaden wie Scheduler/Media/Engagement).
+- Statische Routen/Wildcard-Route mit klaren Meldungen und reduziertem Loglevel (Debug/Info/Warn/Error).
+
+### Hinweise
+- Für lokale Entwicklung wird Node 20 LTS empfohlen. Ältere sqlite3-Bindings können mit `npm rebuild sqlite3 --build-from-source` für die aktive Node-Version neu gebaut werden.
+
 ## 2025-10-11
 
 ### Code Quality

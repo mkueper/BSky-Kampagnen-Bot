@@ -1,5 +1,5 @@
 // src/controllers/heartbeatController.js
-const presence = require('../services/presenceService');
+const presence = require('@core/services/presenceService');
 
 async function postHeartbeat(req, res) {
   try {
@@ -11,4 +11,3 @@ async function postHeartbeat(req, res) {
 }
 
 module.exports = { postHeartbeat };
-
