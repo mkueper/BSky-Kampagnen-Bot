@@ -85,7 +85,7 @@ async function saveBlobWithPicker (blob, suggestedName) {
 }
 
 const NAV_ITEMS = [
-  { id: 'overview', label: 'Aktivität', icon: ViewHorizontalIcon },
+  { id: 'overview', label: 'Übersicht', icon: ViewHorizontalIcon },
   {
     id: 'skeets',
     label: 'Skeets',
@@ -108,7 +108,7 @@ const NAV_ITEMS = [
 ]
 
 const HEADER_CAPTIONS = {
-  overview: 'Aktivität',
+  overview: 'Übersicht',
   'skeets-overview': 'Skeets',
   'skeets-plan': 'Skeetplaner',
   'threads-overview': 'Threads',
@@ -117,7 +117,7 @@ const HEADER_CAPTIONS = {
 }
 
 const HEADER_TITLES = {
-  overview: 'Aktivität',
+  overview: 'Bluesky Kampagnen-Dashboard',
   'skeets-overview': 'Skeet-Übersicht',
   'skeets-plan': 'Skeet planen',
   'threads-overview': 'Thread-Übersicht',
