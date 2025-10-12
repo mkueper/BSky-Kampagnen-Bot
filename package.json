@@ -1,6 +1,6 @@
 {
   "name": "bsky-kampagnen-bot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bot um Kampagnen-Skeets an ausgewählten Tagen zu senden und die Reaktionen zu überprüfen.",
   "keywords": [],
   "license": "ISC",
