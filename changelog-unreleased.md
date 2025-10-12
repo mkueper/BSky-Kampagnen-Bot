@@ -70,7 +70,8 @@
  - Wortlaut vereinheitlicht („Antworten“ statt „Replies“, „Skeet Übersicht“/„Thread Übersicht“, Navigationseinträge „Aktivität“).
  - Endgültiges Löschen (Threads) nutzt jetzt den bestehenden `ConfirmDialog` statt `window.confirm`.
  - UI‑Abstand unter der Header‑Trennlinie erhöht (`pt-6`) in Skeets/Threads Aktivität.
- - Auskommentierte, veraltete Blöcke entfernt (Aufräumarbeiten).
+- Auskommentierte, veraltete Blöcke entfernt (Aufräumarbeiten).
+- Threads: Bei Bulk‑Refresh ist die „Antworten“-Checkbox während der Ausführung deaktiviert (verhindert State‑Flackern).
 
 ### Logging
 - Backend-Logs vereinheitlicht (nutzt `createLogger` statt `console.*` in Kernpfaden wie Scheduler/Media/Engagement).
