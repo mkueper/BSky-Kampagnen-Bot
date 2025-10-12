@@ -37,6 +37,15 @@
   - ESM-Konfigdateien (`vitest.config.mjs`, `eslint.config.mjs`) inkl. `URL`-Global.
 - Frontend: ungenutzte Zustandsvariable in `SkeetForm.jsx` entfernt; Validierungs-Logik konsolidiert.
 
+### Docs/IDE
+- VS Code Workspace verbessert (`BSky-Kampagnen-Bot.code-workspace`):
+  - ESLint Flat Config aktiviert und Auto-Fix on Save (`source.fixAll.eslint`).
+  - TypeScript nutzt Workspace-TS (`typescript.tsdk`).
+  - Suche/Explorer-Excludes vereinheitlicht; Dateizuordnungen für `*.mjs`/`*.cjs`.
+  - Launch/Debug: Backend (Node Inspect), Dashboard (Chrome), Compound (beides).
+  - Tasks: Backend Dev (npm run dev), Dashboard Vite Dev (mit robustem ProblemMatcher).
+  - Doku ergänzt: `docs/development/vscode-workspace.md`.
+
 ### Frontend/UX
 - Threads-Übersicht (Mobile): Aktionsleiste nutzt `flex-wrap`; Buttons umbrechen nicht mehr aus dem View.
 - Replies-/Reaktionen-Buttons: nur bei veröffentlichten/gesendeten Threads sichtbar.
