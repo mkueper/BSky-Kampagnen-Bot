@@ -6,8 +6,8 @@
  * (Cron-Ausdruck, Zeitzone) zu lesen und zu speichern. Nach einem Update
  * wird der Scheduler neugestartet, damit Änderungen unmittelbar greifen.
  */
-const settingsService = require("../services/settingsService");
-const { restartScheduler } = require("../services/scheduler");
+const settingsService = require("@core/services/settingsService");
+const { restartScheduler } = require("@core/services/scheduler");
 
 /**
  * GET /api/settings/scheduler

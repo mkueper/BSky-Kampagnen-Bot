@@ -373,37 +373,43 @@ function ThreadOverview ({
                   </div>
                 ) : null}
                 <div className='mt-3 flex flex-wrap items-center justify-between gap-2'>
-                  <div className='flex flex-wrap items-center gap-3 text-xs text-foreground-muted'>
-                    <span>
-                      Likes:{' '}
-                      <span className='font-medium text-foreground'>
-                        {displayLikes}
-                      </span>
-                    </span>
-                    <span>
-                      Reposts:{' '}
-                      <span className='font-medium text-foreground'>
-                        {displayReposts}
-                      </span>
-                    </span>
-                    <span>
-                      Antworten:{' '}
-                      <span className='font-medium text-foreground'>
-                        {displayReplies}
-                      </span>
-                    </span>
-                    {lastMetricsUpdatedAt ? (
-                      <span className='inline-flex items-center gap-1'>
-                        <span>·</span>
-                        <span>
-                          Zuletzt aktualisiert:{' '}
-                          <span className='font-medium text-foreground'>
-                            {formatUpdatedAt(lastMetricsUpdatedAt)}
-                          </span>
+                  {(thread.status === 'published' || hasSentPlatforms) ? (
+                    <div className='flex flex-wrap items-center gap-3 text-xs text-foreground-muted'>
+                      <span>
+                        Likes:{' '}
+                        <span className='font-medium text-foreground'>
+                          {displayLikes}
                         </span>
                       </span>
-                    ) : null}
-                  </div>
+                      <span>
+                        Reposts:{' '}
+                        <span className='font-medium text-foreground'>
+                          {displayReposts}
+                        </span>
+                      </span>
+                      <span>
+                        Antworten:{' '}
+                        <span className='font-medium text-foreground'>
+                          {displayReplies}
+                        </span>
+                      </span>
+                      {lastMetricsUpdatedAt ? (
+                        <span className='inline-flex items-center gap-1'>
+                          <span>·</span>
+                          <span>
+                            Zuletzt aktualisiert:{' '}
+                            <span className='font-medium text-foreground'>
+                              {formatUpdatedAt(lastMetricsUpdatedAt)}
+                            </span>
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
+                      Geplant
+                    </span>
+                  )}
                   {hasMore ? (
                     <button
                       type='button'
@@ -419,7 +425,7 @@ function ThreadOverview ({
                       Keine weiteren Skeets
                     </span>
                   )}
-                  <div className='flex items-center gap-2'>
+                  <div className='flex flex-wrap items-center gap-2'>
                     {isDeletedMode ? (
                       <>
                         <Button
@@ -437,7 +443,7 @@ function ThreadOverview ({
                       </>
                     ) : (
                       <>
-                        {flatReplies.length > 0 ? (
+                        {(thread.status === 'published' || hasSentPlatforms) && flatReplies.length > 0 ? (
                           <Button
                             variant='secondary'
                             onClick={() =>
@@ -452,7 +458,7 @@ function ThreadOverview ({
                               : `Antworten anzeigen (${flatReplies.length})`}
                           </Button>
                         ) : null}
-                        {!isDemo && (
+                        {!isDemo && (thread.status === 'published' || hasSentPlatforms) && (
                           <Button
                             variant='primary'
                             onClick={async () => {
@@ -513,9 +519,7 @@ function ThreadOverview ({
                             }}
                             disabled={Boolean(loadingRefresh[thread.id])}
                           >
-                            {loadingRefresh[thread.id]
-                              ? 'Lädt…'
-                              : 'Reaktionen aktualisieren'}
+                            {loadingRefresh[thread.id] ? 'Lädt…' : 'Reaktionen aktualisieren'}
                           </Button>
                         )}
                         {canEdit ? (

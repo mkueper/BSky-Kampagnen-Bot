@@ -1,5 +1,5 @@
-const { Skeet, Reply } = require('../models');
-const { createLogger, isEngagementDebug } = require('../utils/logging');
+const { Skeet, Reply } = require('@data/models');
+const { createLogger, isEngagementDebug } = require('@utils/logging');
 const log = createLogger('engagement');
 const { getReactions: getBlueskyReactions, getReplies: fetchBlueskyReplies } = require('./blueskyClient');
 const {
@@ -14,7 +14,7 @@ function parsePlatformResults(raw) {
     try {
       return JSON.parse(raw);
     } catch (error) {
-      console.warn('Konnte platformResults nicht parsen:', error);
+      log.warn('Konnte platformResults nicht parsen', { error: error?.message || String(error) });
       return {};
     }
   }
@@ -48,7 +48,7 @@ function extractMastodonStatusId(uri) {
     const segments = parsed.pathname.split('/').filter(Boolean);
     return segments.pop() || null;
   } catch (error) {
-    console.warn('Ungültige Mastodon-URI', error);
+    log.warn('Ungültige Mastodon-URI', { error: error?.message || String(error) });
     const fallbackSegments = uri.split('/').filter(Boolean);
     return fallbackSegments.pop() || null;
   }

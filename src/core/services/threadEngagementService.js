@@ -3,8 +3,8 @@
  * Sammelt Reaktionen (Likes/Reposts) und Replies für veröffentlichte Thread-Segmente
  * pro Plattform und speichert sie an den Segmenten bzw. im Thread-Metadatenfeld.
  */
-const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("../models");
-const { createLogger, isEngagementDebug } = require("../utils/logging");
+const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("@data/models");
+const { createLogger, isEngagementDebug } = require("@utils/logging");
 const log = createLogger('engagement');
 const { getReactions: bskyGetReactions, getReplies: bskyGetPostThread } = require("./blueskyClient");
 const {
@@ -20,7 +20,7 @@ function extractMastodonStatusId(uri) {
     const parts = parsed.pathname.split("/").filter(Boolean);
     return parts.pop() || null;
   } catch {
-      console.warn("Ungültige Mastodon-URI")
+      log.warn("Ungültige Mastodon-URI");
       const parts = String(uri).split("/").filter(Boolean);
       return parts.pop() || null;
   }

@@ -61,7 +61,8 @@
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
     "sqlite3": "^5.1.7",
-    "undici": "^7.13.0"
+    "undici": "^7.13.0",
+    "module-alias": "^2.2.2"
   },
   "devDependencies": {
     "@vitest/ui": "^3.2.4",
@@ -79,6 +80,15 @@
     "vitest": "^3.2.4"
   },
   "private": true,
+  "_moduleAliases": {
+    "@api": "src/api",
+    "@core": "src/core",
+    "@data": "src/data",
+    "@platforms": "src/platforms",
+    "@utils": "src/utils",
+    "@config": "src/config.js",
+    "@env": "src/env.js"
+  },
   "workspaces": {
     "packages": [
       "dashboard"

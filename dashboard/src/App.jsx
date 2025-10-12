@@ -787,31 +787,39 @@ function App () {
           Aktuelles Theme: {currentThemeConfig?.label}
         </span>
       </Button>
-      <Button
-        variant='secondary'
-        onClick={handleExport}
-        disabled={exporting}
-        className='inline-flex items-center gap-2'
-      >
-        <DownloadIcon className='h-4 w-4' />
-        {exportButtonLabel}
-      </Button>
-      <Button
-        variant='primary'
-        onClick={handleImportClick}
-        disabled={importing}
-        className='inline-flex items-center gap-2'
-      >
-        <UploadIcon className='h-4 w-4' />
-        {importButtonLabel}
-      </Button>
-      <input
-        ref={importInputRef}
-        type='file'
-        accept='application/json'
-        className='hidden'
-        onChange={handleImportFileChange}
-      />
+      {(activeView === 'skeets-overview' || activeView === 'threads-overview') && (
+        <>
+          <Button
+            variant='secondary'
+            onClick={handleExport}
+            disabled={exporting}
+            aria-label={exportButtonLabel}
+            title={exportButtonLabel}
+            className='inline-flex items-center gap-2'
+          >
+            <DownloadIcon className='h-4 w-4' />
+            <span className='hidden sm:inline'>{exportButtonLabel}</span>
+          </Button>
+          <Button
+            variant='primary'
+            onClick={handleImportClick}
+            disabled={importing}
+            aria-label={importButtonLabel}
+            title={importButtonLabel}
+            className='inline-flex items-center gap-2'
+          >
+            <UploadIcon className='h-4 w-4' />
+            <span className='hidden sm:inline'>{importButtonLabel}</span>
+          </Button>
+          <input
+            ref={importInputRef}
+            type='file'
+            accept='application/json'
+            className='hidden'
+            onChange={handleImportFileChange}
+          />
+        </>
+      )}
     </>
   )
 

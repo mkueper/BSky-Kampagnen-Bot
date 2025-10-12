@@ -1,9 +1,11 @@
 const { ValidationError } = require("sequelize");
-const { sequelize, Thread, ThreadSkeet, SkeetReaction, ThreadSkeetMedia } = require("../models");
+const { sequelize, Thread, ThreadSkeet, SkeetReaction, ThreadSkeetMedia } = require("@data/models");
 const fs = require('fs');
 const path = require('path');
 const { deletePost } = require("./postService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
+const { createLogger } = require('@utils/logging');
+const log = createLogger('thread');
 
 const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
 
@@ -62,7 +64,7 @@ function ensureMetadataObject(raw) {
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (error) {
-      console.warn('Konnte metadata nicht parsen:', error);
+      log.warn('Konnte metadata nicht parsen', { error: error?.message || String(error) });
       return {};
     }
   }
@@ -79,14 +81,14 @@ function ensureUploadDir() {
   try { 
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); 
   } catch (e){
-    console.error(e); 
+    log.error('Fehler beim Anreichern der Thread-Medien', { error: e?.message || String(e) }); 
   }
   return dir;
 }
 
 function ensureTempDir() {
   const dir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
-  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch (e) { console.error(e);}
+  try { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); } catch (e) { log.error('Fehler beim Erstellen des Temp-Verzeichnisses', { error: e?.message || String(e) });}
   return dir;
 }
 
@@ -153,7 +155,7 @@ async function listThreads({ status } = {}) {
             separate: true,
             order: [["createdAt", "DESC"]],
           },
-          { model: require('../models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
+          { model: require('@data/models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
         ],
       },
     ],
@@ -172,7 +174,7 @@ async function listThreads({ status } = {}) {
         }));
       }
     }
-  } catch (e){console.error(e);}
+  } catch (e){ log.error('Fehler beim Anreichern der Threadliste', { error: e?.message || String(e) }); }
   return out;
 }
 
@@ -191,7 +193,7 @@ async function getThread(id) {
             separate: true,
             order: [["createdAt", "DESC"]],
           },
-          { model: require('../models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
+          { model: require('@data/models').ThreadSkeetMedia, as: 'media', separate: true, order: [["order","ASC"], ["id","ASC"]] },
         ],
       },
     ],
@@ -215,7 +217,7 @@ async function getThread(id) {
         }));
       }
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { log.error('Fehler beim Anreichern des Threads', { error: e?.message || String(e) }); }
   return out;
 }
 
@@ -287,7 +289,7 @@ async function createThread(payload = {}) {
                 const finalPath = path.join(uploadDir, finalBase);
                 fs.renameSync(tempPath, finalPath);
                 saved = { path: finalPath, mime: m.mime || 'application/octet-stream', size: st.size };
-              } catch (e) { console.error(e); }
+              } catch (e) { log.error('Fehler beim Verschieben aus Temp', { error: e?.message || String(e) }); }
             }
             if (!saved) continue;
             await ThreadSkeetMedia.create({
@@ -305,7 +307,7 @@ async function createThread(payload = {}) {
       }
     } catch (mediaErr) {
       // Medienfehler sollen den Thread nicht verhindern; sie können nachträglich hochgeladen werden
-      console.warn('Medien konnten beim Anlegen nicht gespeichert werden:', mediaErr?.message || mediaErr);
+      log.warn('Medien konnten beim Anlegen nicht gespeichert werden', { error: mediaErr?.message || String(mediaErr) });
     }
 
     const fresh = await Thread.findByPk(thread.id, {

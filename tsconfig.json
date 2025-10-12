@@ -14,11 +14,16 @@
         "skipLibCheck": true,
         "resolveJsonModule": true,
         "noEmit": true,
-        "baseUrl": "."
-        // Optional (nur wenn du Pfad-Aliase willst, und tsx/Build das mitmacht):
-        // "paths": {
-        //   "@/*": ["src/*"]
-        // }
+        "baseUrl": ".",
+        "paths": {
+            "@api/*": ["src/api/*"],
+            "@core/*": ["src/core/*"],
+            "@data/*": ["src/data/*"],
+            "@platforms/*": ["src/platforms/*"],
+            "@utils/*": ["src/utils/*"],
+            "@config": ["src/config.js"],
+            "@env": ["src/env.js"]
+        }
     },
     "include": [
         "src/**/*.ts",

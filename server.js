@@ -7,25 +7,26 @@
  * jeweiligen Controllern und Services.
  */
 
+try { require('module-alias/register'); } catch { /* Aliases optional at runtime */ }
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const { login: loginBluesky } = require("./src/services/blueskyClient");
-const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("./src/services/mastodonClient");
-const { startScheduler } = require("./src/services/scheduler");
-const settingsController = require("./src/controllers/settingsController");
-const skeetController = require("./src/controllers/skeetController");
-const threadController = require("./src/controllers/threadController");
-const importExportController = require("./src/controllers/importExportController");
-const engagementController = require("./src/controllers/engagementController");
-const configController = require("./src/controllers/configController");
-const mediaController = require("./src/controllers/mediaController");
-const uploadController = require("./src/controllers/uploadController");
-const heartbeatController = require("./src/controllers/heartbeatController");
-const { runPreflight } = require("./src/utils/preflight");
-const config = require("./src/config");
-//const { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply } = require("./src/models");
-const { createLogger } = require("./src/utils/logging");
+const { login: loginBluesky } = require("@core/services/blueskyClient");
+const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("@core/services/mastodonClient");
+const { startScheduler } = require("@core/services/scheduler");
+const settingsController = require("@api/controllers/settingsController");
+const skeetController = require("@api/controllers/skeetController");
+const threadController = require("@api/controllers/threadController");
+const importExportController = require("@api/controllers/importExportController");
+const engagementController = require("@api/controllers/engagementController");
+const configController = require("@api/controllers/configController");
+const mediaController = require("@api/controllers/mediaController");
+const uploadController = require("@api/controllers/uploadController");
+const heartbeatController = require("@api/controllers/heartbeatController");
+const { runPreflight } = require("@utils/preflight");
+const config = require("@config");
+const { sequelize } = require("@data/models");
+const { createLogger } = require("@utils/logging");
 const appLog = createLogger('app');
 
 const app = express();
@@ -34,16 +35,16 @@ const DIST_DIR = path.join(__dirname, "dashboard", "dist");
 const INDEX_HTML = path.join(DIST_DIR, "index.html");
 
 // Statische Dateien
-// Uploads (Bilder) serven
+// Uploads (Bilder) bereitstellen
 try {
   const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
   app.use('/uploads', express.static(UPLOAD_DIR));
-} catch (e) { console.error("Fehler beim Upload des Mediums", e); }
-// Temporäre Uploads (Entwurf) serven
+} catch (e) { appLog.error("Fehler beim Bereitstellen des Upload-Verzeichnisses", { error: e?.message || String(e) }); }
+// Temporäre Uploads (Entwurf) bereitstellen
 try {
   const TEMP_DIR = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
   app.use('/temp', express.static(TEMP_DIR));
-} catch (e) { console.error("Upload des Mediums ins temp Verzeichnis fehlgeschlagen", e); }
+} catch (e) { appLog.error("Fehler beim Bereitstellen des temporären Upload-Verzeichnisses", { error: e?.message || String(e) }); }
 app.use(express.static(DIST_DIR));
 // Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
 const JSON_LIMIT_MB = Number(process.env.JSON_BODY_LIMIT_MB || 25);
@@ -107,10 +108,10 @@ app.use((req, res, next) => {
     return next();
   }
 
-  console.log("Wildcard Route ausgelöst für:", req.originalUrl);
+  appLog.debug(`Wildcard Route: ${req.originalUrl}`);
   fs.access(INDEX_HTML, fs.constants.F_OK, (err) => {
     if (err) {
-      console.error("FEHLER: index.html nicht gefunden unter:", INDEX_HTML);
+      appLog.error("index.html nicht gefunden", { path: INDEX_HTML });
       return res
         .status(500)
         .send('Frontend-Build fehlt. Bitte "npm run build" im dashboard ausführen.');
@@ -128,18 +129,18 @@ app.use((req, res, next) => {
 
     if (report.bluesky.critical) {
       if (demoMode) {
-        console.warn("⚠️  Preflight (Bluesky) kritisch, aber Demo-/Discard-Modus ist aktiv – fahre ohne Login fort.");
-        report.bluesky.hints.forEach(h => console.warn("   Hinweis:", h));
+        appLog.warn("Preflight (Bluesky) kritisch, Demo-/Discard-Modus aktiv – fahre ohne Login fort.");
+        report.bluesky.hints.forEach(h => appLog.warn("Hinweis", { hint: h }));
       } else {
-        console.error("❌ Preflight fehlgeschlagen (Bluesky):", report.bluesky.issues.join("; "));
-        report.bluesky.hints.forEach(h => console.error("   Hinweis:", h));
+        appLog.error("Preflight fehlgeschlagen (Bluesky)", { issues: report.bluesky.issues });
+        report.bluesky.hints.forEach(h => appLog.error("Hinweis", { hint: h }));
         process.exit(1);
       }
     }
 
-    report.mastodon.warnings.forEach(w => console.warn("⚠️  Preflight:", w));
+    report.mastodon.warnings.forEach(w => appLog.warn("Preflight Warnung", { warning: w }));
   } catch (pfErr) {
-    console.error("❌ Preflight-Fehler:", pfErr?.message || pfErr);
+    appLog.error("Preflight-Fehler", { error: pfErr?.message || String(pfErr) });
     process.exit(1);
   }
 
@@ -147,38 +148,31 @@ app.use((req, res, next) => {
     const demoMode = Boolean(config.DISCARD_MODE);
     if (!demoMode) {
       await loginBluesky();
-      console.log("✅ Bluesky-Login erfolgreich");
       appLog.info("Bluesky-Login erfolgreich");
 
       if (hasMastodonCredentials()) {
         try {
           await loginMastodon();
-          console.log("✅ Mastodon-Login erfolgreich");
           appLog.info("Mastodon-Login erfolgreich");
         } catch (mastodonError) {
-          console.error("❌ Mastodon-Login fehlgeschlagen:", mastodonError?.message || mastodonError);
           appLog.error("Mastodon-Login fehlgeschlagen", { error: mastodonError?.message || String(mastodonError) });
         }
       } else {
-        console.log("ℹ️ Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
+        appLog.info("Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
       }
     } else {
-      console.log("ℹ️ Demo-/Discard-Modus aktiv – Logins zu Bluesky/Mastodon werden übersprungen.");
-      appLog.info("Demo-/Discard-Modus: Logins übersprungen");
+      appLog.info("Demo-/Discard-Modus aktiv – Logins zu Bluesky/Mastodon werden übersprungen.");
     }
 
-//    await sequelize.authenticate();
-    console.log("✅ DB-Verbindung ok");
+    await sequelize.authenticate();
     appLog.info("DB-Verbindung ok");
 
     const syncFlag = (process.env.DB_SYNC || "").toLowerCase();
     const shouldSync = syncFlag === "true" || (process.env.NODE_ENV !== "production" && syncFlag !== "false");
     if (shouldSync) {
-//      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
-      console.log("✅ DB synchronisiert (sequelize.sync)");
+      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
       appLog.info("DB synchronisiert (sequelize.sync)");
     } else {
-      console.log("ℹ️ sequelize.sync() übersprungen – Migrationen verwenden");
       appLog.info("sequelize.sync() übersprungen – Migrationen verwenden");
     }
 
@@ -186,17 +180,15 @@ app.use((req, res, next) => {
       await startScheduler();
       appLog.info("Scheduler gestartet");
     } catch (schedulerError) {
-      console.error("❌ Scheduler konnte nicht gestartet werden:", schedulerError?.message || schedulerError);
       appLog.error("Scheduler konnte nicht gestartet werden", { error: schedulerError?.message || String(schedulerError) });
     }
 
     app.listen(PORT, () => {
       if (process.env.NODE_ENV !== "test") {
-        console.log(`🚀 Server läuft auf http://localhost:${PORT}`);
         appLog.info("Server läuft", { port: PORT, env: process.env.NODE_ENV || "development", target: process.env.LOG_TARGET || 'console', level: process.env.LOG_LEVEL || 'info', file: process.env.LOG_FILE || 'logs/server.log' });
       }
     });
   } catch (err) {
-    console.error("❌ Fehler beim Initialisieren des Servers:", err);
+    appLog.error("Fehler beim Initialisieren des Servers", { error: err?.message || String(err) });
   }
 })();

@@ -5,9 +5,9 @@
  * Diese Endpunkte lesen Daten aus gespeicherten Plattform-Referenzen (z. B. Bluesky-URIs)
  * und aggregieren Reaktionen oder laden Antworten, sofern möglich.
  */
-const engagementService = require('../services/engagementService');
-const threadEngagementService = require('../services/threadEngagementService');
-const config = require('../config');
+const engagementService = require('@core/services/engagementService');
+const threadEngagementService = require('@core/services/threadEngagementService');
+const config = require('@config');
 
 /**
  * GET /api/skeets/:skeetId/reactions

@@ -1,5 +1,5 @@
-const { env } = require('../env');
-const { setupPlatforms } = require('../platforms/setup');
+const { env } = require('@env');
+const { setupPlatforms } = require('@platforms/setup');
 
 let platformsReady = false;
 
