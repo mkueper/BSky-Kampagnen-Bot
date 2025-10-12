@@ -16,6 +16,7 @@ function PublishedSkeetList({
   reactionStats,
   platformLabels,
   formatTime,
+  getItemRef,
 }) {
   if (skeets.length === 0) {
     return (
@@ -54,11 +55,17 @@ function PublishedSkeetList({
         const reactionErrors = reactionStats[skeet.id]?.errors;
         const replyError = replyErrors[skeet.id];
         const hasSentPlatforms = Object.values(skeet.platformResults || {}).some((entry) => entry && entry.status === 'sent');
-        const canRetract = typeof onRetract === 'function' && (skeet.postUri || hasSentPlatforms);
-        const canFetchReactions = Boolean(skeet.postUri || hasSentPlatforms);
+        const isDemo = (() => {
+          try {
+            if (typeof skeet.postUri === 'string' && skeet.postUri.startsWith('demo://')) return true;
+            return Object.values(skeet.platformResults || {}).some((entry) => entry && entry.demo === true);
+          } catch { return false; }
+        })();
+        const canRetract = !isDemo && typeof onRetract === 'function' && (skeet.postUri || hasSentPlatforms);
+        const canFetchReactions = !isDemo && Boolean(skeet.postUri || hasSentPlatforms);
 
         return (
-          <Card key={skeet.id}>
+          <Card key={skeet.id} ref={typeof getItemRef === 'function' ? getItemRef(skeet.id) : undefined}>
             <div className="flex items-center gap-2 border-b border-border-muted px-5 pt-4">
               <button
                 type="button"
@@ -106,7 +113,7 @@ function PublishedSkeetList({
                               {platformLabels[reply.platform] || reply.platform}
                             </p>
                           ) : null}
-                          <p className="mt-1 whitespace-pre-line leading-relaxed text-foreground-muted">{reply.content}</p>
+                          <p className="mt-1 whitespace-pre-line break-words leading-relaxed text-foreground-muted">{reply.content}</p>
                           {reply.createdAt && (
                             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground-subtle">
                               {formatTime(reply.createdAt)}
@@ -121,7 +128,16 @@ function PublishedSkeetList({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-base font-medium leading-relaxed text-foreground">{skeet.content}</p>
+                  <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
+                  {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {skeet.media.slice(0, 4).map((m, idx) => (
+                        <div key={m.id || idx} className="relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                          <img src={m.previewUrl || ''} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {skeet.targetPlatforms?.length > 0 && (
                     <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
                       {skeet.targetPlatforms.join(" • ")}
@@ -133,20 +149,23 @@ function PublishedSkeetList({
                     </p>
                   )}
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      variant="primary"
-                      onClick={() => onFetchReactions(skeet.id)}
-                      disabled={!canFetchReactions || isFetchingReactions}
-                    >
-                      {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
-                    </Button>
-                    <Button
-                      variant="warning"
-                      onClick={() => onRetract?.(skeet)}
-                      disabled={!canRetract}
-                    >
-                      Entfernen
-                    </Button>
+                    {canFetchReactions ? (
+                      <Button
+                        variant="primary"
+                        onClick={() => onFetchReactions(skeet.id)}
+                        disabled={isFetchingReactions}
+                      >
+                        {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
+                      </Button>
+                    ) : null}
+                    {canRetract ? (
+                      <Button
+                        variant="warning"
+                        onClick={() => onRetract?.(skeet)}
+                      >
+                        Entfernen
+                      </Button>
+                    ) : null}
                     <p className="text-sm text-foreground-muted">
                       Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
                     </p>

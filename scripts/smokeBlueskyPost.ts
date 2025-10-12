@@ -21,7 +21,7 @@ requireField("appPassword");
 
 async function main() {
   setupPlatforms();
-  const { serverUrl, identifier, appPassword } = env.bluesky;
+  //const { serverUrl, identifier, appPassword } = env.bluesky;
 
   const res = await sendPost(
     { content: "Hallo Bluesky 👋 (Smoke Test vom Kampagnen Bot)." },

@@ -67,6 +67,8 @@ npm run migrate:dev
 npm run seed:dev
 ```
 
+> Tipp: Standardmäßig ist `sequelize.sync()` in der lokalen Entwicklung aktiv. Du kannst dies mit `DB_SYNC=false` in `.env` deaktivieren und ausschließlich Migrationen verwenden (`npm run migrate:dev`).
+
 ## 6. Server starten
 
 ```bash

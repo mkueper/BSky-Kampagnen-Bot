@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../hooks/useToast'
+import { useClientConfig } from '../hooks/useClientConfig'
+import MediaDialog from './MediaDialog'
 import Button from './ui/Button'
+import Modal from './ui/Modal'
+import { InfoCircledIcon } from '@radix-ui/react-icons'
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -128,6 +132,8 @@ function ThreadForm ({
   const [saving, setSaving] = useState(false)
   const textareaRef = useRef(null)
   const toast = useToast()
+  const { config: clientConfig } = useClientConfig()
+  const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
 
   const restoreFromThread = thread => {
     if (thread && thread.id) {
@@ -246,14 +252,137 @@ function ThreadForm ({
     })
   }, [effectiveSegments, appendNumbering, totalSegments, limit])
 
-  const handleTogglePlatform = platformId => {
-    setTargetPlatforms(current => {
-      if (current.includes(platformId)) {
-        return current.filter(id => id !== platformId)
+  // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
+  const [mediaAlt] = useState({});
+  const [pendingMedia, setPendingMedia] = useState({}); // create-mode media per segment id/index
+  const getMediaCount = (index) => {
+    const pending = Array.isArray(pendingMedia[index]) ? pendingMedia[index].length : 0;
+    let existing = 0;
+    if (isEditMode && initialThread && Array.isArray(initialThread.segments)) {
+      const seg = initialThread.segments.find((s) => Number(s.sequence) === Number(index));
+      existing = Array.isArray(seg?.media) ? seg.media.length : 0;
+    }
+    return pending + existing;
+  };
+  const handleUploadMedia = async (index, file, altTextOverride) => {
+    if (!file) return;
+    try {
+      if (isEditMode && threadId) {
+        // Direkt am Segment des existierenden Threads hochladen
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result;
+            const res = await fetch(`/api/threads/${threadId}/segments/${index}/media`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || 'Upload fehlgeschlagen.');
+            }
+            toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          } catch (e) {
+            const msg = e?.message || '';
+            if (/zu groß|too large|413/i.test(msg)) {
+              setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            } else {
+              toast.error({ title: 'Medien-Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Entwurf: Temporär hochladen und Vorschau sofort anzeigen
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result;
+            const res = await fetch('/api/uploads/temp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filename: file.name, mime: file.type, data: base64, altText: (altTextOverride ?? mediaAlt[index]) || '' }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || 'Temporärer Upload fehlgeschlagen.');
+            }
+            const info = await res.json();
+            setPendingMedia((s) => {
+              const arr = Array.isArray(s[index]) ? s[index].slice() : [];
+              arr.push({ tempId: info.tempId, mime: info.mime, previewUrl: info.previewUrl, altText: info.altText || '' });
+              return { ...s, [index]: arr };
+            });
+            toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          } catch (e) {
+            const msg = e?.message || '';
+            if (/zu groß|too large|413/i.test(msg)) {
+              setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            } else {
+              toast.error({ title: 'Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            }
+          }
+        };
+        reader.readAsDataURL(file);
       }
-      return [...current, platformId]
-    })
+    } catch (e) {
+      console.error("Fehler beim Hochladen des Bildes im Thread", e)
+      toast.error({ title: 'Upload fehlgeschlagen', description: e})
+    }
+  };
+
+  // Media Dialog State
+  const [mediaDialog, setMediaDialog] = useState({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+  const openMediaDialog = (index, { gif = false } = {}) => {
+    setMediaDialog({ open: true, index, accept: gif ? 'image/gif' : 'image/*', title: gif ? 'GIF hinzufügen' : 'Bild hinzufügen' })
   }
+  const closeMediaDialog = () => setMediaDialog({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+
+  // Overlay helpers for existing media edits (without full reload)
+  const [editedMediaAlt, setEditedMediaAlt] = useState({}); // key: mediaId => alt text
+  const [removedMedia, setRemovedMedia] = useState({}); // key: mediaId => true
+
+  const [altDialog, setAltDialog] = useState({ open: false, segmentIndex: null, item: null });
+  const openAltDialog = (segmentIndex, item) => {
+    setAltDialog({ open: true, segmentIndex, item });
+  };
+  const closeAltDialog = () => setAltDialog({ open: false, segmentIndex: null, item: null });
+  const [uploadError, setUploadError] = useState({ open: false, message: '' });
+  const [infoThreadOpen, setInfoThreadOpen] = useState(false);
+  const [infoPreviewOpen, setInfoPreviewOpen] = useState(false);
+
+  const handleRemoveMedia = async (segmentIndex, item) => {
+    if (item.type === 'existing') {
+      try {
+        const res = await fetch(`/api/media/${item.id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Löschen fehlgeschlagen');
+        setRemovedMedia((s) => ({ ...s, [item.id]: true }));
+        toast.success({ title: 'Bild entfernt' });
+      } catch (e) {
+        toast.error({ title: 'Entfernen fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' });
+      }
+    } else {
+      setPendingMedia((s) => {
+        const arr = Array.isArray(s[segmentIndex]) ? s[segmentIndex].slice() : [];
+        if (item.pendingIndex >= 0 && item.pendingIndex < arr.length) {
+          arr.splice(item.pendingIndex, 1);
+        }
+        return { ...s, [segmentIndex]: arr };
+      });
+    }
+  };
+
+  const handleTogglePlatform = (platformId) => {
+    setTargetPlatforms((current) => {
+      if (current.includes(platformId)) {
+        // Mindestens eine Plattform muss aktiv bleiben
+        if (current.length === 1) return current;
+        return current.filter((id) => id !== platformId);
+      }
+      return [...current, platformId];
+    });
+  };
 
   const handleInsertSeparator = () => {
     const textarea = textareaRef.current
@@ -296,10 +425,15 @@ function ThreadForm ({
     if (!targetPlatforms.length) {
       return true
     }
-    return previewSegments.some(
-      segment => segment.isEmpty || segment.exceedsLimit
-    )
-  }, [previewSegments, targetPlatforms.length])
+    return previewSegments.some(segment => {
+      const noText = segment.isEmpty
+      const mediaCount = getMediaCount(segment.id)
+      const noMedia = mediaCount === 0
+      const textMissingButMediaPresent = noText && !noMedia
+      if (textMissingButMediaPresent) return false
+      return noText || segment.exceedsLimit
+    })
+  }, [previewSegments, targetPlatforms.length, pendingMedia, initialThread, isEditMode])
 
   const showLoadingState = loading && !threadId
 
@@ -335,7 +469,8 @@ function ThreadForm ({
         sequence: index,
         content: segment.formatted,
         appendNumbering,
-        characterCount: segment.characterCount
+        characterCount: segment.characterCount,
+        media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
       }))
     }
 
@@ -403,14 +538,17 @@ function ThreadForm ({
         <div className='space-y-4'>
           <div className='rounded-3xl border border-border bg-background-elevated p-6 shadow-soft'>
             <header className='space-y-3'>
-              <div>
+              <div className='flex items-center justify-between'>
                 <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
-                <p className='text-sm text-foreground-muted'>
-                  Schreibe den gesamten Thread in einem Feld. Du kannst `---`
-                  oder STRG+Enter nutzen, um Skeets abzusetzen. Längere
-                  Abschnitte werden automatisch passend zerschnitten – wenn
-                  möglich am Satzende.
-                </p>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                  aria-label='Hinweis zu Thread-Inhalt anzeigen'
+                  onClick={() => setInfoThreadOpen(true)}
+                  title='Hinweis anzeigen'
+                >
+                  <InfoCircledIcon width={14} height={14} /> Info
+                </button>
               </div>
               <div className='flex flex-wrap items-center gap-3 text-sm'>
                 <span className='rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted'>
@@ -433,28 +571,31 @@ function ThreadForm ({
                 <legend className='text-sm font-semibold'>
                   Zielplattformen
                 </legend>
-                <div className='flex flex-wrap gap-3 text-sm'>
-                  {PLATFORM_OPTIONS.map(option => {
-                    const checked = targetPlatforms.includes(option.id)
+                <div className='flex flex-wrap items-center gap-2' role='group' aria-label='Zielplattformen wählen'>
+                  {PLATFORM_OPTIONS.map((option) => {
+                    const isActive = targetPlatforms.includes(option.id);
                     return (
                       <label
                         key={option.id}
-                        className='inline-flex items-center gap-2 rounded-full border border-border bg-background-subtle px-3 py-1 transition hover:bg-background'
+                        className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                          isActive
+                            ? 'border-primary bg-primary/10 text-primary shadow-soft'
+                            : 'border-border text-foreground-muted hover:border-primary/50'
+                        }`}
+                        title={`${option.label} (${option.limit})`}
                       >
                         <input
                           type='checkbox'
-                          className='rounded border-border text-primary focus:ring-primary'
-                          checked={checked}
+                          className='sr-only'
+                          checked={isActive}
                           onChange={() => handleTogglePlatform(option.id)}
                         />
-                        <span>
-                          {option.label}{' '}
-                          <span className='text-xs text-foreground-muted'>
-                            ({option.limit})
-                          </span>
+                        <span className='capitalize'>
+                          {option.label.toLowerCase()}
+                          <span className='ml-1 text-xs text-foreground-muted'>({option.limit})</span>
                         </span>
                       </label>
-                    )
+                    );
                   })}
                 </div>
               </fieldset>
@@ -523,7 +664,18 @@ function ThreadForm ({
         <aside className='space-y-4'>
           <div className='flex flex-col rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden'>
             <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold'>Vorschau</h3>
+              <div className='flex items-center gap-2'>
+                <h3 className='text-lg font-semibold'>Vorschau</h3>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
+                  aria-label='Hinweis zur Vorschau anzeigen'
+                  onClick={() => setInfoPreviewOpen(true)}
+                  title='Hinweis anzeigen'
+                >
+                  <InfoCircledIcon width={14} height={14} /> Info
+                </button>
+              </div>
               <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
                 {totalSegments} Skeet{totalSegments !== 1 ? 's' : ''}
               </span>
@@ -531,14 +683,10 @@ function ThreadForm ({
 
             <div className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'>
               {previewSegments.map((segment, index) => {
-                const hasIssue = segment.isEmpty || segment.exceedsLimit
                 return (
                   <article
                     key={segment.id}
                     className={`rounded-2xl border ${
-                      // hasIssue
-                      // ? 'border-destructive bg-destructive/10'
-                      // : 'border-border bg-background-subtle'
                       'border-border bg-background-subtle'
                     } p-4 shadow-soft`}
                   >
@@ -546,7 +694,8 @@ function ThreadForm ({
                       <span className='font-semibold text-foreground'>
                         Skeet {index + 1}
                       </span>
-                      <span
+                      <div className='flex items-center gap-2'>
+                        <span
                         className={`font-medium ${
                           segment.exceedsLimit
                             ? 'text-destructive'
@@ -558,11 +707,78 @@ function ThreadForm ({
                       >
                         {segment.characterCount}
                         {limit ? ` / ${limit}` : null}
-                      </span>
+                        </span>
+                        <button
+                          type='button'
+                          className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                          onClick={() => openMediaDialog(segment.id)}
+                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
+                              ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
+                              : 'Bild hinzufügen'}
+                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
+                        >
+                          <span className='text-base md:text-lg leading-none'>🖼️</span>
+                        </button>
+                        <button
+                          type='button'
+                          className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                          onClick={() => openMediaDialog(segment.id, { gif: true })}
+                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
+                              ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
+                              : 'GIF hinzufügen'}
+                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
+                        >
+                          GIF
+                        </button>
+                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => { /* Emoji Picker später */ }} title='Emoji einfügen'>
+                          <span className='text-base md:text-lg leading-none'>😊</span>
+                        </button>
+                      </div>
                     </header>
                     <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
                       {segment.formatted || '(leer)'}
                     </pre>
+                    {(() => {
+                      // Build preview list: existing (edit) + pending (create)
+                      const list = [];
+                      if (isEditMode && initialThread && Array.isArray(initialThread.segments)) {
+                        const seg = initialThread.segments.find((s) => Number(s.sequence) === Number(segment.id));
+                        if (seg && Array.isArray(seg.media)) {
+                          seg.media.forEach((m) => {
+                            if (m?.previewUrl && !removedMedia[m.id]) list.push({ type: 'existing', id: m.id, src: m.previewUrl, alt: editedMediaAlt[m.id] ?? (m.altText || ''), pendingIndex: null });
+                          });
+                        }
+                      }
+                      const pend = Array.isArray(pendingMedia[segment.id]) ? pendingMedia[segment.id] : [];
+                      pend.forEach((m, idx) => list.push({ type: 'pending', id: null, src: (m.previewUrl || m.data), alt: m.altText || '', pendingIndex: idx }));
+                      const items = list.slice(0, imagePolicy.maxCount || 4);
+                      if (items.length === 0) return null;
+                      return (
+                        <div className='mt-2 grid grid-cols-2 gap-2'>
+                          {items.map((it, idx) => (
+                            <div key={idx} className='relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle'>
+                              <img src={it.src} alt={it.alt || `Bild ${idx + 1}`} className='absolute inset-0 h-full w-full object-contain' />
+                              <div className='pointer-events-none absolute left-1 top-1 z-10'>
+                                <span className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
+                                  title={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAltDialog(segment.id, it); }}
+                                  role='button'
+                                  tabIndex={0}
+                                  aria-label={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                                >
+                                  {it.alt ? 'ALT' : '+ ALT'}
+                                </span>
+                              </div>
+                              <div className='absolute right-1 top-1 z-10 flex gap-1'>
+                                <button type='button' className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80' title='Bild entfernen'
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveMedia(segment.id, it); }} aria-label='Bild entfernen'>✕</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    <div className='mt-2 text-xs text-foreground-muted'>Medien {getMediaCount(segment.id)}/{imagePolicy.maxCount}</div>
                     {segment.exceedsLimit ? (
                       <p className='mt-1 text-sm text-destructive'>
                         Zeichenlimit überschritten.
@@ -575,6 +791,109 @@ function ThreadForm ({
           </div>
         </aside>
       </div>
+      <MediaDialog
+        open={mediaDialog.open}
+        title={mediaDialog.title}
+        mode="upload"
+        accept={mediaDialog.accept}
+        requireAltText={Boolean(imagePolicy.requireAltText)}
+        maxBytes={imagePolicy.maxBytes}
+        allowedMimes={imagePolicy.allowedMimes}
+        onConfirm={(file, alt) => { const idx = mediaDialog.index; closeMediaDialog(); handleUploadMedia(idx, file, alt); }}
+        onClose={closeMediaDialog}
+      />
+      {uploadError.open ? (
+        <Modal
+          open={uploadError.open}
+          title="Upload fehlgeschlagen"
+          onClose={() => setUploadError({ open: false, message: '' })}
+          actions={<Button variant='primary' onClick={() => setUploadError({ open: false, message: '' })}>OK</Button>}
+        >
+          <p className='text-sm text-foreground'>{uploadError.message || 'Die Bilddatei konnte nicht hochgeladen werden.'}</p>
+        </Modal>
+      ) : null}
+
+      {/* Info: Thread-Inhalt */}
+      {infoThreadOpen ? (
+        <Modal
+          open={infoThreadOpen}
+          title="Hinweis: Thread-Inhalt"
+          onClose={() => setInfoThreadOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoThreadOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Schreibe den gesamten Thread in ein Feld. Du kannst <code className='rounded bg-background-subtle px-1 py-0.5'>---</code> als Trenner nutzen
+              oder mit <kbd className='rounded bg-background-subtle px-1 py-0.5'>STRG</kbd>+<kbd className='rounded bg-background-subtle px-1 py-0.5'>Enter</kbd> einen Trenner einfügen.
+            </p>
+            <p>
+              Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung
+              richtet sich nach den gewählten Plattformen (kleinster Wert gilt).
+            </p>
+            <p>
+              Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Skeet.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* Info: Vorschau */}
+      {infoPreviewOpen ? (
+        <Modal
+          open={infoPreviewOpen}
+          title="Hinweis: Vorschau"
+          onClose={() => setInfoPreviewOpen(false)}
+          actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>
+              Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.
+            </p>
+            <p>
+              Bilder werden beim Speichern hochgeladen (max. {imagePolicy?.maxCount ?? 4} je Skeet).
+            </p>
+            <p>
+              Der Zähler zeigt die aktuelle Zeichenanzahl je Skeet im Verhältnis zum Limit der ausgewählten Plattformen.
+            </p>
+            <p>
+              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
+      {altDialog.open && altDialog.item ? (
+        <MediaDialog
+          open={altDialog.open}
+          title={altDialog.item.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+          mode="alt"
+          previewSrc={altDialog.item.src}
+          initialAlt={altDialog.item.alt || ''}
+          requireAltText={Boolean(imagePolicy.requireAltText)}
+          onConfirm={async (_file, newAlt) => {
+            const segIdx = altDialog.segmentIndex;
+            const item = altDialog.item;
+            try {
+              if (item.type === 'existing') {
+                const res = await fetch(`/api/media/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ altText: newAlt }) });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Alt‑Text konnte nicht gespeichert werden.');
+                setEditedMediaAlt((s) => ({ ...s, [item.id]: newAlt }));
+              } else {
+                setPendingMedia((s) => {
+                  const arr = Array.isArray(s[segIdx]) ? s[segIdx].slice() : [];
+                  if (arr[item.pendingIndex]) arr[item.pendingIndex] = { ...arr[item.pendingIndex], altText: newAlt };
+                  return { ...s, [segIdx]: arr };
+                });
+              }
+              toast.success({ title: 'Alt‑Text gespeichert' });
+            } catch (e) {
+              toast.error({ title: 'Fehler beim Alt‑Text', description: e?.message || 'Unbekannter Fehler' });
+            } finally {
+              closeAltDialog();
+            }
+          }}
+          onClose={closeAltDialog}
+        />
+      ) : null}
     </form>
   )
 }

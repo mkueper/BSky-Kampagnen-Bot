@@ -16,7 +16,7 @@ function formatDate(value) {
   }).format(date);
 }
 
-function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
+function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeetsOverview, onOpenThreadsOverview }) {
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -93,7 +93,21 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <Card padding="p-6">
+        <Card
+          padding="p-6"
+          onClick={typeof onOpenSkeetsOverview === 'function' ? () => onOpenSkeetsOverview() : undefined}
+          onKeyDown={typeof onOpenSkeetsOverview === 'function' ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenSkeetsOverview();
+            }
+          } : undefined}
+          className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
+          aria-label="Zur Skeet-Übersicht wechseln"
+          title="Zur Skeet-Übersicht wechseln"
+          role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
+          tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
+        >
           <h3 className="text-lg font-semibold">Nächster Skeet</h3>
           {skeetStats.next ? (
             <div className="mt-3 space-y-2 text-sm">
@@ -107,7 +121,21 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets }) {
           )}
         </Card>
 
-        <Card padding="p-6">
+        <Card
+          padding="p-6"
+          onClick={typeof onOpenThreadsOverview === 'function' ? () => onOpenThreadsOverview() : undefined}
+          onKeyDown={typeof onOpenThreadsOverview === 'function' ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenThreadsOverview();
+            }
+          } : undefined}
+          className={typeof onOpenThreadsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
+          aria-label="Zur Thread-Übersicht wechseln"
+          title="Zur Thread-Übersicht wechseln"
+          role={typeof onOpenThreadsOverview === 'function' ? 'button' : undefined}
+          tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
+        >
           <h3 className="text-lg font-semibold">Nächster Thread</h3>
           {threadStats.next ? (
             <div className="mt-3 space-y-2 text-sm">

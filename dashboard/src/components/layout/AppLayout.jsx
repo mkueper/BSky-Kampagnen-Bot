@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import ScrollTopButton from "../ScrollTopButton";
+import ScrollTopButton from "../ui/ScrollTopButton";
 
 /**
  * High-level layout wrapper for the dashboard application.
@@ -177,10 +177,10 @@ function AppLayout({
           />
         ) : null}
 
-        <div className="ml-0 flex h-full flex-1 flex-col overflow-hidden md:ml-8">
-          <header className="sticky top-0 z-10 mb-6 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        <div className="ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden md:ml-8">
+           <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 order-1 sm:order-none">
                 <button
                   type="button"
                   className="rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden"
@@ -189,24 +189,24 @@ function AppLayout({
                   <HamburgerMenuIcon className="h-5 w-5" />
                   <span className="sr-only">Navigation öffnen</span>
                 </button>
-                <div>
+                <div className="min-w-0">
                   {headerCaption ? (
                     <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">{headerCaption}</p>
                   ) : null}
-                  <h2 className="text-xl font-semibold md:text-2xl">{headerTitle || activeNavItemLabel}</h2>
+                  <h2 className="text-xl font-semibold md:text-2xl whitespace-nowrap truncate">{headerTitle || activeNavItemLabel}</h2>
                 </div>
               </div>
 
               {headerActions ? (
-                <div className="flex items-center gap-2">{headerActions}</div>
+                <div className="order-2 sm:order-none w-full sm:w-auto flex flex-nowrap items-center gap-2 overflow-x-auto">{headerActions}</div>
               ) : null}
             </div>
           </header>
 
-          <div id="app-scroll-container" className="flex-1 overflow-y-auto pr-1">
-            <main className="space-y-8 pb-16">{children}</main>
+          <div id="app-scroll-container" className="flex-1 min-h-0 overflow-y-auto pr-1 pt-4" style={{ scrollbarGutter: 'stable' }}>
+             <main className="space-y-8 pb-6 md:pb-8">{children}</main>
           </div>
-          <ScrollTopButton />
+          <ScrollTopButton position="bottom-left" />
         </div>
       </div>
     </div>
