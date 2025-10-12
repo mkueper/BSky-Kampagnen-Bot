@@ -9,7 +9,7 @@ const BAD_PATTERNS = [
 ];
 
 const ALLOWED_FILES = new Set([
-  "src/env.js", // hier ist process.env erlaubt
+  "backend/src/env.js", // hier ist process.env erlaubt
 ]);
 
 function walk(dir: string, files: string[] = []) {

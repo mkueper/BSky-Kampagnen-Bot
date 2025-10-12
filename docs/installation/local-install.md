@@ -76,7 +76,7 @@ npm run dev
 # oder ohne nodemon: npm run start:dev
 ```
 
-Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produktionsähnlichen Start verwende `npm run build:all` gefolgt von `npm start`.
+Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produktionsähnlichen Start verwende `npm run build:all` (baut das Dashboard) gefolgt von `npm start`.
 
 ---
 

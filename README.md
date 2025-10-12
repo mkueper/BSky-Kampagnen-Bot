@@ -1,5 +1,7 @@
 # Bluesky Kampagnen-Bot
 
+[![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
+
 Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (optional PostgreSQL), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert.
 
 ---
@@ -44,7 +46,7 @@ npm run start:dev
 - API: <http://localhost:3000>
 - Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`).
 
-> Für den Produktionsmodus kannst du `npm run build:all` (Backend + Dashboard) und anschließend `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
+> Für den Produktionsmodus kannst du `npm run build:all` (baut das Dashboard; Backend benötigt keinen Build) und anschließend `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
 
 ---
 
@@ -72,10 +74,10 @@ Die Frontend-Container-Konfiguration (`docker/nginx-frontend.conf`) leitet `/api
 ## Projektstruktur (Kurzüberblick)
 
 ```
-BSky-Kampagnen-Bot/
-├─ server.js                # Express-Einstiegspunkt, Scheduler-Bootstrap
-├─ src/                     # Backend-Quellcode (Controller, Services, Models)
-├─ dashboard/               # React-Dashboard (Vite)
+BSKy-Kampagnen-Bot/
+├─ backend/server.js        # Express-Einstiegspunkt, Scheduler-Bootstrap
+├─ backend/src/             # Backend-Quellcode (Controller, Services, Models)
+├─ dashboard/               # React-Dashboard (Vite, Build in dashboard/dist)
 ├─ docker/                  # Dockerfiles + Nginx-Konfiguration
 ├─ docs/                    # Architektur- und Installationsdokumentation
 └─ data/                    # SQLite-Datenbanken (Standard)
@@ -174,6 +176,8 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 
 - **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build:frontend`).
 - **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
+ - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
+ - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
 - **Bundle (inkl. Datenbank):** `npm run docker:bundle` erstellt ein Zip (`dist/bundles/…`) mit Docker-Compose-Dateien, vollständigem Projekt (ohne `node_modules`/`dist`) und der aktuellen SQLite-Datenbank – ideal zum Kopieren auf einen Server.
 

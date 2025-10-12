@@ -75,8 +75,8 @@ npm run seed:prod
 
 ```bash
 npm install -g pm2
-npm run build:all
-pm2 start server.js --name bsky-bot
+npm run build:all   # baut das Dashboard; Backend benötigt keinen Build
+pm2 start backend/server.js --name bsky-bot
 pm2 save
 ```
 

@@ -83,9 +83,8 @@
       "typescriptreact"
     ],
 
-    // TypeScript: Workspace-TS (Root) nutzen
-    // In Multi-Root-Workspaces relativ pro Ordner aufgelöst; daher explizit der Root-Ordner "Alles".
-    "typescript.tsdk": "${workspaceFolder:Alles}/node_modules/typescript/lib",
+    // TypeScript SDK: pro Ordner via .vscode/settings.json setzen
+    // (Dashboard nutzt eigenes TS, Backend referenziert Root-TS)
     "typescript.enablePromptUseWorkspaceTsdk": true,
 
     // Dateizuordnungen

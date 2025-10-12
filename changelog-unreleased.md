@@ -46,6 +46,18 @@
   - Tasks: Backend Dev (npm run dev), Dashboard Vite Dev (mit robustem ProblemMatcher).
   - Doku ergänzt: `docs/development/vscode-workspace.md`.
 
+### Build/Tooling
+- `build:all` repariert: Backend-Build als No‑Op, Frontend‑Build unverändert.
+- Neues Script `build:backend` eingeführt; `build` referenziert dieses Script.
+- `tsconfig.json` bereinigt: nur `scripts/**/*.ts` für Typecheck; veraltete `src/*`-Mappings entfernt.
+- Smoke‑Skripte auf neue Backend‑Pfadstruktur (`backend/src/...`) angepasst.
+ - GitHub Actions Workflow hinzugefügt und erweitert: Node‑Matrix (20, 22), Typecheck, Tests (Vitest), Lint, Dashboard‑Build.
+
+### Dokumentation
+- README/Installationsguides präzisiert: `build:all` baut das Dashboard, Backend benötigt keinen Build.
+- Server‑Installationsguide: `pm2 start backend/server.js` statt `server.js` im Root.
+ - README: CI‑Badge und kurzer Abschnitt zu CI ergänzt.
+
 ### Frontend/UX
 - Threads-Übersicht (Mobile): Aktionsleiste nutzt `flex-wrap`; Buttons umbrechen nicht mehr aus dem View.
 - Replies-/Reaktionen-Buttons: nur bei veröffentlichten/gesendeten Threads sichtbar.

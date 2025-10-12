@@ -1,8 +1,8 @@
 import "dotenv/config";
-import { setupPlatforms } from "../src/platforms/setup";
-import { sendPost } from "../src/services/postService";
-import { env } from "../src/env";
-import type { PlatformEnv } from "../src/platforms/types";
+import { setupPlatforms } from "../backend/src/platforms/setup.js";
+import { sendPost } from "../backend/src/core/services/postService.js";
+import { env } from "../backend/src/env.js";
+import type { PlatformEnv } from "../backend/src/platforms/types";
 
 const bskyEnv = {
   serverUrl: env.bluesky.serverUrl,

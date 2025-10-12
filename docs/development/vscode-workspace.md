@@ -42,6 +42,10 @@ Diese Anleitung beschreibt die bereitgestellte VS Code Workspace‑Konfiguration
 ## Tipps
 
 - Port anpassen: Wenn Vite auf einem anderen Port läuft, im Workspace die Background‑Patterns unter `tasks` → „Dashboard: Vite Dev“ anpassen.
-- TypeScript: Der Workspace nutzt die lokale TS‑Version (`typescript.tsdk`), damit Lint/Types konsistent sind.
+- TypeScript SDK (wichtig in Multi‑Root):
+  - Kein globales `typescript.tsdk` in der Workspace‑Datei setzen – das kann in Multi‑Root‑Workspaces zu ungültigen Pfaden wie `${workspaceFolder:Alles}/node_modules/...` führen.
+  - Stattdessen Ordner‑spezifisch konfigurieren:
+    - Dashboard (`dashboard/.vscode/settings.json`): `"typescript.tsdk": "node_modules/typescript/lib"`
+    - Backend   (`backend/.vscode/settings.json`):  `"typescript.tsdk": "../node_modules/typescript/lib"`
+  - Nach Änderungen in VS Code „TypeScript: Restart TS server“ ausführen. Optional „TypeScript: Select TypeScript Version → Use Workspace Version“ wählen.
 - ESLint: Auto‑Fix on Save ist aktiv. Lint komplett ausführen: `npm run lint`.
-
