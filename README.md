@@ -87,6 +87,7 @@ Weitere Dokumentation:
 - API Quick Reference: `docs/api.md`
 - UI‑Richtlinien und Komponenten: `docs/ui.md`
 - Frontend Benutzerhandbuch: `docs/frontend-user-guide.md`
+- VS Code Workspace & Debugging: `docs/development/vscode-workspace.md`
 
 Changelog pflegen:
 - Schnell einen Bullet direkt unter „Unreleased“ einfügen:
