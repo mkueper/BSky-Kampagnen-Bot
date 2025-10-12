@@ -19,7 +19,7 @@ export default tseslint.config(
 
   // 2. Backend CommonJS files (.js)
   {
-    files: ["src/**/*.js", "scripts/**/*.js", "config/**/*.js", "server.js"],
+    files: ["backend/src/**/*.js", "scripts/**/*.js", "config/**/*.js", "backend/server.js"],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -102,7 +102,7 @@ export default tseslint.config(
   ,
   // 7. Test files (Vitest globals)
   {
-    files: ["src/**/*.test.js", "tests/**/*.js"],
+    files: ["backend/src/**/*.test.js", "tests/**/*.js"],
     languageOptions: {
       globals: {
         ...globals.node,

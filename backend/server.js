@@ -31,7 +31,9 @@ const appLog = createLogger('app');
 
 const app = express();
 const PORT = config.PORT;
-const DIST_DIR = path.join(__dirname, "dashboard", "dist");
+// Hinweis: Nach dem Umzug liegt das Dashboard außerhalb von __dirname.
+// Wir referenzieren es deshalb relativ zum Projekt-Root (process.cwd()).
+const DIST_DIR = path.join(process.cwd(), "dashboard", "dist");
 const INDEX_HTML = path.join(DIST_DIR, "index.html");
 
 // Statische Dateien
@@ -99,7 +101,7 @@ app.post("/api/uploads/temp", uploadController.uploadTemp);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || "development", version: require("./package.json").version });
+  res.json({ ok: true, env: process.env.NODE_ENV || "development", version: require(path.join(process.cwd(), "package.json")).version });
 });
 
 // Wildcard-Route (nur GET) – leitet unbekannte Pfade an das Dashboard weiter.
