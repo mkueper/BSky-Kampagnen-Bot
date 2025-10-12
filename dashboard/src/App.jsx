@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import {
   DownloadIcon,
   GearIcon,
@@ -91,7 +91,7 @@ const NAV_ITEMS = [
     label: 'Skeets',
     icon: Pencil2Icon,
     children: [
-      { id: 'skeets-overview', label: 'Übersicht' },
+      { id: 'skeets-overview', label: 'Aktivität' },
       { id: 'skeets-plan', label: 'Skeet planen' }
     ]
   },
@@ -100,7 +100,7 @@ const NAV_ITEMS = [
     label: 'Threads',
     icon: LayersIcon,
     children: [
-      { id: 'threads-overview', label: 'Übersicht' },
+      { id: 'threads-overview', label: 'Aktivität' },
       { id: 'threads-plan', label: 'Thread planen' }
     ]
   },
@@ -109,8 +109,10 @@ const NAV_ITEMS = [
 
 const HEADER_CAPTIONS = {
   overview: 'Übersicht',
+  skeets: 'Skeets',
   'skeets-overview': 'Skeets',
   'skeets-plan': 'Skeetplaner',
+  threads: 'Threads',
   'threads-overview': 'Threads',
   'threads-plan': 'Threadplaner',
   config: 'Konfiguration'
@@ -118,8 +120,10 @@ const HEADER_CAPTIONS = {
 
 const HEADER_TITLES = {
   overview: 'Bluesky Kampagnen-Dashboard',
+  skeets: 'Skeets',
   'skeets-overview': 'Skeet-Übersicht',
   'skeets-plan': 'Skeet planen',
+  threads: 'Threads',
   'threads-overview': 'Thread-Übersicht',
   'threads-plan': 'Thread planen',
   config: 'Einstellungen & Automatisierung'
@@ -174,7 +178,10 @@ function App () {
     reactionStats,
     replyErrors
   } = useSkeets({
-    enabled: activeView === 'overview' || activeView === 'skeets-overview'
+    enabled:
+      activeView === 'overview' ||
+      activeView === 'skeets' ||
+      activeView === 'skeets-overview'
   })
 
   const {
@@ -183,7 +190,10 @@ function App () {
     error: threadsError,
     refreshNow: refreshThreadsNow
   } = useThreads({
-    enabled: activeView === 'overview' || activeView === 'threads-overview'
+    enabled:
+      activeView === 'overview' ||
+      activeView === 'threads' ||
+      activeView === 'threads-overview'
   })
   const { thread: editingThread, loading: loadingEditingThread } =
     useThreadDetail(editingThreadId, {
@@ -344,6 +354,96 @@ function App () {
       if (event.target) event.target.value = ''
     }
   }
+
+  // --- Skeets: Übersichtskarten für Gruppen-Landing (verschoben aus Dashboard)
+  const overviewStatsSkeets = useMemo(() => {
+    const likes = publishedSkeets.reduce(
+      (acc, s) => acc + (Number(s.likesCount) || 0),
+      0
+    )
+    const reposts = publishedSkeets.reduce(
+      (acc, s) => acc + (Number(s.repostsCount) || 0),
+      0
+    )
+    return [
+      { label: 'Geplante Skeets', value: plannedSkeets.length },
+      { label: 'Veröffentlichte Skeets', value: publishedSkeets.length },
+      { label: 'Likes gesamt', value: likes },
+      { label: 'Reposts gesamt', value: reposts }
+    ]
+  }, [plannedSkeets, publishedSkeets])
+
+  const upcomingSkeet = useMemo(() => {
+    const entries = plannedSkeets
+      .map(s => {
+        if (!s.scheduledAt) return null
+        const date = new Date(s.scheduledAt)
+        return Number.isNaN(date.getTime())
+          ? null
+          : { ...s, scheduledDate: date }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.scheduledDate - b.scheduledDate)
+    return entries[0] ?? null
+  }, [plannedSkeets])
+
+  const upcomingSkeetDate = upcomingSkeet
+    ? formatTime(
+        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
+        'dateOnly'
+      )
+    : '-'
+  const upcomingSkeetTime = upcomingSkeet
+    ? formatTime(
+        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
+        'timeOnly'
+      )
+    : null
+  const upcomingSkeetSnippet = useMemo(() => {
+    if (!upcomingSkeet) return null
+    const normalized = (upcomingSkeet.content ?? '').replace(/\s+/g, ' ').trim()
+    if (!normalized) return 'Kein Inhalt hinterlegt'
+    return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized
+  }, [upcomingSkeet])
+
+  // --- Threads: Übersichtskarten für Gruppen-Landing (verschoben aus ThreadDashboard)
+  const overviewStatsThreads = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : []
+    const active = items.filter(t => t.status !== 'deleted')
+    const total = active.length
+    const scheduled = active.filter(t => t.status === 'scheduled').length
+    const publishedCount = active.filter(t => t.status === 'published').length
+    const drafts = active.filter(t => t.status === 'draft').length
+    return [
+      { label: 'Threads gesamt', value: total },
+      { label: 'Geplant', value: scheduled },
+      { label: 'Veröffentlicht', value: publishedCount },
+      { label: 'Entwürfe', value: drafts }
+    ]
+  }, [threads])
+
+  const nextScheduledThread = useMemo(() => {
+    const items = Array.isArray(threads) ? threads : []
+    const now = new Date()
+    const candidates = items
+      .filter(t => t.status === 'scheduled' && t.scheduledAt)
+      .map(thread => {
+        const date = new Date(thread.scheduledAt)
+        if (Number.isNaN(date.getTime()) || date < now) return null
+        return { thread, date }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.date - b.date)
+    return candidates[0] ?? null
+  }, [threads])
+
+  const nextThreadFormatted = nextScheduledThread
+    ? formatTime(nextScheduledThread.thread.scheduledAt, 'dateTime')
+    : null
+  const [nextThreadDate, nextThreadTimeRaw] = nextThreadFormatted
+    ? nextThreadFormatted.split(',').map(p => p.trim())
+    : ['-', '']
+  const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : ''
 
   const handleEdit = skeet => {
     setEditingSkeet(skeet)
@@ -787,7 +887,8 @@ function App () {
           Aktuelles Theme: {currentThemeConfig?.label}
         </span>
       </Button>
-      {(activeView === 'skeets-overview' || activeView === 'threads-overview') && (
+      {(activeView === 'skeets-overview' ||
+        activeView === 'threads-overview') && (
         <>
           <Button
             variant='secondary'
@@ -833,6 +934,139 @@ function App () {
         onOpenSkeetsOverview={() => setActiveView('skeets-overview')}
         onOpenThreadsOverview={() => setActiveView('threads-overview')}
       />
+    )
+  } else if (activeView === 'skeets') {
+    content = (
+      <>
+        <section className='grid gap-4 md:grid-cols-3'>
+          <article className='rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2'>
+            <div className='flex flex-col gap-4 p-6'>
+              <div>
+                <h3 className='text-lg font-semibold'>Skeets Übersicht</h3>
+                <p className='text-sm text-foreground-muted'>
+                  Status deiner geplanten und veröffentlichten Skeets.
+                </p>
+              </div>
+              <div className='grid gap-4 sm:grid-cols-2'>
+                {overviewStatsSkeets.map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'
+                  >
+                    <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
+                      {label}
+                    </p>
+                    <p className='mt-2 text-3xl font-semibold text-foreground md:text-4xl'>
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+          <SummaryCard
+            title='Nächster Skeet'
+            value={upcomingSkeetDate}
+            helper={
+              upcomingSkeet ? (
+                <div className='space-y-3'>
+                  {upcomingSkeetTime ? (
+                    <span className='block font-semibold text-foreground'>{`${upcomingSkeetTime} Uhr`}</span>
+                  ) : null}
+                  <div className='rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground'>
+                    {upcomingSkeetSnippet}
+                  </div>
+                </div>
+              ) : (
+                'Noch nichts geplant'
+              )
+            }
+          />
+        </section>
+
+        {/* <Card padding='p-6 lg:p-10' className='mt-4'>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <Button
+              onClick={() => setActiveView('skeets-overview')}
+              className='justify-start'
+            >
+              Skeet-Übersicht öffnen
+            </Button>
+            <Button
+              onClick={() => setActiveView('skeets-plan')}
+              variant='secondary'
+              className='justify-start'
+            >
+              Skeet planen
+            </Button>
+          </div>
+        </Card> */}
+      </>
+    )
+  } else if (activeView === 'threads') {
+    content = (
+      <>
+        <section className='grid gap-4 md:grid-cols-3'>
+          <article className='rounded-3xl border border-border bg-background-elevated shadow-soft md:col-span-2'>
+            <div className='flex flex-col gap-4 p-6'>
+              <div>
+                <h3 className='text-lg font-semibold'>Threads Übersicht</h3>
+                <p className='text-sm text-foreground-muted'>
+                  Status deiner geplanten und veröffentlichten Threads.
+                </p>
+              </div>
+              <div className='grid gap-4 sm:grid-cols-2'>
+                {overviewStatsThreads.map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'
+                  >
+                    <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
+                      {label}
+                    </p>
+                    <p className='mt-2 text-3xl font-semibold text-foreground md:text-4xl'>
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+          <SummaryCard
+            title='Nächster Thread'
+            value={nextThreadDate}
+            helper={
+              nextScheduledThread ? (
+                <div className='space-y-3'>
+                  {nextThreadTime ? (
+                    <span className='text-sm font-medium text-foreground'>
+                      {nextThreadTime}
+                    </span>
+                  ) : null}
+                  <div className='rounded-2xl border border-border-muted bg-background-subtle/70 px-4 py-3 text-foreground'>
+                    {(nextScheduledThread.thread.segments?.[0]?.content || '')
+                      .toString()
+                      .trim() || 'Kein Inhalt hinterlegt'}
+                  </div>
+                </div>
+              ) : (
+                'Noch nichts geplant'
+              )
+            }
+          />
+        </section>
+
+        {/* <Card padding='p-6 lg:p-10' className='mt-4'>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <Button onClick={() => setActiveView('threads-overview')} className='justify-start'>
+              Thread-Übersicht öffnen
+            </Button>
+            <Button onClick={() => setActiveView('threads-plan')} variant='secondary' className='justify-start'>
+              Thread planen
+            </Button>
+          </div>
+        </Card> */}
+      </>
     )
   } else if (activeView === 'skeets-overview') {
     content = (
@@ -927,6 +1161,25 @@ function App () {
         onCancel={() => setConfirmDialog(c => ({ ...c, open: false }))}
       />
     </AppLayout>
+  )
+}
+
+function SummaryCard ({ title, value, helper }) {
+  return (
+    <article className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
+      <div className='flex flex-col gap-3 p-6'>
+        <div>
+          <h3 className='text-lg font-semibold'>{title}</h3>
+          <p className='text-sm text-foreground-muted'>Nächster Termin</p>
+        </div>
+        <div className='rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-3'>
+          <p className='text-3xl font-semibold text-foreground md:text-4xl'>
+            {value}
+          </p>
+        </div>
+        {helper ? <div>{helper}</div> : null}
+      </div>
+    </article>
   )
 }
 

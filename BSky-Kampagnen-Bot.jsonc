@@ -1,9 +1,7 @@
 {
-  "folders": [
-    {
-      "path": "."
-    }
-  ],
+   "folders": [
+    {"path": ""}
+   ],
   "settings": {
     // Explorer-Darstellung
     "explorer.compactFolders": false,

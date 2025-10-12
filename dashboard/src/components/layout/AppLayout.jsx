@@ -43,8 +43,9 @@ function AppLayout({
     const initial = {};
     navItems.forEach((item) => {
       if (Array.isArray(item.children) && item.children.length > 0) {
-        const isActive = item.children.some((child) => child.id === activeView);
-        initial[item.id] = isActive;
+        const isChildActive = item.children.some((child) => child.id === activeView);
+        const isParentActive = item.id === activeView;
+        initial[item.id] = isChildActive || isParentActive;
       }
     });
     return initial;
@@ -55,8 +56,9 @@ function AppLayout({
       const next = { ...current };
       navItems.forEach((item) => {
         if (Array.isArray(item.children) && item.children.length > 0) {
-          const isActive = item.children.some((child) => child.id === activeView);
-          if (isActive) {
+          const isChildActive = item.children.some((child) => child.id === activeView);
+          const isParentActive = item.id === activeView;
+          if (isChildActive || isParentActive) {
             next[item.id] = true;
           }
         }
@@ -125,10 +127,8 @@ function AppLayout({
                     <button
                       type="button"
                       onClick={() => {
-                        setOpenGroups((current) => ({ ...current, [id]: true }));
-                        if (Array.isArray(children) && children.length > 0) {
-                          handleSelectView(children[0].id);
-                        }
+                        setOpenGroups((current) => ({ ...current, [id]: !expanded }));
+                        handleSelectView(id);
                       }}
                       className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
                         isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
