@@ -339,6 +339,7 @@ async function processDueSkeets(now = new Date()) {
           }
 
           await current.update(updates);
+          try { events.emit('skeet:updated', { id: current.id, status: 'published' }); } catch {}
           log.info("Discard-Mode: Skeet als veröffentlicht markiert (Demo)", { id: current.id });
         }
         continue;
@@ -619,6 +620,7 @@ async function processDueThreads(now = new Date()) {
             scheduledAt: null,
             status: "published",
           });
+          try { events.emit('thread:updated', { id: current.id, status: 'published' }); } catch {}
 
           log.info("Discard-Mode: Thread als veröffentlicht markiert (Demo)", { id: current.id });
         }
