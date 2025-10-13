@@ -11,6 +11,7 @@ const { Op } = require("sequelize");
 const config = require("@config");
 const { Skeet, Thread, ThreadSkeet } = require("@data/models");
 const { sendPost } = require("./postService");
+const events = require("./events");
 const settingsService = require("./settingsService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 const { refreshPublishedThreadsBatch } = require("./threadEngagementService");
@@ -273,6 +274,11 @@ async function dispatchSkeet(skeet) {
   }
 
   await current.update(updates);
+  try {
+    // UI informieren (Statuswechsel von geplant -> veröffentlicht/verschoben)
+    const status = current.repeat === 'none' ? (allSent ? 'published' : 'scheduled') : 'scheduled';
+    events.emit('skeet:updated', { id: current.id, status });
+  } catch {}
 }
 
 /**
@@ -545,6 +551,9 @@ async function dispatchThread(thread) {
   }
 
   await current.update(updatePayload);
+  try {
+    events.emit('thread:updated', { id: current.id, status: updatePayload.status || current.status || 'published' });
+  } catch {}
 }
 
 async function processDueThreads(now = new Date()) {

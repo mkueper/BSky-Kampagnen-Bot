@@ -28,6 +28,7 @@ const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
 const { sequelize } = require("@data/models");
 const { createLogger } = require("@utils/logging");
+const { sseHandler } = require("@core/services/events");
 const appLog = createLogger('app');
 
 const app = express();
@@ -92,6 +93,9 @@ app.get("/api/config/credentials", credentialsController.getCredentials);
 app.put("/api/config/credentials", credentialsController.updateCredentials);
 // Client-Heartbeat (Präsenz)
 app.post("/api/heartbeat", heartbeatController.postHeartbeat);
+
+// Server-Sent Events (UI Push-Updates)
+app.get('/api/events', (req, res) => sseHandler(req, res));
 
 // Media (JSON upload: { filename, mime, data(base64), altText? })
 app.post("/api/threads/:id/segments/:sequence/media", mediaController.addMedia);

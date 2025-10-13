@@ -25,6 +25,7 @@ import ConfigPanel from './components/ConfigPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import { useSkeets } from './hooks/useSkeets'
 import { useThreadDetail, useThreads } from './hooks/useThreads'
+import { useSse } from './hooks/useSse'
 import { formatTime } from './utils/formatTime'
 import { getRepeatDescription } from './utils/timeUtils'
 import { useToast } from './hooks/useToast'
@@ -233,6 +234,16 @@ function App () {
     useThreadDetail(editingThreadId, {
       autoLoad: Boolean(editingThreadId)
     })
+
+  // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
+  useSse({
+    onSkeetEvent: async (_evt) => {
+      try { await refreshSkeetsNow({ force: true }) } catch {}
+    },
+    onThreadEvent: async (_evt) => {
+      try { await refreshThreadsNow({ force: true }) } catch {}
+    },
+  })
 
   useEffect(() => {
     setEditingSkeet(current => {
