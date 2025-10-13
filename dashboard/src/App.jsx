@@ -157,10 +157,15 @@ function App () {
   useEffect(() => {
     const handler = (ev) => {
       const view = ev?.detail?.view
+      const force = Boolean(ev?.detail?.force)
       if (!view) return
-      if (gatedNeedsCreds && view !== 'config') {
+      if (!force && gatedNeedsCreds && view !== 'config') {
         setActiveView('config')
         return
+      }
+      if (force && view !== 'config') {
+        // Nach erfolgreichem Speichern der Zugangsdaten: Gate sofort öffnen
+        setCredsOkOverride(true)
       }
       setActiveView(view)
     }

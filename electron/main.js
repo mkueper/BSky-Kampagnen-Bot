@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, Menu, shell, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const http = require('http')
@@ -30,6 +30,39 @@ if (process.platform === 'linux') {
 }
 
 let mainWindow
+let saveWindowStateTimeout = null
+
+function loadWindowState () {
+  try {
+    const storePath = path.join(app.getPath('userData'), 'window-state.json')
+    const raw = fs.existsSync(storePath) ? fs.readFileSync(storePath, 'utf8') : ''
+    const json = raw ? JSON.parse(raw) : null
+    if (!json || typeof json !== 'object') throw new Error('no state')
+    const display = screen.getDisplayMatching({ x: json.x || 0, y: json.y || 0, width: json.width || 0, height: json.height || 0 })
+    const wa = display && display.workArea ? display.workArea : { x: 0, y: 0, width: 1920, height: 1080 }
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+    const width = clamp(json.width || 1240, 800, wa.width)
+    const height = clamp(json.height || 980, 600, wa.height)
+    const x = json.x != null ? json.x : Math.floor(wa.x + (wa.width - width) / 2)
+    const y = json.y != null ? json.y : Math.floor(wa.y + (wa.height - height) / 2)
+    return { x, y, width, height, isMaximized: Boolean(json.isMaximized) }
+  } catch { return { width: 1240, height: 980, isMaximized: false } }
+}
+
+function saveWindowStateDebounced () {
+  try { if (saveWindowStateTimeout) clearTimeout(saveWindowStateTimeout) } catch { /* ignore */ }
+  saveWindowStateTimeout = setTimeout(() => {
+    try {
+      if (!mainWindow) return
+      const isMaximized = mainWindow.isMaximized()
+      const bounds = isMaximized ? mainWindow.getNormalBounds() : mainWindow.getBounds()
+      const state = { ...bounds, isMaximized }
+      const storePath = path.join(app.getPath('userData'), 'window-state.json')
+      fs.mkdirSync(path.dirname(storePath), { recursive: true })
+      fs.writeFileSync(storePath, JSON.stringify(state))
+    } catch { /* ignore */ }
+  }, 250)
+}
 // Backend läuft im selben Prozess (require), kein Child-Prozess nötig
 
 function getAppRoot () {
@@ -107,19 +140,93 @@ function startBackend () {
 
 function createWindow () {
   const backendPort = startBackend()
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+  const state = loadWindowState()
+  const browserOpts = {
+    width: state.width || 1240,
+    height: state.height || 980,
+    x: state.x,
+    y: state.y,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
     },
-    show: false
-  })
+    show: false,
+    autoHideMenuBar: true
+  }
+  if (state.x == null || state.y == null) browserOpts.center = true
+  mainWindow = new BrowserWindow(browserOpts)
 
   mainWindow.once('ready-to-show', () => mainWindow.show())
+  try { if (state.isMaximized) mainWindow.maximize() } catch { /* ignore */ }
+
+  // ——— Minimal-Menü (nur Edit-Rollen), Menüleiste verstecken ———
+  try {
+    const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
+    /** @type {import('electron').MenuItemConstructorOptions[]} */
+    const template = [
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' }
+        ]
+      },
+    ]
+    if (isDev) {
+      template.push({
+        label: 'View',
+        submenu: [ { role: 'toggleDevTools' } ]
+      })
+    }
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+    // Verstecken (unter Linux/Windows); Alt blendet nicht ein
+    mainWindow.setMenuBarVisibility(false)
+  } catch { /* ignore menu setup */ }
+
+  // ——— Externe Links im System-Browser öffnen ———
+  try {
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url).catch(() => {})
+      return { action: 'deny' }
+    })
+  } catch { /* ignore */ }
+
+  // ——— Unerwünschte Shortcuts im Prod blockieren (Reload, DevTools) ———
+  try {
+    const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
+    if (!isDev) {
+      mainWindow.webContents.on('before-input-event', (event, input) => {
+        const key = String(input.key || '').toLowerCase()
+        const mod = (input.control || input.meta)
+        if (key === 'f5' || (mod && key === 'r') || (mod && input.shift && key === 'i')) {
+          event.preventDefault()
+        }
+      })
+    }
+  } catch { /* ignore */ }
+
+  // ——— Kontextmenü auf nicht-editierbaren Flächen unterdrücken ———
+  try {
+    mainWindow.webContents.on('context-menu', (e, params) => {
+      const editable = params.isEditable || Boolean(params?.selectionText)
+      if (!editable) e.preventDefault()
+    })
+  } catch { /* ignore */ }
+
+  // ——— Persist window state on resize/move/close ———
+  try {
+    mainWindow.on('resize', saveWindowStateDebounced)
+    mainWindow.on('move', saveWindowStateDebounced)
+    mainWindow.on('close', saveWindowStateDebounced)
+  } catch { /* ignore */ }
 
   const devUrl = process.env.VITE_DEV_SERVER_URL
   if (devUrl) {

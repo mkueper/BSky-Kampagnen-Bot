@@ -969,14 +969,14 @@ function CredentialsSection () {
       setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '' }))
       toast.success({ title: 'Gespeichert', description: 'Zugangsdaten aktualisiert.' })
 
-      // Nach dem Speichern Konfiguration aktualisieren und zum Dashboard wechseln
+      // Nach dem Speichern direkt entsperren und zur Übersicht wechseln.
+      // Konfiguration wird parallel aktualisiert; Navigation soll nicht blockieren.
+      window.dispatchEvent(new Event('app:credentials-ok'))
+      window.dispatchEvent(new CustomEvent('app:navigate', { detail: { view: 'overview', force: true } }))
       try {
         window.dispatchEvent(new Event('client-config:refresh'))
-        const cfg = await fetch('/api/client-config').then(r => (r.ok ? r.json() : null)).catch(() => null)
-        if (cfg && cfg.needsCredentials === false) {
-          window.dispatchEvent(new Event('app:credentials-ok'))
-          window.dispatchEvent(new CustomEvent('app:navigate', { detail: { view: 'overview' } }))
-        }
+        // Hintergrund-Refresh mit Cache-Bust, falls Browser cached
+        await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
       } catch { /* ignore */ }
     } catch (error) {
       console.error('Zugangsdaten speichern fehlgeschlagen:', error)
