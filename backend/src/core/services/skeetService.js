@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { ALLOWED_PLATFORMS } = require('../../constants/platforms');
 const { deletePost } = require('./postService');
+const events = require('./events');
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('./platformContext');
 
 function normalizeTargetPlatforms(raw) {
@@ -235,6 +236,7 @@ async function createSkeet(payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Erstellen des Skeet", { error: e?.message || String(e) }); }
+  try { events.emit('skeet:updated', { id: skeet.id, status: attributes.repeat === 'none' ? 'scheduled' : 'scheduled' }); } catch {}
   return skeet;
 }
 
@@ -271,6 +273,7 @@ async function updateSkeet(id, payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Aktualisieren des Skeet", { error: e?.message || String(e) }); }
+  try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
   return skeet;
 }
 
@@ -280,6 +283,7 @@ async function deleteSkeet(id, { permanent = false } = {}) {
     throw new Error('Skeet nicht gefunden.');
   }
   await skeet.destroy({ force: Boolean(permanent) });
+  try { events.emit('skeet:updated', { id: skeet.id, status: 'deleted', permanent: Boolean(permanent) }); } catch {}
 }
 
 async function retractSkeet(id, options = {}) {
@@ -354,6 +358,7 @@ async function retractSkeet(id, options = {}) {
     }
 
     await skeet.update(updatePayload);
+    try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
   }
 
   const fresh = await Skeet.findByPk(id, { paranoid: false });
@@ -375,6 +380,7 @@ async function restoreSkeet(id) {
     return skeet;
   }
   await skeet.restore();
+  try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
   return skeet;
 }
 

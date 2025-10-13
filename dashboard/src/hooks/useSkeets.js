@@ -107,7 +107,7 @@ function extractRetryAfterMs (res) {
  * }}
  */
 export function useSkeets (options = {}) {
-  const { enabled = true } = options
+  const { enabled = true, sseConnected = false } = options
   const { config: clientConfig } = useClientConfig()
   const [skeets, setSkeets] = useState([])
   const [repliesBySkeet, setRepliesBySkeet] = useState({})
@@ -283,7 +283,7 @@ export function useSkeets (options = {}) {
           return next
         })
       },
-      isRelevantView: () => enabled,
+      isRelevantView: () => enabled && !sseConnected,
       activeIntervalMs: (() => {
         const cfg = parseMs(clientConfig?.polling?.skeets?.activeMs, DEFAULTS.skeets.activeMs)
         return hasDueSoon ? Math.min(cfg, nextDueSoonActiveMs) : cfg
@@ -329,7 +329,7 @@ export function useSkeets (options = {}) {
 
       pollingRef.current = null
     }
-  }, [clientConfig, enabled, hasDueSoon])
+  }, [clientConfig, enabled, hasDueSoon, sseConnected])
 
   const refreshNow = useCallback(
     async opts => {

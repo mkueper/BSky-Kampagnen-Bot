@@ -3,6 +3,7 @@ const { sequelize, Thread, ThreadSkeet, SkeetReaction, ThreadSkeetMedia } = requ
 const fs = require('fs');
 const path = require('path');
 const { deletePost } = require("./postService");
+const events = require("./events");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
 const { createLogger } = require('@utils/logging');
 const log = createLogger('thread');
@@ -333,7 +334,9 @@ async function createThread(payload = {}) {
       lock: transaction.LOCK.UPDATE,
     });
 
-    return fresh.toJSON();
+    const out = fresh.toJSON();
+    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch {}
+    return out;
   });
 }
 
@@ -410,7 +413,9 @@ async function updateThread(id, payload = {}) {
       lock: transaction.LOCK.UPDATE,
     });
 
-    return fresh.toJSON();
+    const out = fresh.toJSON();
+    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch {}
+    return out;
   });
 }
 
@@ -429,6 +434,7 @@ async function deleteThread(id, { permanent = false } = {}) {
 
   if (permanent) {
     await Thread.destroy({ where: { id: threadId } });
+    try { events.emit('thread:updated', { id: threadId, status: 'deleted', permanent: true }); } catch {}
     return { id: threadId, permanent: true };
   }
 
@@ -446,6 +452,7 @@ async function deleteThread(id, { permanent = false } = {}) {
   metadata.deletedAt = new Date().toISOString();
 
   await thread.update({ status: "deleted", metadata });
+  try { events.emit('thread:updated', { id: threadId, status: 'deleted' }); } catch {}
   return { id: threadId, status: "deleted" };
 }
 
@@ -618,11 +625,13 @@ async function retractThread(id, options = {}) {
     ],
   });
 
-  return {
+  const result = {
     thread: fresh ? fresh.toJSON() : null,
     summary,
     success: anySuccess,
   };
+  try { events.emit('thread:updated', { id: threadId, status: result.thread?.status || undefined }); } catch {}
+  return result;
 }
 
 async function restoreThread(id) {
@@ -656,7 +665,7 @@ async function restoreThread(id) {
   delete metadata.deletedAt;
 
   await thread.update({ status: previousStatus, metadata });
-
+  try { events.emit('thread:updated', { id: threadId, status: previousStatus }); } catch {}
   return thread.toJSON();
 }
 

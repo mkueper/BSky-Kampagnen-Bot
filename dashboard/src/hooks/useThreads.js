@@ -115,7 +115,7 @@ function extractRetryAfterMs (res) {
  * }}
  */
 export function useThreads (options = {}) {
-  const { status, enabled = true } = options
+  const { status, enabled = true, sseConnected = false } = options
   const { config: clientConfig } = useClientConfig()
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(false)
@@ -262,7 +262,7 @@ export function useThreads (options = {}) {
           setPendingFollowUp(true)
         }
       },
-      isRelevantView: () => enabled,
+      isRelevantView: () => enabled && !sseConnected,
       activeIntervalMs: (() => {
         const cfg = parseMs(clientConfig?.polling?.threads?.activeMs, DEFAULTS.threads.activeMs)
         return hasDueSoon ? Math.min(cfg, nextDueSoonActiveMs) : cfg
@@ -307,7 +307,7 @@ export function useThreads (options = {}) {
       }
       pollingRef.current = null
     }
-  }, [status, clientConfig, enabled, hasDueSoon])
+  }, [status, clientConfig, enabled, hasDueSoon, sseConnected])
 
   const refreshNow = useCallback(
     async opts => {

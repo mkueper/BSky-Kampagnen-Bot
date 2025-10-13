@@ -2,17 +2,19 @@
  * @file useSse.js
  * Abonniert Server-Sent Events vom Backend und triggert gezielte Refreshes.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
   const srcRef = useRef(null)
   const lastSkeetTsRef = useRef(0)
   const lastThreadTsRef = useRef(0)
+  const [connected, setConnected] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return () => {}
     try {
-      const src = new EventSource('/api/events', { withCredentials: false })
+      const base = import.meta.env.VITE_API_BASE || ''
+      const src = new EventSource(`${base}/api/events`, { withCredentials: false })
       srcRef.current = src
 
       const safeParse = (e) => {
@@ -37,12 +39,10 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
         onThreadEvent && onThreadEvent(payload)
       })
 
-      // Optional: pings ignorieren
-      // src.addEventListener('ping', () => {})
+      // Optional: Ping als Keep-Alive verwenden
+      src.addEventListener('ping', () => setConnected(true))
 
-      src.onerror = () => {
-        // Browser EventSource macht Auto-Reconnect; hier nur ruhig bleiben
-      }
+      src.onerror = () => { setConnected(false) }
 
       return () => {
         try { src.close() } catch {}
@@ -50,10 +50,11 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
       }
     } catch (e) {
       // kein SSE verfügbar – ignorieren
+      setConnected(false)
       return () => {}
     }
   }, [onSkeetEvent, onThreadEvent])
 
-  return {}
+  return { connected }
 }
-
+      src.onopen = () => setConnected(true)

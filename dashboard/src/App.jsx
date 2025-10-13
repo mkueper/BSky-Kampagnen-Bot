@@ -216,7 +216,8 @@ function App () {
     enabled:
       activeView === 'overview' ||
       activeView === 'skeets' ||
-      activeView === 'skeets-overview'
+      activeView === 'skeets-overview',
+    sseConnected
   })
 
   const {
@@ -228,7 +229,8 @@ function App () {
     enabled:
       activeView === 'overview' ||
       activeView === 'threads' ||
-      activeView === 'threads-overview'
+      activeView === 'threads-overview',
+    sseConnected
   })
   const { thread: editingThread, loading: loadingEditingThread } =
     useThreadDetail(editingThreadId, {
@@ -236,7 +238,7 @@ function App () {
     })
 
   // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
-  useSse({
+  const { connected: sseConnected } = useSse({
     onSkeetEvent: async (_evt) => {
       try { await refreshSkeetsNow({ force: true }) } catch {}
     },
