@@ -708,4 +708,9 @@ module.exports = {
   restartScheduler,
   processDueSkeets,
   processDueThreads,
+  // Expose helpers for unit tests
+  addDaysKeepingTime,
+  computeNextWeekly,
+  computeNextMonthly,
+  calculateNextScheduledAt,
 };

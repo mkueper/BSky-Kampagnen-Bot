@@ -2,10 +2,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Suche nach Testdateien im 'src' Verzeichnis,
-    // die auf .test.js enden.
-    include: ['backend/src/**/*.test.js'],
-
+    // Suche nach Testdateien in src und im dedizierten tests/-Ordner
+    include: [
+      'backend/src/**/*.test.{js,ts,jsx,tsx}',
+      'backend/tests/**/*.test.{js,ts,jsx,tsx}',
+      'tests/**/*.test.{js,ts,jsx,tsx}',
+    ],
+    watchExclude: ['dashboard/dist/**', 'dist/**', 'node_modules/**'],
     // Die Testumgebung für das Backend ist 'node'.
     environment: 'node',
     globals: true,
