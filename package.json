@@ -6,7 +6,7 @@
   "license": "ISC",
   "author": "Michael Küper & S.A.R.A.H.",
   "type": "commonjs",
-  "main": "backend/server.js",
+  "main": "electron/main.js",
   "scripts": {
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -40,6 +40,9 @@
     "install:frontend": "npm_config_workspaces=true npm install --workspace dashboard",
     "install:all": "npm_config_workspaces=true npm install --workspaces --include-workspace-root",
     "build:all": "npm run build:backend && npm run build:frontend",
+    "dev:electron": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "build:electron": "npm run build:frontend && electron-builder -l AppImage",
+    "pack:electron": "npm run build:frontend && electron-builder --dir -l AppImage",
     "docker:build": "docker compose build",
     "docker:bundle": "./scripts/docker-bundle.sh",
     "lint": "eslint . --max-warnings=0",
@@ -57,17 +60,19 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "grapheme-splitter": "^1.0.4",
-    "mastodon-api": "^1.3.0",
+    "module-alias": "^2.2.2",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
     "sqlite3": "^5.1.7",
-    "undici": "^7.13.0",
-    "module-alias": "^2.2.2"
+    "undici": "^7.13.0"
   },
   "devDependencies": {
     "@vitest/ui": "^3.2.4",
-    "cross-env": "^10.0.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.37.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.37.5",
@@ -78,7 +83,8 @@
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.46.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wait-on": "^9.0.1"
   },
   "private": true,
   "_moduleAliases": {
@@ -94,5 +100,30 @@
     "packages": [
       "dashboard"
     ]
+  },
+  "build": {
+    "appId": "com.mkueper.bsky-kampagnen-bot",
+    "productName": "BSky Kampagnen Bot",
+    "files": [
+      "electron/**/*",
+      "dashboard/dist/**/*",
+      "backend/**/*",
+      "config/**/*",
+      "migrations/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "linux": {
+      "icon": "build/icons/bsky-bot-icon.svg",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "Utility"
+    }
   }
 }

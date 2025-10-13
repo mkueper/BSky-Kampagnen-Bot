@@ -1,3 +1,4 @@
+import "module-alias/register";
 import "dotenv/config";
 import { setupPlatforms } from "../backend/src/platforms/setup.js";
 import { sendPost } from "../backend/src/core/services/postService.js";

@@ -2,7 +2,7 @@
 /**
  * Mastodon-Client Wrapper.
  *
- * Zentralisiert den Umgang mit der `mastodon-api` Library, kapselt dabei die
+ * Nutzt die Mastodon-HTTP-API via `fetch` (Node 20/undici), kapselt dabei die
  * Credential-Verwaltung (inkl. `.env`-Fallbacks) und bietet schmale Helper für
  * typische Operationen wie Login, Status posten oder Reaktionen abrufen.
  *
@@ -10,11 +10,11 @@
  * können Aufrufer situativ entscheiden, ob sie abbrechen, einen Retry
  * einplanen oder alternative Workflows starten.
  */
-const Mastodon = require("mastodon-api");
 const { env } = require("@env");
 const { createLogger } = require("@utils/logging");
 const log = createLogger('mastodon');
 const fs = require('fs');
+const path = require('path');
 
 let client = null;
 
@@ -106,10 +106,35 @@ function createClient(overrides = {}) {
     throw new Error("MASTODON_ACCESS_TOKEN fehlt. Bitte .env prüfen.");
   }
 
-  return new Mastodon({
-    access_token: accessToken,
-    api_url: `${normalizeApiUrl(apiUrl)}/api/v1/`,
-  });
+  const base = `${normalizeApiUrl(apiUrl)}/api/v1`;
+  const defaultHeaders = { Authorization: `Bearer ${accessToken}` };
+
+  async function request(method, subpath, opts = {}) {
+    const url = `${base}/${subpath}`;
+    const res = await fetch(url, {
+      method,
+      headers: { ...defaultHeaders, ...(opts.headers || {}) },
+      body: opts.body,
+    });
+    const isJson = (res.headers.get('content-type') || '').includes('application/json');
+    const data = isJson ? await res.json() : await res.text();
+    if (!res.ok) {
+      const err = new Error(typeof data === 'string' ? data : (data?.error || `HTTP ${res.status}`));
+      err.status = res.status;
+      err.statusCode = res.status;
+      throw err;
+    }
+    return { data, status: res.status };
+  }
+
+  return {
+    get: (p) => request('GET', p),
+    post: (p, body) => request('POST', p, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }),
+    delete: (p) => request('DELETE', p),
+  };
 }
 
 /**
@@ -210,12 +235,31 @@ async function getStatusContext(statusId, options) {
  * @param {{ apiUrl?: string, accessToken?: string }} [options]
  */
 async function uploadMedia(filePath, description = '', options) {
-  const activeClient = resolveReadClient(options);
-  const stream = fs.createReadStream(filePath);
-  const payload = { file: stream };
-  if (description) payload.description = description;
-  const response = await activeClient.post('media', payload);
-  const id = response?.data?.id || response?.data?.id_string;
+  const { apiUrl, accessToken } = resolveConfig(options);
+  if (!apiUrl || !accessToken) {
+    throw new Error("MASTODON_API_URL/ACCESS_TOKEN fehlen für uploadMedia.");
+  }
+
+  const base = `${normalizeApiUrl(apiUrl)}/api/v1`;
+  const buffer = fs.readFileSync(filePath);
+  const form = new FormData();
+  const filename = path.basename(filePath);
+  form.append('file', new Blob([buffer]), filename);
+  if (description) form.append('description', description);
+
+  const res = await fetch(`${base}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data?.error || `Upload fehlgeschlagen (${res.status})`);
+    err.status = res.status;
+    err.statusCode = res.status;
+    throw err;
+  }
+  const id = data?.id || data?.id_string;
   if (!id) {
     log.warn('Mastodon uploadMedia ohne ID', { filePath });
   }
