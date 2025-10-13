@@ -187,6 +187,28 @@ export function useSkeets (options = {}) {
     loadSkeets()
   }, [loadSkeets])
 
+  // Booster: Wenn ein Termin in Kürze fällig ist, Polling kurzzeitig beschleunigen
+  const nextDueSoonActiveMs = 2000 // 2s rund um fällige Termine
+  const boostWindowBeforeMs = 5 * 60 * 1000 // 5 Minuten vor Fälligkeit
+  const boostWindowAfterMs = 60 * 1000 // 1 Minute nach Fälligkeit
+  const hasDueSoon = (() => {
+    const now = Date.now()
+    for (const s of skeets) {
+      if (s.deletedAt) continue
+      const isRecurring = typeof s.repeat === 'string' && s.repeat !== 'none'
+      // sowohl einmalige als auch wiederkehrende Einträge berücksichtigen
+      const dueAt = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null
+      if (!Number.isFinite(dueAt)) continue
+      const delta = dueAt - now
+      // noch nicht veröffentlicht (postUri leer) oder wiederkehrend
+      const notSentYet = isRecurring || !s.postUri
+      if (notSentYet && delta <= boostWindowBeforeMs && delta >= -boostWindowAfterMs) {
+        return true
+      }
+    }
+    return false
+  })()
+
   // Smart-Polling via createPollingController
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -463,24 +485,3 @@ export function useSkeets (options = {}) {
     replyErrors
   }
 }
-  // Booster: Wenn ein Termin in Kürze fällig ist, Polling kurzzeitig beschleunigen
-  const nextDueSoonActiveMs = 2000; // 2s rund um fällige Termine
-  const boostWindowBeforeMs = 5 * 60 * 1000; // 5 Minuten vor Fälligkeit
-  const boostWindowAfterMs = 60 * 1000; // 1 Minute nach Fälligkeit
-  const hasDueSoon = (() => {
-    const now = Date.now()
-    for (const s of skeets) {
-      if (s.deletedAt) continue
-      const isRecurring = typeof s.repeat === 'string' && s.repeat !== 'none'
-      // sowohl einmalige als auch wiederkehrende Einträge berücksichtigen
-      const dueAt = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null
-      if (!Number.isFinite(dueAt)) continue
-      const delta = dueAt - now
-      // noch nicht veröffentlicht (postUri leer) oder wiederkehrend
-      const notSentYet = isRecurring || !s.postUri
-      if (notSentYet && delta <= boostWindowBeforeMs && delta >= -boostWindowAfterMs) {
-        return true
-      }
-    }
-    return false
-  })()

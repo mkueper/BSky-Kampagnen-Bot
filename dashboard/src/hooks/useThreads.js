@@ -185,6 +185,22 @@ export function useThreads (options = {}) {
     loadThreads()
   }, [loadThreads])
 
+  // Booster: Wenn ein Thread in Kürze fällig ist, Polling kurzzeitig beschleunigen
+  const nextDueSoonActiveMs = 2000 // 2s rund um fällige Termine
+  const boostWindowBeforeMs = 5 * 60 * 1000 // 5 Minuten vor Fälligkeit
+  const boostWindowAfterMs = 60 * 1000 // 1 Minute nach Fälligkeit
+  const hasDueSoon = useMemo(() => {
+    const now = Date.now()
+    for (const t of threads) {
+      if (!t || t.status !== 'scheduled' || !t.scheduledAt) continue
+      const ts = new Date(t.scheduledAt).getTime()
+      if (!Number.isFinite(ts)) continue
+      const delta = ts - now
+      if (delta <= boostWindowBeforeMs && delta >= -boostWindowAfterMs) return true
+    }
+    return false
+  }, [threads])
+
   // Smart-Polling via createPollingController (ersetzt das alte Intervall)
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -392,18 +408,3 @@ export function useThreadDetail (id, { autoLoad = true } = {}) {
     reload: loadThread
   }
 }
-  // Booster: Wenn ein Thread in Kürze fällig ist, Polling kurzzeitig beschleunigen
-  const nextDueSoonActiveMs = 2000 // 2s rund um fällige Termine
-  const boostWindowBeforeMs = 5 * 60 * 1000 // 5 Minuten vor Fälligkeit
-  const boostWindowAfterMs = 60 * 1000 // 1 Minute nach Fälligkeit
-  const hasDueSoon = useMemo(() => {
-    const now = Date.now()
-    for (const t of threads) {
-      if (!t || t.status !== 'scheduled' || !t.scheduledAt) continue
-      const ts = new Date(t.scheduledAt).getTime()
-      if (!Number.isFinite(ts)) continue
-      const delta = ts - now
-      if (delta <= boostWindowBeforeMs && delta >= -boostWindowAfterMs) return true
-    }
-    return false
-  }, [threads])
