@@ -200,9 +200,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     })
   }
 
-  const scheduledDateTime =
+  const scheduledDateTimeString =
     scheduledDate && scheduledTime
-      ? new Date(`${scheduledDate}T${scheduledTime}`)
+      ? `${scheduledDate}T${scheduledTime}`
       : null
 
   const handleSubmit = async e => {
@@ -260,10 +260,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
 
     const payload = {
       content,
-      scheduledAt:
-        scheduledDateTime && !isNaN(scheduledDateTime.getTime())
-          ? scheduledDateTime
-          : null,
+      scheduledAt: scheduledDateTimeString,
       repeat,
       repeatDaysOfWeek,
       repeatDayOfMonth,

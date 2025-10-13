@@ -47,6 +47,17 @@ function parseOptionalDate(value) {
   if (value == null || value === "") {
     return null;
   }
+  // Treat HTML datetime-local (no timezone) as local time to avoid UTC shifts
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    const [datePart, timePart] = value.split('T');
+    const [y, m, d] = datePart.split('-').map((n) => Number(n));
+    const [hh, mm] = timePart.split(':').map((n) => Number(n));
+    const dt = new Date(y, (m - 1), d, hh, mm, 0, 0); // local time
+    if (Number.isNaN(dt.getTime())) {
+      throw new ValidationError("scheduledAt ist kein gültiges Datum.");
+    }
+    return dt;
+  }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     throw new ValidationError("scheduledAt ist kein gültiges Datum.");
