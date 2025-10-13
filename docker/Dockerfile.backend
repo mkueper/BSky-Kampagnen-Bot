@@ -1,5 +1,5 @@
 # SQLite benötigt glibc; daher nutzen wir eine Debian-basierte Node-Variante.
-FROM node:22-slim
+FROM node:20-slim
 WORKDIR /app
 
 ARG APP_PORT=3000
