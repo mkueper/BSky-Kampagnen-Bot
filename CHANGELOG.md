@@ -4,6 +4,31 @@ Alle nennenswerten Änderungen an diesem Projekt.
 
 ## Unreleased
 
+## v1.1.0 - 2025-10-13
+
+### Security
+- Backend: Remove mastodon-api, implement fetch-based Mastodon client; npm audit now shows 0 vulnerabilities.
+
+### Docs
+
+### Backend
+
+### Realtime
+
+### UI
+
+### Electron
+
+### DX
+- Replace mastodon-api with fetch client; remove vulnerable transitive deps (request/form-data/tough-cookie); audit: 0 vulns; smoke scripts load module-alias
+- README + .env.sample: SSE als primäre Live-Update-Quelle, Polling nur Fallback; ENV-Prioritäten und neue Polling-Defaults dokumentiert (active 30s, idle 2m, hidden 5m, jitter 0.2).
+- Scheduling: Treat datetime-local as local time; fix +2h drift; frontend submits naive string; server parses robustly.
+- Add SSE endpoint (/api/events); UI subscribes and refreshes immediately on publish and engagement events; polling paused when SSE connected.
+- Config: Saving credentials navigates immediately to Overview and no longer jumps back; polling fallback intervals increased (active 30s, idle 2m, hidden 5m).
+- Window: Hide menubar, block reload/devtools in prod, open external links in system browser, remember window size/position; default 1240x980.
+- Baseline migration more defensive for SQLite (ignore changeColumn failures); auto-create SQLite storage directory; disable caching for index.html; updated .env.sample and README.
+
+
 ## v1.0.1 - 2025-10-12
 
 ### Struktur/Architektur
