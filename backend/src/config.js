@@ -94,32 +94,32 @@ module.exports = {
    */
   CLIENT_CONFIG: {
     polling: {
-      /** Skeet‑Polling‑Intervalle im Dashboard. */
+      /** Skeet‑Polling‑Intervalle im Dashboard (Fallback, wenn SSE ausfällt). */
       skeets: {
         activeMs:
           toNumber(process.env.SKEET_POLL_ACTIVE_MS, null) ??
-          toNumber(process.env.VITE_SKEET_POLL_ACTIVE_MS, 8000),
+          toNumber(process.env.VITE_SKEET_POLL_ACTIVE_MS, 30000),
         idleMs:
           toNumber(process.env.SKEET_POLL_IDLE_MS, null) ??
-          toNumber(process.env.VITE_SKEET_POLL_IDLE_MS, 40000),
+          toNumber(process.env.VITE_SKEET_POLL_IDLE_MS, 120000),
         hiddenMs:
           toNumber(process.env.SKEET_POLL_HIDDEN_MS, null) ??
-          toNumber(process.env.VITE_SKEET_POLL_HIDDEN_MS, 180000),
+          toNumber(process.env.VITE_SKEET_POLL_HIDDEN_MS, 300000),
         minimalHidden:
           toBool(process.env.SKEET_POLL_MINIMAL_HIDDEN, null) ??
           toBool(process.env.VITE_SKEET_POLL_MINIMAL_HIDDEN, false),
       },
-      /** Thread‑Polling‑Intervalle im Dashboard. */
+      /** Thread‑Polling‑Intervalle im Dashboard (Fallback, wenn SSE ausfällt). */
       threads: {
         activeMs:
           toNumber(process.env.THREAD_POLL_ACTIVE_MS, null) ??
-          toNumber(process.env.VITE_THREAD_POLL_ACTIVE_MS, 8000),
+          toNumber(process.env.VITE_THREAD_POLL_ACTIVE_MS, 30000),
         idleMs:
           toNumber(process.env.THREAD_POLL_IDLE_MS, null) ??
-          toNumber(process.env.VITE_THREAD_POLL_IDLE_MS, 40000),
+          toNumber(process.env.VITE_THREAD_POLL_IDLE_MS, 120000),
         hiddenMs:
           toNumber(process.env.THREAD_POLL_HIDDEN_MS, null) ??
-          toNumber(process.env.VITE_THREAD_POLL_HIDDEN_MS, 180000),
+          toNumber(process.env.VITE_THREAD_POLL_HIDDEN_MS, 300000),
         minimalHidden:
           toBool(process.env.THREAD_POLL_MINIMAL_HIDDEN, null) ??
           toBool(process.env.VITE_THREAD_POLL_MINIMAL_HIDDEN, false),
@@ -134,7 +134,7 @@ module.exports = {
       jitterRatio:
         (() => {
           const n = Number(process.env.POLL_JITTER_RATIO ?? process.env.VITE_POLL_JITTER_RATIO);
-          return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0.15;
+          return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0.2;
         })(),
       heartbeatMs:
         toNumber(process.env.POLL_HEARTBEAT_MS, null) ??
