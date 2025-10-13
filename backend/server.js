@@ -129,6 +129,9 @@ app.use((req, res, next) => {
         .status(500)
         .send('Frontend-Build fehlt. Bitte "npm run build" im dashboard ausführen.');
     }
+    // Verhindere, dass Browser eine alte index.html cachen und mit neuen Asset‑Hashes mischen
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
     res.sendFile(INDEX_HTML);
   });
 });
