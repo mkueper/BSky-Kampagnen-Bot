@@ -49,7 +49,11 @@ module.exports = {
         await queryInterface.addColumn("Threads", "title", { type: Sequelize.STRING, allowNull: true, defaultValue: null });
       } else {
         // title optional stellen
-        await queryInterface.changeColumn("Threads", "title", { type: Sequelize.STRING, allowNull: true });
+        // Hinweis: Unter SQLite kann changeColumn scheitern (Tabellen-Rebuild nötig).
+        // Da dies eine Baseline/Best‑Effort Migration ist, tolerieren wir den Fehler.
+        try {
+          await queryInterface.changeColumn("Threads", "title", { type: Sequelize.STRING, allowNull: true });
+        } catch { /* ignore changeColumn failure on sqlite */ }
       }
       if (!(await columnExists(queryInterface, "Threads", "scheduledAt"))) {
         await queryInterface.addColumn("Threads", "scheduledAt", { type: Sequelize.DATE, allowNull: true, defaultValue: null });

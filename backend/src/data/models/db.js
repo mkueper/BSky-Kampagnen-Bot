@@ -8,6 +8,9 @@
  */
 const { Sequelize } = require("sequelize");
 const path = require("path");
+const fs = require("fs");
+const { createLogger } = require("../../utils/logging");
+const log = createLogger('db');
 
 // Robustes Laden der DB-Konfiguration:
 // 1) Umgebungsvariablen (SQLITE_STORAGE oder DATABASE_URL)
@@ -54,6 +57,18 @@ const config = loadConfig();
  */
 // Optional Override des SQLite-Speicherpfads per ENV, z. B. für Electron-Pakete
 const storageOverride = process.env.SQLITE_STORAGE;
+
+// Ensure sqlite storage directory exists (if using file-based sqlite)
+try {
+  const storagePath = process.env.SQLITE_STORAGE || (config && config.storage);
+  if (storagePath && storagePath !== ':memory:' && !/^sqlite:/i.test(String(config?.url || ''))) {
+    const dir = path.dirname(storagePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    log.info('SQLite Storage', { path: storagePath });
+  }
+} catch { /* ignore directory creation errors; Sequelize will surface issues */ }
 
 const sequelize = config.url
   ? new Sequelize(config.url, { logging: config.logging ?? false, timezone: "+00:00", dialectOptions: { useUTC: true } })

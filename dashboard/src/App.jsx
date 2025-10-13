@@ -198,6 +198,17 @@ function App () {
   const importInputRef = useRef(null)
   const toast = useToast()
 
+  // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
+  // Wichtig: Vor useSkeets/useThreads aufrufen, damit sseConnected verfügbar ist.
+  const { connected: sseConnected } = useSse({
+    onSkeetEvent: async () => {
+      try { await refreshSkeetsNow({ force: true }) } catch { /* ignore */ }
+    },
+    onThreadEvent: async () => {
+      try { await refreshThreadsNow({ force: true }) } catch { /* ignore */ }
+    },
+  })
+
   const {
     plannedSkeets,
     publishedSkeets,
@@ -237,15 +248,7 @@ function App () {
       autoLoad: Boolean(editingThreadId)
     })
 
-  // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
-  const { connected: sseConnected } = useSse({
-    onSkeetEvent: async (_evt) => {
-      try { await refreshSkeetsNow({ force: true }) } catch {}
-    },
-    onThreadEvent: async (_evt) => {
-      try { await refreshThreadsNow({ force: true }) } catch {}
-    },
-  })
+  
 
   useEffect(() => {
     setEditingSkeet(current => {

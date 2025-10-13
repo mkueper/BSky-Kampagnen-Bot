@@ -189,7 +189,7 @@ app.use((req, res, next) => {
       await migration.up(qi, SequelizeLib)
       appLog.info('Baseline-Migration geprüft/angewendet (idempotent)')
     } catch (mErr) {
-      appLog.error('Baseline-Migration fehlgeschlagen', { error: mErr?.message || String(mErr) })
+      appLog.error('Baseline-Migration fehlgeschlagen', { error: mErr?.message || String(mErr), stack: mErr?.stack })
     }
 
     // sync nur im Development-Modus nutzen (Produktion: Migrationen)

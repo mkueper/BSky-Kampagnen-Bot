@@ -62,10 +62,10 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
       src.onerror = () => { setConnected(false) }
 
       return () => {
-        try { src.close() } catch {}
+        try { src.close() } catch { /* ignore */ }
         srcRef.current = null
       }
-    } catch (e) {
+    } catch {
       // kein SSE verfügbar – ignorieren
       setConnected(false)
       return () => {}

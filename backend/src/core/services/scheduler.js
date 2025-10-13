@@ -278,7 +278,7 @@ async function dispatchSkeet(skeet) {
     // UI informieren (Statuswechsel von geplant -> veröffentlicht/verschoben)
     const status = current.repeat === 'none' ? (allSent ? 'published' : 'scheduled') : 'scheduled';
     events.emit('skeet:updated', { id: current.id, status });
-  } catch {}
+  } catch { /* ignore SSE emit error */ }
 }
 
 /**
@@ -339,7 +339,7 @@ async function processDueSkeets(now = new Date()) {
           }
 
           await current.update(updates);
-          try { events.emit('skeet:updated', { id: current.id, status: 'published' }); } catch {}
+          try { events.emit('skeet:updated', { id: current.id, status: 'published' }); } catch { /* ignore SSE emit error */ }
           log.info("Discard-Mode: Skeet als veröffentlicht markiert (Demo)", { id: current.id });
         }
         continue;
@@ -554,7 +554,7 @@ async function dispatchThread(thread) {
   await current.update(updatePayload);
   try {
     events.emit('thread:updated', { id: current.id, status: updatePayload.status || current.status || 'published' });
-  } catch {}
+  } catch { /* ignore SSE emit error */ }
 }
 
 async function processDueThreads(now = new Date()) {
@@ -620,7 +620,7 @@ async function processDueThreads(now = new Date()) {
             scheduledAt: null,
             status: "published",
           });
-          try { events.emit('thread:updated', { id: current.id, status: 'published' }); } catch {}
+          try { events.emit('thread:updated', { id: current.id, status: 'published' }); } catch { /* ignore SSE emit error */ }
 
           log.info("Discard-Mode: Thread als veröffentlicht markiert (Demo)", { id: current.id });
         }

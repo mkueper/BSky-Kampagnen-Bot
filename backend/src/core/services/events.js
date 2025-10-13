@@ -15,7 +15,7 @@ function write(res, event, data) {
     if (event) res.write(`event: ${event}\n`);
     if (data !== undefined) res.write(`data: ${JSON.stringify(data)}\n`);
     res.write(`\n`);
-  } catch (e) {
+  } catch {
     // Ignorieren; Verbindung ist vermutlich weg
   }
 }
@@ -41,7 +41,7 @@ function sseHandler(req, res) {
   }, 25_000);
 
   req.on('close', () => {
-    try { if (entry.timer) clearInterval(entry.timer); } catch {}
+    try { if (entry.timer) clearInterval(entry.timer); } catch { /* ignore */ }
     clients.delete(entry);
     log.info('SSE client disconnected', { id, count: clients.size });
   });
@@ -58,4 +58,3 @@ module.exports = {
   sseHandler,
   emit,
 };
-

@@ -236,7 +236,7 @@ async function createSkeet(payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Erstellen des Skeet", { error: e?.message || String(e) }); }
-  try { events.emit('skeet:updated', { id: skeet.id, status: attributes.repeat === 'none' ? 'scheduled' : 'scheduled' }); } catch {}
+  try { events.emit('skeet:updated', { id: skeet.id, status: attributes.repeat === 'none' ? 'scheduled' : 'scheduled' }); } catch { /* ignore SSE emit error */ }
   return skeet;
 }
 
@@ -273,7 +273,7 @@ async function updateSkeet(id, payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Aktualisieren des Skeet", { error: e?.message || String(e) }); }
-  try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
+  try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
   return skeet;
 }
 
@@ -283,7 +283,7 @@ async function deleteSkeet(id, { permanent = false } = {}) {
     throw new Error('Skeet nicht gefunden.');
   }
   await skeet.destroy({ force: Boolean(permanent) });
-  try { events.emit('skeet:updated', { id: skeet.id, status: 'deleted', permanent: Boolean(permanent) }); } catch {}
+  try { events.emit('skeet:updated', { id: skeet.id, status: 'deleted', permanent: Boolean(permanent) }); } catch { /* ignore SSE emit error */ }
 }
 
 async function retractSkeet(id, options = {}) {
@@ -358,7 +358,7 @@ async function retractSkeet(id, options = {}) {
     }
 
     await skeet.update(updatePayload);
-    try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
+    try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
   }
 
   const fresh = await Skeet.findByPk(id, { paranoid: false });
@@ -380,7 +380,7 @@ async function restoreSkeet(id) {
     return skeet;
   }
   await skeet.restore();
-  try { events.emit('skeet:updated', { id: skeet.id }); } catch {}
+  try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
   return skeet;
 }
 

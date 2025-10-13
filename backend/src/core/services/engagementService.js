@@ -217,7 +217,7 @@ async function collectReactions(skeetId) {
     platformResults,
   });
 
-  try { events.emit('skeet:engagement', { id: skeet.id, totals: { likes: totalLikes, reposts: totalReposts } }); } catch {}
+  try { events.emit('skeet:engagement', { id: skeet.id, totals: { likes: totalLikes, reposts: totalReposts } }); } catch { /* ignore SSE emit error */ }
 
   const payload = {
     total: { likes: totalLikes, reposts: totalReposts },

@@ -229,7 +229,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
 
   metadata.platformResults = platformResults;
   await thread.update({ metadata });
-  try { events.emit('thread:engagement', { id, totals: { likes: totalLikes, reposts: totalReposts, replies: totalReplies } }); } catch {}
+  try { events.emit('thread:engagement', { id, totals: { likes: totalLikes, reposts: totalReposts, replies: totalReplies } }); } catch { /* ignore SSE emit error */ }
   if (isEngagementDebug()) {
     log.debug(`Refresh done | thread=${id} | totals: likes=${totalLikes}, reposts=${totalReposts}, replies=${totalReplies}`);
   }

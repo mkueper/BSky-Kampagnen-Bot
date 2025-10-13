@@ -335,7 +335,7 @@ async function createThread(payload = {}) {
     });
 
     const out = fresh.toJSON();
-    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch {}
+    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch { /* ignore SSE emit error */ }
     return out;
   });
 }
@@ -414,7 +414,7 @@ async function updateThread(id, payload = {}) {
     });
 
     const out = fresh.toJSON();
-    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch {}
+    try { events.emit('thread:updated', { id: out.id, status: out.status || 'draft' }); } catch { /* ignore SSE emit error */ }
     return out;
   });
 }
@@ -434,7 +434,7 @@ async function deleteThread(id, { permanent = false } = {}) {
 
   if (permanent) {
     await Thread.destroy({ where: { id: threadId } });
-    try { events.emit('thread:updated', { id: threadId, status: 'deleted', permanent: true }); } catch {}
+    try { events.emit('thread:updated', { id: threadId, status: 'deleted', permanent: true }); } catch { /* ignore SSE emit error */ }
     return { id: threadId, permanent: true };
   }
 
@@ -452,7 +452,7 @@ async function deleteThread(id, { permanent = false } = {}) {
   metadata.deletedAt = new Date().toISOString();
 
   await thread.update({ status: "deleted", metadata });
-  try { events.emit('thread:updated', { id: threadId, status: 'deleted' }); } catch {}
+  try { events.emit('thread:updated', { id: threadId, status: 'deleted' }); } catch { /* ignore SSE emit error */ }
   return { id: threadId, status: "deleted" };
 }
 
@@ -630,7 +630,7 @@ async function retractThread(id, options = {}) {
     summary,
     success: anySuccess,
   };
-  try { events.emit('thread:updated', { id: threadId, status: result.thread?.status || undefined }); } catch {}
+  try { events.emit('thread:updated', { id: threadId, status: result.thread?.status || undefined }); } catch { /* ignore SSE emit error */ }
   return result;
 }
 
@@ -665,7 +665,7 @@ async function restoreThread(id) {
   delete metadata.deletedAt;
 
   await thread.update({ status: previousStatus, metadata });
-  try { events.emit('thread:updated', { id: threadId, status: previousStatus }); } catch {}
+  try { events.emit('thread:updated', { id: threadId, status: previousStatus }); } catch { /* ignore SSE emit error */ }
   return thread.toJSON();
 }
 
