@@ -39,6 +39,23 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
         onThreadEvent && onThreadEvent(payload)
       })
 
+      // Engagement-Updates: gleich behandeln, da wir ohnehin einen gezielten Refresh auslösen
+      src.addEventListener('skeet:engagement', (e) => {
+        const now = Date.now()
+        if (now - lastSkeetTsRef.current < debounceMs) return
+        lastSkeetTsRef.current = now
+        const payload = safeParse(e)
+        onSkeetEvent && onSkeetEvent(payload)
+      })
+
+      src.addEventListener('thread:engagement', (e) => {
+        const now = Date.now()
+        if (now - lastThreadTsRef.current < debounceMs) return
+        lastThreadTsRef.current = now
+        const payload = safeParse(e)
+        onThreadEvent && onThreadEvent(payload)
+      })
+
       // Optional: Ping als Keep-Alive verwenden
       src.addEventListener('ping', () => setConnected(true))
 

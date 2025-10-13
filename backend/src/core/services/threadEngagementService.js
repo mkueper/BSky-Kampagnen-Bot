@@ -4,6 +4,7 @@
  * pro Plattform und speichert sie an den Segmenten bzw. im Thread-Metadatenfeld.
  */
 const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("@data/models");
+const events = require("./events");
 const { createLogger, isEngagementDebug } = require("@utils/logging");
 const log = createLogger('engagement');
 const { getReactions: bskyGetReactions, getReplies: bskyGetPostThread } = require("./blueskyClient");
@@ -228,6 +229,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
 
   metadata.platformResults = platformResults;
   await thread.update({ metadata });
+  try { events.emit('thread:engagement', { id, totals: { likes: totalLikes, reposts: totalReposts, replies: totalReplies } }); } catch {}
   if (isEngagementDebug()) {
     log.debug(`Refresh done | thread=${id} | totals: likes=${totalLikes}, reposts=${totalReposts}, replies=${totalReplies}`);
   }

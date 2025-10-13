@@ -1,4 +1,5 @@
 const { Skeet, Reply } = require('@data/models');
+const events = require('./events');
 const { createLogger, isEngagementDebug } = require('@utils/logging');
 const log = createLogger('engagement');
 const { getReactions: getBlueskyReactions, getReplies: fetchBlueskyReplies } = require('./blueskyClient');
@@ -215,6 +216,8 @@ async function collectReactions(skeetId) {
     targetPlatforms: normalizedTargets.length > 0 ? normalizedTargets : ['bluesky'],
     platformResults,
   });
+
+  try { events.emit('skeet:engagement', { id: skeet.id, totals: { likes: totalLikes, reposts: totalReposts } }); } catch {}
 
   const payload = {
     total: { likes: totalLikes, reposts: totalReposts },
