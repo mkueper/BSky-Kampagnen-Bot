@@ -6,7 +6,13 @@
  * hier exportierten Objekte zurück, damit die Herkunft der Secrets gekapselt
  * bleibt.
  */
-require("dotenv").config();
+// Erlaubt ein benutzerdefiniertes .env über ENV_PATH/DOTENV_PATH
+try {
+  const dotenv = require('dotenv')
+  const customPath = process.env.ENV_PATH || process.env.DOTENV_PATH || process.env.DOTENV_CONFIG_PATH
+  if (customPath) dotenv.config({ path: customPath })
+  else dotenv.config()
+} catch { /* dotenv optional at runtime */ }
 
 const env = {
   bluesky: {

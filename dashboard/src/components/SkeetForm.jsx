@@ -335,7 +335,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                   checked={isActive}
                   onChange={() => togglePlatform(platform)}
                 />
-                <span className='capitalize'>{platform}</span>
+                <span className='capitalize'>
+                  {platform.toLowerCase()}
+                  <span className='ml-1 text-xs text-foreground-muted'>({PLATFORM_LIMITS[platform]})</span>
+                </span>
               </label>
             )
           })}

@@ -33,6 +33,16 @@ export default tseslint.config(
     },
   },
 
+  // Electron main/preload (Node context)
+  {
+    files: ["electron/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+
   // 3. CJS/Module config files and root ESM configs
   {
     files: [

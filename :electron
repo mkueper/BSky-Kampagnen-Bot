@@ -1,0 +1,9 @@
+
+> bsky-kampagnen-bot@1.0.1 build
+> npm run build:backend
+
+
+> bsky-kampagnen-bot@1.0.1 build:backend
+> node -e "console.log('Skipping backend build (JS project)')"
+
+Skipping backend build (JS project)

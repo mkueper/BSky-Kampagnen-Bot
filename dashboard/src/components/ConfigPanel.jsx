@@ -32,6 +32,24 @@ function normalizeFormPayload (values) {
 
 export default function ConfigPanel () {
   const toast = useToast()
+  const [tab, setTab] = useState('scheduler')
+  const [needsCreds, setNeedsCreds] = useState(false)
+  // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/client-config')
+        if (!res.ok) return
+        const data = await res.json().catch(() => null)
+        if (!ignore && data) {
+          if (data.needsCredentials) setTab('credentials')
+          setNeedsCreds(Boolean(data.needsCredentials))
+        }
+      } catch { /* ignore */ }
+    })()
+    return () => { ignore = true }
+  }, [])
   const [formValues, setFormValues] = useState({
     scheduleTime: '',
     timeZone: '',
@@ -421,7 +439,17 @@ export default function ConfigPanel () {
 
   return (
     <div className='space-y-6'>
-      <Tabs.Root defaultValue='scheduler' className='block'>
+      {needsCreds ? (
+        <Card padding='p-4 lg:p-5' className='border border-primary/40 bg-primary/5'>
+          <div className='space-y-1'>
+            <h4 className='text-base font-semibold text-foreground'>Zugangsdaten erforderlich</h4>
+            <p className='text-sm text-foreground-muted'>
+              Bitte hinterlege zuerst deine Zugangsdaten für Bluesky (und optional Mastodon). Anschließend kannst du die weiteren Optionen nach Bedarf anpassen.
+            </p>
+          </div>
+        </Card>
+      ) : null}
+      <Tabs.Root value={tab} onValueChange={setTab} className='block'>
         <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
           <Tabs.List
             className='inline-flex rounded-full bg-background-subtle p-1'
@@ -438,6 +466,12 @@ export default function ConfigPanel () {
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
               Dashboard-Polling
+            </Tabs.Trigger>
+            <Tabs.Trigger
+              value='credentials'
+              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
+            >
+              Zugangsdaten
             </Tabs.Trigger>
           </Tabs.List>
         </div>
@@ -830,7 +864,177 @@ export default function ConfigPanel () {
             </form>
           </Card>
         </Tabs.Content>
+        <Tabs.Content value='credentials' className='outline-none'>
+          <CredentialsSection />
+        </Tabs.Content>
       </Tabs.Root>
     </div>
+  )
+}
+
+function CredentialsSection () {
+  const toast = useToast()
+  const [values, setValues] = useState({
+    blueskyServerUrl: '',
+    blueskyIdentifier: '',
+    blueskyAppPassword: '',
+    mastodonApiUrl: '',
+    mastodonAccessToken: ''
+  })
+  const [hasSecret, setHasSecret] = useState({ bsky: false, masto: false })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [blink, setBlink] = useState({})
+
+  const triggerBlink = (keys = []) => {
+    const obj = {}
+    keys.forEach(k => { obj[k] = true })
+    setBlink(obj)
+    setTimeout(() => setBlink({}), 900)
+  }
+
+  useEffect(() => {
+    let ignore = false
+    async function loadCreds () {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/config/credentials')
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Fehler beim Laden der Zugangsdaten.')
+        }
+        const data = await res.json()
+        if (!ignore) {
+          setValues(v => ({
+            ...v,
+            blueskyServerUrl: data?.bluesky?.serverUrl || '',
+            blueskyIdentifier: data?.bluesky?.identifier || '',
+            mastodonApiUrl: data?.mastodon?.apiUrl || ''
+          }))
+          setHasSecret({
+            bsky: Boolean(data?.bluesky?.hasAppPassword),
+            masto: Boolean(data?.mastodon?.hasAccessToken)
+          })
+        }
+      } catch (error) {
+        console.error('Zugangsdaten laden fehlgeschlagen:', error)
+        toast.error({ title: 'Zugangsdaten', description: error.message })
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    loadCreds()
+    return () => { ignore = true }
+  }, [toast])
+
+  const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+
+  const handleSave = async e => {
+    e.preventDefault()
+
+    // Clientseitige Minimal-Validierung
+    const next = { ...values }
+    if (!next.blueskyServerUrl) {
+      next.blueskyServerUrl = 'https://bsky.social'
+    }
+    const missing = []
+    if (!next.blueskyIdentifier) missing.push('blueskyIdentifier')
+    if (!hasSecret.bsky && !next.blueskyAppPassword) missing.push('blueskyAppPassword')
+    if (missing.length) {
+      triggerBlink(missing)
+      toast.error({
+        title: 'Eingaben fehlen',
+        description: 'Bitte Bluesky‑Identifier und App‑Passwort ausfüllen.'
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const payload = { ...next }
+      if (!payload.blueskyAppPassword) delete payload.blueskyAppPassword
+      if (!payload.mastodonAccessToken) delete payload.mastodonAccessToken
+      const res = await fetch('/api/config/credentials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Fehler beim Speichern der Zugangsdaten.')
+      }
+      await res.json().catch(() => ({}))
+      if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
+      if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
+      setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '' }))
+      toast.success({ title: 'Gespeichert', description: 'Zugangsdaten aktualisiert.' })
+
+      // Nach dem Speichern Konfiguration aktualisieren und zum Dashboard wechseln
+      try {
+        window.dispatchEvent(new Event('client-config:refresh'))
+        const cfg = await fetch('/api/client-config').then(r => (r.ok ? r.json() : null)).catch(() => null)
+        if (cfg && cfg.needsCredentials === false) {
+          window.dispatchEvent(new Event('app:credentials-ok'))
+          window.dispatchEvent(new CustomEvent('app:navigate', { detail: { view: 'overview' } }))
+        }
+      } catch { /* ignore */ }
+    } catch (error) {
+      console.error('Zugangsdaten speichern fehlgeschlagen:', error)
+      toast.error({ title: 'Speichern fehlgeschlagen', description: error.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card padding='p-6 lg:p-10'>
+      <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
+        <div>
+          <h3 className='text-2xl font-semibold'>Zugangsdaten</h3>
+          <p className='text-sm text-foreground-muted'>Server-URLs und Logins für Bluesky und Mastodon.</p>
+        </div>
+      </div>
+      {loading ? (
+        <p className='text-sm text-foreground-muted'>Lade …</p>
+      ) : (
+        <form onSubmit={handleSave} className='space-y-8'>
+          <section className='space-y-4'>
+            <h4 className='text-lg font-semibold'>Bluesky</h4>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <label className='space-y-1'>
+                <span className='text-sm font-medium'>Server URL</span>
+                <input type='url' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyServerUrl ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='https://bsky.social' value={values.blueskyServerUrl} onChange={onChange('blueskyServerUrl')} />
+              </label>
+              <label className='space-y-1'>
+                <span className='text-sm font-medium'>Identifier (Handle/E-Mail)</span>
+                <input type='text' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyIdentifier ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='dein-handle.bsky.social' value={values.blueskyIdentifier} onChange={onChange('blueskyIdentifier')} />
+              </label>
+            </div>
+            <label className='space-y-1 md:w-1/2'>
+              <span className='text-sm font-medium'>App Password</span>
+              <input type='password' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyAppPassword ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder={hasSecret.bsky ? '••••••••' : ''} value={values.blueskyAppPassword} onChange={onChange('blueskyAppPassword')} />
+              <p className='text-xs text-foreground-muted'>Leer lassen, um das bestehende Passwort zu behalten.</p>
+            </label>
+          </section>
+          <section className='space-y-4'>
+            <h4 className='text-lg font-semibold'>Mastodon</h4>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <label className='space-y-1'>
+                <span className='text-sm font-medium'>API URL</span>
+                <input type='url' className='w-full rounded-md border border-border bg-background p-2' placeholder='https://mastodon.social' value={values.mastodonApiUrl} onChange={onChange('mastodonApiUrl')} />
+              </label>
+              <label className='space-y-1'>
+                <span className='text-sm font-medium'>Access Token</span>
+                <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.masto ? '••••••••' : ''} value={values.mastodonAccessToken} onChange={onChange('mastodonAccessToken')} />
+                <p className='text-xs text-foreground-muted'>Leer lassen, um das bestehende Token zu behalten.</p>
+              </label>
+            </div>
+          </section>
+          <div className='flex gap-3'>
+            <Button type='submit' disabled={saving}>{saving ? 'Speichere …' : 'Zugangsdaten speichern'}</Button>
+          </div>
+        </form>
+      )}
+    </Card>
   )
 }

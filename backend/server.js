@@ -22,6 +22,7 @@ const engagementController = require("@api/controllers/engagementController");
 const configController = require("@api/controllers/configController");
 const mediaController = require("@api/controllers/mediaController");
 const uploadController = require("@api/controllers/uploadController");
+const credentialsController = require("@api/controllers/credentialsController");
 const heartbeatController = require("@api/controllers/heartbeatController");
 const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
@@ -33,7 +34,8 @@ const app = express();
 const PORT = config.PORT;
 // Hinweis: Nach dem Umzug liegt das Dashboard außerhalb von __dirname.
 // Wir referenzieren es deshalb relativ zum Projekt-Root (process.cwd()).
-const DIST_DIR = path.join(process.cwd(), "dashboard", "dist");
+const APP_ROOT = process.env.APP_ROOT || process.cwd();
+const DIST_DIR = path.join(APP_ROOT, "dashboard", "dist");
 const INDEX_HTML = path.join(DIST_DIR, "index.html");
 
 // Statische Dateien
@@ -85,6 +87,9 @@ app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
 app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
+// Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
+app.get("/api/config/credentials", credentialsController.getCredentials);
+app.put("/api/config/credentials", credentialsController.updateCredentials);
 // Client-Heartbeat (Präsenz)
 app.post("/api/heartbeat", heartbeatController.postHeartbeat);
 
@@ -101,7 +106,9 @@ app.post("/api/uploads/temp", uploadController.uploadTemp);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || "development", version: require(path.join(process.cwd(), "package.json")).version });
+  let version = '0.0.0'
+  try { version = require(path.join(APP_ROOT, "package.json")).version } catch { /* ignore */ }
+  res.json({ ok: true, env: process.env.NODE_ENV || "development", version });
 });
 
 // Wildcard-Route (nur GET) – leitet unbekannte Pfade an das Dashboard weiter.
@@ -130,14 +137,11 @@ app.use((req, res, next) => {
     const demoMode = Boolean(config.DISCARD_MODE);
 
     if (report.bluesky.critical) {
-      if (demoMode) {
-        appLog.warn("Preflight (Bluesky) kritisch, Demo-/Discard-Modus aktiv – fahre ohne Login fort.");
-        report.bluesky.hints.forEach(h => appLog.warn("Hinweis", { hint: h }));
-      } else {
-        appLog.error("Preflight fehlgeschlagen (Bluesky)", { issues: report.bluesky.issues });
-        report.bluesky.hints.forEach(h => appLog.error("Hinweis", { hint: h }));
-        process.exit(1);
-      }
+      // Kein harter Abbruch mehr: starte ohne Logins und markiere, dass Credentials fehlen
+      process.env.CREDENTIALS_REQUIRED = 'true'
+      const logFn = demoMode ? appLog.warn : appLog.warn
+      logFn("Preflight (Bluesky) kritisch – starte ohne Logins. Zugangsdaten in der App hinterlegen.", { issues: report.bluesky.issues })
+      report.bluesky.hints.forEach(h => appLog.warn("Hinweis", { hint: h }))
     }
 
     report.mastodon.warnings.forEach(w => appLog.warn("Preflight Warnung", { warning: w }));
@@ -148,7 +152,8 @@ app.use((req, res, next) => {
 
   try {
     const demoMode = Boolean(config.DISCARD_MODE);
-    if (!demoMode) {
+    const credsMissing = String(process.env.CREDENTIALS_REQUIRED || '').toLowerCase() === 'true'
+    if (!demoMode && !credsMissing) {
       await loginBluesky();
       appLog.info("Bluesky-Login erfolgreich");
 
@@ -163,19 +168,28 @@ app.use((req, res, next) => {
         appLog.info("Mastodon-Zugangsdaten nicht gesetzt – Login übersprungen.");
       }
     } else {
-      appLog.info("Demo-/Discard-Modus aktiv – Logins zu Bluesky/Mastodon werden übersprungen.");
+      appLog.info("Logins übersprungen (Demo-Modus oder fehlende Zugangsdaten).");
     }
 
     await sequelize.authenticate();
     appLog.info("DB-Verbindung ok");
 
-    const syncFlag = (process.env.DB_SYNC || "").toLowerCase();
-    const shouldSync = syncFlag === "true" || (process.env.NODE_ENV !== "production" && syncFlag !== "false");
-    if (shouldSync) {
-      await sequelize.sync(); // in Prod i. d. R. per Migrationen verwalten
-      appLog.info("DB synchronisiert (sequelize.sync)");
-    } else {
-      appLog.info("sequelize.sync() übersprungen – Migrationen verwenden");
+    // Baseline-Migration immer idempotent anwenden (legt fehlende Tabellen an)
+    try {
+      const qi = sequelize.getQueryInterface()
+      const SequelizeLib = require('sequelize')
+      const migration = require(path.join(APP_ROOT, 'migrations', '00000000000000-baseline-rebuild.js'))
+      await migration.up(qi, SequelizeLib)
+      appLog.info('Baseline-Migration geprüft/angewendet (idempotent)')
+    } catch (mErr) {
+      appLog.error('Baseline-Migration fehlgeschlagen', { error: mErr?.message || String(mErr) })
+    }
+
+    // sync nur im Development-Modus nutzen (Produktion: Migrationen)
+    const devSync = process.env.NODE_ENV !== 'production' && String(process.env.DB_SYNC || '').toLowerCase() === 'true'
+    if (devSync) {
+      await sequelize.sync()
+      appLog.info('DB synchronisiert (sequelize.sync, dev)')
     }
 
     try {

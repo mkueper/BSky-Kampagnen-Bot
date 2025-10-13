@@ -11,6 +11,7 @@ import {
   ViewHorizontalIcon
 } from '@radix-ui/react-icons'
 import AppLayout from './components/layout/AppLayout'
+import { useClientConfig } from './hooks/useClientConfig'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
@@ -141,6 +142,37 @@ const DEFAULT_THEME = THEMES[0]
 
 function App () {
   const [activeView, setActiveView] = useState('overview')
+  const { config: clientConfigPreset } = useClientConfig()
+  const [credsOkOverride, setCredsOkOverride] = useState(false)
+  const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
+  const gatedNeedsCreds = needsCredentials && !credsOkOverride
+  useEffect(() => {
+    if (gatedNeedsCreds) {
+      setActiveView('config')
+    }
+  }, [gatedNeedsCreds])
+
+  // Allow internal navigation events without full reload
+  useEffect(() => {
+    const handler = (ev) => {
+      const view = ev?.detail?.view
+      if (!view) return
+      if (gatedNeedsCreds && view !== 'config') {
+        setActiveView('config')
+        return
+      }
+      setActiveView(view)
+    }
+    window.addEventListener('app:navigate', handler)
+    return () => window.removeEventListener('app:navigate', handler)
+  }, [gatedNeedsCreds])
+
+  // Allow UI to unlock immediately after saving credentials (without reload)
+  useEffect(() => {
+    const onCredsOk = () => setCredsOkOverride(true)
+    window.addEventListener('app:credentials-ok', onCredsOk)
+    return () => window.removeEventListener('app:credentials-ok', onCredsOk)
+  }, [])
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return DEFAULT_THEME
     const stored = window.localStorage.getItem('theme')
@@ -947,7 +979,13 @@ function App () {
   )
 
   let content = null
-  if (activeView === 'overview') {
+  const availableNavItems = gatedNeedsCreds
+    ? [{ id: 'config', label: 'Konfiguration', icon: GearIcon }]
+    : NAV_ITEMS
+
+  if (gatedNeedsCreds) {
+    content = <ConfigPanel />
+  } else if (activeView === 'overview') {
     content = (
       <MainOverviewView
         threads={threads}
@@ -1076,11 +1114,19 @@ function App () {
     )
   }
 
+  const safeSelectView = (viewId) => {
+    if (needsCredentials && viewId !== 'config') {
+      setActiveView('config')
+      return
+    }
+    setActiveView(viewId)
+  }
+
   return (
     <AppLayout
-      navItems={NAV_ITEMS}
+      navItems={availableNavItems}
       activeView={activeView}
-      onSelectView={setActiveView}
+      onSelectView={safeSelectView}
       headerCaption={headerCaption}
       headerTitle={headerTitle}
       headerActions={headerActions}
