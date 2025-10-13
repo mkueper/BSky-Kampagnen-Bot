@@ -74,4 +74,3 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
 
   return { connected }
 }
-      src.onopen = () => setConnected(true)
