@@ -1,0 +1,15 @@
+{
+  "name": "bsky-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "module": "src/index.jsx",
+  "main": "src/index.jsx",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@radix-ui/react-icons": "^1.3.2"
+  }
+}
+

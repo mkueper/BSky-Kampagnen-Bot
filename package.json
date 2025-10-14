@@ -99,7 +99,8 @@
   },
   "workspaces": {
     "packages": [
-      "dashboard"
+      "dashboard",
+      "bsky-client"
     ]
   },
   "build": {
