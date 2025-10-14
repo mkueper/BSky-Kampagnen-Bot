@@ -25,7 +25,7 @@ const NAV = [
 
 export default function SidebarNav ({ active, onSelect, onCompose }) {
   return (
-    <nav className='flex h-full flex-col gap-2'>
+    <nav className='flex h-full flex-col items-center gap-2'>
       <div className='flex-1 space-y-1'>
         {NAV.map(item => {
           const Icon = item.icon
@@ -37,7 +37,7 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
               disabled={disabled}
-              className={`w-full inline-flex items-center rounded-2xl p-3 xl:px-4 xl:py-3 text-left text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 ${
+              className={`inline-flex h-12 w-12 items-center justify-center rounded-xl text-sm transition ${
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-soft'
                   : 'text-foreground hover:bg-background-subtle'
@@ -46,7 +46,6 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               title={item.label}
             >
               {Icon ? <Icon className='h-5 w-5 shrink-0' /> : null}
-              <span className='hidden xl:inline truncate'>{item.label}</span>
             </button>
           )
         })}
@@ -55,12 +54,11 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
         <button
           type='button'
           onClick={onCompose}
-          className='w-full inline-flex items-center justify-center xl:justify-center gap-2 rounded-2xl bg-primary p-3 xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+          className='inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
           aria-label='Neuer Post'
           title='Neuer Post'
         >
           <PlusIcon className='h-5 w-5' />
-          <span className='hidden xl:inline truncate'>Neuer Post</span>
         </button>
       </div>
     </nav>

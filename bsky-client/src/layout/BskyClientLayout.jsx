@@ -9,7 +9,7 @@ export default function BskyClientLayout ({
 }) {
   return (
     <div className='flex gap-4'>
-      <aside className='sticky top-0 shrink-0 w-14 xl:w-64'>
+      <aside className='sticky top-0 shrink-0 w-14'>
         <SidebarNav
           active={activeSection}
           onSelect={onSelectSection}
