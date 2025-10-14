@@ -1115,7 +1115,7 @@ function App () {
     content = <ConfigPanel />
   } else if (activeView === 'bsky-client') {
     content = (
-      <Card padding='p-6 lg:p-10'>
+      <Card padding='p-4'>
         <BskyClientApp />
       </Card>
     )

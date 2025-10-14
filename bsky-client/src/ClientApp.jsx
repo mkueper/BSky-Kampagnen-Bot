@@ -19,26 +19,27 @@ export default function BskyClientApp () {
       { id: 'best-of-follows', label: 'Best of Follows' }
     ]
     return (
-      <article className='group rounded-2xl'>
-        <div className='flex items-center gap-2 overflow-x-auto'>
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              type='button'
-              onClick={() => setTimelineTab(t.id)}
-              className={`rounded-2xl px-3 py-1 text-sm transition ${
-                timelineTab === t.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-background-subtle text-foreground-muted'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </article>
+      <div className='flex items-center gap-2 overflow-x-auto' data-component='BskyTimelineTabs'>
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            type='button'
+            onClick={() => setTimelineTab(t.id)}
+            className={`rounded-2xl px-3 py-1 text-sm transition ${
+              timelineTab === t.id
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-background-subtle text-foreground-muted'
+            }`}
+            data-tab={t.id}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
     )
   }, [section, timelineTab])
+
+  const topBlock = null
 
   let content = null
   if (section === 'home') content = <Timeline tab={timelineTab} />
@@ -58,6 +59,7 @@ export default function BskyClientApp () {
         onSelectSection={setSection}
         onOpenCompose={() => setComposeOpen(true)}
         headerContent={headerContent}
+        topBlock={topBlock}
       >
         {content}
       </BskyClientLayout>

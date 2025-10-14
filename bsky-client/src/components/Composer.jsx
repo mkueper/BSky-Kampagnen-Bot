@@ -39,7 +39,7 @@ export default function Composer () {
   }
 
   return (
-    <form onSubmit={handleSendNow} className='space-y-4'>
+    <form onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       <label className='block text-sm font-medium'>Inhalt</label>
       <textarea
         value={text}
@@ -59,4 +59,3 @@ export default function Composer () {
     </form>
   )
 }
-

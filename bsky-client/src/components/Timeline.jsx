@@ -23,15 +23,14 @@ export default function Timeline ({ tab = 'discover' }) {
     return () => { ignore = true }
   }, [tab])
 
-  if (loading) return <p className='text-sm text-muted-foreground'>Lade Timeline…</p>
-  if (error) return <p className='text-sm text-red-600'>Fehler: {error}</p>
-  if (items.length === 0) return <p className='text-sm text-muted-foreground'>Noch keine Timeline geladen. Proxy-Endpunkte folgen.</p>
+  if (loading) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='loading'>Lade Timeline…</p>
+  if (error) return <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='error'>Fehler: {error}</p>
+  if (items.length === 0) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>Noch keine Timeline geladen. Proxy-Endpunkte folgen.</p>
   return (
-    <ul className='space-y-3'>
+    <ul className='space-y-3' data-component='BskyTimeline' data-tab={tab}>
       {items.map((it) => (
         <li key={it.id} className='rounded-xl border p-3'>{it.text}</li>
       ))}
     </ul>
   )
 }
-
