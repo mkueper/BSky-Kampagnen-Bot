@@ -19,6 +19,7 @@ import ActivityPanel from './components/ui/ActivityPanel'
 import MainOverviewView from './components/views/MainOverviewView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
+import BlueskyClientView from './components/views/BlueskyClientView'
 import SkeetForm from './components/SkeetForm'
 import ThreadForm from './components/ThreadForm'
 import ConfigPanel from './components/ConfigPanel'
@@ -108,6 +109,7 @@ const NAV_ITEMS = [
       { id: 'threads-plan', label: 'Thread planen' }
     ]
   },
+  { id: 'bsky-client', label: 'Bluesky Client', icon: ViewHorizontalIcon },
   { id: 'config', label: 'Konfiguration', icon: GearIcon }
 ]
 
@@ -119,6 +121,7 @@ const HEADER_CAPTIONS = {
   threads: 'Threads',
   'threads-overview': 'Threads',
   'threads-plan': 'Threadplaner',
+  'bsky-client': 'Bluesky Client',
   config: 'Konfiguration'
 }
 
@@ -130,6 +133,7 @@ const HEADER_TITLES = {
   threads: 'Threads',
   'threads-overview': 'Thread Übersicht',
   'threads-plan': 'Thread planen',
+  'bsky-client': 'Direkt-Client',
   config: 'Einstellungen & Automatisierung'
 }
 
@@ -1109,6 +1113,12 @@ function App () {
     )
   } else if (activeView === 'config') {
     content = <ConfigPanel />
+  } else if (activeView === 'bsky-client') {
+    content = (
+      <Card padding='p-6 lg:p-10'>
+        <BlueskyClientView />
+      </Card>
+    )
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
