@@ -19,22 +19,24 @@ export default function BskyClientApp () {
       { id: 'best-of-follows', label: 'Best of Follows' }
     ]
     return (
-      <div className='flex items-center gap-2 overflow-x-auto'>
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            type='button'
-            onClick={() => setTimelineTab(t.id)}
-            className={`rounded-2xl px-3 py-1 text-sm transition ${
-              timelineTab === t.id
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-background-subtle text-foreground-muted'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <article className='group rounded-2xl'>
+        <div className='flex items-center gap-2 overflow-x-auto'>
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              type='button'
+              onClick={() => setTimelineTab(t.id)}
+              className={`rounded-2xl px-3 py-1 text-sm transition ${
+                timelineTab === t.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-background-subtle text-foreground-muted'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </article>
     )
   }, [section, timelineTab])
 
@@ -65,4 +67,3 @@ export default function BskyClientApp () {
     </>
   )
 }
-

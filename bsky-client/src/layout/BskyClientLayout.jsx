@@ -17,15 +17,13 @@ export default function BskyClientLayout ({
         />
       </aside>
       <section className='min-w-0 flex-1'>
-        <div className='max-h-[70vh] overflow-y-auto pr-2'>
-          {headerContent ? (
-            <div className='sticky top-0 z-10 border-b pb-2 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70'>
-              {headerContent}
-            </div>
-          ) : null}
-          <div className='pt-2'>
-            {children}
+        {headerContent ? (
+          <div className='sticky top-0 z-10 mb-3 border-b pb-2 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70'>
+            {headerContent}
           </div>
+        ) : null}
+        <div className='max-h-[70vh] overflow-y-auto pr-2'>
+          {children}
         </div>
       </section>
     </div>
