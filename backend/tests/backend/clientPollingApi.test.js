@@ -1,7 +1,6 @@
 import 'module-alias/register'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// eslint-disable-next-line import/no-commonjs
 const settingsController = require('@api/controllers/settingsController')
 
 describe('settingsController client-polling API', () => {

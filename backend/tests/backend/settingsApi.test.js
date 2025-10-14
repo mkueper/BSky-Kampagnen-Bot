@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 function loadController () {
   const key = require.resolve('@api/controllers/settingsController')
   delete require.cache[key]
-  // eslint-disable-next-line import/no-commonjs
   return require('@api/controllers/settingsController')
 }
 

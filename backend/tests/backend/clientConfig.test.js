@@ -24,7 +24,6 @@ vi.mock('@core/services/settingsService', () => {
   }
 })
 
-// eslint-disable-next-line import/no-commonjs
 const { getClientConfig } = require('@api/controllers/configController')
 
 describe('getClientConfig', () => {

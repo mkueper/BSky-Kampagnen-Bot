@@ -1,7 +1,6 @@
 import 'module-alias/register'
 import { describe, it, expect } from 'vitest'
 
-// eslint-disable-next-line import/no-commonjs
 const sched = require('@core/services/scheduler')
 
 describe('scheduler helper functions', () => {

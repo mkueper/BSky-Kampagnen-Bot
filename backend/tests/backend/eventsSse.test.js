@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { EventEmitter } from 'node:events'
 
-// eslint-disable-next-line import/no-commonjs
 const events = require('@core/services/events')
 
 function createStubRes () {
