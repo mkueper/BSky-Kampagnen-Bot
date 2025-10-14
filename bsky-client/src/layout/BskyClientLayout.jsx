@@ -10,11 +10,13 @@ export default function BskyClientLayout ({
   return (
     <div className='grid grid-cols-12 gap-4'>
       <aside className='col-span-12 md:col-span-3 lg:col-span-2'>
-        <SidebarNav
-          active={activeSection}
-          onSelect={onSelectSection}
-          onCompose={onOpenCompose}
-        />
+        <div className='sticky top-0'>
+          <SidebarNav
+            active={activeSection}
+            onSelect={onSelectSection}
+            onCompose={onOpenCompose}
+          />
+        </div>
       </aside>
       <section className='col-span-12 md:col-span-9 lg:col-span-10'>
         <div className='max-h-[70vh] overflow-y-auto pr-2'>
