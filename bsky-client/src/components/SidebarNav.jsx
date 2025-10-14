@@ -37,7 +37,7 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
               disabled={disabled}
-              className={`w-full inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${
+              className={`w-full inline-flex items-center rounded-2xl p-3 xl:px-4 xl:py-3 text-left text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 ${
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-soft'
                   : 'text-foreground hover:bg-background-subtle'
@@ -46,7 +46,7 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               title={item.label}
             >
               {Icon ? <Icon className='h-5 w-5 shrink-0' /> : null}
-              <span className='hidden md:inline'>{item.label}</span>
+              <span className='hidden xl:inline truncate'>{item.label}</span>
             </button>
           )
         })}
@@ -55,12 +55,12 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
         <button
           type='button'
           onClick={onCompose}
-          className='w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+          className='w-full inline-flex items-center justify-center xl:justify-center gap-2 rounded-2xl bg-primary p-3 xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
           aria-label='Neuer Post'
           title='Neuer Post'
         >
           <PlusIcon className='h-5 w-5' />
-          <span className='hidden md:inline'>Neuer Post</span>
+          <span className='hidden xl:inline truncate'>Neuer Post</span>
         </button>
       </div>
     </nav>
