@@ -19,7 +19,7 @@ import ActivityPanel from './components/ui/ActivityPanel'
 import MainOverviewView from './components/views/MainOverviewView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
-import BlueskyClientView from './components/views/BlueskyClientView'
+import BskyClientApp from './bsky-client/ClientApp'
 import SkeetForm from './components/SkeetForm'
 import ThreadForm from './components/ThreadForm'
 import ConfigPanel from './components/ConfigPanel'
@@ -1116,7 +1116,7 @@ function App () {
   } else if (activeView === 'bsky-client') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <BlueskyClientView />
+        <BskyClientApp />
       </Card>
     )
   } else if (activeView === 'skeets-plan') {
