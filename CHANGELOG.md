@@ -4,6 +4,20 @@ Alle nennenswerten Änderungen an diesem Projekt.
 
 ## Unreleased
 
+### Docker/Compose
+- Frontend-Dockerfile baut Dashboard über Root-Workspace (`npm ci --workspace dashboard`), stabilisiert Builds trotz veraltetem `dashboard/package-lock.json`.
+- Healthchecks ergänzt: `backend` (HTTP `GET /health`), `frontend` (HTTP Probe über `curl`). `frontend` hängt an `backend` (service_healthy).
+- Frontend-Healthcheck auf `curl` umgestellt und `curl` in `nginx:alpine` installiert (verhindert Status „starting“ in Portainer ohne `wget`).
+
+### Scripts
+- `scripts/docker-bundle.sh` macht nun `cd` ins Projekt‑Root, unabhängig vom Aufruf‑Verzeichnis. Fix für Fehler nach Ordner‑Umzug (backend/).
+
+### CI
+- Workflow `CI` hinzugefügt: prüft Lockfile‑Drift (Dashboard) und Workspace‑Installation via `npm ci`.
+
+### Docs
+- Docker‑Installationsanleitung aktualisiert: Hinweis auf Healthchecks, Workspaces‑Build im Dockerfile und Portainer‑Hinweis.
+
 ## v1.1.0 - 2025-10-13
 
 ### Security

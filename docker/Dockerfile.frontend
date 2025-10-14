@@ -1,14 +1,22 @@
 FROM node:20-alpine AS build
-# Stage 1 – React-Dashboard bauen (inkl. Dev-Dependencies für Vite).
+# Stage 1 – React-Dashboard bauen (inkl. Dev-Dependencies für Vite),
+# installiert über das Workspaces-Lockfile der Projektwurzel, damit
+# `npm ci` auch dann stabil läuft, wenn das Dashboard‑Lock veraltet ist.
 WORKDIR /app
 
-COPY dashboard/package*.json ./
-RUN npm ci
-COPY dashboard/ ./
-RUN npm run build
+# Root-Lock + Workspace-Manifeste zuerst kopieren, dann nur das Dashboard-Workspace installieren
+COPY package*.json ./
+COPY dashboard/package*.json ./dashboard/
+RUN npm ci --workspace dashboard
+
+# Quellcode des Dashboards kopieren und Build ausführen (im Workspace)
+COPY dashboard/ ./dashboard/
+RUN npm run --workspace dashboard build
 
 # Stage 2 – gebauten Output über Nginx mit Proxy-Konfiguration ausliefern.
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+# Tools for healthcheck
+RUN apk add --no-cache curl
+COPY --from=build /app/dashboard/dist /usr/share/nginx/html
 COPY docker/nginx-frontend.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

@@ -14,6 +14,12 @@ services:
       - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
     volumes:
       - data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const p=process.env.BACKEND_INTERNAL_PORT||process.env.APP_PORT||3000; fetch('http://localhost:'+p+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));\" "]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
 #    depends_on:
 #      - db
 
@@ -25,6 +31,15 @@ services:
       dockerfile: docker/Dockerfile.frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   data:

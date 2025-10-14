@@ -75,6 +75,24 @@ docker compose exec backend npm run migrate:prod
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).
 
+## Healthchecks & Hinweise
+
+- `backend` verfügt über einen HTTP‑Healthcheck gegen `GET /health` (interner Port wird aus `APP_PORT`/`BACKEND_INTERNAL_PORT`/`BACKEND_PORT` abgeleitet, Default 3000).
+- `frontend` (Nginx) wird per HTTP geprüft; dafür ist `curl` im Image installiert. In Portainer bleibt der Status dadurch nicht länger auf „starting“, wenn Nginx bereits läuft.
+- `frontend` startet erst, wenn `backend` den Status „healthy“ erreicht hat.
+
+## Build-Hinweise (Dashboard)
+
+Das Dockerfile baut das Dashboard über den Root‑Workspace, damit `npm ci` stabil gegen das Root‑Lockfile läuft:
+
+```
+COPY package*.json ./
+COPY dashboard/package*.json ./dashboard/
+RUN npm ci --workspace dashboard
+COPY dashboard/ ./dashboard/
+RUN npm run --workspace dashboard build
+```
+
 > Hinweis: Setze in deiner `.env` für den Backend-Container `DB_SYNC=false`, damit in Produktion ausschließlich Migrationen laufen und `sequelize.sync()` übersprungen wird. In der lokalen Entwicklung kannst du `DB_SYNC=true` setzen.
 
 ## 4. Logs prüfen

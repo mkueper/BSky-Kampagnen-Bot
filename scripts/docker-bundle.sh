@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Always operate from the project root, regardless of the caller's CWD
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
 # Standard-Bundle-Namen auf Basis des aktuellen Datums setzen
 # Format: Bsky-Kamp-Bot-YYYY-MM-DD
 STAMP=$(date +%F)
