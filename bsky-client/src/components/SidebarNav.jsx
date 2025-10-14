@@ -25,7 +25,7 @@ const NAV = [
 
 export default function SidebarNav ({ active, onSelect, onCompose }) {
   return (
-    <nav className='flex h-full flex-col items-center gap-2'>
+    <nav className='flex h-full flex-col gap-2'>
       <div className='flex-1 space-y-1'>
         {NAV.map(item => {
           const Icon = item.icon
@@ -37,7 +37,7 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
               disabled={disabled}
-              className={`inline-flex h-12 w-12 items-center justify-center rounded-xl text-sm transition ${
+              className={`w-full inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${
                 isActive
                   ? 'bg-primary text-primary-foreground shadow-soft'
                   : 'text-foreground hover:bg-background-subtle'
@@ -46,6 +46,7 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               title={item.label}
             >
               {Icon ? <Icon className='h-5 w-5 shrink-0' /> : null}
+              <span className='hidden md:inline'>{item.label}</span>
             </button>
           )
         })}
@@ -54,11 +55,12 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
         <button
           type='button'
           onClick={onCompose}
-          className='inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+          className='w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
           aria-label='Neuer Post'
           title='Neuer Post'
         >
           <PlusIcon className='h-5 w-5' />
+          <span className='hidden md:inline'>Neuer Post</span>
         </button>
       </div>
     </nav>

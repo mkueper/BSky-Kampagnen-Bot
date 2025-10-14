@@ -9,18 +9,18 @@ export default function BskyClientLayout ({
 }) {
   return (
     <div className='grid grid-cols-12 gap-4'>
-      <aside className='col-span-2 md:col-span-1 lg:col-span-1'>
+      <aside className='col-span-12 md:col-span-3 lg:col-span-2'>
         <SidebarNav
           active={activeSection}
           onSelect={onSelectSection}
           onCompose={onOpenCompose}
         />
       </aside>
-      <section className='col-span-10 md:col-span-11 lg:col-span-11'>
+      <section className='col-span-12 md:col-span-9 lg:col-span-10'>
         {headerContent ? (
           <div className='mb-3 border-b pb-2'>{headerContent}</div>
         ) : null}
-        <div className='h-[70vh] overflow-y-auto pr-2'>{children}</div>
+        <div className='max-h-[70vh] overflow-y-auto pr-2'>{children}</div>
       </section>
     </div>
   )
