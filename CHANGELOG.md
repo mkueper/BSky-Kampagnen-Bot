@@ -4,19 +4,21 @@ Alle nennenswerten Änderungen an diesem Projekt.
 
 ## Unreleased
 
+## v1.1.1 - 2025-10-14
+
 ### Docker/Compose
-- Frontend-Dockerfile baut Dashboard über Root-Workspace (`npm ci --workspace dashboard`), stabilisiert Builds trotz veraltetem `dashboard/package-lock.json`.
-- Healthchecks ergänzt: `backend` (HTTP `GET /health`), `frontend` (HTTP Probe über `curl`). `frontend` hängt an `backend` (service_healthy).
-- Frontend-Healthcheck auf `curl` umgestellt und `curl` in `nginx:alpine` installiert (verhindert Status „starting“ in Portainer ohne `wget`).
+- Frontend-Dockerfile baut Dashboard über Root-Workspace (`npm ci --workspace dashboard`) – sorgt für reproduzierbare Builds selbst bei veraltetem `dashboard/package-lock.json`.
+- Healthchecks ergänzt: `backend` (HTTP `GET /health`), `frontend` (HTTP Probe über `curl`); `frontend` hängt an `backend` (service_healthy) – Startreihenfolge und Status in Orchestratoren sind verlässlich.
+- Frontend-Healthcheck auf `curl` umgestellt und `curl` in `nginx:alpine` installiert – behebt „starting“-Status in Portainer, wenn `wget` fehlt.
 
 ### Scripts
-- `scripts/docker-bundle.sh` macht nun `cd` ins Projekt‑Root, unabhängig vom Aufruf‑Verzeichnis. Fix für Fehler nach Ordner‑Umzug (backend/).
+- `scripts/docker-bundle.sh` wechselt immer ins Projekt‑Root – robust gegenüber Aufrufen aus Unterordnern (Fix nach Umzug von `backend/`).
 
 ### CI
-- Workflow `CI` hinzugefügt: prüft Lockfile‑Drift (Dashboard) und Workspace‑Installation via `npm ci`.
+- Workflow `CI` hinzugefügt: erkennt Lockfile‑Drift (Dashboard) frühzeitig und sichert Workspace‑Installationen via `npm ci` ab.
 
 ### Docs
-- Docker‑Installationsanleitung aktualisiert: Hinweis auf Healthchecks, Workspaces‑Build im Dockerfile und Portainer‑Hinweis.
+- Docker‑Installationsanleitung: Healthchecks, Workspace‑Build im Dockerfile und Portainer‑Hinweis dokumentiert – erleichtert Deployment und Fehlersuche.
 
 ## v1.1.0 - 2025-10-13
 
