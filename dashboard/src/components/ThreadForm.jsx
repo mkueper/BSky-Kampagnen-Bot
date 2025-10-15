@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import { useClientConfig } from '../hooks/useClientConfig'
 import MediaDialog from './MediaDialog'
@@ -532,11 +533,12 @@ function ThreadForm ({
     }
   }
 
+  const theme = useTheme()
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
       <div className='grid gap-6 lg:grid-cols-2'>
         <div className='space-y-4'>
-          <div className='rounded-3xl border border-border bg-background-elevated p-6 shadow-soft'>
+          <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
             <header className='space-y-3'>
               <div className='flex items-center justify-between'>
                 <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
@@ -662,7 +664,7 @@ function ThreadForm ({
         </div>
 
         <aside className='space-y-4'>
-          <div className='flex flex-col rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden'>
+          <div className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}>
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
                 <h3 className='text-lg font-semibold'>Vorschau</h3>

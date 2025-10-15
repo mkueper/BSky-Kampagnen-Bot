@@ -107,4 +107,12 @@ module.exports = {
   postSkeet,
   getReactions,
   getReplies,
+  /**
+   * Liefert die persönliche Timeline des eingeloggten Accounts
+   */
+  async getTimeline({ limit = 30, cursor } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.feed.getTimeline({ limit, cursor });
+    return res?.data ?? null;
+  },
 };

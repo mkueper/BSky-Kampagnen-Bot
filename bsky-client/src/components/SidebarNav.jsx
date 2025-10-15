@@ -25,8 +25,16 @@ const NAV = [
 
 export default function SidebarNav ({ active, onSelect, onCompose }) {
   return (
-    <nav className='flex h-full w-full flex-col items-start gap-2' data-component='BskyPrimaryNav'>
-      <div className='flex flex-1 flex-col space-y-1'>
+    <nav
+      className='flex h-full w-full flex-col items-start gap-2'
+      data-component='BskyPrimaryNav'
+      aria-label='Hauptnavigation'
+    >
+      <div
+
+        className='min-h-0 flex flex-1 flex-col space-y-1 overflow-y-auto pr-1' data-componet='Ich muss weg'
+        style={{ scrollbarGutter: 'stable' }}
+      >
         {NAV.map(item => {
           const Icon = item.icon
           const isActive = active === item.id
@@ -37,10 +45,12 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
               disabled={disabled}
-              className={`inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 ${
+              aria-current={isActive ? 'page' : undefined}
+              aria-disabled={disabled || undefined}
+              className={`inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-soft'
-                  : 'text-foreground hover:bg-background-subtle'
+                  ? 'bg-background-subtle text-foreground shadow-soft'
+                  : 'text-foreground-muted hover:text-foreground'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label={item.label}
               data-nav-item={item.id}
@@ -51,19 +61,19 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
             </button>
           )
         })}
-      </div>
-      <div className='pt-2'>
-        <button
-          type='button'
-          onClick={onCompose}
-          className='inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-          aria-label='Neuer Post'
-          data-nav-item='compose'
-          title='Neuer Post'
-        >
-          <PlusIcon className='h-16 w-16' />
-          <span className='hidden xl:inline truncate'>Neuer Post</span>
-        </button>
+        <div className='pt-2'>
+          <button
+            type='button'
+            onClick={onCompose}
+            className='inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+            aria-label='Neuer Post'
+            data-nav-item='compose'
+            title='Neuer Post'
+          >
+            <PlusIcon className='h-10 w-10' />
+            <span className='hidden xl:inline truncate'>Neuer Post</span>
+          </button>
+        </div>
       </div>
     </nav>
   )

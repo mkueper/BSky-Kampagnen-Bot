@@ -11,6 +11,7 @@ import {
   ViewHorizontalIcon
 } from '@radix-ui/react-icons'
 import AppLayout from './components/layout/AppLayout'
+import { ThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
@@ -1154,6 +1155,11 @@ function App () {
   }
 
   return (
+    <ThemeProvider value={{
+      panelBg: 'bg-background',
+      cardBg: 'bg-background',
+      cardHover: false
+    }}>
     <AppLayout
       navItems={availableNavItems}
       activeView={activeView}
@@ -1161,6 +1167,7 @@ function App () {
       headerCaption={headerCaption}
       headerTitle={headerTitle}
       headerActions={headerActions}
+      showScrollTop={activeView !== 'bsky-client'}
     >
       {content}
       <ConfirmDialog
@@ -1177,6 +1184,7 @@ function App () {
         onCancel={() => setConfirmDialog(c => ({ ...c, open: false }))}
       />
     </AppLayout>
+    </ThemeProvider>
   )
 }
 

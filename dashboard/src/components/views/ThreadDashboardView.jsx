@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTheme } from '../ui/ThemeContext'
 import { useToast } from '../../hooks/useToast'
 import * as Tabs from '@radix-ui/react-tabs'
 import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from '@radix-ui/react-icons'
@@ -69,11 +70,12 @@ function ThreadDashboardView ({
 
   // Hinweis: Zusammenfassungs- und Nächster-Thread-Anzeigen sind hier nicht aktiv
 
+  const theme = useTheme()
   return (
     <div className='space-y-4'>
       
 
-      <section className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
+      <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between'>
           <div>
             <h3 className='text-lg font-semibold'>Thread Aktivität</h3>

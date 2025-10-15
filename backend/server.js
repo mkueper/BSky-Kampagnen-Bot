@@ -12,6 +12,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const { login: loginBluesky } = require("@core/services/blueskyClient");
+const bskyController = require("@api/controllers/bskyController");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("@core/services/mastodonClient");
 const { startScheduler } = require("@core/services/scheduler");
 const settingsController = require("@api/controllers/settingsController");
@@ -215,3 +216,5 @@ app.use((req, res, next) => {
     appLog.error("Fehler beim Initialisieren des Servers", { error: err?.message || String(err) });
   }
 })();
+// Bluesky Client proxy endpoints
+app.get("/api/bsky/timeline", bskyController.getTimeline);

@@ -106,7 +106,7 @@ function PublishedSkeetList({
                   ) : replies.length > 0 ? (
                     <ul className="space-y-3 text-sm">
                       {replies.map((reply, index) => (
-                        <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`} className="rounded-2xl border border-border bg-background-elevated/60 p-4">
+                        <li key={`${reply.authorHandle}-${reply.createdAt ?? index}`} className="rounded-2xl border border-border bg-background p-4">
                           <p className="font-medium">{reply.authorHandle}</p>
                           {reply.platform ? (
                             <p className="text-xs uppercase tracking-[0.2em] text-foreground-subtle">

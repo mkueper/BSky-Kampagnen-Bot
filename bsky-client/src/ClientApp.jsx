@@ -25,10 +25,11 @@ export default function BskyClientApp () {
             key={t.id}
             type='button'
             onClick={() => setTimelineTab(t.id)}
+            aria-current={timelineTab === t.id ? 'page' : undefined}
             className={`rounded-2xl px-3 py-1 text-sm transition ${
               timelineTab === t.id
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-background-subtle text-foreground-muted'
+                ? 'bg-background-subtle text-foreground'
+                : 'text-foreground-muted'
             }`}
             data-tab={t.id}
           >
