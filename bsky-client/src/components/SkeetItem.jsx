@@ -63,8 +63,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const [busy, setBusy] = useState(false)
   const hasLiked = Boolean(likeUri)
   const hasReposted = Boolean(repostUri)
-  const likeStyle = hasLiked ? { color: 'var(--bsky-like, var(--red-600, #dc2626))' } : undefined
-  const repostStyle = hasReposted ? { color: 'var(--bsky-repost, var(--primary, #0ea5e9))' } : undefined
+  const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
+  const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
+  const [actionError, setActionError] = useState('')
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -191,6 +192,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
                 if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
                 else setRepostCount(v => Math.max(0, v - 1))
               }
+              setActionError('')
+            } catch (e) {
+              setActionError(e?.message || 'Aktion fehlgeschlagen')
             } finally { setBusy(false) }
           }}
         >
@@ -223,6 +227,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
                 if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
                 else setLikeCount(v => Math.max(0, v - 1))
               }
+              setActionError('')
+            } catch (e) {
+              setActionError(e?.message || 'Aktion fehlgeschlagen')
             } finally { setBusy(false) }
           }}
         >
@@ -234,6 +241,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
           <span className='tabular-nums'>{likeCount}</span>
         </button>
       </footer>
+      {actionError ? (
+        <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+      ) : null}
     </Wrapper>
   )
 }

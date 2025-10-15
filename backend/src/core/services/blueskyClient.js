@@ -123,12 +123,14 @@ module.exports = {
    */
   async likePost(uri, cid) {
     await ensureLoggedIn();
-    const record = {
-      $type: 'app.bsky.feed.like',
-      subject: { uri, cid },
-      createdAt: new Date().toISOString(),
-    };
-    const res = await agent.app.bsky.feed.like.create({ repo: agent.session.did, record });
+    const res = await agent.com.atproto.repo.createRecord({
+      repo: agent.session.did,
+      collection: 'app.bsky.feed.like',
+      record: {
+        subject: { uri, cid },
+        createdAt: new Date().toISOString(),
+      }
+    })
     return res?.uri || res?.data?.uri || null;
   },
   /**
@@ -139,7 +141,11 @@ module.exports = {
     await ensureLoggedIn();
     const parts = String(likeUri || '').split('/');
     const rkey = parts[parts.length - 1];
-    await agent.app.bsky.feed.like.delete({ repo: agent.session.did, rkey });
+    await agent.com.atproto.repo.deleteRecord({
+      repo: agent.session.did,
+      collection: 'app.bsky.feed.like',
+      rkey
+    })
   },
   /**
    * Erstellt einen Repost-Record für den angegebenen Post.
@@ -149,12 +155,14 @@ module.exports = {
    */
   async repostPost(uri, cid) {
     await ensureLoggedIn();
-    const record = {
-      $type: 'app.bsky.feed.repost',
-      subject: { uri, cid },
-      createdAt: new Date().toISOString(),
-    };
-    const res = await agent.app.bsky.feed.repost.create({ repo: agent.session.did, record });
+    const res = await agent.com.atproto.repo.createRecord({
+      repo: agent.session.did,
+      collection: 'app.bsky.feed.repost',
+      record: {
+        subject: { uri, cid },
+        createdAt: new Date().toISOString(),
+      }
+    })
     return res?.uri || res?.data?.uri || null;
   },
   /**
@@ -165,6 +173,10 @@ module.exports = {
     await ensureLoggedIn();
     const parts = String(repostUri || '').split('/');
     const rkey = parts[parts.length - 1];
-    await agent.app.bsky.feed.repost.delete({ repo: agent.session.did, rkey });
+    await agent.com.atproto.repo.deleteRecord({
+      repo: agent.session.did,
+      collection: 'app.bsky.feed.repost',
+      rkey
+    })
   },
 };
