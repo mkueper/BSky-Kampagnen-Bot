@@ -8,7 +8,7 @@
     // { "name": "Scripts", "path": "scripts" },
     // { "name": "Tests", "path": "tests" },
     // { "name": "Docker", "path": "docker" },
-     { "path": "." }
+    { "path": "." }
   ],
   "settings": {
     // Explorer-Darstellung
