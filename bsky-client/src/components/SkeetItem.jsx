@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../context/CardConfigContext'
 
@@ -56,8 +56,13 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const { config } = useCardConfig()
-  const hasLiked = Boolean(item?.raw?.post?.viewer?.like)
-  const hasReposted = Boolean(item?.raw?.post?.viewer?.repost)
+  const [likeUri, setLikeUri] = useState(item?.raw?.post?.viewer?.like || null)
+  const [repostUri, setRepostUri] = useState(item?.raw?.post?.viewer?.repost || null)
+  const [likeCount, setLikeCount] = useState(Number(item?.stats?.likeCount ?? 0))
+  const [repostCount, setRepostCount] = useState(Number(item?.stats?.repostCount ?? 0))
+  const [busy, setBusy] = useState(false)
+  const hasLiked = Boolean(likeUri)
+  const hasReposted = Boolean(repostUri)
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -157,19 +162,72 @@ export default function SkeetItem({ item, variant = 'card' }) {
       <footer className='mt-3 flex items-center gap-5 text-sm text-foreground-muted'>
         <button type='button' className='group inline-flex items-center gap-2 hover:text-foreground transition' title='Antworten (kommt später)' aria-disabled='true'>
           <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{stats.replyCount ?? 0}</span>
+          <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
         </button>
-        <button type='button' className={`group inline-flex items-center gap-2 transition ${hasReposted ? 'text-primary' : 'hover:text-foreground'}`} title='Reskeet (kommt später)' aria-pressed={hasReposted} aria-disabled='true'>
+        <button
+          type='button'
+          className={`group inline-flex items-center gap-2 transition ${hasReposted ? 'text-primary' : 'hover:text-foreground'} ${busy ? 'opacity-60' : ''}`}
+          title='Reskeet'
+          aria-pressed={hasReposted}
+          disabled={busy}
+          onClick={async () => {
+            if (busy) return
+            setBusy(true)
+            try {
+              if (!hasReposted) {
+                const res = await fetch('/api/bsky/repost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
+                const data = await res.json().catch(() => ({}))
+                if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
+                setRepostUri(data?.viewer?.repost || null)
+                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+              } else {
+                const res = await fetch('/api/bsky/repost', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repostUri }) })
+                const data = await res.json().catch(() => ({}))
+                if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
+                setRepostUri(null)
+                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+                else setRepostCount(v => Math.max(0, v - 1))
+              }
+            } finally { setBusy(false) }
+          }}
+        >
           <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{stats.repostCount ?? 0}</span>
+          <span className='tabular-nums'>{repostCount}</span>
         </button>
-        <button type='button' className={`group inline-flex items-center gap-2 transition ${hasLiked ? 'text-red-600' : 'hover:text-foreground'}`} title='Gefällt mir (kommt später)' aria-pressed={hasLiked} aria-disabled='true'>
+        <button
+          type='button'
+          className={`group inline-flex items-center gap-2 transition ${hasLiked ? 'text-red-600' : 'hover:text-foreground'} ${busy ? 'opacity-60' : ''}`}
+          title='Gefällt mir'
+          aria-pressed={hasLiked}
+          disabled={busy}
+          onClick={async () => {
+            if (busy) return
+            setBusy(true)
+            try {
+              if (!hasLiked) {
+                const res = await fetch('/api/bsky/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
+                const data = await res.json().catch(() => ({}))
+                if (!res.ok) throw new Error(data?.error || 'Like fehlgeschlagen')
+                setLikeUri(data?.viewer?.like || null)
+                if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
+                else setLikeCount(v => v + 1)
+              } else {
+                const res = await fetch('/api/bsky/like', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ likeUri }) })
+                const data = await res.json().catch(() => ({}))
+                if (!res.ok) throw new Error(data?.error || 'Unlike fehlgeschlagen')
+                setLikeUri(null)
+                if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
+                else setLikeCount(v => Math.max(0, v - 1))
+              }
+            } finally { setBusy(false) }
+          }}
+        >
           {hasLiked ? (
             <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
           ) : (
             <HeartIcon className='h-5 w-5 md:h-6 md:w-6' />
           )}
-          <span className='tabular-nums'>{stats.likeCount ?? 0}</span>
+          <span className='tabular-nums'>{likeCount}</span>
         </button>
       </footer>
     </Wrapper>

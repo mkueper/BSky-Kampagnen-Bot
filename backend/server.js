@@ -21,6 +21,7 @@ const threadController = require("@api/controllers/threadController");
 const importExportController = require("@api/controllers/importExportController");
 const engagementController = require("@api/controllers/engagementController");
 const configController = require("@api/controllers/configController");
+const bskyActionsController = require("@api/controllers/bskyActionsController");
 const mediaController = require("@api/controllers/mediaController");
 const uploadController = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
@@ -92,6 +93,11 @@ app.put("/api/settings/client-polling", settingsController.updateClientPollingSe
 app.get("/api/client-config", configController.getClientConfig);
 // Link-Preview für Composer
 app.get("/api/preview", previewController.getExternalPreview);
+// Bluesky Interaktionen
+app.post("/api/bsky/like", bskyActionsController.like);
+app.delete("/api/bsky/like", bskyActionsController.unlike);
+app.post("/api/bsky/repost", bskyActionsController.repost);
+app.delete("/api/bsky/repost", bskyActionsController.unrepost);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
 app.get("/api/config/credentials", credentialsController.getCredentials);
 app.put("/api/config/credentials", credentialsController.updateCredentials);

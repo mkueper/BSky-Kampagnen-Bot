@@ -115,4 +115,56 @@ module.exports = {
     const res = await agent.app.bsky.feed.getTimeline({ limit, cursor });
     return res?.data ?? null;
   },
+  /**
+   * Setzt ein Like auf den angegebenen Post.
+   * @param {string} uri at:// URI des Posts
+   * @param {string} cid CID des Posts
+   * @returns {Promise<string>} URI des Like-Records
+   */
+  async likePost(uri, cid) {
+    await ensureLoggedIn();
+    const record = {
+      $type: 'app.bsky.feed.like',
+      subject: { uri, cid },
+      createdAt: new Date().toISOString(),
+    };
+    const res = await agent.app.bsky.feed.like.create({ repo: agent.session.did, record });
+    return res?.uri || res?.data?.uri || null;
+  },
+  /**
+   * Entfernt ein Like-Record.
+   * @param {string} likeUri at:// URI des Like-Records
+   */
+  async unlikePost(likeUri) {
+    await ensureLoggedIn();
+    const parts = String(likeUri || '').split('/');
+    const rkey = parts[parts.length - 1];
+    await agent.app.bsky.feed.like.delete({ repo: agent.session.did, rkey });
+  },
+  /**
+   * Erstellt einen Repost-Record für den angegebenen Post.
+   * @param {string} uri at:// URI des Posts
+   * @param {string} cid CID des Posts
+   * @returns {Promise<string>} URI des Repost-Records
+   */
+  async repostPost(uri, cid) {
+    await ensureLoggedIn();
+    const record = {
+      $type: 'app.bsky.feed.repost',
+      subject: { uri, cid },
+      createdAt: new Date().toISOString(),
+    };
+    const res = await agent.app.bsky.feed.repost.create({ repo: agent.session.did, record });
+    return res?.uri || res?.data?.uri || null;
+  },
+  /**
+   * Entfernt einen Repost-Record.
+   * @param {string} repostUri at:// URI des Repost-Records
+   */
+  async unrepostPost(repostUri) {
+    await ensureLoggedIn();
+    const parts = String(repostUri || '').split('/');
+    const rkey = parts[parts.length - 1];
+    await agent.app.bsky.feed.repost.delete({ repo: agent.session.did, rkey });
+  },
 };
