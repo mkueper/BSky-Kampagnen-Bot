@@ -118,7 +118,7 @@ export default function SkeetItem({ item, variant = 'card' }) {
         </div>
       ) : null}
 
-      {external ? (
+      {external && images.length === 0 ? (
         <a
           href={external.uri}
           target='_blank'
