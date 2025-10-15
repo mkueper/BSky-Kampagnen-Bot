@@ -77,21 +77,33 @@ export default function SkeetItem({ item, variant = 'card' }) {
             <img
               src={images[0].src}
               alt={images[0].alt || ''}
-              className='w-full rounded-xl border border-border object-cover'
-              style={{ aspectRatio: '16 / 9' }}
+              className='w-full rounded-xl border border-border'
+              style={{
+                maxHeight: 360,
+                width: '100%',
+                height: 'auto',
+                objectFit: 'contain',
+                backgroundColor: 'var(--background-subtle, #f6f6f6)'
+              }}
               loading='lazy'
             />
           ) : (
             <div className='grid gap-2'
-              style={{ gridTemplateColumns: images.length === 2 ? '1fr 1fr' : '1fr 1fr', gridAutoRows: '1fr' }}
+              style={{ gridTemplateColumns: images.length === 2 ? '1fr 1fr' : '1fr 1fr' }}
             >
               {images.map((im, idx) => (
                 <img
                   key={idx}
                   src={im.src}
                   alt={im.alt || ''}
-                  className='h-full w-full rounded-xl border border-border object-cover'
-                  style={{ aspectRatio: images.length === 3 && idx === 0 ? '2 / 1' : '1 / 1' }}
+                  className='w-full rounded-xl border border-border'
+                  style={{
+                    maxHeight: 180,
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    backgroundColor: 'var(--background-subtle, #f6f6f6)'
+                  }}
                   loading='lazy'
                 />
               ))}
