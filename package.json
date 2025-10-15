@@ -38,6 +38,9 @@
     "build:frontend": "npm_config_workspaces=true npm run build --workspace dashboard",
     "dev:frontend": "npm_config_workspaces=true npm run dev --workspace dashboard",
     "install:frontend": "npm_config_workspaces=true npm install --workspace dashboard",
+    "build:bsky-client": "npm_config_workspaces=true npm run build --workspace bsky-client",
+    "dev:bsky-client": "npm_config_workspaces=true npm run dev --workspace bsky-client",
+    "install:bsky-client": "npm_config_workspaces=true npm install --workspace bsky-client",
     "install:all": "npm_config_workspaces=true npm install --workspaces --include-workspace-root",
     "build:all": "npm run build:backend && npm run build:frontend",
     "dev:electron": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
@@ -100,7 +103,8 @@
   },
   "workspaces": {
     "packages": [
-      "dashboard"
+      "dashboard",
+      "bsky-client"
     ]
   },
   "build": {

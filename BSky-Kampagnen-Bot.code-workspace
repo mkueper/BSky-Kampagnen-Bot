@@ -1,13 +1,13 @@
 {
   "folders": [
-    // { "name": "Backend", "path": "backend" },
-    // { "name": "Dashboard", "path": "dashboard" },
-    // { "name": "BSkyClient", "path": "bsky-client" },
-    // { "name": "Documents", "path": "docs" },
-    // { "name": "Migrations", "path": "migrations" },
-    // { "name": "Scripts", "path": "scripts" },
-    // { "name": "Tests", "path": "tests" },
-    // { "name": "Docker", "path": "docker" },
+    { "name": "Backend", "path": "backend" },
+    { "name": "Dashboard", "path": "dashboard" },
+    { "name": "BSkyClient", "path": "bsky-client" },
+    { "name": "Documents", "path": "docs" },
+    { "name": "Migrations", "path": "migrations" },
+    { "name": "Scripts", "path": "scripts" },
+    { "name": "Tests", "path": "tests" },
+    { "name": "Docker", "path": "docker" },
     { "path": "." }
   ],
   "settings": {
