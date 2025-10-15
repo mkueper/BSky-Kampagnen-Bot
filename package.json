@@ -43,6 +43,7 @@
     "dev:electron": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "build:electron": "npm run build:frontend && electron-builder -l AppImage",
     "pack:electron": "npm run build:frontend && electron-builder --dir -l AppImage",
+    "build:electron:win": "npm run build:frontend && electron-builder -w nsis portable",
     "docker:build": "docker compose build",
     "docker:bundle": "./scripts/docker-bundle.sh",
     "lint": "eslint . --max-warnings=0",
@@ -116,6 +117,12 @@
     ],
     "directories": {
       "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
       "icon": "build/icons/bsky-bot-icon.svg",
