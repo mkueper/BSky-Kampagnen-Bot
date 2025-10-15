@@ -11,6 +11,7 @@ const CardConfigContext = createContext({
   setConfig: () => {}
 })
 
+
 export function CardConfigProvider ({ children }) {
   const [config, setConfig] = useState(DEFAULTS)
 

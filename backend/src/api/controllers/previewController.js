@@ -21,7 +21,6 @@ function extractMeta (html) {
     const m = safe.match(re)
     return m && m[1] ? m[1].trim() : ''
   }
-  // Try OpenGraph, then Twitter Card, then title element
   const title = get(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["'][^>]*>/i) ||
                 get(/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["'][^>]*>/i) ||
                 get(/<title[^>]*>([^<]{1,200})<\/title>/i)
@@ -55,7 +54,6 @@ async function getExternalPreview (req, res) {
     if (!resp.ok) return res.status(502).json({ error: `Abruf fehlgeschlagen (${resp.status})` })
     const ct = String(resp.headers.get('content-type') || '')
     if (!ct.includes('text/html')) {
-      // Non-HTML: return minimal preview
       return res.json({
         uri: parsed.toString(),
         title: parsed.hostname,
