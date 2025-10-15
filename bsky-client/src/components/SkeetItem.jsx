@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../context/CardConfigContext'
 
 function extractImagesFromEmbed (item) {
@@ -10,8 +11,11 @@ function extractImagesFromEmbed (item) {
      * - { $type: 'app.bsky.embed.images#view', images: [{ thumb, fullsize, alt }] }
      * - { $type: 'app.bsky.embed.recordWithMedia#view', media: { $type: 'app.bsky.embed.images#view', images: [...] } }
      */
-    const imgView = e?.$type?.startsWith('app.bsky.embed.images') ? e
-      : (e?.media?.$type?.startsWith?.('app.bsky.embed.images') ? e.media : null)
+    const t1 = e?.$type
+    const t2 = e?.media?.$type
+    const isImg1 = typeof t1 === 'string' && t1.startsWith('app.bsky.embed.images')
+    const isImg2 = typeof t2 === 'string' && t2.startsWith('app.bsky.embed.images')
+    const imgView = isImg1 ? e : (isImg2 ? e.media : null)
     const images = Array.isArray(imgView?.images) ? imgView.images : []
     return images
       .map(img => ({
@@ -28,8 +32,11 @@ function extractExternalFromEmbed (item) {
   try {
     const post = item?.raw?.post || {}
     const e = post?.embed || {}
-    const extView = e?.$type?.startsWith('app.bsky.embed.external') ? e
-      : (e?.media?.$type?.startsWith?.('app.bsky.embed.external') ? e.media : null)
+    const t1 = e?.$type
+    const t2 = e?.media?.$type
+    const isExt1 = typeof t1 === 'string' && t1.startsWith('app.bsky.embed.external')
+    const isExt2 = typeof t2 === 'string' && t2.startsWith('app.bsky.embed.external')
+    const extView = isExt1 ? e : (isExt2 ? e.media : null)
     const ext = extView?.external || null
     if (!ext || !ext?.uri) return null
     const url = new URL(ext.uri)
@@ -49,6 +56,8 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const { config } = useCardConfig()
+  const hasLiked = Boolean(item?.raw?.post?.viewer?.like)
+  const hasReposted = Boolean(item?.raw?.post?.viewer?.repost)
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -145,10 +154,23 @@ export default function SkeetItem({ item, variant = 'card' }) {
           </div>
         </a>
       ) : null}
-      <footer className='mt-3 flex items-center gap-4 text-xs text-foreground-muted'>
-        <span>❤ {stats.likeCount ?? 0}</span>
-        <span>🔁 {stats.repostCount ?? 0}</span>
-        <span>💬 {stats.replyCount ?? 0}</span>
+      <footer className='mt-3 flex items-center gap-5 text-sm text-foreground-muted'>
+        <button type='button' className='group inline-flex items-center gap-2 hover:text-foreground transition' title='Antworten (kommt später)' aria-disabled='true'>
+          <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
+          <span className='tabular-nums'>{stats.replyCount ?? 0}</span>
+        </button>
+        <button type='button' className={`group inline-flex items-center gap-2 transition ${hasReposted ? 'text-primary' : 'hover:text-foreground'}`} title='Reskeet (kommt später)' aria-pressed={hasReposted} aria-disabled='true'>
+          <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
+          <span className='tabular-nums'>{stats.repostCount ?? 0}</span>
+        </button>
+        <button type='button' className={`group inline-flex items-center gap-2 transition ${hasLiked ? 'text-red-600' : 'hover:text-foreground'}`} title='Gefällt mir (kommt später)' aria-pressed={hasLiked} aria-disabled='true'>
+          {hasLiked ? (
+            <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
+          ) : (
+            <HeartIcon className='h-5 w-5 md:h-6 md:w-6' />
+          )}
+          <span className='tabular-nums'>{stats.likeCount ?? 0}</span>
+        </button>
       </footer>
     </Wrapper>
   )
