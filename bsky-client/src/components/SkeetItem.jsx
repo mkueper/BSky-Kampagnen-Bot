@@ -63,6 +63,8 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const [busy, setBusy] = useState(false)
   const hasLiked = Boolean(likeUri)
   const hasReposted = Boolean(repostUri)
+  const likeStyle = hasLiked ? { color: 'var(--bsky-like, var(--red-600, #dc2626))' } : undefined
+  const repostStyle = hasReposted ? { color: 'var(--bsky-repost, var(--primary, #0ea5e9))' } : undefined
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -166,7 +168,8 @@ export default function SkeetItem({ item, variant = 'card' }) {
         </button>
         <button
           type='button'
-          className={`group inline-flex items-center gap-2 transition ${hasReposted ? 'text-primary' : 'hover:text-foreground'} ${busy ? 'opacity-60' : ''}`}
+          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+          style={repostStyle}
           title='Reskeet'
           aria-pressed={hasReposted}
           disabled={busy}
@@ -196,7 +199,8 @@ export default function SkeetItem({ item, variant = 'card' }) {
         </button>
         <button
           type='button'
-          className={`group inline-flex items-center gap-2 transition ${hasLiked ? 'text-red-600' : 'hover:text-foreground'} ${busy ? 'opacity-60' : ''}`}
+          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+          style={likeStyle}
           title='Gefällt mir'
           aria-pressed={hasLiked}
           disabled={busy}
