@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useCardConfig } from '../context/CardConfigContext'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -47,6 +48,7 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
+  const { config } = useCardConfig()
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -79,7 +81,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
               alt={images[0].alt || ''}
               className='w-full rounded-xl border border-border'
               style={{
-                maxHeight: 360,
+                ...(config?.mode === 'fixed'
+                  ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
+                  : { maxHeight: (config?.singleMax ?? 360) }),
                 width: '100%',
                 height: 'auto',
                 objectFit: 'contain',
@@ -98,7 +102,9 @@ export default function SkeetItem({ item, variant = 'card' }) {
                   alt={im.alt || ''}
                   className='w-full rounded-xl border border-border'
                   style={{
-                    maxHeight: 180,
+                    ...(config?.mode === 'fixed'
+                      ? { height: (config?.multiMax ?? 180), maxHeight: (config?.multiMax ?? 180) }
+                      : { maxHeight: (config?.multiMax ?? 180) }),
                     width: '100%',
                     height: 'auto',
                     objectFit: 'contain',

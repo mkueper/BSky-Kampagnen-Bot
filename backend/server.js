@@ -25,6 +25,7 @@ const mediaController = require("@api/controllers/mediaController");
 const uploadController = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
 const heartbeatController = require("@api/controllers/heartbeatController");
+const previewController = require("@api/controllers/previewController");
 const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
 const { sequelize } = require("@data/models");
@@ -89,6 +90,8 @@ app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
 app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
+// Link-Preview für Composer
+app.get("/api/preview", previewController.getExternalPreview);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
 app.get("/api/config/credentials", credentialsController.getCredentials);
 app.put("/api/config/credentials", credentialsController.updateCredentials);
