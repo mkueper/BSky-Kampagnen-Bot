@@ -23,9 +23,30 @@ function extractImagesFromEmbed (item) {
   } catch { return [] }
 }
 
+function extractExternalFromEmbed (item) {
+  try {
+    const post = item?.raw?.post || {}
+    const e = post?.embed || {}
+    const extView = e?.$type?.startsWith('app.bsky.embed.external') ? e
+      : (e?.media?.$type?.startsWith?.('app.bsky.embed.external') ? e.media : null)
+    const ext = extView?.external || null
+    if (!ext || !ext?.uri) return null
+    const url = new URL(ext.uri)
+    const domain = url.hostname.replace(/^www\./, '')
+    return {
+      uri: ext.uri,
+      title: ext.title || domain,
+      description: ext.description || '',
+      thumb: ext.thumb || '',
+      domain
+    }
+  } catch { return null }
+}
+
 export default function SkeetItem({ item, variant = 'card' }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
+  const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -77,6 +98,34 @@ export default function SkeetItem({ item, variant = 'card' }) {
             </div>
           )}
         </div>
+      ) : null}
+
+      {external ? (
+        <a
+          href={external.uri}
+          target='_blank'
+          rel='noopener noreferrer nofollow'
+          className='mt-3 block rounded-xl border border-border bg-background-subtle hover:bg-background-subtle/80 transition'
+          data-component='BskyExternalCard'
+        >
+          <div className='flex gap-3 p-3 items-start'>
+            {external.thumb ? (
+              <img
+                src={external.thumb}
+                alt=''
+                className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover'
+                loading='lazy'
+              />
+            ) : null}
+            <div className='min-w-0'>
+              <p className='truncate text-sm font-semibold text-foreground'>{external.title}</p>
+              {external.description ? (
+                <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+              ) : null}
+              <p className='mt-1 text-xs text-foreground-subtle'>{external.domain}</p>
+            </div>
+          </div>
+        </a>
       ) : null}
       <footer className='mt-3 flex items-center gap-4 text-xs text-foreground-muted'>
         <span>❤ {stats.likeCount ?? 0}</span>
