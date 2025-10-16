@@ -126,6 +126,7 @@ function ThreadForm ({
   onCancel
 }) {
   const [threadId, setThreadId] = useState(null)
+  const [sending, setSending] = useState(false)
   const [targetPlatforms, setTargetPlatforms] = useState(['bluesky'])
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
@@ -448,7 +449,7 @@ function ThreadForm ({
 
   const handleSubmit = async event => {
     event.preventDefault()
-    if (saving || loading) return
+    if (saving || loading || sending) return
 
     const status = scheduledAt ? 'scheduled' : 'draft'
     const scheduledValue = scheduledAt ? scheduledAt : null
@@ -647,9 +648,85 @@ function ThreadForm ({
                       restoreFromThread(null)
                     }
                   }}
-                  disabled={saving}
+                  disabled={saving || sending}
                 >
                   Formular zurücksetzen
+                </Button>
+                <Button
+                  type='button'
+                  variant='warning'
+                  onClick={async () => {
+                    if (saving || loading || sending) return
+                    if (hasValidationIssues) {
+                      toast.error({ title: 'Formular unvollständig', description: 'Bitte behebe die markierten Probleme, bevor du sendest.' })
+                      return
+                    }
+
+                    setSending(true)
+                    try {
+                      let id = threadId
+                      if (!isEditMode) {
+                        // 1) Thread anlegen (ohne unmittelbare Planung);
+                        const titleCandidate = previewSegments[0]?.raw || ''
+                        const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
+                        const createPayload = {
+                          title: normalizedTitle,
+                          scheduledAt: null,
+                          status: 'draft',
+                          targetPlatforms,
+                          appendNumbering,
+                          metadata: { limit, totalSegments, source, sendNow: true },
+                          skeets: previewSegments.map((segment, index) => ({
+                            sequence: index,
+                            content: segment.formatted,
+                            appendNumbering,
+                            characterCount: segment.characterCount,
+                            media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
+                          }))
+                        }
+                        const resCreate = await fetch('/api/threads', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(createPayload)
+                        })
+                        if (!resCreate.ok) {
+                          const data = await resCreate.json().catch(() => ({}))
+                          throw new Error(data.error || 'Thread konnte nicht erstellt werden.')
+                        }
+                        const created = await resCreate.json()
+                        id = created?.id
+                        if (!id) throw new Error('Unerwartete Antwort beim Erstellen des Threads.')
+                      }
+
+                      // 2) Direkt veröffentlichen (ohne Scheduler-Tick)
+                      const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
+                      if (!resPub.ok) {
+                        const data = await resPub.json().catch(() => ({}))
+                        throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                      }
+                      const published = await resPub.json()
+
+                      toast.success({
+                        title: 'Veröffentlicht (direkt)',
+                        description: 'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
+                      })
+
+                      if (typeof onThreadSaved === 'function') {
+                        try { onThreadSaved(published) } catch (cbErr) { console.error('onThreadSaved Fehler:', cbErr) }
+                      }
+                      if (!isEditMode) {
+                        restoreFromThread(null)
+                      }
+                    } catch (e) {
+                      console.error('Sofort senden fehlgeschlagen:', e)
+                      toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler beim Senden.' })
+                    } finally {
+                      setSending(false)
+                    }
+                  }}
+                  disabled={hasValidationIssues || saving || loading || sending}
+                >
+                  {sending ? 'Senden…' : 'Sofort senden'}
                 </Button>
                 <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving

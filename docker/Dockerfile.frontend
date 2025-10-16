@@ -1,17 +1,20 @@
 FROM node:20-alpine AS build
-# Stage 1 – React-Dashboard + Workspaces bauen, stabil gegen Root-Lockfile
+# Stage 1 – React-Dashboard + Workspaces bauen
+# Robuster gegen Build-Kontext-Fehler: Wir kopieren nach der
+# Lockfile-Installation den gesamten Repo-Inhalt (dank .dockerignore leichtgewichtig).
 WORKDIR /app
 
-# Root-Lock + Workspace-Manifeste
+# Root-Lock + Workspace-Manifeste (optimiert Caching für npm ci)
 COPY package*.json ./
 COPY dashboard/package*.json ./dashboard/
 COPY bsky-client/package*.json ./bsky-client/
+
 # Installiere alle Workspaces (inkl. Root, falls benötigt)
 RUN npm ci --workspaces --include-workspace-root
 
-# Quellcode der Workspaces
-COPY dashboard/ ./dashboard/
-COPY bsky-client/ ./bsky-client/
+# Quellcode kopieren (gefiltert durch .dockerignore)
+COPY . .
+
 # Dashboard-Build (importiert bsky-client als Workspace-Dependency)
 RUN npm run --workspace dashboard build
 

@@ -66,6 +66,8 @@ app.patch("/api/skeets/:id", skeetController.updateSkeet);
 app.delete("/api/skeets/:id", skeetController.deleteSkeet);
 app.post("/api/skeets/:id/retract", skeetController.retractSkeet);
 app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
+// Direktveröffentlichung (ohne Scheduler)
+app.post("/api/skeets/:id/publish-now", skeetController.publishNow);
 
 app.get("/api/threads/export", importExportController.exportThreads);
 app.get("/api/threads", threadController.listThreads);
@@ -75,6 +77,8 @@ app.patch("/api/threads/:id", threadController.updateThread);
 app.delete("/api/threads/:id", threadController.deleteThread);
 app.post("/api/threads/:id/retract", threadController.retractThread);
 app.post("/api/threads/:id/restore", threadController.restoreThread);
+// Direktveröffentlichung (ohne Scheduler)
+app.post("/api/threads/:id/publish-now", threadController.publishNow);
 app.post("/api/threads/:id/engagement/refresh", threadController.refreshEngagement);
 app.post("/api/threads/engagement/refresh-all", threadController.refreshAllEngagement);
 app.post("/api/threads/import", importExportController.importThreads);

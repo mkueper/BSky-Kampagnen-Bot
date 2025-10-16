@@ -117,6 +117,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const order = weekdayOrder(locale)
   const [infoContentOpen, setInfoContentOpen] = useState(false)
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
+  const [sendingNow, setSendingNow] = useState(false)
 
   useEffect(
     () => {
@@ -733,6 +734,76 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         )}
         <Button type='submit' variant='primary'>
           {isEditing ? 'Skeet aktualisieren' : 'Skeet speichern'}
+        </Button>
+        <Button
+          type='button'
+          variant='warning'
+          disabled={sendingNow}
+          onClick={async () => {
+            if (!isEditing) {
+              // Direktversand benötigt einen existierenden Datensatz → erst speichern mit sofortigem Termin
+              const normalizedPlatforms = Array.from(new Set(targetPlatforms))
+              const submissionLimit = resolveMaxLength(normalizedPlatforms)
+              if (content.length > submissionLimit) {
+                toast.error({ title: 'Zeichenlimit überschritten', description: `Max. ${submissionLimit} Zeichen.` })
+                return
+              }
+              const now = new Date()
+              const offsetMs = now.getTimezoneOffset() * 60 * 1000
+              const localIso = new Date(now.getTime() - offsetMs).toISOString().slice(0, 16)
+              const createPayload = {
+                content,
+                scheduledAt: localIso,
+                repeat: 'none',
+                repeatDaysOfWeek: [],
+                repeatDayOfMonth: null,
+                repeatDayOfWeek: null,
+                targetPlatforms: normalizedPlatforms,
+                media: pendingMedia,
+              }
+              setSendingNow(true)
+              try {
+                const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
+                if (!resCreate.ok) {
+                  const data = await resCreate.json().catch(() => ({}))
+                  throw new Error(data.error || 'Skeet konnte nicht erstellt werden.')
+                }
+                const created = await resCreate.json()
+                if (!created?.id) throw new Error('Unerwartete Antwort beim Erstellen des Skeets.')
+                const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
+                if (!resPub.ok) {
+                  const data = await resPub.json().catch(() => ({}))
+                  throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                }
+                toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+                resetToDefaults()
+                if (onSkeetSaved) onSkeetSaved()
+              } catch (e) {
+                toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+              } finally {
+                setSendingNow(false)
+              }
+              return
+            }
+
+            // Bearbeiten: existierenden posten
+            setSendingNow(true)
+            try {
+              const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+              }
+              toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+              if (onSkeetSaved) onSkeetSaved()
+            } catch (e) {
+              toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+            } finally {
+              setSendingNow(false)
+            }
+          }}
+        >
+          {sendingNow ? 'Senden…' : 'Sofort senden'}
         </Button>
       </div>
       <MediaDialog

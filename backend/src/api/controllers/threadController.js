@@ -16,6 +16,7 @@
  */
 const threadService = require("@core/services/threadService");
 const { refreshThreadEngagement, refreshAllPublishedThreads } = require("@core/services/threadEngagementService");
+const scheduler = require("@core/services/scheduler");
 
 /**
  * GET /api/threads[?status=scheduled|draft|published|deleted]
@@ -184,6 +185,17 @@ module.exports = {
   deleteThread,
   retractThread,
   restoreThread,
+  async publishNow(req, res) {
+    try {
+      const id = await scheduler.publishThreadNow(req.params.id);
+      // Vereinheitlichte Antwort über bestehenden Service, inklusive Mediapreview
+      const thread = await threadService.getThread(id);
+      res.json(thread);
+    } catch (error) {
+      const status = error?.status || 500;
+      res.status(status).json({ error: error?.message || 'Fehler beim sofortigen Veröffentlichen des Threads.' });
+    }
+  },
   async refreshEngagement(req, res) {
     try {
       const data = await refreshThreadEngagement(req.params.id, { includeReplies: true });

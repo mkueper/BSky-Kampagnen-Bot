@@ -4,6 +4,10 @@
 
 Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (optional PostgreSQL), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert.
 
+> Hinweis (Sicherheit & Reifegrad)
+>
+> Dieses Projekt befindet sich noch in aktiver Entwicklung. Es gibt derzeit keine Benutzer‑/Admin‑Authentifizierung; Schreib‑Endpunkte der API sind ohne Schutz aufrufbar. Der Betrieb auf einem öffentlich erreichbaren Server ist daher nicht empfohlen. Verwende den Bot nur lokal oder hinter einer geschützten Umgebung (VPN/Reverse Proxy mit Auth). Entsprechende Härtungen (Auth, Rate‑Limiting, Security‑Header) sind geplant.
+
 ---
 
 ## Aktuelle Funktionen
