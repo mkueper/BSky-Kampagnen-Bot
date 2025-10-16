@@ -169,15 +169,47 @@ export default function Composer ({ reply = null, onSent }) {
           }
           reader.readAsDataURL(file)
         }} />
-        <Button variant='neutral' onClick={() => imageInputRef.current && imageInputRef.current.click()}>Bild</Button>
-        <Button variant='neutral' onClick={() => gifInputRef.current && gifInputRef.current.click()}>GIF</Button>
-        <Button variant='ghost' onClick={() => {
-          try {
-            const emoji = '😊'
-            setText((v) => (v ? v + ' ' + emoji : emoji))
-            if (textareaRef.current) textareaRef.current.focus()
-          } catch {}
-        }}>Emoji</Button>
+        {(() => {
+          const maxCount = 4
+          const count = pendingMedia.length
+          const disabled = count >= maxCount
+          return (
+            <>
+              <button
+                type='button'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                onClick={() => imageInputRef.current && imageInputRef.current.click()}
+                disabled={disabled}
+                title={disabled ? `Maximal ${maxCount} Bilder je Skeet erreicht` : 'Bild hinzufügen'}
+              >
+                <span className='text-base md:text-lg leading-none'>🖼️</span>
+              </button>
+              <button
+                type='button'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                onClick={() => gifInputRef.current && gifInputRef.current.click()}
+                disabled={disabled}
+                title={disabled ? `Maximal ${maxCount} Bilder je Skeet erreicht` : 'GIF hinzufügen'}
+              >
+                GIF
+              </button>
+              <button
+                type='button'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
+                onClick={() => {
+                  try {
+                    const emoji = '😊'
+                    setText((v) => (v ? v + ' ' + emoji : emoji))
+                    if (textareaRef.current) textareaRef.current.focus()
+                  } catch {}
+                }}
+                title='Emoji einfügen'
+              >
+                <span className='text-base md:text-lg leading-none'>😊</span>
+              </button>
+            </>
+          )
+        })()}
       </div>
       {previewUrl ? (
         <div className='mt-2'>

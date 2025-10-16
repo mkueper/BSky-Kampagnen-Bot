@@ -23,13 +23,22 @@ if (!fs.existsSync(unreleasedPath) || !fs.existsSync(changelogPath)) {
 
 const unreleased = fs.readFileSync(unreleasedPath, 'utf8').split(/\r?\n/);
 
-// Parse unreleased into sections -> bullets (ignoriere Datum beim Mergen)
+// Parse unreleased into sections -> bullets; optional Tagesüberschriften (## YYYY-MM-DD)
+// werden als Datums-Präfix in die einzelnen Bullets übernommen.
 const sections = new Map();
 let currentSection = null;
+let currentDate = null; // YYYY-MM-DD oder null
+const dateRe = /^##\s+(\d{4}-\d{2}-\d{2})\b/;
 for (const line of unreleased) {
   const trimmed = line.trim();
-  if (trimmed.startsWith('## ')) { // date header
-    currentSection = null;
+  const dateMatch = trimmed.match(dateRe);
+  if (dateMatch) {
+    currentDate = dateMatch[1];
+    continue;
+  }
+  if (trimmed.startsWith('## ')) {
+    // andere Überschriften ignorieren, Date-Context zurücksetzen
+    currentDate = null;
     continue;
   }
   if (trimmed.startsWith('### ')) {
@@ -40,7 +49,9 @@ for (const line of unreleased) {
   if (trimmed.startsWith('- ')) {
     const sec = currentSection || 'Misc';
     if (!sections.has(sec)) sections.set(sec, []);
-    sections.get(sec).push(trimmed);
+    const bulletCore = trimmed.replace(/^\-\s+/, '');
+    const dated = currentDate ? `- [${currentDate}] ${bulletCore}` : `- ${bulletCore}`;
+    sections.get(sec).push(dated);
   }
 }
 
@@ -55,6 +66,7 @@ const block = [];
 block.push(`## v${version} - ${today}`);
 block.push('');
 for (const [sec, bullets] of sections) {
+  if (!bullets || bullets.length === 0) continue; // Leere Sektionen auslassen
   block.push(`### ${sec}`);
   block.push(...bullets);
   block.push('');
@@ -78,4 +90,3 @@ fs.writeFileSync(unreleasedPath, reset.join('\n'));
 
 console.log(`CHANGELOG.md aktualisiert mit v${version}.`);
 console.log(`Unreleased-Notizen geleert.`);
-

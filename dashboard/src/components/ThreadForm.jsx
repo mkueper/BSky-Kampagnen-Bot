@@ -730,10 +730,8 @@ function ThreadForm ({
                 </Button>
                 <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving
-                    ? 'Speichern…'
-                    : isEditMode
-                    ? 'Thread aktualisieren'
-                    : 'Thread speichern'}
+                    ? (isEditMode ? 'Aktualisieren…' : 'Planen…')
+                    : (isEditMode ? 'Thread aktualisieren' : 'Planen')}
                 </Button>
               </div>
             </div>

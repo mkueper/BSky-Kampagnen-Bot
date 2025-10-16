@@ -1,6 +1,6 @@
 # Unreleased Notes
 
-## Added
+### Added
 - Threads/Skeets: Direkt‑Veröffentlichen (ohne Scheduler)
   - Backend: POST `/api/threads/:id/publish-now`, POST `/api/skeets/:id/publish-now`
   - Dashboard: "Sofort senden" in Thread‑ und Skeet‑Form
@@ -26,14 +26,14 @@
 - bsky-client: Like/Reskeet Buttons inkl. Viewer-Status, Zähler-Update und Inline-Fehlerhinweis
 - Build: Windows NSIS-Target + Script; Icon-Handling über build/icon.png
 
-## Changed
+### Changed
 - Electron/Linux: AppImage Build stabilisiert; Version auf 1.1.1 angehoben
 - VS Code Workspace: Ordner (Backend, Dashboard, BSkyClient, etc.) aktiviert
 - UI Texte: "Entfernen" → "Zurückziehen" (veröffentlichte Threads/Skeets)
 - bsky-client Composer: Vorschau direkt unter Textfeld; Textarea mit Scroll ab Maxhöhe
 - Dashboard Thread-Übersicht: Plattform‑Totals werden nur für tatsächlich gepostete Plattformen angezeigt
 
-## Fixed
+### Fixed
 - bsky-client: Robustere Embed-Erkennung (ohne optional chaining auf Methoden)
 - Preview-Controller Pfadbereinigung, korrekter Import in backend/server.js
 - UI: Farbwechsel der Icons nur nach erfolgreicher Aktion; harte Farben für zuverlässiges currentColor

@@ -733,7 +733,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           </Button>
         )}
         <Button type='submit' variant='primary'>
-          {isEditing ? 'Skeet aktualisieren' : 'Skeet speichern'}
+          {isEditing ? 'Skeet aktualisieren' : 'Planen'}
         </Button>
         <Button
           type='button'
