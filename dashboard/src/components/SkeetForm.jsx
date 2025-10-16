@@ -289,7 +289,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       }
       if (onSkeetSaved) onSkeetSaved()
       toast.success({
-        title: isEditing ? 'Skeet aktualisiert' : 'Skeet gespeichert',
+        title: isEditing ? 'Skeet aktualisiert' : 'Skeet geplant',
         description: 'Die Änderungen wurden übernommen.'
       })
     } else {

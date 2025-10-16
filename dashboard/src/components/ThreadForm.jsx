@@ -500,7 +500,7 @@ function ThreadForm ({
       const thread = await res.json()
 
       toast.success({
-        title: isEditMode ? 'Thread aktualisiert' : 'Thread gespeichert',
+        title: isEditMode ? 'Thread aktualisiert' : 'Thread geplant',
         description: `Thread enthält ${totalSegments} Skeet${
           totalSegments !== 1 ? 's' : ''
         }.`
