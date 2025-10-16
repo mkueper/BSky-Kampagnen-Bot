@@ -22,6 +22,7 @@ const importExportController = require("@api/controllers/importExportController"
 const engagementController = require("@api/controllers/engagementController");
 const configController = require("@api/controllers/configController");
 const bskyActionsController = require("@api/controllers/bskyActionsController");
+const maintenanceController = require("@api/controllers/maintenanceController");
 const mediaController = require("@api/controllers/mediaController");
 const uploadController = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
@@ -102,6 +103,11 @@ app.post("/api/bsky/like", bskyActionsController.like);
 app.delete("/api/bsky/like", bskyActionsController.unlike);
 app.post("/api/bsky/repost", bskyActionsController.repost);
 app.delete("/api/bsky/repost", bskyActionsController.unrepost);
+// Bluesky utility
+app.get("/api/bsky/reactions", bskyController.getReactions);
+app.post("/api/bsky/reply", bskyController.postReply);
+// Maintenance utilities (no auth yet – use behind trusted network)
+app.post("/api/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
 app.get("/api/config/credentials", credentialsController.getCredentials);
 app.put("/api/config/credentials", credentialsController.updateCredentials);

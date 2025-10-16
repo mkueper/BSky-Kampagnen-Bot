@@ -48,5 +48,44 @@ async function getTimeline(req, res) {
   }
 }
 
-module.exports = { getTimeline }
+async function getReactions(req, res) {
+  try {
+    const uri = String(req.query?.uri || req.body?.uri || '').trim()
+    if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
+    const r = await bsky.getReactions(uri)
+    const likes = Array.isArray(r?.likes) ? r.likes.length : 0
+    const reposts = Array.isArray(r?.reposts) ? r.reposts.length : 0
+    res.json({ likes, reposts })
+  } catch (error) {
+    log.error('reactions failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Reaktionen.' })
+  }
+}
 
+async function postReply(req, res) {
+  try {
+    const text = String(req.body?.text || '').trim()
+    const root = req.body?.root || {}
+    const parent = req.body?.parent || {}
+    if (!text) return res.status(400).json({ error: 'text erforderlich' })
+    if (!root?.uri || !root?.cid || !parent?.uri || !parent?.cid) {
+      return res.status(400).json({ error: 'root/parent (uri,cid) erforderlich' })
+    }
+    const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('@core/services/platformContext')
+    const { sendPost } = require('@core/services/postService')
+    ensurePlatforms()
+    const env = resolvePlatformEnv('bluesky')
+    const envErr = validatePlatformEnv('bluesky', env)
+    if (envErr) return res.status(500).json({ error: envErr })
+    const result = await sendPost({ content: text, reply: { root, parent } }, 'bluesky', env)
+    if (!result?.ok) {
+      return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+    }
+    res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
+  } catch (error) {
+    log.error('postReply failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Senden der Antwort.' })
+  }
+}
+
+module.exports = { getTimeline, getReactions, postReply }

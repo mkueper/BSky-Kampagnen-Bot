@@ -163,7 +163,7 @@ function PublishedSkeetList({
                         variant="warning"
                         onClick={() => onRetract?.(skeet)}
                       >
-                        Entfernen
+                        Zurückziehen
                       </Button>
                     ) : null}
                     <p className="text-sm text-foreground-muted">

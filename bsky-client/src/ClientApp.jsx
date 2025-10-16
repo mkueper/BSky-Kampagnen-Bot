@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import BskyClientLayout from './layout/BskyClientLayout'
 import Timeline from './components/Timeline'
 import Composer from './components/Composer'
@@ -8,6 +8,22 @@ export default function BskyClientApp () {
   const [section, setSection] = useState('home')
   const [composeOpen, setComposeOpen] = useState(false)
   const [timelineTab, setTimelineTab] = useState('discover')
+  const [replyTarget, setReplyTarget] = useState(null) // { uri, cid }
+  const scrollPosRef = useRef(0)
+
+  // Bewahre die Scroll-Position beim Öffnen/Schließen des Modals
+  useEffect(() => {
+    const el = typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null
+    if (!el) return
+    if (composeOpen) {
+      scrollPosRef.current = el.scrollTop || 0
+    } else {
+      // Restore after modal close (next tick to ensure layout stable)
+      const y = scrollPosRef.current || 0
+      const t = setTimeout(() => { try { el.scrollTop = y } catch {} }, 0)
+      return () => clearTimeout(t)
+    }
+  }, [composeOpen])
 
   const headerContent = useMemo(() => {
     if (section !== 'home') return null
@@ -43,7 +59,12 @@ export default function BskyClientApp () {
   const topBlock = null
 
   let content = null
-  if (section === 'home') content = <Timeline tab={timelineTab} />
+  if (section === 'home') content = (
+    <Timeline
+      tab={timelineTab}
+      onReply={(target) => { setReplyTarget(target); setComposeOpen(true) }}
+    />
+  )
   else if (section === 'search') content = <div className='text-sm text-muted-foreground'>Suche – folgt</div>
   else if (section === 'notifications') content = <div className='text-sm text-muted-foreground'>Mitteilungen – folgt</div>
   else if (section === 'chat') content = <div className='text-sm text-muted-foreground'>Chat – später</div>
@@ -64,8 +85,8 @@ export default function BskyClientApp () {
       >
         {content}
       </BskyClientLayout>
-      <ComposeModal open={composeOpen} onClose={() => setComposeOpen(false)}>
-        <Composer />
+      <ComposeModal open={composeOpen} onClose={() => { setComposeOpen(false); setReplyTarget(null) }}>
+        <Composer reply={replyTarget} onSent={() => { setComposeOpen(false); setReplyTarget(null) }} />
       </ComposeModal>
     </>
   )

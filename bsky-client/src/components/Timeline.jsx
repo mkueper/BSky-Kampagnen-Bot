@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 
-export default function Timeline ({ tab = 'discover', renderMode }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -95,7 +95,7 @@ export default function Timeline ({ tab = 'discover', renderMode }) {
     <ul className='space-y-3' data-component='BskyTimeline' data-tab={tab}>
       {items.map((it) => (
         <li key={it.uri || it.cid}>
-          <SkeetItem item={it} variant={variant} />
+          <SkeetItem item={it} variant={variant} onReply={onReply} />
         </li>
       ))}
       {loadingMore ? (

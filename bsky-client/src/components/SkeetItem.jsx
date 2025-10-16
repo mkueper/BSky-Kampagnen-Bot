@@ -51,7 +51,7 @@ function extractExternalFromEmbed (item) {
   } catch { return null }
 }
 
-export default function SkeetItem({ item, variant = 'card' }) {
+export default function SkeetItem({ item, variant = 'card', onReply }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
@@ -66,6 +66,7 @@ export default function SkeetItem({ item, variant = 'card' }) {
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
   const [actionError, setActionError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -163,7 +164,16 @@ export default function SkeetItem({ item, variant = 'card' }) {
         </a>
       ) : null}
       <footer className='mt-3 flex items-center gap-5 text-sm text-foreground-muted'>
-        <button type='button' className='group inline-flex items-center gap-2 hover:text-foreground transition' title='Antworten (kommt später)' aria-disabled='true'>
+        <button
+          type='button'
+          className='group inline-flex items-center gap-2 hover:text-foreground transition'
+          title='Antworten'
+          onClick={() => {
+            if (typeof onReply === 'function') {
+              onReply({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid })
+            }
+          }}
+        >
           <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
           <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
         </button>
@@ -239,6 +249,27 @@ export default function SkeetItem({ item, variant = 'card' }) {
             <HeartIcon className='h-5 w-5 md:h-6 md:w-6' />
           )}
           <span className='tabular-nums'>{likeCount}</span>
+        </button>
+        <button
+          type='button'
+          className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
+          onClick={async () => {
+            if (refreshing) return
+            setRefreshing(true)
+            try {
+              const params = new URLSearchParams({ uri: String(item?.uri || '') })
+              const res = await fetch(`/api/bsky/reactions?${params.toString()}`)
+              const data = await res.json().catch(() => ({}))
+              if (!res.ok) throw new Error(data?.error || 'Fehler beim Aktualisieren')
+              if (data?.likes != null) setLikeCount(Number(data.likes))
+              if (data?.reposts != null) setRepostCount(Number(data.reposts))
+              setActionError('')
+            } catch (e) {
+              setActionError(e?.message || 'Aktualisieren fehlgeschlagen')
+            } finally { setRefreshing(false) }
+          }}
+        >
+          {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
         </button>
       </footer>
       {actionError ? (

@@ -566,10 +566,10 @@ function App () {
     if (!skeet?.id) return
     setConfirmDialog({
       open: true,
-      title: 'Skeet entfernen',
+      title: 'Veröffentlichung zurückziehen',
       description:
-        'Soll dieser veröffentlichte Skeet auf den Plattformen gelöscht werden?',
-      confirmLabel: 'Entfernen',
+        'Soll dieser veröffentlichte Skeet von den Plattformen zurückgezogen werden?',
+      confirmLabel: 'Zurückziehen',
       variant: 'destructive',
       onConfirm: async () => {
         try {
@@ -593,22 +593,22 @@ function App () {
             .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
           const parts = []
           if (successPlatforms.length) {
-            parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`)
+            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
           }
           if (failedPlatforms.length) {
             parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
           }
           toast.success({
-            title: 'Skeet entfernt',
+            title: 'Skeet zurückgezogen',
             description:
               parts.join(' · ') ||
-              'Der Skeet wurde auf allen Plattformen entfernt.'
+              'Der Skeet wurde auf allen Plattformen zurückgezogen.'
           })
         } catch (error) {
           console.error('Fehler beim Entfernen des Skeets:', error)
           toast.error({
-            title: 'Entfernen fehlgeschlagen',
-            description: error.message || 'Fehler beim Entfernen des Skeets.'
+            title: 'Zurückziehen fehlgeschlagen',
+            description: error.message || 'Fehler beim Zurückziehen des Skeets.'
           })
         } finally {
           setConfirmDialog(c => ({ ...c, open: false }))
@@ -755,9 +755,9 @@ function App () {
     const label = thread.title || `Thread #${thread.id}`
     setConfirmDialog({
       open: true,
-      title: 'Thread entfernen',
-      description: `Soll "${label}" auf allen Plattformen gelöscht werden?`,
-      confirmLabel: 'Entfernen',
+      title: 'Veröffentlichung zurückziehen',
+      description: `Soll "${label}" auf allen Plattformen zurückgezogen werden?`,
+      confirmLabel: 'Zurückziehen',
       variant: 'destructive',
       onConfirm: async () => {
         try {
@@ -783,23 +783,23 @@ function App () {
             .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
           const parts = []
           if (successPlatforms.length) {
-            parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`)
+            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
           }
           if (failedPlatforms.length) {
             parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
           }
 
           toast.success({
-            title: 'Thread entfernt',
+            title: 'Thread zurückgezogen',
             description:
               parts.join(' · ') ||
-              'Der Thread wurde auf allen Plattformen entfernt.'
+              'Der Thread wurde auf allen Plattformen zurückgezogen.'
           })
         } catch (error) {
           console.error('Fehler beim Entfernen des Threads:', error)
           toast.error({
-            title: 'Entfernen fehlgeschlagen',
-            description: error.message || 'Fehler beim Entfernen des Threads.'
+            title: 'Zurückziehen fehlgeschlagen',
+            description: error.message || 'Fehler beim Zurückziehen des Threads.'
           })
         } finally {
           setConfirmDialog(c => ({ ...c, open: false }))

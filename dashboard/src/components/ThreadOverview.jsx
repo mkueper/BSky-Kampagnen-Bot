@@ -223,9 +223,12 @@ function ThreadOverview ({
 
         const metadataTotals = (() => {
           const total = { likes: 0, reposts: 0, replies: 0 }
+          const allowed = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : []
           try {
-            Object.values(platformResults).forEach(entry => {
+            Object.entries(platformResults).forEach(([platformId, entry]) => {
               const t = entry?.totals || {}
+              if (allowed.length && !allowed.includes(platformId)) return
+              if (String(entry?.status || '').toLowerCase() !== 'sent') return
               total.likes += Number(t.likes) || 0
               total.reposts += Number(t.reposts) || 0
               total.replies += Number(t.replies) || 0
@@ -249,9 +252,12 @@ function ThreadOverview ({
 
         const perPlatformTotals = (() => {
           const out = []
+          const allowed = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : []
           try {
             Object.entries(platformResults).forEach(([platformId, entry]) => {
               if (!entry || typeof entry !== 'object') return
+              if (allowed.length && !allowed.includes(platformId)) return
+              if (String(entry?.status || '').toLowerCase() !== 'sent') return
               const t = entry.totals || {}
               const likes = Number(t.likes) || 0
               const reposts = Number(t.reposts) || 0
@@ -537,7 +543,7 @@ function ThreadOverview ({
                             variant='warning'
                             onClick={() => onRetractThread?.(thread)}
                           >
-                            Entfernen
+                            Zurückziehen
                           </Button>
                         ) : null}
                         <Button

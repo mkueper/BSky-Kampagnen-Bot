@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from './Button'
 
-export default function Composer () {
+export default function Composer ({ reply = null, onSent }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
@@ -48,21 +48,38 @@ export default function Composer () {
     }
     setSending(true)
     try {
-      const payload = {
-        content,
-        repeat: 'none',
-        scheduledAt: new Date().toISOString(),
-        targetPlatforms: ['bluesky']
+      if (reply && reply.uri && reply.cid) {
+        const res = await fetch('/api/bsky/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: content,
+            root: { uri: reply.uri, cid: reply.cid },
+            parent: { uri: reply.uri, cid: reply.cid }
+          })
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Antwort senden fehlgeschlagen.')
+        setMessage('Gesendet.')
+        setText('')
+        if (typeof onSent === 'function') onSent()
+      } else {
+        const payload = {
+          content,
+          repeat: 'none',
+          scheduledAt: new Date().toISOString(),
+          targetPlatforms: ['bluesky']
+        }
+        const res = await fetch('/api/skeets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
+        setMessage('Geplant: Der Scheduler sendet in Kürze (bis ~1 Min).')
+        setText('')
       }
-      const res = await fetch('/api/skeets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
-      setMessage('Geplant: Der Scheduler sendet in Kürze (bis ~1 Min).')
-      setText('')
     } catch (err) {
       setMessage(err?.message || String(err))
     } finally {
@@ -77,22 +94,26 @@ export default function Composer () {
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={6}
-        className='w-full rounded-md border bg-background p-3'
+        className='w-full rounded-md border bg-background p-3 max-h-48 overflow-auto'
         placeholder='Was möchtest du posten?'
       />
       {previewUrl ? (
-        <div className='rounded-xl border border-border bg-background-subtle'>
-          <div className='flex gap-3 p-3 items-start'>
-            {preview?.image ? (
-              <img src={preview.image} alt='' className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover' loading='lazy' />
+        <div className='mt-2'>
+          {preview?.image ? (
+            <img
+              src={preview.image}
+              alt=''
+              className='w-full rounded-lg border border-border object-contain'
+              style={{ maxHeight: 180 }}
+              loading='lazy'
+            />
+          ) : null}
+          <div className='mt-2 min-w-0'>
+            <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
+            {preview?.description ? (
+              <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
             ) : null}
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
-              {preview?.description ? (
-                <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
-              ) : null}
-              <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
-            </div>
+            <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
             <div className='text-xs text-foreground-muted'>
               {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
             </div>
