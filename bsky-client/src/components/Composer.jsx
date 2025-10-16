@@ -94,7 +94,7 @@ export default function Composer ({ reply = null, onSent }) {
   }
 
   return (
-    <form onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
+    <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       <label className='block text-sm font-medium'>Inhalt</label>
       <textarea
         ref={textareaRef}
@@ -234,12 +234,20 @@ export default function Composer ({ reply = null, onSent }) {
           </div>
         </div>
       ) : null}
-      <div className='flex items-center gap-3'>
-        <Button type='submit' variant='primary' disabled={sending}>
-          {sending ? 'Sende…' : 'Jetzt senden'}
-        </Button>
+      {/* Footer-Hinweis und Statuszeile */}
+      <div className='flex items-center justify-between'>
+        <button
+          type='button'
+          className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
+          title='Interaktions-Einstellungen'
+          onClick={() => {
+            // Platzhalter für künftigen Dialog
+          }}
+        >
+          Jeder kann interagieren
+        </button>
         {message ? (
-          <span className='text-sm text-muted-foreground'>{message}</span>
+          <span className='text-xs text-muted-foreground'>{message}</span>
         ) : null}
       </div>
     </form>

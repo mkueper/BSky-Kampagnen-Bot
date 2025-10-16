@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
+import Button from './components/Button'
 import BskyClientLayout from './layout/BskyClientLayout'
 import Timeline from './components/Timeline'
 import Composer from './components/Composer'
@@ -85,7 +86,11 @@ export default function BskyClientApp () {
       >
         {content}
       </BskyClientLayout>
-      <ComposeModal open={composeOpen} onClose={() => { setComposeOpen(false); setReplyTarget(null) }}>
+      <ComposeModal
+        open={composeOpen}
+        onClose={() => { setComposeOpen(false); setReplyTarget(null) }}
+        actions={<Button form='bsky-composer-form' type='submit' variant='primary'>Posten</Button>}
+      >
         <Composer reply={replyTarget} onSent={() => { setComposeOpen(false); setReplyTarget(null) }} />
       </ComposeModal>
     </>

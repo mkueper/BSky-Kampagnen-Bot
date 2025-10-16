@@ -1,6 +1,6 @@
 import Button from './Button'
 
-export default function ComposeModal ({ open, onClose, children }) {
+export default function ComposeModal ({ open, onClose, children, actions = null }) {
   if (!open) return null
   return (
     <div className='fixed inset-0 z-40 flex items-center justify-center' data-component='BskyComposeModal'>
@@ -8,7 +8,10 @@ export default function ComposeModal ({ open, onClose, children }) {
       <div className='relative z-50 w-[min(720px,92vw)] rounded-2xl border border-border bg-background p-4 shadow-card' data-role='panel'>
         <div className='flex items-center justify-between mb-2'>
           <h3 className='text-lg font-semibold'>Neuer Post</h3>
-          <Button variant='ghost' size='icon' onClick={onClose} aria-label='Schließen'>×</Button>
+          <div className='flex items-center gap-2'>
+            {actions}
+            <Button variant='ghost' size='icon' onClick={onClose} aria-label='Schließen'>×</Button>
+          </div>
         </div>
         <div>{children}</div>
       </div>
