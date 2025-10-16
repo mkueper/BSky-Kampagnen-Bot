@@ -120,4 +120,55 @@ async function postReply(req, res) {
   }
 }
 
-module.exports = { getTimeline, getReactions, postReply }
+async function postNow(req, res) {
+  try {
+    const text = String(req.body?.text || '').trim()
+    if (!text) return res.status(400).json({ error: 'text erforderlich' })
+    const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('@core/services/platformContext')
+    const { sendPost } = require('@core/services/postService')
+    ensurePlatforms()
+    const env = resolvePlatformEnv('bluesky')
+    const envErr = validatePlatformEnv('bluesky', env)
+    if (envErr) return res.status(500).json({ error: envErr })
+
+    // Optionale Medien aus temp übernehmen
+    const fs = require('fs')
+    const path = require('path')
+    const allowed = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
+      .split(',').map((s) => s.trim()).filter(Boolean)
+    const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
+    const media = []
+    if (mediaInput.length > 0) {
+      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
+      const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
+      try { if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true }) } catch {}
+      for (const m of mediaInput.slice(0, 4)) {
+        try {
+          const mime = m?.mime || 'image/jpeg'
+          if (!allowed.includes(mime)) continue
+          if (m?.tempId) {
+            const tempPath = path.join(tempDir, String(m.tempId))
+            const st = fs.statSync(tempPath)
+            if (st && st.size > 0) {
+              const finalBase = `${Date.now()}-${String(m.filename || m.tempId).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0,120)}`
+              const finalPath = path.join(uploadDir, finalBase)
+              fs.renameSync(tempPath, finalPath)
+              media.push({ path: finalPath, mime, altText: typeof m.altText === 'string' ? m.altText : '' })
+            }
+          }
+        } catch {}
+      }
+    }
+
+    const payload = { content: text }
+    if (media.length > 0) payload.media = media
+    const result = await sendPost(payload, 'bluesky', env)
+    if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+    res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
+  } catch (error) {
+    log.error('postNow failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Senden.' })
+  }
+}
+
+module.exports = { getTimeline, getReactions, postReply, postNow }

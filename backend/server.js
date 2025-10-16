@@ -106,6 +106,7 @@ app.delete("/api/bsky/repost", bskyActionsController.unrepost);
 // Bluesky utility
 app.get("/api/bsky/reactions", bskyController.getReactions);
 app.post("/api/bsky/reply", bskyController.postReply);
+app.post("/api/bsky/post", bskyController.postNow);
 // Maintenance utilities (no auth yet – use behind trusted network)
 app.post("/api/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)

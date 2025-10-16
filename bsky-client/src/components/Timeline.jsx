@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, refreshKey = 0 }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -54,7 +54,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply }) {
     setCursor(null)
     load()
     return () => { ignore = true }
-  }, [tab, fetchPage])
+  }, [tab, fetchPage, refreshKey])
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return

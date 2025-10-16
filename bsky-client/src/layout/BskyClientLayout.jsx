@@ -1,5 +1,6 @@
 import SidebarNav from '../components/SidebarNav'
 import ScrollTopButton from '../components/ScrollTopButton'
+import { PlusIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientLayout ({
   activeSection,
@@ -53,6 +54,17 @@ export default function BskyClientLayout ({
             {children}
           </main>
           <ScrollTopButton containerId='bsky-scroll-container' position='bottom-left' variant='elevated' />
+          {/* Floating Action Button: Neuer Skeet */}
+          <button
+            type='button'
+            onClick={onOpenCompose}
+            className='fixed right-5 bottom-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+            aria-label='Neuer Skeet'
+            title='Neuen Skeet posten'
+          >
+            <PlusIcon className='h-6 w-6' />
+            <span className='hidden sm:inline'>Neuer Skeet</span>
+          </button>
         </div>
       </section>
     </div>

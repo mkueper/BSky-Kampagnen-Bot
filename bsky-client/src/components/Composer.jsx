@@ -70,21 +70,18 @@ export default function Composer ({ reply = null, onSent }) {
         setPendingMedia([])
         if (typeof onSent === 'function') onSent()
       } else {
-        const payload = {
-          content,
-          repeat: 'none',
-          scheduledAt: new Date().toISOString(),
-          targetPlatforms: ['bluesky']
-        }
-        const res = await fetch('/api/skeets', {
+        // Direkt posten (ohne Scheduler)
+        const res = await fetch('/api/bsky/post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ text: content, media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })) })
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
-        setMessage('Geplant: Der Scheduler sendet in Kürze (bis ~1 Min).')
+        setMessage('Gesendet.')
         setText('')
+        setPendingMedia([])
+        if (typeof onSent === 'function') onSent()
       }
     } catch (err) {
       setMessage(err?.message || String(err))

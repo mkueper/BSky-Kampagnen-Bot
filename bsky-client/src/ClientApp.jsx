@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import Button from './components/Button'
+import { PlusIcon } from '@radix-ui/react-icons'
 import BskyClientLayout from './layout/BskyClientLayout'
 import Timeline from './components/Timeline'
 import Composer from './components/Composer'
@@ -12,6 +13,8 @@ export default function BskyClientApp () {
   const [replyTarget, setReplyTarget] = useState(null) // { uri, cid }
   const scrollPosRef = useRef(0)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
+  const refreshTimeline = () => setRefreshTick((v) => v + 1)
 
   // Bewahre die Scroll-Position beim Öffnen/Schließen des Modals
   useEffect(() => {
@@ -37,23 +40,38 @@ export default function BskyClientApp () {
       { id: 'best-of-follows', label: 'Best of Follows' }
     ]
     return (
-      <div className='flex items-center gap-2 overflow-x-auto' data-component='BskyTimelineTabs'>
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            type='button'
-            onClick={() => setTimelineTab(t.id)}
-            aria-current={timelineTab === t.id ? 'page' : undefined}
-            className={`rounded-2xl px-3 py-1 text-sm transition ${
-              timelineTab === t.id
-                ? 'bg-background-subtle text-foreground'
-                : 'text-foreground-muted'
-            }`}
-            data-tab={t.id}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className='flex items-center justify-between gap-3' data-component='BskyTimelineHeaderContent'>
+        <div className='flex items-center gap-2 overflow-x-auto' data-component='BskyTimelineTabs'>
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              type='button'
+              onClick={() => {
+                if (timelineTab === t.id) refreshTimeline()
+                setTimelineTab(t.id)
+              }}
+              aria-current={timelineTab === t.id ? 'page' : undefined}
+              className={`rounded-2xl px-3 py-1 text-sm transition ${
+                timelineTab === t.id
+                  ? 'bg-background-subtle text-foreground'
+                  : 'text-foreground-muted'
+              }`}
+              data-tab={t.id}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <Button
+          variant='primary'
+          className='inline-flex items-center gap-2 px-4 py-2 text-sm md:text-base'
+          onClick={() => setComposeOpen(true)}
+          aria-label='Neuer Skeet'
+          title='Neuen Skeet posten'
+        >
+          <PlusIcon className='h-5 w-5' />
+          <span className='hidden sm:inline'>Neuer Skeet</span>
+        </Button>
       </div>
     )
   }, [section, timelineTab])
@@ -64,6 +82,7 @@ export default function BskyClientApp () {
   if (section === 'home') content = (
     <Timeline
       tab={timelineTab}
+      refreshKey={refreshTick}
       onReply={(target) => { setReplyTarget(target); setComposeOpen(true) }}
     />
   )
@@ -80,7 +99,12 @@ export default function BskyClientApp () {
     <>
       <BskyClientLayout
         activeSection={section}
-        onSelectSection={setSection}
+        onSelectSection={(id) => {
+          if (id === 'home' && section === 'home') {
+            refreshTimeline()
+          }
+          setSection(id)
+        }}
         onOpenCompose={() => setComposeOpen(true)}
         headerContent={headerContent}
         topBlock={topBlock}
