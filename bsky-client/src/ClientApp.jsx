@@ -11,6 +11,7 @@ export default function BskyClientApp () {
   const [timelineTab, setTimelineTab] = useState('discover')
   const [replyTarget, setReplyTarget] = useState(null) // { uri, cid }
   const scrollPosRef = useRef(0)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   // Bewahre die Scroll-Position beim Öffnen/Schließen des Modals
   useEffect(() => {
@@ -89,10 +90,30 @@ export default function BskyClientApp () {
       <ComposeModal
         open={composeOpen}
         onClose={() => { setComposeOpen(false); setReplyTarget(null) }}
-        actions={<Button form='bsky-composer-form' type='submit' variant='primary'>Posten</Button>}
+        actions={
+          <div className='flex items-center gap-2'>
+            <Button variant='secondary' onClick={() => setConfirmDiscard(true)}>Abbrechen</Button>
+            <Button form='bsky-composer-form' type='submit' variant='primary'>Posten</Button>
+          </div>
+        }
       >
         <Composer reply={replyTarget} onSent={() => { setComposeOpen(false); setReplyTarget(null) }} />
       </ComposeModal>
+
+      {/* Bestätigungsdialog: Entwurf verwerfen */}
+      {composeOpen && confirmDiscard ? (
+        <div className='fixed inset-0 z-50 flex items-center justify-center'>
+          <div className='absolute inset-0 bg-black/40 backdrop-blur-sm' onClick={() => setConfirmDiscard(false)} aria-hidden='true' />
+          <div className='relative z-50 w-[min(520px,92vw)] rounded-2xl border border-border bg-background p-5 shadow-card'>
+            <h4 className='text-lg font-semibold text-foreground'>Entwurf verwerfen</h4>
+            <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen möchtest?</p>
+            <div className='mt-4 flex items-center justify-end gap-2'>
+              <Button variant='secondary' onClick={() => setConfirmDiscard(false)}>Abbrechen</Button>
+              <Button variant='primary' onClick={() => { setConfirmDiscard(false); setComposeOpen(false); setReplyTarget(null) }}>Verwerfen</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }
