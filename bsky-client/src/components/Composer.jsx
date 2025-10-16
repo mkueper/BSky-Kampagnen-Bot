@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Button from './Button'
 
 export default function Composer ({ reply = null, onSent }) {
@@ -9,6 +9,10 @@ export default function Composer ({ reply = null, onSent }) {
   const [preview, setPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
+  const [pendingMedia, setPendingMedia] = useState([]) // [{ tempId, previewUrl, mime }]
+  const imageInputRef = useRef(null)
+  const gifInputRef = useRef(null)
+  const textareaRef = useRef(null)
 
   const firstUrl = useMemo(() => {
     try {
@@ -55,13 +59,15 @@ export default function Composer ({ reply = null, onSent }) {
           body: JSON.stringify({
             text: content,
             root: { uri: reply.uri, cid: reply.cid },
-            parent: { uri: reply.uri, cid: reply.cid }
+            parent: { uri: reply.uri, cid: reply.cid },
+            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime }))
           })
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error || 'Antwort senden fehlgeschlagen.')
         setMessage('Gesendet.')
         setText('')
+        setPendingMedia([])
         if (typeof onSent === 'function') onSent()
       } else {
         const payload = {
@@ -91,12 +97,88 @@ export default function Composer ({ reply = null, onSent }) {
     <form onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       <label className='block text-sm font-medium'>Inhalt</label>
       <textarea
+        ref={textareaRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={6}
         className='w-full rounded-md border bg-background p-3 max-h-48 overflow-auto'
         placeholder='Was möchtest du posten?'
       />
+      {/* Bilder-Vorschau unter der Eingabe, linksbündig, skaliert */}
+      {pendingMedia.length > 0 ? (
+        <div className='mt-2 grid grid-cols-2 gap-2'>
+          {pendingMedia.map((m, idx) => (
+            <div key={m.tempId || idx} className='relative rounded-lg border border-border bg-background-subtle'>
+              <img src={m.previewUrl} alt='' className='w-full object-contain rounded-lg' style={{ maxHeight: 160 }} />
+              <button
+                type='button'
+                className='absolute right-1 top-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white'
+                title='Bild entfernen'
+                onClick={() => setPendingMedia(arr => arr.filter((_, i) => i !== idx))}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className='flex items-center gap-2'>
+        <input ref={imageInputRef} type='file' accept='image/*' className='hidden' onChange={(e) => {
+          const file = e.target.files && e.target.files[0]
+          if (!file) return
+          const reader = new FileReader()
+          reader.onload = async () => {
+            try {
+              const base64 = reader.result
+              const res = await fetch('/api/uploads/temp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: file.name, mime: file.type, data: base64 })
+              })
+              const info = await res.json().catch(() => ({}))
+              if (!res.ok) throw new Error(info?.error || 'Upload fehlgeschlagen')
+              setPendingMedia(arr => [...arr, { tempId: info.tempId, previewUrl: info.previewUrl, mime: info.mime }])
+            } catch (e) {
+              setMessage(e?.message || 'Bild-Upload fehlgeschlagen')
+            } finally {
+              try { e.target.value = '' } catch {}
+            }
+          }
+          reader.readAsDataURL(file)
+        }} />
+        <input ref={gifInputRef} type='file' accept='image/gif' className='hidden' onChange={(e) => {
+          const file = e.target.files && e.target.files[0]
+          if (!file) return
+          const reader = new FileReader()
+          reader.onload = async () => {
+            try {
+              const base64 = reader.result
+              const res = await fetch('/api/uploads/temp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: file.name, mime: file.type || 'image/gif', data: base64 })
+              })
+              const info = await res.json().catch(() => ({}))
+              if (!res.ok) throw new Error(info?.error || 'Upload fehlgeschlagen')
+              setPendingMedia(arr => [...arr, { tempId: info.tempId, previewUrl: info.previewUrl, mime: info.mime }])
+            } catch (e) {
+              setMessage(e?.message || 'GIF-Upload fehlgeschlagen')
+            } finally {
+              try { e.target.value = '' } catch {}
+            }
+          }
+          reader.readAsDataURL(file)
+        }} />
+        <Button variant='neutral' onClick={() => imageInputRef.current && imageInputRef.current.click()}>Bild</Button>
+        <Button variant='neutral' onClick={() => gifInputRef.current && gifInputRef.current.click()}>GIF</Button>
+        <Button variant='ghost' onClick={() => {
+          try {
+            const emoji = '😊'
+            setText((v) => (v ? v + ' ' + emoji : emoji))
+            if (textareaRef.current) textareaRef.current.focus()
+          } catch {}
+        }}>Emoji</Button>
+      </div>
       {previewUrl ? (
         <div className='mt-2'>
           {preview?.image ? (

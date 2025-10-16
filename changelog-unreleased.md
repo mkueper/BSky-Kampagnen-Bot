@@ -7,6 +7,9 @@
 - bsky-client: Antworten-Flow
   - Antworten‑Button öffnet Composer als Reply (root/parent gesetzt)
   - Composer sendet Replies direkt via `/api/bsky/reply`
+- bsky-client: Composer‑Aktionen konsistent zu Skeet/Thread
+  - Buttons: Bild, GIF, Emoji
+  - Bild/GIF‑Upload mit Vorschau direkt unter dem Text (links bündig)
 - bsky-client: Reaktionen sofort aktualisieren
   - GET `/api/bsky/reactions?uri=…` + Button "Aktualisieren" pro Karte
 - Build/Infra
