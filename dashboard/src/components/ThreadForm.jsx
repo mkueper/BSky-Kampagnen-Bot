@@ -6,6 +6,8 @@ import MediaDialog from './MediaDialog'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
+import GifPicker from './GifPicker'
+import EmojiPicker from './EmojiPicker'
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -123,7 +125,8 @@ function ThreadForm ({
   initialThread = null,
   loading = false,
   onThreadSaved,
-  onCancel
+  onCancel,
+  onSuggestMoveToSkeets
 }) {
   const [threadId, setThreadId] = useState(null)
   const [sending, setSending] = useState(false)
@@ -132,6 +135,7 @@ function ThreadForm ({
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [scheduledAt, setScheduledAt] = useState(() => getDefaultScheduledAt())
   const [saving, setSaving] = useState(false)
+  const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
   const textareaRef = useRef(null)
   const toast = useToast()
   const { config: clientConfig } = useClientConfig()
@@ -340,6 +344,8 @@ function ThreadForm ({
     setMediaDialog({ open: true, index, accept: gif ? 'image/gif' : 'image/*', title: gif ? 'GIF hinzufügen' : 'Bild hinzufügen' })
   }
   const closeMediaDialog = () => setMediaDialog({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+  const [gifPicker, setGifPicker] = useState({ open: false, index: null })
+  const [emojiPicker, setEmojiPicker] = useState({ open: false })
 
   // Overlay helpers for existing media edits (without full reload)
   const [editedMediaAlt, setEditedMediaAlt] = useState({}); // key: mediaId => alt text
@@ -390,16 +396,21 @@ function ThreadForm ({
     const textarea = textareaRef.current
     if (!textarea) return
 
-    const separator = textarea.selectionStart === 0 ? '---\n' : '\n---\n'
     const { selectionStart, selectionEnd, value } = textarea
-    const nextValue = `${value.slice(
-      0,
-      selectionStart
-    )}${separator}${value.slice(selectionEnd)}`
+    const before = value.slice(0, selectionStart)
+    const after = value.slice(selectionEnd)
+    const prevChar = selectionStart > 0 ? value.charAt(selectionStart - 1) : ''
+    const nextChar = selectionEnd < value.length ? value.charAt(selectionEnd) : ''
+
+    const needsPrefixNl = selectionStart > 0 && prevChar !== '\n'
+    const needsSuffixNl = nextChar !== '\n'
+    const separator = `${needsPrefixNl ? '\n' : ''}---${needsSuffixNl ? '\n' : ''}`
+
+    const nextValue = `${before}${separator}${after}`
     setSource(nextValue)
 
     requestAnimationFrame(() => {
-      const cursorPosition = selectionStart + separator.length
+      const cursorPosition = before.length + separator.length
       textarea.selectionStart = cursorPosition
       textarea.selectionEnd = cursorPosition
       textarea.focus()
@@ -447,10 +458,7 @@ function ThreadForm ({
     )
   }
 
-  const handleSubmit = async event => {
-    event.preventDefault()
-    if (saving || loading || sending) return
-
+  async function doSubmitThread() {
     const status = scheduledAt ? 'scheduled' : 'draft'
     const scheduledValue = scheduledAt ? scheduledAt : null
     const titleCandidate = previewSegments[0]?.raw || ''
@@ -532,6 +540,19 @@ function ThreadForm ({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleSubmit = async event => {
+    event.preventDefault()
+    if (saving || loading || sending) return
+
+    // If there is only one segment, suggest creating a single Skeet instead
+    if (totalSegments === 1) {
+      setSingleSegDialog({ open: true })
+      return
+    }
+
+    await doSubmitThread()
   }
 
   const theme = useTheme()
@@ -799,7 +820,7 @@ function ThreadForm ({
                         <button
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
-                          onClick={() => openMediaDialog(segment.id, { gif: true })}
+                          onClick={() => setGifPicker({ open: true, index })}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
                               : 'GIF hinzufügen'}
@@ -807,7 +828,7 @@ function ThreadForm ({
                         >
                           GIF
                         </button>
-                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => { /* Emoji Picker später */ }} title='Emoji einfügen'>
+                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => setEmojiPicker({ open: true })} title='Emoji einfügen'>
                           <span className='text-base md:text-lg leading-none'>😊</span>
                         </button>
                       </div>
@@ -878,6 +899,51 @@ function ThreadForm ({
         allowedMimes={imagePolicy.allowedMimes}
         onConfirm={(file, alt) => { const idx = mediaDialog.index; closeMediaDialog(); handleUploadMedia(idx, file, alt); }}
         onClose={closeMediaDialog}
+      />
+      <EmojiPicker
+        open={emojiPicker.open}
+        onClose={() => setEmojiPicker({ open: false })}
+        onPick={(em) => {
+          try {
+            const ta = textareaRef.current
+            if (!ta) return
+            const { selectionStart = source.length, selectionEnd = source.length } = ta
+            const next = `${source.slice(0, selectionStart)}${em}${source.slice(selectionEnd)}`
+            setSource(next)
+            setEmojiPicker({ open: false })
+            setTimeout(() => {
+              try {
+                const pos = selectionStart + em.length
+                ta.selectionStart = pos
+                ta.selectionEnd = pos
+                ta.focus()
+              } catch {}
+            }, 0)
+          } catch {}
+        }}
+      />
+      <GifPicker
+        open={gifPicker.open}
+        onClose={() => setGifPicker({ open: false, index: null })}
+        onPick={async ({ downloadUrl }) => {
+          try {
+            const resp = await fetch(downloadUrl)
+            const blob = await resp.blob()
+            if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+              setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
+              return
+            }
+            const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+            const idx = gifPicker.index
+            if (typeof idx === 'number') {
+              await handleUploadMedia(idx, file, '')
+            }
+          } catch (e) {
+            setUploadError({ open: true, message: e?.message || 'GIF konnte nicht geladen werden.' })
+          } finally {
+            setGifPicker({ open: false, index: null })
+          }
+        }}
       />
       {uploadError.open ? (
         <Modal
@@ -970,6 +1036,46 @@ function ThreadForm ({
           }}
           onClose={closeAltDialog}
         />
+      ) : null}
+
+      {/* Suggest move to Skeets if only one segment */}
+      {singleSegDialog.open ? (
+        <Modal
+          open={singleSegDialog.open}
+          title="Nur ein Segment erkannt"
+          onClose={() => setSingleSegDialog({ open: false })}
+          actions={
+            <>
+              <Button
+                variant='secondary'
+                onClick={async () => {
+                  setSingleSegDialog({ open: false })
+                  await doSubmitThread()
+                }}
+              >
+                Trotzdem als Thread speichern
+              </Button>
+              <Button
+                variant='primary'
+                onClick={() => {
+                  setSingleSegDialog({ open: false })
+                  if (typeof onSuggestMoveToSkeets === 'function') {
+                    const content = (previewSegments?.[0]?.raw || '').toString()
+                    onSuggestMoveToSkeets(content)
+                  } else {
+                    toast.info({ title: 'Zum Skeetplaner wechseln', description: 'Bitte wechsle zum Skeetplaner und füge den Text ein.' })
+                  }
+                }}
+              >
+                Zum Skeetplaner wechseln
+              </Button>
+            </>
+          }
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Skeet planen?</p>
+          </div>
+        </Modal>
       ) : null}
     </form>
   )

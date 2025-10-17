@@ -18,6 +18,7 @@ import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
 import MainOverviewView from './components/views/MainOverviewView'
+import AboutView from './components/views/AboutView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
 import BskyClientApp from 'bsky-client'
@@ -111,7 +112,8 @@ const NAV_ITEMS = [
     ]
   },
   { id: 'bsky-client', label: 'Bluesky Client', icon: ViewHorizontalIcon },
-  { id: 'config', label: 'Konfiguration', icon: GearIcon }
+  { id: 'config', label: 'Konfiguration', icon: GearIcon },
+  { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
 ]
 
 const HEADER_CAPTIONS = {
@@ -123,7 +125,8 @@ const HEADER_CAPTIONS = {
   'threads-overview': 'Threads',
   'threads-plan': 'Threadplaner',
   'bsky-client': 'Bluesky Client',
-  config: 'Konfiguration'
+  config: 'Konfiguration',
+  about: 'Über Kampagnenbot'
 }
 
 const HEADER_TITLES = {
@@ -257,6 +260,9 @@ function App () {
     useThreadDetail(editingThreadId, {
       autoLoad: Boolean(editingThreadId)
     })
+
+  // Allow ThreadForm to suggest moving a single-segment thread into Skeet planner
+  const [skeetDraftContent, setSkeetDraftContent] = useState('')
 
   
 
@@ -903,6 +909,7 @@ function App () {
 
   const handleFormSaved = async () => {
     setEditingSkeet(null)
+    try { setSkeetDraftContent('') } catch {}
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
     setActiveView('skeets-overview')
     setActiveDashboardTab('planned')
@@ -1120,6 +1127,12 @@ function App () {
         <BskyClientApp />
       </Card>
     )
+  } else if (activeView === 'about') {
+    content = (
+      <Card padding='p-6 lg:p-10'>
+        <AboutView />
+      </Card>
+    )
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
@@ -1127,6 +1140,7 @@ function App () {
           onSkeetSaved={handleFormSaved}
           editingSkeet={editingSkeet}
           onCancelEdit={handleCancelEdit}
+          initialContent={editingSkeet ? undefined : skeetDraftContent}
         />
       </Card>
     )
@@ -1141,6 +1155,11 @@ function App () {
           )}
           onThreadSaved={handleThreadSaved}
           onCancel={editingThreadId ? handleThreadCancel : undefined}
+          onSuggestMoveToSkeets={(content) => {
+            try { setEditingThreadId(null) } catch {}
+            setSkeetDraftContent(content || '')
+            setActiveView('skeets-plan')
+          }}
         />
       </Card>
     )

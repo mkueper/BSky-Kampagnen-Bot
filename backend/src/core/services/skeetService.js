@@ -138,8 +138,13 @@ function normalizeRepeatFields(payload, existing) {
 function buildSkeetAttributes(payload, existing = null) {
   const rawContent = payload.content ?? existing?.content ?? '';
   const content = typeof rawContent === 'string' ? rawContent.trim() : '';
-  if (!content) {
-    throw new Error('content ist erforderlich.');
+  // Allow media-only skeets: if no textual content, require at least one media item in payload
+  const hasMediaInPayload = Array.isArray(payload.media)
+    ? payload.media.some((m) => m && (m.data || m.tempId || m.path))
+    : false;
+  const existingHasMedia = Boolean(existing && (existing._hasExistingMedia || (Array.isArray(existing.media) && existing.media.length > 0)));
+  if (!content && !hasMediaInPayload && !existingHasMedia) {
+    throw new Error('content oder Medien sind erforderlich.');
   }
 
   const rawPlatforms = payload.targetPlatforms ?? existing?.targetPlatforms ?? ['bluesky'];
@@ -245,6 +250,11 @@ async function updateSkeet(id, payload) {
   if (!skeet) {
     throw new Error('Skeet nicht gefunden.');
   }
+  try {
+    // Hinweis für Validierung: vorhandene Medien berücksichtigen
+    const existingCount = await SkeetMedia.count({ where: { skeetId: skeet.id } }).catch(() => 0);
+    skeet._hasExistingMedia = existingCount > 0;
+  } catch {}
   const attributes = buildSkeetAttributes(payload, skeet);
   attributes.platformResults = {};
   if (attributes.repeat === 'none') {

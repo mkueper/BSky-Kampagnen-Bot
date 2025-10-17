@@ -4,7 +4,7 @@
   "description": "Bot um Kampagnen-Skeets an ausgewählten Tagen zu senden und die Reaktionen zu überprüfen.",
   "keywords": [],
   "license": "ISC",
-  "author": "Michael Küper & S.A.R.A.H.",
+  "author": "Michael Küper & S.A.R.A.H (OpenAI ChatGPT-5)",
   "type": "commonjs",
   "main": "electron/main.js",
   "scripts": {
