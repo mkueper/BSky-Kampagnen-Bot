@@ -1,8 +1,8 @@
 import { BskyAgent } from '@atproto/api'
 
 export class BlueskyClient {
-  constructor() {
-    this.agent = new BskyAgent({ service: 'https://bsky.social' })
+  constructor(service = 'https://bsky.social') {
+    this.agent = new BskyAgent({ service })
     this.session = null
   }
 
@@ -30,4 +30,3 @@ export class BlueskyClient {
     return created
   }
 }
-

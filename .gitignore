@@ -1,6 +1,14 @@
 /.env
 /.env.prod
 /.env.dev
+# Ignore env files anywhere in repo (but keep samples)
+**/.env
+**/.env.*
+!**/.env.sample
+# Ignore env files anywhere in repo (but keep samples)
+**/.env
+**/.env.*
+!**/.env.sample
 /data
 /node_modules
 node_modules/

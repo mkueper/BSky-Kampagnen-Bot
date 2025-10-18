@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildSegments, BLUESKY_LIMIT } from './lib/segment.js'
 import GifPicker from './components/GifPicker.jsx'
+import EmojiPicker from './components/EmojiPicker.jsx'
 import Modal from './components/Modal.jsx'
 import { compressImage } from './lib/image.js'
 import { BlueskyClient } from './lib/bskyClient.js'
@@ -23,6 +24,7 @@ export default function App() {
   const [source, setSource] = useState('')
   const sourceRef = useRef(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const emojiBtnRef = useRef(null)
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [sending, setSending] = useState(false)
   const [activeTab, setActiveTab] = useState('write') // 'write' | 'settings'
@@ -100,6 +102,7 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('tw_server_url', serverUrl || '') } catch {}
   }, [serverUrl])
+
 
   // Detect backend Tenor proxy availability
   useEffect(() => {
@@ -337,23 +340,7 @@ export default function App() {
               </label>
             </div>
             <div className='card-content'>
-              {emojiOpen ? (
-                <div className='panel-inset' style={{ padding: 8, marginBottom: 8 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(36px, 1fr))', gap: 6 }}>
-                    {EMOJI_SET.map((em, i) => (
-                      <button
-                        key={i}
-                        title={em}
-                        onClick={() => insertEmoji(em)}
-                        className='panel-inset'
-                        style={{ padding: 6, fontSize: 18, lineHeight: '18px' }}
-                      >
-                        {em}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+              {/* Emoji inline grid removed; using modal picker */}
               <textarea
                 ref={sourceRef}
                 className='textarea mono'
@@ -368,7 +355,8 @@ export default function App() {
               <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <button
-                    onClick={() => setEmojiOpen((v) => !v)}
+                    ref={emojiBtnRef}
+                    onClick={() => setEmojiOpen(true)}
                     className='btn btn-secondary btn-icon'
                     title='Emoji einfügen'
                     aria-label='Emoji einfügen'
@@ -526,7 +514,7 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                  <div>
+                  <div className='only-desktop'>
                     <button
                       onClick={() => {
                         setMediaTargetIndex(i)
@@ -654,6 +642,17 @@ export default function App() {
           } catch (e) {
             alert(`GIF konnte nicht geladen werden: ${e?.message || e}`)
           }
+        }}
+      />
+
+      <EmojiPicker
+        open={emojiOpen}
+        onClose={() => setEmojiOpen(false)}
+        anchorRef={sourceRef}
+        onPick={(em) => {
+          if (!em) return
+          insertEmoji(em)
+          setEmojiOpen(false)
         }}
       />
     </div>

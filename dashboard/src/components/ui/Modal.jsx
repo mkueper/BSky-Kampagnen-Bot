@@ -30,10 +30,10 @@ function Modal({ open, title, children, onClose, actions }) {
   const content = (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-background-elevated p-5 shadow-soft">
-        {title ? <h3 className="text-lg font-semibold text-foreground">{title}</h3> : null}
-        <div className="mt-3">{children}</div>
-        <div className="mt-4 flex justify-end gap-2">{actions}</div>
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-background-elevated p-4 shadow-soft">
+        {title ? <h3 className="text-base font-semibold text-foreground">{title}</h3> : null}
+        <div className="mt-2">{children}</div>
+        <div className="mt-3 flex justify-end gap-2">{actions}</div>
       </div>
     </div>
   );

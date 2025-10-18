@@ -8,7 +8,8 @@ import {
   ShadowIcon,
   SunIcon,
   UploadIcon,
-  ViewHorizontalIcon
+  ViewHorizontalIcon,
+  InfoCircledIcon
 } from '@radix-ui/react-icons'
 import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider } from './components/ui/ThemeContext'

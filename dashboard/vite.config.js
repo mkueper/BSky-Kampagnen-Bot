@@ -5,12 +5,18 @@ import path from "node:path";
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       // Link the workspace package as source so Vite transpiles JSX
       "bsky-client": path.resolve(__dirname, "../bsky-client/src"),
     },
+  },
+  optimizeDeps: {
+    include: ["emoji-mart", "@emoji-mart/data"],
   },
   server: {
     fs: {

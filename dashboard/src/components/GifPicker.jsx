@@ -3,7 +3,6 @@ import Modal from './ui/Modal'
 import Button from './ui/Button'
 
 export default function GifPicker({ open, onClose, onPick, maxBytes = 8 * 1024 * 1024 }) {
-  const apiKey = import.meta.env.VITE_TENOR_API_KEY || ''
   const [q, setQ] = useState('')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
@@ -18,13 +17,13 @@ export default function GifPicker({ open, onClose, onPick, maxBytes = 8 * 1024 *
       setError('')
       setNextPos(null)
     }
-    // Preload featured GIFs (10) on open if API key exists
-    if (open && apiKey) {
+    // Preload featured GIFs (10) on open via backend proxy
+    if (open) {
       (async () => {
         try {
           setLoading(true)
-          const params = new URLSearchParams({ key: apiKey, client_key: 'dashboard', limit: '10', media_filter: 'gif,tinygif,nanogif' })
-          const url = `https://tenor.googleapis.com/v2/featured?${params.toString()}`
+          const params = new URLSearchParams({ limit: '10' })
+          const url = `/api/tenor/featured?${params.toString()}`
           const res = await fetch(url)
           if (res.ok) {
             const data = await res.json()
@@ -49,24 +48,17 @@ export default function GifPicker({ open, onClose, onPick, maxBytes = 8 * 1024 *
   }, [open])
 
   async function doSearch(reset = true) {
-    if (!apiKey) {
-      setError('Kein Tenor API‑Key konfiguriert (VITE_TENOR_API_KEY).')
-      return
-    }
     const query = q.trim()
     if (!query) return
     setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams({
-        key: apiKey,
         q: query,
-        client_key: 'dashboard',
-        limit: '24',
-        media_filter: 'gif,tinygif,nanogif'
+        limit: '24'
       })
       if (!reset && nextPos) params.set('pos', nextPos)
-      const url = `https://tenor.googleapis.com/v2/search?${params.toString()}`
+      const url = `/api/tenor/search?${params.toString()}`
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
@@ -129,7 +121,7 @@ export default function GifPicker({ open, onClose, onPick, maxBytes = 8 * 1024 *
       actions={(
         <>
           <Button variant='secondary' onClick={onClose}>Schließen</Button>
-          <Button variant='primary' onClick={() => doSearch(true)} disabled={loading || !apiKey || !q.trim()}>Suchen</Button>
+          <Button variant='primary' onClick={() => doSearch(true)} disabled={loading || !q.trim()}>Suchen</Button>
         </>
       )}
     >
@@ -165,9 +157,7 @@ export default function GifPicker({ open, onClose, onPick, maxBytes = 8 * 1024 *
           <div className='mr-auto text-xs text-foreground-muted'>{loading ? 'Lädt…' : null}</div>
           <Button variant='secondary' onClick={() => doSearch(false)} disabled={!nextPos || loading}>Mehr laden</Button>
         </div>
-        {!apiKey ? (
-          <p className='text-xs text-foreground-muted'>Hinweis: VITE_TENOR_API_KEY nicht gesetzt.</p>
-        ) : null}
+        {/* Hinweis entfällt: Key liegt serverseitig */}
       </div>
     </Modal>
   )

@@ -21,6 +21,7 @@ const threadController = require("@api/controllers/threadController");
 const importExportController = require("@api/controllers/importExportController");
 const engagementController = require("@api/controllers/engagementController");
 const configController = require("@api/controllers/configController");
+const tenorController = require("@api/controllers/tenorController");
 const bskyActionsController = require("@api/controllers/bskyActionsController");
 const maintenanceController = require("@api/controllers/maintenanceController");
 const mediaController = require("@api/controllers/mediaController");
@@ -86,6 +87,10 @@ app.post("/api/threads/import", importExportController.importThreads);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
 app.post("/api/skeets/import", importExportController.importPlannedSkeets);
+
+// Tenor GIF proxy
+app.get("/api/tenor/featured", tenorController.featured);
+app.get("/api/tenor/search", tenorController.search);
 
 app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
