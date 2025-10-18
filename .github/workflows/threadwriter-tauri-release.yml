@@ -75,3 +75,17 @@ jobs:
             Siehe CHANGELOG für Details.
           releaseDraft: true
           prerelease: false
+          includeDebug: false
+          # Optional Codesigning (füllt die Action automatisch, wenn Secrets gesetzt sind)
+          windowsCertificate: ${{ runner.temp }}/windows_cert.pfx
+          windowsCertificatePassword: ${{ secrets.WIN_CERT_PASSWORD }}
+          appleId: ${{ secrets.APPLE_ID }}
+          applePassword: ${{ secrets.APPLE_PASSWORD }}
+          appleTeamId: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Prepare Windows certificate (optional)
+        if: matrix.os == 'windows-latest' && secrets.WIN_CERT_PFX != ''
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String('${{ secrets.WIN_CERT_PFX }}')
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\windows_cert.pfx", $bytes)
