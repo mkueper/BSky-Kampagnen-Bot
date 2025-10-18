@@ -190,6 +190,23 @@ export default function App() {
     setMenuOpen(false)
   }
 
+  // Native Menü-Events aus Tauri verarbeiten (About/Reset/Quit)
+  useEffect(() => {
+    if (!('__TAURI__' in window)) return
+    let unsubs = []
+    ;(async () => {
+      try {
+        const { listen } = await import(/* @vite-ignore */ '@tauri-apps/api/event')
+        const u1 = await listen('tw-reset-layout', () => resetLayout())
+        const u2 = await listen('tw-about', () => showAbout())
+        // Optional: Falls wir vor Quit noch etwas aufräumen wollen
+        const u3 = await listen('tw-quit', () => {})
+        unsubs = [u1, u2, u3]
+      } catch {}
+    })()
+    return () => { try { unsubs.forEach((u) => u && u()) } catch {} }
+  }, [])
+
   const EMOJI_SET = ['🙂','😂','🎉','❤️','👍','🔥','✨','🙏','🚀','🤖','📷','🧵','📝','📣','🗓️','⏰']
 
   function insertEmoji(ch) {
