@@ -194,6 +194,11 @@ body {
   body { overflow-y: auto; }
 }
 
+/* Kompaktere Höhe für kleinere Displays (z. B. 1366×768) */
+@media (max-height: 820px) {
+  :root { --pane-offset: 220px; }
+}
+
 /* Utilities for responsive visibility */
 .only-desktop { display: inline-flex; }
 @media (max-width: 900px) {

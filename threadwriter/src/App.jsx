@@ -50,9 +50,16 @@ export default function App() {
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [gifTargetIndex, setGifTargetIndex] = useState(null)
   const splitRef = useRef(null)
-  const [leftPct, setLeftPct] = useState(66)
+  // Standardbreite des linken Panels (Editor). Für 1366x768 etwas schmaler starten.
+  const [leftPct, setLeftPct] = useState(() => {
+    try {
+      const w = typeof window !== 'undefined' ? window.innerWidth : 0
+      return w && w <= 1366 ? 58 : 66
+    } catch { return 66 }
+  })
   const draggingRef = useRef(false)
   const [hasProxy, setHasProxy] = useState(false)
+  const [editorHeight, setEditorHeight] = useState(300)
 
   const segments = useMemo(() => buildSegments(source, { appendNumbering, limit: BLUESKY_LIMIT }), [source, appendNumbering])
 
@@ -131,6 +138,19 @@ export default function App() {
     else if (theme === 'midnight') root.setAttribute('data-theme', 'midnight')
     try { localStorage.setItem('tw_theme', theme) } catch {}
   }, [theme])
+
+  // Responsive Editor-Höhe: bei kleineren Fensterhöhen halbieren
+  useEffect(() => {
+    const update = () => {
+      try {
+        const h = typeof window !== 'undefined' ? window.innerHeight : 0
+        setEditorHeight(h && h <= 800 ? 150 : 300)
+      } catch { setEditorHeight(300) }
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   function cycleTheme() {
     setTheme((t) => (t === 'light' ? 'dark' : t === 'dark' ? 'midnight' : 'light'))
@@ -347,7 +367,7 @@ export default function App() {
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 placeholder={"Beispiel:\nIntro...\n---\nWeiterer Skeet..."}
-                style={{ height: 300, marginTop: 12 }}
+                style={{ height: editorHeight, marginTop: 12 }}
               />
               {error ? (
                 <p style={{ color: 'hsl(var(--destructive))', marginTop: 10, fontSize: 13 }}>Fehler: {error}</p>

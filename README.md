@@ -55,6 +55,22 @@ npm run start:dev
 
 ---
 
+## ThreadWriter Desktop (Tauri)
+
+Optional kannst du den ThreadWriter als Desktop‑App mit Tauri starten/bauen.
+
+- Voraussetzungen
+  - Rust stable via rustup: `rustup default stable && rustup update`
+  - Linux (Beispiel Ubuntu/Debian): `sudo apt install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf build-essential`
+  - Node/NPM installiert
+- Entwicklung
+  - `cd threadwriter && npm install`
+  - `npm run tauri:dev` (öffnet die App; Größe/Position werden gemerkt)
+- Build
+  - `npm run tauri:build` erzeugt Installationspakete im `threadwriter/src-tauri/target/`
+
+---
+
 ## Betrieb mit Docker Compose
 
 Das Repository enthält Compose-Dateien für Backend und Frontend (SQLite als Default). Beispiel:
