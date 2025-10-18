@@ -11,7 +11,24 @@ Stand: Text + Bilder. Pro Segment bis zu 4 Bilder mit Alt‑Text (JPEG/PNG/WebP/
 - Zeichenlimit Bluesky 300, Nummerierung `1/x` optional
 - Bilder je Segment (max. 4), Alt‑Text, Vorschau + Entfernen
 - Direkter Versand zu Bluesky (Replies mit korrekt gesetztem `root`/`parent`)
- - Geteiltes Layout: Editor/Preview‑Breite per Splitter; Verhältnis wird lokal gespeichert
+- Geteiltes Layout: Editor/Preview‑Breite per Splitter; Verhältnis wird lokal gespeichert
+
+## GIF‑Suche (Tenor)
+
+Die GIF‑Suche ist optional und erscheint nur, wenn ein Tenor‑API‑Key verfügbar ist.
+
+- ThreadWriter (Desktop/Browser mit Vite)
+  - Lege eine Datei `threadwriter/.env.local` an und setze:
+    - `VITE_TENOR_API_KEY=dein_tenor_api_key`
+  - Alternativ kannst du die Variable vor dem Start setzen:
+    - Linux/macOS: `VITE_TENOR_API_KEY=… npm run dev`
+    - Windows (PowerShell): `$env:VITE_TENOR_API_KEY='…'; npm run dev`
+  - Hinweis: `VITE_*` Variablen sind im Client sichtbar und eignen sich nur für lokale Nutzung.
+
+- Dashboard/Backend (serverseitiger Proxy)
+  - Wenn du statt eines Client‑Keys lieber einen Proxy verwendest, setze im Projekt‑Root (Backend):
+    - `TENOR_API_KEY=dein_tenor_api_key`
+  - Der Dashboard‑Proxy ruft Tenor serverseitig auf und hält den Key verborgen. Der ThreadWriter nutzt aktuell den Client‑Key.
 
 ## Setup
 1) In diesen Ordner wechseln und Abhängigkeiten installieren:
