@@ -6,7 +6,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [nextPos, setNextPos] = useState(null)
+  // Pagination entfällt: wir laden eine Seite und machen die Liste scrollbar
 
   useEffect(() => {
     if (!open) {
@@ -14,7 +14,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
       setItems([])
       setLoading(false)
       setError('')
-      setNextPos(null)
+      // no pagination state
     }
     // On open, preload featured/trending items (10).
     // Try backend proxy first, fallback to direct Tenor if proxy unavailable and browserKey exists.
@@ -22,7 +22,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
       (async () => {
         try {
           setLoading(true)
-          const params = new URLSearchParams({ limit: '10' })
+          const params = new URLSearchParams({ limit: '24' })
           let ok = false
           try {
             const url = `/api/tenor/featured?${params.toString()}`
@@ -37,13 +37,13 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
                 return { id: r.id, previewUrl: tiny?.url || gif?.url, variants: { gif: mf.gif || null, tinygif: mf.tinygif || null, nanogif: mf.nanogif || null } }
               })
               setItems(mapped)
-              setNextPos(data?.next || null)
+              // no next pos
               setError('')
               ok = true
             }
           } catch {}
           if (!ok && browserKey) {
-            const params2 = new URLSearchParams({ key: browserKey, client_key: 'threadwriter', limit: '10', media_filter: 'gif,tinygif,nanogif' })
+            const params2 = new URLSearchParams({ key: browserKey, client_key: 'threadwriter', limit: '24', media_filter: 'gif,tinygif,nanogif' })
             const url2 = `https://tenor.googleapis.com/v2/featured?${params2.toString()}`
             const res2 = await fetch(url2)
             if (res2.ok) {
@@ -56,7 +56,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
                 return { id: r.id, previewUrl: tiny?.url || gif?.url, variants: { gif: mf.gif || null, tinygif: mf.tinygif || null, nanogif: mf.nanogif || null } }
               })
               setItems(mapped)
-              setNextPos(data?.next || null)
+              // no next pos
               setError('')
               ok = true
             }
@@ -73,14 +73,13 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
     }
   }, [open])
 
-  async function doSearch(reset = true) {
+  async function doSearch() {
     const query = q.trim()
     if (!query) return
     setLoading(true)
     setError('')
     try {
-      const params = new URLSearchParams({ q: query, limit: '24' })
-      if (!reset && nextPos) params.set('pos', nextPos)
+      const params = new URLSearchParams({ q: query, limit: '48' })
 
       let data = null
       let ok = false
@@ -95,8 +94,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
       } catch {}
       // Fallback to direct Tenor if proxy failed and browserKey present
       if (!ok && browserKey) {
-        const p2 = new URLSearchParams({ q: query, key: browserKey, client_key: 'threadwriter', limit: '24', media_filter: 'gif,tinygif,nanogif' })
-        if (!reset && nextPos) p2.set('pos', nextPos)
+        const p2 = new URLSearchParams({ q: query, key: browserKey, client_key: 'threadwriter', limit: '48', media_filter: 'gif,tinygif,nanogif' })
         const url2 = `https://tenor.googleapis.com/v2/search?${p2.toString()}`
         const res2 = await fetch(url2)
         if (!res2.ok) throw new Error(`HTTP ${res2.status}`)
@@ -120,8 +118,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
           }
         }
       })
-      setItems((s) => (reset ? mapped : s.concat(mapped)))
-      setNextPos(data?.next || null)
+      setItems(mapped)
     } catch (e) {
       setError(e?.message || String(e))
     } finally {
@@ -162,7 +159,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ width: 'min(960px, 92vw)', maxHeight: '88vh', background: '#fff', borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,.2)', display: 'grid', gridTemplateRows: 'auto 1fr auto' }}>
+      <div style={{ width: 'min(960px, 92vw)', maxHeight: '88vh', background: '#fff', borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,.2)', display: 'grid', gridTemplateRows: 'auto 1fr' }}>
         <div style={{ padding: 12, borderBottom: '1px solid #eee', display: 'flex', gap: 8 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && q.trim() && !loading) { e.preventDefault(); doSearch(true) } }} placeholder="GIF suchen (Tenor)" style={{ flex: 1, padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }} />
           <button onClick={() => doSearch(true)} disabled={loading || !q.trim()} style={{ padding: '8px 12px', borderRadius: 8, background: '#0a66c2', color: '#fff', border: 'none' }}>Suchen</button>
@@ -192,10 +189,7 @@ export default function GifPicker({ open, onClose, onPick, browserKey: propBrows
             </div>
           )}
         </div>
-        <div style={{ padding: 12, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#666' }}>{loading ? 'Lädt…' : `${items.length} Ergebnisse${nextPos ? '…' : ''}`}</span>
-          <button onClick={() => doSearch(false)} disabled={!nextPos || loading} style={{ padding: '8px 12px', borderRadius: 8, background: '#f3f4f6', border: '1px solid #e5e7eb' }}>Mehr laden</button>
-        </div>
+        {/* Footer entfernt – Liste ist scrollbar, keine Paginierung */}
       </div>
     </div>
   )
