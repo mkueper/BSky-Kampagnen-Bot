@@ -412,6 +412,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               id='skeet-content'
               value={content}
               onChange={e => setContent(e.target.value)}
+              onKeyDown={(e) => {
+                try {
+                  if ((e.ctrlKey || e.metaKey) && (e.key === '.' || e.code === 'Period')) {
+                    e.preventDefault()
+                    setEmojiPicker({ open: true })
+                  }
+                } catch {}
+              }}
               placeholder='Was möchtest du veröffentlichen?'
               rows={10}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
@@ -462,6 +470,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
                 onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
@@ -501,6 +511,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
                 onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
@@ -868,6 +880,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       <EmojiPicker
         open={emojiPicker.open}
         onClose={() => setEmojiPicker({ open: false })}
+        anchorRef={textareaRef}
         onPick={(em) => {
           try {
             const ta = textareaRef.current

@@ -418,6 +418,12 @@ function ThreadForm ({
   }
 
   const handleKeyDown = event => {
+    // Ctrl+. öffnet Emoji-Picker
+    if ((event.ctrlKey || event.metaKey) && (event.key === '.' || event.code === 'Period')) {
+      event.preventDefault()
+      setEmojiPicker({ open: true })
+      return
+    }
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault()
       handleInsertSeparator()
@@ -589,6 +595,19 @@ function ThreadForm ({
               className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
               placeholder='Beispiel:\nIntro zum Thread...\n---\nWeiterer Skeet...'
             />
+            {/* Toolbar unter der Textarea */}
+            <div className='mt-2 flex items-center gap-2'>
+              <button
+                type='button'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
+                aria-label='Emoji einfügen'
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
+                onClick={() => setEmojiPicker({ open: true })}
+              >
+                <span className='text-base md:text-lg leading-none'>😊</span>
+              </button>
+            </div>
 
             <div className='mt-4 space-y-3'>
               <fieldset className='space-y-2'>
@@ -828,9 +847,7 @@ function ThreadForm ({
                         >
                           GIF
                         </button>
-                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => setEmojiPicker({ open: true })} title='Emoji einfügen'>
-                          <span className='text-base md:text-lg leading-none'>😊</span>
-                        </button>
+                        {/* Emoji-Button entfällt: Emojis werden im Text eingefügt */}
                       </div>
                     </header>
                     <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
@@ -903,6 +920,7 @@ function ThreadForm ({
       <EmojiPicker
         open={emojiPicker.open}
         onClose={() => setEmojiPicker({ open: false })}
+        anchorRef={textareaRef}
         onPick={(em) => {
           try {
             const ta = textareaRef.current
@@ -964,7 +982,7 @@ function ThreadForm ({
           onClose={() => setInfoThreadOpen(false)}
           actions={<Button variant='primary' onClick={() => setInfoThreadOpen(false)}>OK</Button>}
         >
-          <div className='space-y-2 text-sm text-foreground'>
+          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
               Schreibe den gesamten Thread in ein Feld. Du kannst <code className='rounded bg-background-subtle px-1 py-0.5'>---</code> als Trenner nutzen
               oder mit <kbd className='rounded bg-background-subtle px-1 py-0.5'>STRG</kbd>+<kbd className='rounded bg-background-subtle px-1 py-0.5'>Enter</kbd> einen Trenner einfügen.
@@ -975,6 +993,9 @@ function ThreadForm ({
             </p>
             <p>
               Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Skeet.
+            </p>
+            <p>
+              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
             </p>
           </div>
         </Modal>
@@ -988,7 +1009,7 @@ function ThreadForm ({
           onClose={() => setInfoPreviewOpen(false)}
           actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
         >
-          <div className='space-y-2 text-sm text-foreground'>
+          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
               Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.
             </p>
