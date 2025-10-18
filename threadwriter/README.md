@@ -18,6 +18,7 @@ Stand: Text + Bilder. Pro Segment bis zu 4 Bilder mit Alt‑Text (JPEG/PNG/WebP/
 Die GIF‑Suche ist optional und erscheint nur, wenn ein Tenor‑API‑Key verfügbar ist.
 
 - ThreadWriter (Desktop/Browser mit Vite)
+  - Direkt in der App: Unter „Einstellungen“ den Eintrag „Tenor API‑Key“ ausfüllen. Der Key wird lokal gespeichert; der GIF‑Button erscheint nur, wenn ein Key gesetzt ist.
   - Lege eine Datei `threadwriter/.env.local` an und setze:
     - `VITE_TENOR_API_KEY=dein_tenor_api_key`
   - Alternativ kannst du die Variable vor dem Start setzen:
