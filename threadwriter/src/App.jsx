@@ -56,8 +56,8 @@ export default function App() {
     try {
       const saved = Number(localStorage.getItem('tw_split_left_pct'))
       if (Number.isFinite(saved)) return Math.max(40, Math.min(80, Math.round(saved)))
-      const w = typeof window !== 'undefined' ? window.innerWidth : 0
-      return w && w <= 1366 ? 58 : 66
+      // Erststart: 2/3–1/3 Aufteilung
+      return 66
     } catch { return 66 }
   })
   const draggingRef = useRef(false)
@@ -163,9 +163,10 @@ export default function App() {
 
   async function quitApp() {
     try {
-      // Close window in Tauri; fallback to window.close()
+      // Close window in Tauri; fallback zu window.close()
       if ('__TAURI__' in window) {
-        const { appWindow } = await import('@tauri-apps/api/window')
+        // Hinweis für Vite: Modulauflösung in Browser-Run ignorieren
+        const { appWindow } = await import(/* @vite-ignore */ '@tauri-apps/api/window')
         await appWindow.close()
       } else {
         window.close()
