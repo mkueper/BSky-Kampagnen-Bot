@@ -15,9 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest]
-        # Für Multi-OS Builds optional erweitern: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +30,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -41,6 +40,18 @@ jobs:
             librsvg2-dev \
             patchelf \
             build-essential
+      - name: Install macOS dependencies
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          # Für Standard-Tauri-Builds sind i. d. R. keine zusätzlichen Pakete nötig
+          echo "macOS deps installed"
+      - name: Install Windows dependencies
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          # Windows-Laufzeit bringt die benötigten Build-Tools bereits mit
+          Write-Host "Windows deps ready"
 
       - name: Install root deps
         run: npm ci
@@ -59,9 +70,8 @@ jobs:
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: ${{ inputs.tag || github.ref_name }}
           releaseBody: |
-            ThreadWriter Desktop build for ${{ matrix.platform }}.
+            ThreadWriter Desktop build for ${{ matrix.os }}.
 
             Siehe CHANGELOG für Details.
           releaseDraft: true
           prerelease: false
-
