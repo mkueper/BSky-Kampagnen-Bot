@@ -33,7 +33,6 @@ export default function App() {
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('tw_theme') || 'light' } catch { return 'light' }
   })
-  const [menuOpen, setMenuOpen] = useState(false)
   const [status, setStatus] = useState([]) // per segment status
   const [error, setError] = useState('')
   const [pendingMedia, setPendingMedia] = useState({}) // { [index]: [{ file, url, alt }] }
@@ -161,51 +160,9 @@ export default function App() {
     setTheme((t) => (t === 'light' ? 'dark' : t === 'dark' ? 'midnight' : 'light'))
   }
 
-  async function quitApp() {
-    try {
-      // Close window in Tauri; fallback zu window.close()
-      if ('__TAURI__' in window) {
-        // Hinweis für Vite: Modulauflösung in Browser-Run ignorieren
-        const { appWindow } = await import(/* @vite-ignore */ '@tauri-apps/api/window')
-        await appWindow.close()
-      } else {
-        window.close()
-      }
-    } catch {}
-  }
+  // Hinweis: Menüfunktionen entfallen – kein natives oder In‑App Menü aktiv
 
-  function resetLayout() {
-    try { localStorage.removeItem('tw_split_left_pct') } catch {}
-    // Recompute to default based on current width
-    try {
-      const w = typeof window !== 'undefined' ? window.innerWidth : 0
-      setLeftPct(w && w <= 1366 ? 58 : 66)
-    } catch { setLeftPct(66) }
-    setMenuOpen(false)
-  }
-
-  function showAbout() {
-    // Simple inline info; can be replaced by a modal later
-    try { alert('ThreadWriter\nVersion 0.1.0\n© mkueper — BSky Kampagnen-Bot') } catch {}
-    setMenuOpen(false)
-  }
-
-  // Native Menü-Events aus Tauri verarbeiten (About/Reset/Quit)
-  useEffect(() => {
-    if (!('__TAURI__' in window)) return
-    let unsubs = []
-    ;(async () => {
-      try {
-        const { listen } = await import(/* @vite-ignore */ '@tauri-apps/api/event')
-        const u1 = await listen('tw-reset-layout', () => resetLayout())
-        const u2 = await listen('tw-about', () => showAbout())
-        // Optional: Falls wir vor Quit noch etwas aufräumen wollen
-        const u3 = await listen('tw-quit', () => {})
-        unsubs = [u1, u2, u3]
-      } catch {}
-    })()
-    return () => { try { unsubs.forEach((u) => u && u()) } catch {} }
-  }, [])
+  // Kein Tauri-Menü-Event-Handling notwendig
 
   const EMOJI_SET = ['🙂','😂','🎉','❤️','👍','🔥','✨','🙏','🚀','🤖','📷','🧵','📝','📣','🗓️','⏰']
 
@@ -324,7 +281,7 @@ export default function App() {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       <section className='panel' style={{ padding: 16, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div className='eyebrow'>THREADWRITER</div>
             <h1 className='title-main' style={{ margin: 0 }}>Thread schreiben</h1>
@@ -344,26 +301,6 @@ export default function App() {
               </svg>
             )}
           </button>
-          <button className='btn btn-icon' onClick={() => setMenuOpen((v) => !v)} title='Menü' aria-label='Menü öffnen' style={{ marginLeft: 8 }}>
-            <svg className='icon' viewBox='0 0 24 24' aria-hidden='true'>
-              <path d='M12 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4z'/>
-            </svg>
-          </button>
-          {menuOpen ? (
-            <div style={{ position: 'absolute', right: 16, top: 56, zIndex: 1000 }}>
-              <div className='panel' style={{ padding: 8, minWidth: 200 }}>
-                <button className='btn' onClick={showAbout} style={{ width: '100%', justifyContent: 'flex-start' }}>
-                  ℹ️ Über ThreadWriter
-                </button>
-                <button className='btn' onClick={resetLayout} style={{ width: '100%', justifyContent: 'flex-start', marginTop: 6 }}>
-                  ↺ Layout zurücksetzen
-                </button>
-                <button className='btn' onClick={quitApp} style={{ width: '100%', justifyContent: 'flex-start', marginTop: 6 }}>
-                  ⏻ Beenden
-                </button>
-              </div>
-            </div>
-          ) : null}
         </div>
       </section>
 
