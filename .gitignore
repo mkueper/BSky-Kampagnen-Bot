@@ -24,3 +24,4 @@ threadwriter/src-tauri/target/
 threadwriter/src-tauri/gen/
 *.sqlite
 logs/
+false/

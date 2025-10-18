@@ -30,14 +30,16 @@
       "**/node_modules": true,
       "**/dist": true,
       "**/.next": true,
-      "**/.turbo": true
+      "**/.turbo": true,
+      "**/false": true
     },
     // Suche: dieselben Ausschlüsse wie im Explorer
     "search.exclude": {
       "**/node_modules": true,
       "**/dist": true,
       "**/.next": true,
-      "**/.turbo": true
+      "**/.turbo": true,
+      "**/false": true
     },
     // ESLint (Flat Config) & Auto-Fix on Save
     "eslint.useFlatConfig": true,
