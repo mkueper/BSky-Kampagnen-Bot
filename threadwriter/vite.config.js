@@ -32,8 +32,11 @@ export default defineConfig({
     alias: [
       // Ensure Rollup resolves the ESM entry for emoji-mart react when statically imported
       { find: '@emoji-mart/react', replacement: r('node_modules/@emoji-mart/react/dist/module.js') },
-      // In Browser/Vite Dev (ohne Tauri) auf Stub verweisen, damit Import-Analyse nicht fehlschlägt
-      ...(!isTauri ? [{ find: '@tauri-apps/api/window', replacement: r('src/tauriWindowStub.js') }] : [])
+      // In Browser/Vite Dev (ohne Tauri) auf Stubs verweisen, damit Import-Analyse nicht fehlschlägt
+      ...(!isTauri ? [
+        { find: '@tauri-apps/api/window', replacement: r('src/tauriWindowStub.js') },
+        { find: '@tauri-apps/api/event', replacement: r('src/tauriEventStub.js') },
+      ] : [])
     ],
   },
   optimizeDeps: {

@@ -18,5 +18,9 @@ node_modules/
 dashboard/node_modules/
 dashboard/dist/
 dashboard/.env*
+bsky-client/dist/
+threadwriter/dist/
+threadwriter/src-tauri/target/
+threadwriter/src-tauri/gen/
 *.sqlite
 logs/
