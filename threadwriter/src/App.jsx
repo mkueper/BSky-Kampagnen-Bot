@@ -474,30 +474,6 @@ export default function App() {
                         const cls = danger ? 'badge badge-danger' : warn ? 'badge badge-warn' : 'badge badge-muted'
                         return <span className={cls}>{cnt}{limit ? ` / ${limit}` : ''}</span>
                       })()}
-                      <button
-                        type='button'
-                        className='btn btn-icon'
-                        title='Bild hinzufügen'
-                        aria-label='Bild hinzufügen'
-                        onClick={() => { setMediaTargetIndex(i); fileInputRef.current?.click() }}
-                      >
-                        <svg className='icon' viewBox='0 0 24 24' aria-hidden='true'>
-                          <path d='M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h14V5H5zm3 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm11 9l-5-6-4 5-2-3-4 4v2h15v-2z'/>
-                        </svg>
-                      </button>
-                      {(hasProxy || !!tenorKey) ? (
-                        <button
-                          type='button'
-                          className='btn btn-icon'
-                          title='GIF hinzufügen'
-                          aria-label='GIF hinzufügen'
-                          onClick={() => { setGifTargetIndex(i); setGifPickerOpen(true) }}
-                        >
-                          <svg className='icon' viewBox='0 0 24 24' aria-hidden='true'>
-                            <path d='M4 4h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3.5 5H6v6h1.5V9zm6.5 0h-5v6h1.5v-2H13v-1.5h-3.5V10H14V9zm1.5 0v6H17V13h2v-1.5h-2V10h2V9h-3z'/>
-                          </svg>
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                   <div className='preview-pre mono'>{text || '(leer)'}</div>
@@ -558,7 +534,7 @@ export default function App() {
                         <path d='M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h14V5H5zm3 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm11 9l-5-6-4 5-2-3-4 4v2h15v-2z'/>
                       </svg>
                     </button>
-                    {(hasProxy || !!tenorKey) ? (
+                    {!!tenorKey ? (
                       <button
                         onClick={() => { setGifTargetIndex(i); setGifPickerOpen(true) }}
                         disabled={(Array.isArray(pendingMedia[i]) ? pendingMedia[i].length : 0) >= MAX_MEDIA_PER_SKEET}
@@ -645,7 +621,7 @@ export default function App() {
       />
 
       <GifPicker
-        open={(hasProxy || !!tenorKey) && gifPickerOpen}
+        open={!!tenorKey && gifPickerOpen}
         maxBytes={MAX_BYTES}
         browserKey={tenorKey}
         onClose={() => setGifPickerOpen(false)}
