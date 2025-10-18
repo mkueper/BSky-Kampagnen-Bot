@@ -1,6 +1,14 @@
 /.env
 /.env.prod
 /.env.dev
+# Ignore env files anywhere in repo (but keep samples)
+**/.env
+**/.env.*
+!**/.env.sample
+# Ignore env files anywhere in repo (but keep samples)
+**/.env
+**/.env.*
+!**/.env.sample
 /data
 /node_modules
 node_modules/
@@ -10,5 +18,9 @@ node_modules/
 dashboard/node_modules/
 dashboard/dist/
 dashboard/.env*
+bsky-client/dist/
+threadwriter/dist/
+threadwriter/src-tauri/target/
+threadwriter/src-tauri/gen/
 *.sqlite
 logs/

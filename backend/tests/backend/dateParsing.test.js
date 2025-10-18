@@ -4,7 +4,6 @@ import { describe, it, expect } from 'vitest'
 // SkeetService exportiert parseOptionalDate und buildSkeetAttributes
 // (siehe module.exports am Datei-Ende)
 // Pfad relativ zum Projekt-Root
-// eslint-disable-next-line import/no-commonjs
 const skeetService = require('@core/services/skeetService')
 
 describe('parseOptionalDate (skeetService)', () => {

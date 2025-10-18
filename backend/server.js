@@ -12,6 +12,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const { login: loginBluesky } = require("@core/services/blueskyClient");
+const bskyController = require("@api/controllers/bskyController");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("@core/services/mastodonClient");
 const { startScheduler } = require("@core/services/scheduler");
 const settingsController = require("@api/controllers/settingsController");
@@ -20,10 +21,14 @@ const threadController = require("@api/controllers/threadController");
 const importExportController = require("@api/controllers/importExportController");
 const engagementController = require("@api/controllers/engagementController");
 const configController = require("@api/controllers/configController");
+const tenorController = require("@api/controllers/tenorController");
+const bskyActionsController = require("@api/controllers/bskyActionsController");
+const maintenanceController = require("@api/controllers/maintenanceController");
 const mediaController = require("@api/controllers/mediaController");
 const uploadController = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
 const heartbeatController = require("@api/controllers/heartbeatController");
+const previewController = require("@api/controllers/previewController");
 const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
 const { sequelize } = require("@data/models");
@@ -63,6 +68,8 @@ app.patch("/api/skeets/:id", skeetController.updateSkeet);
 app.delete("/api/skeets/:id", skeetController.deleteSkeet);
 app.post("/api/skeets/:id/retract", skeetController.retractSkeet);
 app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
+// Direktveröffentlichung (ohne Scheduler)
+app.post("/api/skeets/:id/publish-now", skeetController.publishNow);
 
 app.get("/api/threads/export", importExportController.exportThreads);
 app.get("/api/threads", threadController.listThreads);
@@ -72,12 +79,18 @@ app.patch("/api/threads/:id", threadController.updateThread);
 app.delete("/api/threads/:id", threadController.deleteThread);
 app.post("/api/threads/:id/retract", threadController.retractThread);
 app.post("/api/threads/:id/restore", threadController.restoreThread);
+// Direktveröffentlichung (ohne Scheduler)
+app.post("/api/threads/:id/publish-now", threadController.publishNow);
 app.post("/api/threads/:id/engagement/refresh", threadController.refreshEngagement);
 app.post("/api/threads/engagement/refresh-all", threadController.refreshAllEngagement);
 app.post("/api/threads/import", importExportController.importThreads);
 
 app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
 app.post("/api/skeets/import", importExportController.importPlannedSkeets);
+
+// Tenor GIF proxy
+app.get("/api/tenor/featured", tenorController.featured);
+app.get("/api/tenor/search", tenorController.search);
 
 app.get("/api/reactions/:skeetId", engagementController.getReactions);
 app.get("/api/replies/:skeetId", engagementController.getReplies);
@@ -88,6 +101,19 @@ app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
 app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
 app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
 app.get("/api/client-config", configController.getClientConfig);
+// Link-Preview für Composer
+app.get("/api/preview", previewController.getExternalPreview);
+// Bluesky Interaktionen
+app.post("/api/bsky/like", bskyActionsController.like);
+app.delete("/api/bsky/like", bskyActionsController.unlike);
+app.post("/api/bsky/repost", bskyActionsController.repost);
+app.delete("/api/bsky/repost", bskyActionsController.unrepost);
+// Bluesky utility
+app.get("/api/bsky/reactions", bskyController.getReactions);
+app.post("/api/bsky/reply", bskyController.postReply);
+app.post("/api/bsky/post", bskyController.postNow);
+// Maintenance utilities (no auth yet – use behind trusted network)
+app.post("/api/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
 app.get("/api/config/credentials", credentialsController.getCredentials);
 app.put("/api/config/credentials", credentialsController.updateCredentials);
@@ -215,3 +241,5 @@ app.use((req, res, next) => {
     appLog.error("Fehler beim Initialisieren des Servers", { error: err?.message || String(err) });
   }
 })();
+// Bluesky Client proxy endpoints
+app.get("/api/bsky/timeline", bskyController.getTimeline);

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import Button from './ui/Button'
 import Card from './ui/Card'
@@ -93,6 +94,7 @@ function ThreadOverview ({
   mode = 'default',
   getItemRef
 }) {
+  const theme = useTheme()
   const [expandedThreads, setExpandedThreads] = useState({})
   const [showReplies, setShowReplies] = useState({})
   const [loadingRefresh, setLoadingRefresh] = useState({})
@@ -107,7 +109,7 @@ function ThreadOverview ({
 
   if (loading) {
     return (
-      <section className='rounded-3xl border border-border bg-background-elevated p-6 shadow-soft'>
+      <section className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
         <p className='text-sm text-foreground-muted'>Threads werden geladen…</p>
       </section>
     )
@@ -140,7 +142,7 @@ function ThreadOverview ({
 
   if (!threads || threads.length === 0) {
     return (
-      <section className='rounded-3xl border border-border bg-background-elevated p-6 text-center shadow-soft'>
+      <section className={`rounded-3xl border border-border ${theme.panelBg} p-6 text-center shadow-soft`}>
         <h3 className='text-lg font-semibold'>
           Noch keine Threads gespeichert
         </h3>
@@ -221,9 +223,12 @@ function ThreadOverview ({
 
         const metadataTotals = (() => {
           const total = { likes: 0, reposts: 0, replies: 0 }
+          const allowed = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : []
           try {
-            Object.values(platformResults).forEach(entry => {
+            Object.entries(platformResults).forEach(([platformId, entry]) => {
               const t = entry?.totals || {}
+              if (allowed.length && !allowed.includes(platformId)) return
+              if (String(entry?.status || '').toLowerCase() !== 'sent') return
               total.likes += Number(t.likes) || 0
               total.reposts += Number(t.reposts) || 0
               total.replies += Number(t.replies) || 0
@@ -247,9 +252,12 @@ function ThreadOverview ({
 
         const perPlatformTotals = (() => {
           const out = []
+          const allowed = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : []
           try {
             Object.entries(platformResults).forEach(([platformId, entry]) => {
               if (!entry || typeof entry !== 'object') return
+              if (allowed.length && !allowed.includes(platformId)) return
+              if (String(entry?.status || '').toLowerCase() !== 'sent') return
               const t = entry.totals || {}
               const likes = Number(t.likes) || 0
               const reposts = Number(t.reposts) || 0
@@ -535,7 +543,7 @@ function ThreadOverview ({
                             variant='warning'
                             onClick={() => onRetractThread?.(thread)}
                           >
-                            Entfernen
+                            Zurückziehen
                           </Button>
                         ) : null}
                         <Button

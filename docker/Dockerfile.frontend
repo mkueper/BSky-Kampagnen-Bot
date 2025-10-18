@@ -1,16 +1,21 @@
 FROM node:20-alpine AS build
-# Stage 1 – React-Dashboard bauen (inkl. Dev-Dependencies für Vite),
-# installiert über das Workspaces-Lockfile der Projektwurzel, damit
-# `npm ci` auch dann stabil läuft, wenn das Dashboard‑Lock veraltet ist.
+# Stage 1 – React-Dashboard + Workspaces bauen
+# Robuster gegen Build-Kontext-Fehler: Wir kopieren nach der
+# Lockfile-Installation den gesamten Repo-Inhalt (dank .dockerignore leichtgewichtig).
 WORKDIR /app
 
-# Root-Lock + Workspace-Manifeste zuerst kopieren, dann nur das Dashboard-Workspace installieren
+# Root-Lock + Workspace-Manifeste (optimiert Caching für npm ci)
 COPY package*.json ./
 COPY dashboard/package*.json ./dashboard/
-RUN npm ci --workspace dashboard
+COPY bsky-client/package*.json ./bsky-client/
 
-# Quellcode des Dashboards kopieren und Build ausführen (im Workspace)
-COPY dashboard/ ./dashboard/
+# Installiere alle Workspaces (inkl. Root, falls benötigt)
+RUN npm ci --workspaces --include-workspace-root
+
+# Quellcode kopieren (gefiltert durch .dockerignore)
+COPY . .
+
+# Dashboard-Build (importiert bsky-client als Workspace-Dependency)
 RUN npm run --workspace dashboard build
 
 # Stage 2 – gebauten Output über Nginx mit Proxy-Konfiguration ausliefern.

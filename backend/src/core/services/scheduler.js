@@ -703,11 +703,74 @@ async function restartScheduler() {
   return applySchedulerTask();
 }
 
+/**
+ * Veröffentlicht einen einzelnen Thread sofort (ohne Cron‑Tick), indem
+ * `scheduledAt` auf jetzt gesetzt und direkt `dispatchThread` aufgerufen wird.
+ */
+async function publishThreadNow(id) {
+  const threadId = Number(id);
+  if (!Number.isInteger(threadId)) {
+    const err = new Error('Ungültige Thread-ID.');
+    err.status = 400;
+    throw err;
+  }
+  const current = await Thread.findByPk(threadId, { include: [{ model: ThreadSkeet, as: 'segments', order: [["sequence","ASC"]] }] });
+  if (!current) {
+    const err = new Error('Thread nicht gefunden.');
+    err.status = 404;
+    throw err;
+  }
+  if (!Array.isArray(current.segments) || current.segments.length === 0) {
+    const err = new Error('Thread besitzt keine Segmente.');
+    err.status = 400;
+    throw err;
+  }
+  if (current.status === 'deleted') {
+    const err = new Error('Gelöschte Threads können nicht veröffentlicht werden.');
+    err.status = 400;
+    throw err;
+  }
+  // Sofort fällig markieren und in den Versand schicken
+  await current.update({ scheduledAt: new Date(), status: 'scheduled' });
+  await dispatchThread({ id: current.id });
+  return current.id;
+}
+
+/**
+ * Veröffentlicht einen einzelnen eigenständigen Skeet sofort (ohne Cron‑Tick).
+ */
+async function publishSkeetNow(id) {
+  const skeetId = Number(id);
+  if (!Number.isInteger(skeetId)) {
+    const err = new Error('Ungültige Skeet-ID.');
+    err.status = 400;
+    throw err;
+  }
+  const { Skeet } = require('../../data/models');
+  const current = await Skeet.findByPk(skeetId);
+  if (!current) {
+    const err = new Error('Skeet nicht gefunden.');
+    err.status = 404;
+    throw err;
+  }
+  if (current.isThreadPost) {
+    const err = new Error('Thread-Segmente können nicht direkt veröffentlicht werden.');
+    err.status = 400;
+    throw err;
+  }
+  await current.update({ scheduledAt: new Date() });
+  await dispatchSkeet({ id: current.id });
+  return current.id;
+}
+
 module.exports = {
   startScheduler,
   restartScheduler,
   processDueSkeets,
   processDueThreads,
+  // Direktversand (ohne Cron)
+  publishThreadNow,
+  publishSkeetNow,
   // Expose helpers for unit tests
   addDaysKeepingTime,
   computeNextWeekly,

@@ -6,6 +6,7 @@
  * Zurückziehen veröffentlichter Posts und Wiederherstellen gelöschter Skeets.
  */
 const skeetService = require('@core/services/skeetService');
+const scheduler = require('@core/services/scheduler');
 
 /**
  * GET /api/skeets[?includeDeleted=1|true|yes|all][&onlyDeleted=1|true|yes]
@@ -147,4 +148,15 @@ module.exports = {
   deleteSkeet,
   retractSkeet,
   restoreSkeet,
+  async publishNow(req, res) {
+    try {
+      const id = await scheduler.publishSkeetNow(req.params.id);
+      const { Skeet, SkeetMedia } = require('@data/models');
+      const fresh = await Skeet.findByPk(id, { include: [{ model: SkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] });
+      res.json(fresh ? fresh.toJSON() : { id });
+    } catch (error) {
+      const status = error?.status || 500;
+      res.status(status).json({ error: error?.message || 'Fehler beim sofortigen Veröffentlichen des Skeets.' });
+    }
+  }
 };

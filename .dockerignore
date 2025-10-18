@@ -1,0 +1,34 @@
+# General
+.git
+.gitignore
+.DS_Store
+*.log
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+
+# Local data and runtime artifacts
+data
+logs
+tmp
+*.sqlite
+*.sqlite-journal
+
+# Environment files (not needed for build)
+.env
+.env.*
+
+# Editor/OS
+.vscode
+.idea
+Thumbs.db
+
+# Electron build artifacts
+release
+out
+
+# Ignore test snapshots/outputs
+**/__snapshots__
+**/.nyc_output

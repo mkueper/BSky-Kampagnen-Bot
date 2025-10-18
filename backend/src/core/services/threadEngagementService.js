@@ -19,11 +19,12 @@ function extractMastodonStatusId(uri) {
   try {
     const parsed = new URL(uri);
     const parts = parsed.pathname.split("/").filter(Boolean);
-    return parts.pop() || null;
+    const last = parts.pop() || '';
+    return /^\d+$/.test(last) ? last : null;
   } catch {
-      log.warn("Ungültige Mastodon-URI");
-      const parts = String(uri).split("/").filter(Boolean);
-      return parts.pop() || null;
+    const parts = String(uri).split("/").filter(Boolean);
+    const last = parts.pop() || '';
+    return /^\d+$/.test(last) ? last : null;
   }
 }
 
@@ -115,6 +116,16 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
   // pro Plattform sammeln
   for (const platformId of ["bluesky", "mastodon"]) {
     const base = platformResults[platformId] || {};
+    // Traffic-Guard: Komplett überspringen, wenn Plattform weder Ziel ist
+    // noch gültige Identifikatoren gespeichert sind (z. B. alte Metadaten).
+    if (platformId === 'mastodon') {
+      const allowedTargets = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : [];
+      const baseSegmentsCheck = Array.isArray(base.segments) ? base.segments : [];
+      const hasValidIds = baseSegmentsCheck.some((s) => s && (s.statusId || extractMastodonStatusId(s.uri)));
+      if (!allowedTargets.includes('mastodon') && !hasValidIds) {
+        continue;
+      }
+    }
     const baseSegments = Array.isArray(base.segments) ? base.segments : [];
     const nextSegments = [];
     let platformLikes = 0;
@@ -126,10 +137,25 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
       // Versuche plattformspezifische Identifikatoren zu verwenden (aus Scheduler-Ergebnis),
       // falle ansonsten auf den primären `remoteId` zurück.
       const platformSeg = baseSegments.find((s) => Number(s.sequence) === sequence) || null;
-      const primaryUri = String(segment.remoteId || "");
-      const uri = String(platformSeg?.uri || primaryUri);
-      if (!uri) {
-        // Segment nicht veröffentlicht
+      // Plattform-spezifische Bestimmung der URI/Identifier:
+      let uri = "";
+      let statusIdForMasto = null;
+      if (platformId === "bluesky") {
+        // Bluesky: erlaube Fallback auf primären remoteId
+        const primaryUri = String(segment.remoteId || "");
+        uri = String(platformSeg?.uri || primaryUri);
+      } else if (platformId === "mastodon") {
+        // Mastodon: NUR mit echten Mastodon-IDs/URIs arbeiten; kein Fallback von Bluesky-URIs
+        statusIdForMasto = platformSeg?.statusId || (platformSeg?.uri ? extractMastodonStatusId(platformSeg.uri) : null);
+        uri = statusIdForMasto ? String(platformSeg?.uri || "") : "";
+      }
+      if (!uri && platformId === "bluesky") {
+        // Bsky-Segment (noch) nicht veröffentlicht
+        nextSegments.push(base.segments?.find((s) => s.sequence === sequence) || { sequence, status: "pending" });
+        continue;
+      }
+      if (platformId === "mastodon" && !statusIdForMasto) {
+        // Ohne Mastodon-Identifier kein Abruf und kein 'sent'-Eintrag
         nextSegments.push(base.segments?.find((s) => s.sequence === sequence) || { sequence, status: "pending" });
         continue;
       }
@@ -152,8 +178,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
           }
         } else if (platformId === "mastodon" && mastoEnabled) {
           // Nur abrufen, wenn es plattformspezifische Identifikatoren gibt.
-          // Fallback von einer Bluesky-URI ist hier bewusst NICHT erlaubt.
-          const statusId = platformSeg?.statusId || (platformSeg?.uri ? extractMastodonStatusId(platformSeg.uri) : null);
+          const statusId = statusIdForMasto;
           if (statusId) {
             const s = await mastoGetStatus(statusId);
             likes = Number(s?.favourites_count) || 0;
@@ -165,8 +190,6 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
             if (isEngagementDebug()) {
               log.debug(`Masto segment | seq=${sequence} | statusId=${statusId} | likes=${likes} | reposts=${reposts} | replies=${replies.length}`);
             }
-          } else if (isEngagementDebug()) {
-            log.debug(`Masto skip | seq=${sequence} | reason=no-identifiers`);
           }
         }
       } catch (e) {
@@ -217,9 +240,10 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
     totalReposts += platformReposts;
     totalReplies += platformReplies;
 
+    const anySent = nextSegments.some((s) => s && s.status === 'sent' && (s.uri || platformId === 'mastodon'));
     platformResults[platformId] = {
       ...(platformResults[platformId] || {}),
-      status: "sent",
+      status: anySent ? "sent" : "pending",
       segments: nextSegments,
       completedAt: platformResults[platformId]?.completedAt || null,
       metricsUpdatedAt: nowIso,
@@ -265,6 +289,34 @@ async function refreshPublishedThreadsBatch(limit = 3) {
 module.exports = {
   refreshThreadEngagement,
   refreshPublishedThreadsBatch,
+  /**
+   * Entfernt veraltete Mastodon-Platformdaten aus Thread-Metadaten, wenn keine
+   * gültigen Identifikatoren vorliegen. Optional dryRun.
+   */
+  async cleanupInvalidMastodonEntries({ dryRun = false } = {}) {
+    const { Thread } = require('@data/models')
+    const rows = await Thread.findAll({ where: {}, attributes: ['id', 'metadata'] })
+    let examined = 0
+    let cleaned = 0
+    for (const row of rows) {
+      examined += 1
+      const meta = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? { ...row.metadata } : {}
+      const pr = meta.platformResults && typeof meta.platformResults === 'object' && !Array.isArray(meta.platformResults) ? { ...meta.platformResults } : {}
+      const masto = pr.mastodon && typeof pr.mastodon === 'object' ? { ...pr.mastodon } : null
+      if (!masto) continue
+      const segs = Array.isArray(masto.segments) ? masto.segments : []
+      const hasValid = segs.some((s) => s && (s.statusId || extractMastodonStatusId(s.uri)))
+      if (!hasValid) {
+        delete pr.mastodon
+        meta.platformResults = pr
+        if (!dryRun) {
+          try { await row.update({ metadata: meta }) } catch {}
+        }
+        cleaned += 1
+      }
+    }
+    return { examined, cleaned, dryRun }
+  },
   /**
    * Aktualisiert Engagement-Daten für alle veröffentlichten Threads in Batches.
    *

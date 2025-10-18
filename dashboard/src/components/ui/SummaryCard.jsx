@@ -1,6 +1,9 @@
+import { useTheme } from './ThemeContext'
+
 function SummaryCard ({ title, value, helper, time, snippet, subtitle = 'Nächster Post' }) {
+  const theme = useTheme()
   return (
-    <article className='rounded-3xl border border-border bg-background-elevated shadow-soft'>
+    <article className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
       <div className='flex flex-col gap-3 p-6'>
         <div>
           <h3 className='text-lg font-semibold'>{title}</h3>

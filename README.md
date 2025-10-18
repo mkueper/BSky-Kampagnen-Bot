@@ -4,6 +4,10 @@
 
 Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (optional PostgreSQL), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert.
 
+> Hinweis (Sicherheit & Reifegrad)
+>
+> Dieses Projekt befindet sich noch in aktiver Entwicklung. Es gibt derzeit keine Benutzer‑/Admin‑Authentifizierung; Schreib‑Endpunkte der API sind ohne Schutz aufrufbar. Der Betrieb auf einem öffentlich erreichbaren Server ist daher nicht empfohlen. Verwende den Bot nur lokal oder hinter einer geschützten Umgebung (VPN/Reverse Proxy mit Auth). Entsprechende Härtungen (Auth, Rate‑Limiting, Security‑Header) sind geplant.
+
 ---
 
 ## Aktuelle Funktionen
@@ -48,6 +52,22 @@ npm run start:dev
 - Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`).
 
 > Für den Produktionsmodus kannst du `npm run build:all` (baut das Dashboard; Backend benötigt keinen Build) und anschließend `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
+
+---
+
+## ThreadWriter Desktop (Tauri)
+
+Optional kannst du den ThreadWriter als Desktop‑App mit Tauri starten/bauen.
+
+- Voraussetzungen
+  - Rust stable via rustup: `rustup default stable && rustup update`
+  - Linux (Beispiel Ubuntu/Debian): `sudo apt install -y libwebkit2gtk-4.1-dev libgtk-3-dev libssl-dev librsvg2-dev patchelf build-essential`
+  - Node/NPM installiert
+- Entwicklung
+  - `cd threadwriter && npm install`
+  - `npm run tauri:dev` (öffnet die App; Größe/Position werden gemerkt)
+- Build
+  - `npm run tauri:build` erzeugt Installationspakete im `threadwriter/src-tauri/target/`
 
 ---
 

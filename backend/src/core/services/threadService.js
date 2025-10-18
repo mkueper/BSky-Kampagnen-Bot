@@ -118,11 +118,13 @@ function saveBase64ToFile({ filename, mime, data }) {
 }
 
 function extractMastodonStatusId(uri) {
-  if (!uri) {
-    return null;
-  }
-  const match = String(uri).match(/\/([0-9A-Za-z]+)(?:$|[/?#])/);
-  return match && match[1] ? match[1] : null;
+  if (!uri) return null;
+  try {
+    const s = String(uri);
+    // Nur numerische IDs akzeptieren (Mastodon-Status-IDs sind i. d. R. numerisch)
+    const m = s.match(/\/(\d+)(?:$|[/?#])/);
+    return m && m[1] ? m[1] : null;
+  } catch { return null; }
 }
 
 function markThreadSegmentAsDeleted(segment = {}, identifiers = {}) {

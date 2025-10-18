@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 
-// eslint-disable-next-line import/no-commonjs
 const creds = require('@api/controllers/credentialsController')
 
 const TMP_DIR = path.join(process.cwd(), 'tests', '.tmp_env')

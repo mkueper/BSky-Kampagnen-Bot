@@ -8,17 +8,21 @@ import {
   ShadowIcon,
   SunIcon,
   UploadIcon,
-  ViewHorizontalIcon
+  ViewHorizontalIcon,
+  InfoCircledIcon
 } from '@radix-ui/react-icons'
 import AppLayout from './components/layout/AppLayout'
+import { ThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
 import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
 import MainOverviewView from './components/views/MainOverviewView'
+import AboutView from './components/views/AboutView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
+import BskyClientApp from 'bsky-client'
 import SkeetForm from './components/SkeetForm'
 import ThreadForm from './components/ThreadForm'
 import ConfigPanel from './components/ConfigPanel'
@@ -108,7 +112,9 @@ const NAV_ITEMS = [
       { id: 'threads-plan', label: 'Thread planen' }
     ]
   },
-  { id: 'config', label: 'Konfiguration', icon: GearIcon }
+  { id: 'bsky-client', label: 'Bluesky Client', icon: ViewHorizontalIcon },
+  { id: 'config', label: 'Konfiguration', icon: GearIcon },
+  { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
 ]
 
 const HEADER_CAPTIONS = {
@@ -119,7 +125,9 @@ const HEADER_CAPTIONS = {
   threads: 'Threads',
   'threads-overview': 'Threads',
   'threads-plan': 'Threadplaner',
-  config: 'Konfiguration'
+  'bsky-client': 'Bluesky Client',
+  config: 'Konfiguration',
+  about: 'Über Kampagnenbot'
 }
 
 const HEADER_TITLES = {
@@ -130,6 +138,7 @@ const HEADER_TITLES = {
   threads: 'Threads',
   'threads-overview': 'Thread Übersicht',
   'threads-plan': 'Thread planen',
+  'bsky-client': 'Direkt-Client',
   config: 'Einstellungen & Automatisierung'
 }
 
@@ -252,6 +261,9 @@ function App () {
     useThreadDetail(editingThreadId, {
       autoLoad: Boolean(editingThreadId)
     })
+
+  // Allow ThreadForm to suggest moving a single-segment thread into Skeet planner
+  const [skeetDraftContent, setSkeetDraftContent] = useState('')
 
   
 
@@ -561,10 +573,10 @@ function App () {
     if (!skeet?.id) return
     setConfirmDialog({
       open: true,
-      title: 'Skeet entfernen',
+      title: 'Veröffentlichung zurückziehen',
       description:
-        'Soll dieser veröffentlichte Skeet auf den Plattformen gelöscht werden?',
-      confirmLabel: 'Entfernen',
+        'Soll dieser veröffentlichte Skeet von den Plattformen zurückgezogen werden?',
+      confirmLabel: 'Zurückziehen',
       variant: 'destructive',
       onConfirm: async () => {
         try {
@@ -588,22 +600,22 @@ function App () {
             .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
           const parts = []
           if (successPlatforms.length) {
-            parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`)
+            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
           }
           if (failedPlatforms.length) {
             parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
           }
           toast.success({
-            title: 'Skeet entfernt',
+            title: 'Skeet zurückgezogen',
             description:
               parts.join(' · ') ||
-              'Der Skeet wurde auf allen Plattformen entfernt.'
+              'Der Skeet wurde auf allen Plattformen zurückgezogen.'
           })
         } catch (error) {
           console.error('Fehler beim Entfernen des Skeets:', error)
           toast.error({
-            title: 'Entfernen fehlgeschlagen',
-            description: error.message || 'Fehler beim Entfernen des Skeets.'
+            title: 'Zurückziehen fehlgeschlagen',
+            description: error.message || 'Fehler beim Zurückziehen des Skeets.'
           })
         } finally {
           setConfirmDialog(c => ({ ...c, open: false }))
@@ -750,9 +762,9 @@ function App () {
     const label = thread.title || `Thread #${thread.id}`
     setConfirmDialog({
       open: true,
-      title: 'Thread entfernen',
-      description: `Soll "${label}" auf allen Plattformen gelöscht werden?`,
-      confirmLabel: 'Entfernen',
+      title: 'Veröffentlichung zurückziehen',
+      description: `Soll "${label}" auf allen Plattformen zurückgezogen werden?`,
+      confirmLabel: 'Zurückziehen',
       variant: 'destructive',
       onConfirm: async () => {
         try {
@@ -778,23 +790,23 @@ function App () {
             .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
           const parts = []
           if (successPlatforms.length) {
-            parts.push(`Erfolgreich entfernt: ${successPlatforms.join(', ')}`)
+            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
           }
           if (failedPlatforms.length) {
             parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
           }
 
           toast.success({
-            title: 'Thread entfernt',
+            title: 'Thread zurückgezogen',
             description:
               parts.join(' · ') ||
-              'Der Thread wurde auf allen Plattformen entfernt.'
+              'Der Thread wurde auf allen Plattformen zurückgezogen.'
           })
         } catch (error) {
           console.error('Fehler beim Entfernen des Threads:', error)
           toast.error({
-            title: 'Entfernen fehlgeschlagen',
-            description: error.message || 'Fehler beim Entfernen des Threads.'
+            title: 'Zurückziehen fehlgeschlagen',
+            description: error.message || 'Fehler beim Zurückziehen des Threads.'
           })
         } finally {
           setConfirmDialog(c => ({ ...c, open: false }))
@@ -898,6 +910,7 @@ function App () {
 
   const handleFormSaved = async () => {
     setEditingSkeet(null)
+    try { setSkeetDraftContent('') } catch {}
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
     setActiveView('skeets-overview')
     setActiveDashboardTab('planned')
@@ -1109,6 +1122,18 @@ function App () {
     )
   } else if (activeView === 'config') {
     content = <ConfigPanel />
+  } else if (activeView === 'bsky-client') {
+    content = (
+      <Card padding='p-4'>
+        <BskyClientApp />
+      </Card>
+    )
+  } else if (activeView === 'about') {
+    content = (
+      <Card padding='p-6 lg:p-10'>
+        <AboutView />
+      </Card>
+    )
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
@@ -1116,6 +1141,7 @@ function App () {
           onSkeetSaved={handleFormSaved}
           editingSkeet={editingSkeet}
           onCancelEdit={handleCancelEdit}
+          initialContent={editingSkeet ? undefined : skeetDraftContent}
         />
       </Card>
     )
@@ -1130,6 +1156,11 @@ function App () {
           )}
           onThreadSaved={handleThreadSaved}
           onCancel={editingThreadId ? handleThreadCancel : undefined}
+          onSuggestMoveToSkeets={(content) => {
+            try { setEditingThreadId(null) } catch {}
+            setSkeetDraftContent(content || '')
+            setActiveView('skeets-plan')
+          }}
         />
       </Card>
     )
@@ -1144,6 +1175,11 @@ function App () {
   }
 
   return (
+    <ThemeProvider value={{
+      panelBg: 'bg-background',
+      cardBg: 'bg-background',
+      cardHover: false
+    }}>
     <AppLayout
       navItems={availableNavItems}
       activeView={activeView}
@@ -1151,6 +1187,7 @@ function App () {
       headerCaption={headerCaption}
       headerTitle={headerTitle}
       headerActions={headerActions}
+      showScrollTop={activeView !== 'bsky-client'}
     >
       {content}
       <ConfirmDialog
@@ -1167,6 +1204,7 @@ function App () {
         onCancel={() => setConfirmDialog(c => ({ ...c, open: false }))}
       />
     </AppLayout>
+    </ThemeProvider>
   )
 }
 

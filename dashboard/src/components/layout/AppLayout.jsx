@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import ScrollTopButton from "../ui/ScrollTopButton";
 
@@ -21,8 +21,13 @@ function AppLayout({
   headerTitle,
   headerActions,
   children,
+  showScrollTop = true,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktop: collapsed main navigation state (default visible)
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  // Merkt sich den Zustand vor dem Auto-Einklappen beim BSky-Client
+  const prevCollapsedRef = useRef(null);
 
   const activeNavItemLabel = useMemo(() => {
     for (const item of navItems) {
@@ -67,6 +72,22 @@ function AppLayout({
     });
   }, [activeView, navItems]);
 
+  // Auto-Einklappen nur für die BSky-Client-Ansicht; beim Verlassen den vorherigen Zustand wiederherstellen
+  useEffect(() => {
+    const isBskyClient = activeView === 'bsky-client';
+    if (isBskyClient) {
+      if (prevCollapsedRef.current === null) {
+        prevCollapsedRef.current = navCollapsed;
+      }
+      setNavCollapsed(true);
+    } else {
+      if (prevCollapsedRef.current !== null) {
+        setNavCollapsed(prevCollapsedRef.current);
+        prevCollapsedRef.current = null;
+      }
+    }
+  }, [activeView]);
+
   const handleSelectView = (viewId) => {
     onSelectView(viewId);
     setMenuOpen(false);
@@ -76,9 +97,9 @@ function AppLayout({
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="mx-auto flex h-full w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
         <aside
-          className={`fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200 md:static md:block md:translate-x-0 ${
-            menuOpen ? "translate-x-0" : "-translate-x-[110%] md:-translate-x-0"
-          }`}
+          className={`fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200 md:static ${
+            navCollapsed ? 'md:hidden' : 'md:block md:translate-x-0'
+          } ${menuOpen ? 'translate-x-0' : '-translate-x-[110%] md:-translate-x-0'}`}
           aria-label="Hauptnavigation"
         >
           <div className="flex h-full flex-col p-6">
@@ -87,14 +108,27 @@ function AppLayout({
                 <p className="text-xs uppercase tracking-[0.3em] text-foreground-subtle">Control Center</p>
                 <h1 className="mt-1 text-xl font-semibold">Kampagnen-Bot</h1>
               </div>
-              <button
-                type="button"
-                className="rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:hidden"
-                onClick={() => setMenuOpen(false)}
-              >
-                <HamburgerMenuIcon className="h-5 w-5 rotate-180" />
-                <span className="sr-only">Navigation schließen</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Mobile: schließt Overlay */}
+                <button
+                  type="button"
+                  className="rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:hidden"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <HamburgerMenuIcon className="h-5 w-5 rotate-180" />
+                  <span className="sr-only">Navigation schließen</span>
+                </button>
+                {/* Desktop: klappt Hauptnavigation ein */}
+                <button
+                  type="button"
+                  className="hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:inline-flex"
+                  onClick={() => setNavCollapsed(true)}
+                  aria-label="Navigation einklappen"
+                  title="Navigation einklappen"
+                >
+                  <HamburgerMenuIcon className="h-5 w-5 rotate-180" />
+                </button>
+              </div>
             </div>
 
             <nav className="flex flex-1 flex-col gap-2">
@@ -169,6 +203,19 @@ function AppLayout({
           </div>
         </aside>
 
+        {/* Desktop: schmale Leiste zum Wiederherstellen der Navigation */}
+        {navCollapsed ? (
+          <button
+            type="button"
+            className="group fixed inset-y-6 left-0 z-20 hidden w-3 hover:w-4 rounded-r-2xl border border-primary/30 bg-gradient-to-r from-primary/15 via-background-elevated/80 to-background-elevated/60 shadow-soft backdrop-blur transition-all hover:border-primary hover:from-primary/25 hover:via-background-elevated/90 hover:to-background-elevated md:flex md:flex-col md:items-center md:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Navigation einblenden"
+            title="Navigation einblenden"
+            onClick={() => setNavCollapsed(false)}
+          >
+            <ChevronRightIcon className="h-4 w-4 text-foreground-muted opacity-80 transition group-hover:opacity-100 group-hover:text-foreground" />
+          </button>
+        ) : null}
+
         {menuOpen ? (
           <div
             className="fixed inset-0 z-20 bg-gradient-to-br from-black/30 via-black/20 to-black/40 backdrop-blur-sm md:hidden"
@@ -177,7 +224,7 @@ function AppLayout({
           />
         ) : null}
 
-        <div className="ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden md:ml-8">
+        <div className={`ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden ${navCollapsed ? 'md:ml-0' : 'md:ml-8'}`}>
            <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 order-1 sm:order-none">
@@ -203,10 +250,14 @@ function AppLayout({
             </div>
           </header>
 
-          <div id="app-scroll-container" className="flex-1 min-h-0 overflow-y-auto pr-1 pt-4" style={{ scrollbarGutter: 'stable' }}>
+          <div
+            id="app-scroll-container"
+            className={`flex-1 min-h-0 pr-1 pt-4 ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
+            style={{ scrollbarGutter: 'stable' }}
+          >
              <main className="space-y-8 pb-6 md:pb-8">{children}</main>
           </div>
-          <ScrollTopButton position="bottom-left" />
+          {showScrollTop ? <ScrollTopButton position="bottom-left" /> : null}
         </div>
       </div>
     </div>

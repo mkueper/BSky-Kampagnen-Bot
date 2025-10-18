@@ -1,6 +1,9 @@
+import { useTheme } from './ThemeContext'
+
 function ActivityPanel ({ title, description, items = [], className = '' }) {
+  const theme = useTheme()
   return (
-    <article className={`rounded-3xl border border-border bg-background-elevated shadow-soft ${className}`}>
+    <article className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft ${className}`}>
       <div className='flex flex-col gap-4 p-6'>
         <div>
           <h3 className='text-lg font-semibold'>{title}</h3>
@@ -29,4 +32,3 @@ function ActivityPanel ({ title, description, items = [], className = '' }) {
 }
 
 export default ActivityPanel
-

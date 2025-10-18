@@ -4,7 +4,6 @@ function freshConfig (env) {
   if (env) process.env = { ...process.env, ...env }
   const key = require.resolve('@config')
   delete require.cache[key]
-  // eslint-disable-next-line import/no-commonjs
   return require('@config')
 }
 

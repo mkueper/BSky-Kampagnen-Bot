@@ -5,6 +5,8 @@ import MediaDialog from './MediaDialog'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import Modal from './ui/Modal'
+import GifPicker from './GifPicker'
+import EmojiPicker from './EmojiPicker'
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -63,7 +65,7 @@ function toLocalDateParts (value) {
  * @param {Object|null} editingSkeet Aktueller Datensatz beim Bearbeiten, sonst null.
  * @param {Function} onCancelEdit   Wird beim Abbrechen aufgerufen (z. B. Tab-Wechsel).
  */
-function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
+function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }) {
   const { date: defaultDate, time: defaultTime } = getDefaultDateParts()
 
   const [content, setContent] = useState('')
@@ -107,16 +109,21 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   }
   const [pendingMedia, setPendingMedia] = useState([])
   const [mediaDialog, setMediaDialog] = useState({ open: false })
+  const [gifPicker, setGifPicker] = useState({ open: false })
+  const [emojiPicker, setEmojiPicker] = useState({ open: false })
   const [editedMediaAlt, setEditedMediaAlt] = useState({})
   const [removedMedia] = useState({})
   const [altDialog, setAltDialog] = useState({ open: false, item: null })
   const textareaRef = useRef(null)
   const previewRef = useRef(null)
+  const timeInputRef = useRef(null)
+  const dateInputRef = useRef(null)
   const [coupledHeight] = useState(null)
   const locale = typeof navigator !== 'undefined' ? navigator.language : 'de-DE'
   const order = weekdayOrder(locale)
   const [infoContentOpen, setInfoContentOpen] = useState(false)
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
+  const [sendingNow, setSendingNow] = useState(false)
 
   useEffect(
     () => {
@@ -147,7 +154,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   )
 
   function resetToDefaults () {
-    setContent('')
+    setContent((typeof initialContent === 'string' && initialContent.length) ? initialContent : '')
     setTargetPlatforms(['bluesky'])
     setRepeat('none')
     setRepeatDayOfMonth(null)
@@ -288,7 +295,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
       }
       if (onSkeetSaved) onSkeetSaved()
       toast.success({
-        title: isEditing ? 'Skeet aktualisiert' : 'Skeet gespeichert',
+        title: isEditing ? 'Skeet aktualisiert' : 'Skeet geplant',
         description: 'Die Änderungen wurden übernommen.'
       })
     } else {
@@ -405,6 +412,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               id='skeet-content'
               value={content}
               onChange={e => setContent(e.target.value)}
+              onKeyDown={(e) => {
+                try {
+                  if ((e.ctrlKey || e.metaKey) && (e.key === '.' || e.code === 'Period')) {
+                    e.preventDefault()
+                    setEmojiPicker({ open: true })
+                  }
+                } catch {}
+              }}
               placeholder='Was möchtest du veröffentlichen?'
               rows={10}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
@@ -441,13 +456,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
-                onClick={() =>
-                  setMediaDialog({
-                    open: true,
-                    accept: 'image/gif',
-                    title: 'GIF hinzufügen'
-                  })
-                }
+                onClick={() => setGifPicker({ open: true })}
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
                   pendingMedia.length >= (imagePolicy.maxCount || 4)
@@ -461,7 +470,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
-                onClick={() => {}}
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
+                onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
               </button>
@@ -489,13 +500,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
-                onClick={() =>
-                  setMediaDialog({
-                    open: true,
-                    accept: 'image/gif',
-                    title: 'GIF hinzufügen'
-                  })
-                }
+                onClick={() => setGifPicker({ open: true })}
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 aria-label='GIF hinzufügen'
                 title='GIF hinzufügen'
@@ -506,9 +511,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
                 aria-label='Emoji einfügen'
-                onClick={() => {
-                  /* Emoji Picker später */
-                }}
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
+                onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
               </button>
@@ -628,7 +633,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             id='time'
             type='time'
             value={scheduledTime}
-            onChange={e => setScheduledTime(e.target.value)}
+            ref={timeInputRef}
+            onClick={() => { try { timeInputRef.current?.showPicker?.() } catch {} }}
+            onFocus={() => { try { timeInputRef.current?.showPicker?.() } catch {} }}
+            onChange={e => {
+              setScheduledTime(e.target.value)
+              try { timeInputRef.current?.blur?.() } catch {}
+            }}
             className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
           />
         </div>
@@ -714,6 +725,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               id='date'
               type='date'
               value={scheduledDate}
+              ref={dateInputRef}
+              onClick={() => { try { dateInputRef.current?.showPicker?.() } catch {} }}
+              onFocus={() => { try { dateInputRef.current?.showPicker?.() } catch {} }}
               onChange={e => setScheduledDate(e.target.value)}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
             />
@@ -732,7 +746,77 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           </Button>
         )}
         <Button type='submit' variant='primary'>
-          {isEditing ? 'Skeet aktualisieren' : 'Skeet speichern'}
+          {isEditing ? 'Skeet aktualisieren' : 'Planen'}
+        </Button>
+        <Button
+          type='button'
+          variant='warning'
+          disabled={sendingNow}
+          onClick={async () => {
+            if (!isEditing) {
+              // Direktversand benötigt einen existierenden Datensatz → erst speichern mit sofortigem Termin
+              const normalizedPlatforms = Array.from(new Set(targetPlatforms))
+              const submissionLimit = resolveMaxLength(normalizedPlatforms)
+              if (content.length > submissionLimit) {
+                toast.error({ title: 'Zeichenlimit überschritten', description: `Max. ${submissionLimit} Zeichen.` })
+                return
+              }
+              const now = new Date()
+              const pad = n => String(n).padStart(2, '0')
+              const localIso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+              const createPayload = {
+                content,
+                scheduledAt: localIso,
+                repeat: 'none',
+                repeatDaysOfWeek: [],
+                repeatDayOfMonth: null,
+                repeatDayOfWeek: null,
+                targetPlatforms: normalizedPlatforms,
+                media: pendingMedia,
+              }
+              setSendingNow(true)
+              try {
+                const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
+                if (!resCreate.ok) {
+                  const data = await resCreate.json().catch(() => ({}))
+                  throw new Error(data.error || 'Skeet konnte nicht erstellt werden.')
+                }
+                const created = await resCreate.json()
+                if (!created?.id) throw new Error('Unerwartete Antwort beim Erstellen des Skeets.')
+                const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
+                if (!resPub.ok) {
+                  const data = await resPub.json().catch(() => ({}))
+                  throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                }
+                toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+                resetToDefaults()
+                if (onSkeetSaved) onSkeetSaved()
+              } catch (e) {
+                toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+              } finally {
+                setSendingNow(false)
+              }
+              return
+            }
+
+            // Bearbeiten: existierenden posten
+            setSendingNow(true)
+            try {
+              const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+              }
+              toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+              if (onSkeetSaved) onSkeetSaved()
+            } catch (e) {
+              toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+            } finally {
+              setSendingNow(false)
+            }
+          }}
+        >
+          {sendingNow ? 'Senden…' : 'Sofort senden'}
         </Button>
       </div>
       <MediaDialog
@@ -760,6 +844,61 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           setMediaDialog({ open: false })
         }}
         onClose={() => setMediaDialog({ open: false })}
+      />
+      <GifPicker
+        open={gifPicker.open}
+        onClose={() => setGifPicker({ open: false })}
+        onPick={async ({ downloadUrl }) => {
+          try {
+            const res = await fetch(downloadUrl)
+            const blob = await res.blob()
+            if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+              toast.error({ title: 'GIF zu groß', description: 'Bitte ein kleineres GIF wählen.' })
+              return
+            }
+            const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+            const reader = new FileReader()
+            reader.onload = () => {
+              setPendingMedia(arr => [
+                ...arr,
+                {
+                  filename: file.name,
+                  mime: file.type,
+                  data: reader.result,
+                  altText: ''
+                }
+              ])
+            }
+            reader.readAsDataURL(file)
+          } catch (e) {
+            toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
+          } finally {
+            setGifPicker({ open: false })
+          }
+        }}
+      />
+      <EmojiPicker
+        open={emojiPicker.open}
+        onClose={() => setEmojiPicker({ open: false })}
+        anchorRef={textareaRef}
+        onPick={(em) => {
+          try {
+            const ta = textareaRef.current
+            if (!ta) return
+            const { selectionStart = content.length, selectionEnd = content.length } = ta
+            const next = `${content.slice(0, selectionStart)}${em}${content.slice(selectionEnd)}`
+            setContent(next)
+            setEmojiPicker({ open: false })
+            setTimeout(() => {
+              try {
+                const pos = selectionStart + em.length
+                ta.selectionStart = pos
+                ta.selectionEnd = pos
+                ta.focus()
+              } catch {}
+            }, 0)
+          } catch {}
+        }}
       />
       {/* Info: Skeet-Text */}
       {infoContentOpen ? (

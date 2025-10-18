@@ -4,7 +4,6 @@ function freshLogging () {
   // purge require cache to re-evaluate env
   const key = require.resolve('@utils/logging')
   delete require.cache[key]
-  // eslint-disable-next-line import/no-commonjs
   return require('@utils/logging')
 }
 

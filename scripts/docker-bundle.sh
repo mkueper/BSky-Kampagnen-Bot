@@ -57,6 +57,19 @@ if [[ -d dashboard ]]; then
     -cf - dashboard | tar -xf - -C "${APP_DIR}"
 fi
 
+# Workspace: bsky-client als Geschwister von dashboard einbinden (für Vite-Alias/Workspaces)
+if [[ -d bsky-client ]]; then
+  echo "Füge bsky-client hinzu (ohne node_modules/dist)" >&2
+  tar \
+    --exclude='./bsky-client/node_modules' \
+    --exclude='./bsky-client/dist' \
+    --exclude='./bsky-client/.env' \
+    --exclude='./bsky-client/.env.local' \
+    --exclude='./bsky-client/.env.dev' \
+    --exclude='./bsky-client/.env.prod' \
+    -cf - bsky-client | tar -xf - -C "${APP_DIR}"
+fi
+
 # Entferne alle node_modules-Verzeichnisse, um Bundle schlank zu halten
 find "${APP_DIR}" -type d -name 'node_modules' -prune -exec rm -rf '{}' +
 
@@ -71,6 +84,11 @@ if [[ ! -f docker-compose.yml ]]; then
   exit 1
 fi
 cp docker-compose.yml "${APP_DIR}/docker-compose.yml"
+
+# .dockerignore für robuste Docker-Builds in das Bundle aufnehmen (falls vorhanden)
+if [[ -f .dockerignore ]]; then
+  cp .dockerignore "${APP_DIR}/.dockerignore"
+fi
 
 # Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien auf Root-Ebene
 find "${APP_DIR}" -maxdepth 1 -name '.env' -type f -delete

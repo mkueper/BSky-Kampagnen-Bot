@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import { compressImage } from '../utils/image';
 
 function humanSize(bytes) {
   if (!Number.isFinite(bytes)) return '';
@@ -60,7 +61,6 @@ export default function MediaDialog({
   const validate = (f) => {
     if (mode === 'upload') {
       if (!f) return 'Bitte eine Datei wählen.';
-      if (f.size > maxBytes) return `Datei zu groß (max. ${humanSize(maxBytes)}).`;
       if (!allowedMimes.includes(f.type)) return 'Nicht unterstützter Dateityp.';
     }
     if (requireAltText && !alt.trim()) return 'Alt‑Text ist erforderlich.';
@@ -84,7 +84,33 @@ export default function MediaDialog({
         {mode === 'upload' ? (
           <div>
             <label className="text-sm font-medium text-foreground">Datei</label>
-            <input ref={inputRef} type="file" accept={accept} className="mt-1 w-full text-sm" onChange={(e) => { setFile(e.target.files?.[0] || null); setError(null); }} />
+            <input
+              ref={inputRef}
+              type="file"
+              accept={accept}
+              className="mt-1 w-full text-sm"
+              onChange={async (e) => {
+                try {
+                  setError(null);
+                  const f = e.target.files?.[0] || null;
+                  if (!f) { setFile(null); return }
+                  // Pre-compress non-GIF images to improve acceptance on platforms
+                  const isGif = (f.type || '').toLowerCase() === 'image/gif'
+                  if (!isGif) {
+                    const target = Number(import.meta.env.VITE_DASH_UPLOAD_TARGET_BYTES || (900 * 1024));
+                    const headroom = Math.max(0.5, Math.min(1, Number(import.meta.env.VITE_DASH_UPLOAD_HEADROOM || 0.97)));
+                    const { blob, type } = await compressImage(f, { targetBytes: Math.floor(target * headroom), maxWidth: 2048, maxHeight: 2048, preferType: 'image/webp' });
+                    const name = String(f.name || 'image').replace(/\.[A-Za-z0-9]+$/, '') + (type.includes('webp') ? '.webp' : type.includes('jpeg') ? '.jpg' : '.png');
+                    const wrapped = new File([blob], name, { type });
+                    setFile(wrapped);
+                  } else {
+                    setFile(f);
+                  }
+                } catch (err) {
+                  setError(err?.message || 'Bild konnte nicht vorbereitet werden.');
+                }
+              }}
+            />
             <p className="mt-1 text-xs text-foreground-muted">Erlaubt: {allowedMimes.join(', ')} · Max {humanSize(maxBytes)}</p>
             {validationMsg ? (
               <p className="mt-1 text-sm text-destructive">{validationMsg}</p>

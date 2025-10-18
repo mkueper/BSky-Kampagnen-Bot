@@ -112,7 +112,11 @@ export default tseslint.config(
   ,
   // 7. Test files (Vitest globals)
   {
-    files: ["backend/src/**/*.test.js", "tests/**/*.js"],
+    files: [
+      "backend/src/**/*.test.js",
+      "tests/**/*.js",
+      "backend/tests/**/*.js"
+    ],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -122,6 +126,15 @@ export default tseslint.config(
         expect: "readonly",
         vi: "readonly",
       },
+    },
+    plugins: {
+      import: pluginImport,
+    },
+    rules: {
+      // Tests dürfen CommonJS require nutzen
+      "import/no-commonjs": "off",
+      // Erlaube leere Catch-Blöcke in Tests (gezielt unterdrückt)
+      "no-empty": ["error", { allowEmptyCatch: true }],
     },
   }
 );

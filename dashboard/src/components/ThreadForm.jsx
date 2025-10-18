@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import { useClientConfig } from '../hooks/useClientConfig'
 import MediaDialog from './MediaDialog'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
+import GifPicker from './GifPicker'
+import EmojiPicker from './EmojiPicker'
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -122,14 +125,17 @@ function ThreadForm ({
   initialThread = null,
   loading = false,
   onThreadSaved,
-  onCancel
+  onCancel,
+  onSuggestMoveToSkeets
 }) {
   const [threadId, setThreadId] = useState(null)
+  const [sending, setSending] = useState(false)
   const [targetPlatforms, setTargetPlatforms] = useState(['bluesky'])
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [scheduledAt, setScheduledAt] = useState(() => getDefaultScheduledAt())
   const [saving, setSaving] = useState(false)
+  const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
   const textareaRef = useRef(null)
   const toast = useToast()
   const { config: clientConfig } = useClientConfig()
@@ -338,6 +344,8 @@ function ThreadForm ({
     setMediaDialog({ open: true, index, accept: gif ? 'image/gif' : 'image/*', title: gif ? 'GIF hinzufügen' : 'Bild hinzufügen' })
   }
   const closeMediaDialog = () => setMediaDialog({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+  const [gifPicker, setGifPicker] = useState({ open: false, index: null })
+  const [emojiPicker, setEmojiPicker] = useState({ open: false })
 
   // Overlay helpers for existing media edits (without full reload)
   const [editedMediaAlt, setEditedMediaAlt] = useState({}); // key: mediaId => alt text
@@ -388,16 +396,21 @@ function ThreadForm ({
     const textarea = textareaRef.current
     if (!textarea) return
 
-    const separator = textarea.selectionStart === 0 ? '---\n' : '\n---\n'
     const { selectionStart, selectionEnd, value } = textarea
-    const nextValue = `${value.slice(
-      0,
-      selectionStart
-    )}${separator}${value.slice(selectionEnd)}`
+    const before = value.slice(0, selectionStart)
+    const after = value.slice(selectionEnd)
+    const prevChar = selectionStart > 0 ? value.charAt(selectionStart - 1) : ''
+    const nextChar = selectionEnd < value.length ? value.charAt(selectionEnd) : ''
+
+    const needsPrefixNl = selectionStart > 0 && prevChar !== '\n'
+    const needsSuffixNl = nextChar !== '\n'
+    const separator = `${needsPrefixNl ? '\n' : ''}---${needsSuffixNl ? '\n' : ''}`
+
+    const nextValue = `${before}${separator}${after}`
     setSource(nextValue)
 
     requestAnimationFrame(() => {
-      const cursorPosition = selectionStart + separator.length
+      const cursorPosition = before.length + separator.length
       textarea.selectionStart = cursorPosition
       textarea.selectionEnd = cursorPosition
       textarea.focus()
@@ -405,6 +418,12 @@ function ThreadForm ({
   }
 
   const handleKeyDown = event => {
+    // Ctrl+. öffnet Emoji-Picker
+    if ((event.ctrlKey || event.metaKey) && (event.key === '.' || event.code === 'Period')) {
+      event.preventDefault()
+      setEmojiPicker({ open: true })
+      return
+    }
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault()
       handleInsertSeparator()
@@ -445,10 +464,7 @@ function ThreadForm ({
     )
   }
 
-  const handleSubmit = async event => {
-    event.preventDefault()
-    if (saving || loading) return
-
+  async function doSubmitThread() {
     const status = scheduledAt ? 'scheduled' : 'draft'
     const scheduledValue = scheduledAt ? scheduledAt : null
     const titleCandidate = previewSegments[0]?.raw || ''
@@ -498,7 +514,7 @@ function ThreadForm ({
       const thread = await res.json()
 
       toast.success({
-        title: isEditMode ? 'Thread aktualisiert' : 'Thread gespeichert',
+        title: isEditMode ? 'Thread aktualisiert' : 'Thread geplant',
         description: `Thread enthält ${totalSegments} Skeet${
           totalSegments !== 1 ? 's' : ''
         }.`
@@ -532,11 +548,25 @@ function ThreadForm ({
     }
   }
 
+  const handleSubmit = async event => {
+    event.preventDefault()
+    if (saving || loading || sending) return
+
+    // If there is only one segment, suggest creating a single Skeet instead
+    if (totalSegments === 1) {
+      setSingleSegDialog({ open: true })
+      return
+    }
+
+    await doSubmitThread()
+  }
+
+  const theme = useTheme()
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
       <div className='grid gap-6 lg:grid-cols-2'>
         <div className='space-y-4'>
-          <div className='rounded-3xl border border-border bg-background-elevated p-6 shadow-soft'>
+          <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
             <header className='space-y-3'>
               <div className='flex items-center justify-between'>
                 <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
@@ -565,6 +595,19 @@ function ThreadForm ({
               className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
               placeholder='Beispiel:\nIntro zum Thread...\n---\nWeiterer Skeet...'
             />
+            {/* Toolbar unter der Textarea */}
+            <div className='mt-2 flex items-center gap-2'>
+              <button
+                type='button'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
+                aria-label='Emoji einfügen'
+                aria-keyshortcuts='Control+. Meta+.'
+                title='Emoji einfügen (Ctrl+.)'
+                onClick={() => setEmojiPicker({ open: true })}
+              >
+                <span className='text-base md:text-lg leading-none'>😊</span>
+              </button>
+            </div>
 
             <div className='mt-4 space-y-3'>
               <fieldset className='space-y-2'>
@@ -645,16 +688,90 @@ function ThreadForm ({
                       restoreFromThread(null)
                     }
                   }}
-                  disabled={saving}
+                  disabled={saving || sending}
                 >
                   Formular zurücksetzen
                 </Button>
+                <Button
+                  type='button'
+                  variant='warning'
+                  onClick={async () => {
+                    if (saving || loading || sending) return
+                    if (hasValidationIssues) {
+                      toast.error({ title: 'Formular unvollständig', description: 'Bitte behebe die markierten Probleme, bevor du sendest.' })
+                      return
+                    }
+
+                    setSending(true)
+                    try {
+                      let id = threadId
+                      if (!isEditMode) {
+                        // 1) Thread anlegen (ohne unmittelbare Planung);
+                        const titleCandidate = previewSegments[0]?.raw || ''
+                        const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
+                        const createPayload = {
+                          title: normalizedTitle,
+                          scheduledAt: null,
+                          status: 'draft',
+                          targetPlatforms,
+                          appendNumbering,
+                          metadata: { limit, totalSegments, source, sendNow: true },
+                          skeets: previewSegments.map((segment, index) => ({
+                            sequence: index,
+                            content: segment.formatted,
+                            appendNumbering,
+                            characterCount: segment.characterCount,
+                            media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
+                          }))
+                        }
+                        const resCreate = await fetch('/api/threads', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(createPayload)
+                        })
+                        if (!resCreate.ok) {
+                          const data = await resCreate.json().catch(() => ({}))
+                          throw new Error(data.error || 'Thread konnte nicht erstellt werden.')
+                        }
+                        const created = await resCreate.json()
+                        id = created?.id
+                        if (!id) throw new Error('Unerwartete Antwort beim Erstellen des Threads.')
+                      }
+
+                      // 2) Direkt veröffentlichen (ohne Scheduler-Tick)
+                      const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
+                      if (!resPub.ok) {
+                        const data = await resPub.json().catch(() => ({}))
+                        throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                      }
+                      const published = await resPub.json()
+
+                      toast.success({
+                        title: 'Veröffentlicht (direkt)',
+                        description: 'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
+                      })
+
+                      if (typeof onThreadSaved === 'function') {
+                        try { onThreadSaved(published) } catch (cbErr) { console.error('onThreadSaved Fehler:', cbErr) }
+                      }
+                      if (!isEditMode) {
+                        restoreFromThread(null)
+                      }
+                    } catch (e) {
+                      console.error('Sofort senden fehlgeschlagen:', e)
+                      toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler beim Senden.' })
+                    } finally {
+                      setSending(false)
+                    }
+                  }}
+                  disabled={hasValidationIssues || saving || loading || sending}
+                >
+                  {sending ? 'Senden…' : 'Sofort senden'}
+                </Button>
                 <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving
-                    ? 'Speichern…'
-                    : isEditMode
-                    ? 'Thread aktualisieren'
-                    : 'Thread speichern'}
+                    ? (isEditMode ? 'Aktualisieren…' : 'Planen…')
+                    : (isEditMode ? 'Thread aktualisieren' : 'Planen')}
                 </Button>
               </div>
             </div>
@@ -662,7 +779,7 @@ function ThreadForm ({
         </div>
 
         <aside className='space-y-4'>
-          <div className='flex flex-col rounded-3xl border border-border bg-background-elevated p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden'>
+          <div className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}>
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
                 <h3 className='text-lg font-semibold'>Vorschau</h3>
@@ -722,7 +839,7 @@ function ThreadForm ({
                         <button
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
-                          onClick={() => openMediaDialog(segment.id, { gif: true })}
+                          onClick={() => setGifPicker({ open: true, index })}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
                               : 'GIF hinzufügen'}
@@ -730,9 +847,7 @@ function ThreadForm ({
                         >
                           GIF
                         </button>
-                        <button type='button' className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated' onClick={() => { /* Emoji Picker später */ }} title='Emoji einfügen'>
-                          <span className='text-base md:text-lg leading-none'>😊</span>
-                        </button>
+                        {/* Emoji-Button entfällt: Emojis werden im Text eingefügt */}
                       </div>
                     </header>
                     <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
@@ -802,6 +917,52 @@ function ThreadForm ({
         onConfirm={(file, alt) => { const idx = mediaDialog.index; closeMediaDialog(); handleUploadMedia(idx, file, alt); }}
         onClose={closeMediaDialog}
       />
+      <EmojiPicker
+        open={emojiPicker.open}
+        onClose={() => setEmojiPicker({ open: false })}
+        anchorRef={textareaRef}
+        onPick={(em) => {
+          try {
+            const ta = textareaRef.current
+            if (!ta) return
+            const { selectionStart = source.length, selectionEnd = source.length } = ta
+            const next = `${source.slice(0, selectionStart)}${em}${source.slice(selectionEnd)}`
+            setSource(next)
+            setEmojiPicker({ open: false })
+            setTimeout(() => {
+              try {
+                const pos = selectionStart + em.length
+                ta.selectionStart = pos
+                ta.selectionEnd = pos
+                ta.focus()
+              } catch {}
+            }, 0)
+          } catch {}
+        }}
+      />
+      <GifPicker
+        open={gifPicker.open}
+        onClose={() => setGifPicker({ open: false, index: null })}
+        onPick={async ({ downloadUrl }) => {
+          try {
+            const resp = await fetch(downloadUrl)
+            const blob = await resp.blob()
+            if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+              setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
+              return
+            }
+            const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+            const idx = gifPicker.index
+            if (typeof idx === 'number') {
+              await handleUploadMedia(idx, file, '')
+            }
+          } catch (e) {
+            setUploadError({ open: true, message: e?.message || 'GIF konnte nicht geladen werden.' })
+          } finally {
+            setGifPicker({ open: false, index: null })
+          }
+        }}
+      />
       {uploadError.open ? (
         <Modal
           open={uploadError.open}
@@ -821,7 +982,7 @@ function ThreadForm ({
           onClose={() => setInfoThreadOpen(false)}
           actions={<Button variant='primary' onClick={() => setInfoThreadOpen(false)}>OK</Button>}
         >
-          <div className='space-y-2 text-sm text-foreground'>
+          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
               Schreibe den gesamten Thread in ein Feld. Du kannst <code className='rounded bg-background-subtle px-1 py-0.5'>---</code> als Trenner nutzen
               oder mit <kbd className='rounded bg-background-subtle px-1 py-0.5'>STRG</kbd>+<kbd className='rounded bg-background-subtle px-1 py-0.5'>Enter</kbd> einen Trenner einfügen.
@@ -832,6 +993,9 @@ function ThreadForm ({
             </p>
             <p>
               Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Skeet.
+            </p>
+            <p>
+              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
             </p>
           </div>
         </Modal>
@@ -845,7 +1009,7 @@ function ThreadForm ({
           onClose={() => setInfoPreviewOpen(false)}
           actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
         >
-          <div className='space-y-2 text-sm text-foreground'>
+          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
               Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.
             </p>
@@ -893,6 +1057,46 @@ function ThreadForm ({
           }}
           onClose={closeAltDialog}
         />
+      ) : null}
+
+      {/* Suggest move to Skeets if only one segment */}
+      {singleSegDialog.open ? (
+        <Modal
+          open={singleSegDialog.open}
+          title="Nur ein Segment erkannt"
+          onClose={() => setSingleSegDialog({ open: false })}
+          actions={
+            <>
+              <Button
+                variant='secondary'
+                onClick={async () => {
+                  setSingleSegDialog({ open: false })
+                  await doSubmitThread()
+                }}
+              >
+                Trotzdem als Thread speichern
+              </Button>
+              <Button
+                variant='primary'
+                onClick={() => {
+                  setSingleSegDialog({ open: false })
+                  if (typeof onSuggestMoveToSkeets === 'function') {
+                    const content = (previewSegments?.[0]?.raw || '').toString()
+                    onSuggestMoveToSkeets(content)
+                  } else {
+                    toast.info({ title: 'Zum Skeetplaner wechseln', description: 'Bitte wechsle zum Skeetplaner und füge den Text ein.' })
+                  }
+                }}
+              >
+                Zum Skeetplaner wechseln
+              </Button>
+            </>
+          }
+        >
+          <div className='space-y-2 text-sm text-foreground'>
+            <p>Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Skeet planen?</p>
+          </div>
+        </Modal>
       ) : null}
     </form>
   )
