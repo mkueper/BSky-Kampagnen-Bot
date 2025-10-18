@@ -2,7 +2,7 @@
 
 Ein kleines, eigenständiges Tool zum direkten Veröffentlichen von Bluesky‑Threads. Fokus: „Posten“ statt „Planen“. Läuft lokal, ohne Backend.
 
-Dieser Ordner enthält einen Vite+React‑Renderer. Optional kann später Electron für ein Desktop‑Bundle ergänzt werden.
+Dieser Ordner enthält einen Vite+React‑Renderer. Optional kann später eine Desktop‑Hülle (Tauri/Electron) genutzt werden.
 
 Stand: Text + Bilder. Pro Segment bis zu 4 Bilder mit Alt‑Text (JPEG/PNG/WebP/GIF). Upload erfolgt direkt über die Bluesky API.
 
@@ -11,6 +11,7 @@ Stand: Text + Bilder. Pro Segment bis zu 4 Bilder mit Alt‑Text (JPEG/PNG/WebP/
 - Zeichenlimit Bluesky 300, Nummerierung `1/x` optional
 - Bilder je Segment (max. 4), Alt‑Text, Vorschau + Entfernen
 - Direkter Versand zu Bluesky (Replies mit korrekt gesetztem `root`/`parent`)
+ - Geteiltes Layout: Editor/Preview‑Breite per Splitter; Verhältnis wird lokal gespeichert
 
 ## Setup
 1) In diesen Ordner wechseln und Abhängigkeiten installieren:

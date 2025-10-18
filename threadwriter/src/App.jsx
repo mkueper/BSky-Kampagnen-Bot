@@ -50,15 +50,19 @@ export default function App() {
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [gifTargetIndex, setGifTargetIndex] = useState(null)
   const splitRef = useRef(null)
-  // Standardbreite des linken Panels (Editor). Für 1366x768 etwas schmaler starten.
+  // Standardbreite des linken Panels (Editor) – persistent über localStorage.
   const [leftPct, setLeftPct] = useState(() => {
     try {
+      const saved = Number(localStorage.getItem('tw_split_left_pct'))
+      if (Number.isFinite(saved)) return Math.max(40, Math.min(80, Math.round(saved)))
       const w = typeof window !== 'undefined' ? window.innerWidth : 0
       return w && w <= 1366 ? 58 : 66
     } catch { return 66 }
   })
   const draggingRef = useRef(false)
   const [hasProxy, setHasProxy] = useState(false)
+  const leftPctRef = useRef(66)
+  useEffect(() => { leftPctRef.current = leftPct }, [leftPct])
   const [editorHeight, setEditorHeight] = useState(300)
 
   const segments = useMemo(() => buildSegments(source, { appendNumbering, limit: BLUESKY_LIMIT }), [source, appendNumbering])
@@ -424,6 +428,7 @@ export default function App() {
               draggingRef.current = false
               window.removeEventListener('mousemove', onMove)
               window.removeEventListener('mouseup', onUp)
+              try { localStorage.setItem('tw_split_left_pct', String(leftPctRef.current)) } catch {}
             }
             window.addEventListener('mousemove', onMove)
             window.addEventListener('mouseup', onUp)
