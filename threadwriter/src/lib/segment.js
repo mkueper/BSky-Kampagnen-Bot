@@ -77,8 +77,8 @@ export function buildSegments(source, { appendNumbering = true, limit = BLUESKY_
   const total = out.length
   return out.map((text, i) => {
     if (!appendNumbering) return text
+    if (!text || !text.trim()) return text
     const numbering = `\n\n${i + 1}/${total}`
     return `${text}${numbering}`
   })
 }
-

@@ -25,3 +25,4 @@ threadwriter/src-tauri/gen/
 *.sqlite
 logs/
 false/
+:electron

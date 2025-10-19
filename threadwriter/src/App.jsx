@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildSegments, BLUESKY_LIMIT } from './lib/segment.js'
 import GifPicker from './components/GifPicker.jsx'
 import EmojiPicker from './components/EmojiPicker.jsx'
@@ -36,6 +36,7 @@ export default function App() {
   const [status, setStatus] = useState([]) // per segment status
   const [error, setError] = useState('')
   const [pendingMedia, setPendingMedia] = useState({}) // { [index]: [{ file, url, alt }] }
+  const pendingMediaRef = useRef(pendingMedia)
   const [mediaTargetIndex, setMediaTargetIndex] = useState(null)
   const fileInputRef = useRef(null)
   const [serverUrl, setServerUrl] = useState(() => {
@@ -50,6 +51,22 @@ export default function App() {
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [gifTargetIndex, setGifTargetIndex] = useState(null)
   const splitRef = useRef(null)
+  const revokeObjectUrl = useCallback((url) => {
+    if (!url || typeof URL === 'undefined' || typeof URL.revokeObjectURL !== 'function') return
+    try { URL.revokeObjectURL(url) } catch {}
+  }, [])
+  const revokeMediaItems = useCallback((items) => {
+    if (!Array.isArray(items)) return
+    for (const entry of items) {
+      revokeObjectUrl(entry?.url)
+    }
+  }, [revokeObjectUrl])
+  const revokeAllPendingMedia = useCallback((mediaMap) => {
+    if (!mediaMap || typeof mediaMap !== 'object') return
+    for (const items of Object.values(mediaMap)) {
+      revokeMediaItems(items)
+    }
+  }, [revokeMediaItems])
   // Standardbreite des linken Panels (Editor) – persistent über localStorage.
   const [leftPct, setLeftPct] = useState(() => {
     try {
@@ -64,6 +81,14 @@ export default function App() {
   const leftPctRef = useRef(66)
   useEffect(() => { leftPctRef.current = leftPct }, [leftPct])
   const [editorHeight, setEditorHeight] = useState(300)
+  useEffect(() => {
+    pendingMediaRef.current = pendingMedia
+  }, [pendingMedia])
+  useEffect(() => {
+    return () => {
+      revokeAllPendingMedia(pendingMediaRef.current)
+    }
+  }, [revokeAllPendingMedia])
 
   const segments = useMemo(() => buildSegments(source, { appendNumbering, limit: BLUESKY_LIMIT }), [source, appendNumbering])
 
@@ -165,6 +190,7 @@ export default function App() {
   // Kein Tauri-Menü-Event-Handling notwendig
 
   const EMOJI_SET = ['🙂','😂','🎉','❤️','👍','🔥','✨','🙏','🚀','🤖','📷','🧵','📝','📣','🗓️','⏰']
+  const SEGMENT_SEPARATOR = '---'
 
   function insertEmoji(ch) {
     try {
@@ -191,6 +217,42 @@ export default function App() {
     }
   }
 
+  function insertSeparator() {
+    try {
+      const el = sourceRef.current
+      const current = source
+      const start = el?.selectionStart ?? current.length
+      const end = el?.selectionEnd ?? start
+      const before = current.slice(0, start)
+      const after = current.slice(end)
+      const needsLeadingNewline = before.length > 0 && !before.endsWith('\n')
+      const needsTrailingNewline = !after.startsWith('\n')
+      const insertion = `${needsLeadingNewline ? '\n' : ''}${SEGMENT_SEPARATOR}${needsTrailingNewline ? '\n' : ''}`
+      const next = `${before}${insertion}${after}`
+      setSource(next)
+      const caretPos = before.length + insertion.length
+      requestAnimationFrame(() => {
+        try {
+          const ref = sourceRef.current
+          ref?.focus()
+          ref?.setSelectionRange(caretPos, caretPos)
+        } catch {}
+      })
+    } catch {
+      setSource((prev) => {
+        const needsNewline = prev.endsWith('\n') || prev.length === 0 ? '' : '\n'
+        return `${prev}${needsNewline}${SEGMENT_SEPARATOR}\n`
+      })
+    }
+  }
+
+  const handleEditorKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === 'NumpadEnter') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      insertSeparator()
+    }
+  }
+
   async function handlePost() {
     setError('')
     setStatus(segments.map(() => ({ state: 'pending' })))
@@ -201,6 +263,7 @@ export default function App() {
 
       let root = null
       let parent = null
+      let failure = null
       for (let i = 0; i < segments.length; i++) {
         setStatus((s) => s.map((it, idx) => (idx === i ? { state: 'posting' } : it)))
         try {
@@ -263,14 +326,24 @@ export default function App() {
           parent = ref
           setStatus((s) => s.map((it, idx) => (idx === i ? { state: 'ok', uri: ref.uri } : it)))
         } catch (e) {
-          setStatus((s) => s.map((it, idx) => (idx === i ? { state: 'error', message: e?.message || String(e) } : it)))
-          throw e
+          failure = e
+          setStatus((s) => s.map((it, idx) => {
+            if (idx === i) return { state: 'error', message: e?.message || String(e) }
+            if (idx > i && (!it || it.state === 'pending' || it.state === 'posting')) return { state: 'aborted' }
+            return it
+          }))
+          break
         }
       }
+      if (failure) throw failure
       // Erfolg: Thread leeren (Inhalt und Status zurücksetzen)
       setSource('')
       setStatus([])
-      setPendingMedia({})
+      setPendingMedia((prev) => {
+        if (!prev || Object.keys(prev).length === 0) return prev
+        revokeAllPendingMedia(prev)
+        return {}
+      })
     } catch (e) {
       setError(e?.message || String(e))
     } finally {
@@ -315,31 +388,34 @@ export default function App() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ display: 'grid', gap: 12 }}>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Bluesky Identifier</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Bluesky Identifier</span>
                 <input className='input' value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="handle.xyz oder DID" />
               </label>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>App Password</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>App Password</span>
                 <input className='input' type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="xxxx-xxxx-xxxx-xxxx" />
               </label>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Schutz‑Passwort (lokale Verschlüsselung)</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Schutz‑Passwort (lokale Verschlüsselung)</span>
                 <input className='input' type="password" value={lockPass} onChange={(e) => setLockPass(e.target.value)} placeholder="Passwort zum Sichern/Entsperren" />
               </label>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Server URL</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Server URL</span>
                 <input className='input' value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} placeholder="https://bsky.social" />
               </label>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>Tenor API‑Key (optional)</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Tenor API‑Key (optional)</span>
                 <input className='input' type="password" value={tenorKey} onChange={(e) => setTenorKey(e.target.value)} placeholder="nur für Standalone‑Nutzung" />
               </label>
             </div>
           </div>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Zugangsdaten merken (verschlüsselt lokal gespeichert)
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Zugangsdaten merken (lokal verschlüsselt)
+          </label>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+            <input type="checkbox" checked={appendNumbering} onChange={(e) => setAppendNumbering(e.target.checked)} /> Automatisch `1/x` anfügen (Thread-Nummerierung)
           </label>
         </section>
       ) : null}
@@ -363,9 +439,6 @@ export default function App() {
                   Info
                 </button>
               </div>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                <input type="checkbox" checked={appendNumbering} onChange={(e) => setAppendNumbering(e.target.checked)} /> Nummerierung `1/x` anhängen
-              </label>
             </div>
             <div className='card-content'>
               {/* Emoji inline grid removed; using modal picker */}
@@ -374,6 +447,7 @@ export default function App() {
                 className='textarea mono'
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
+                onKeyDown={handleEditorKeyDown}
                 placeholder={"Beispiel:\nIntro...\n---\nWeiterer Skeet..."}
                 style={{ height: editorHeight, marginTop: 12 }}
               />
@@ -384,7 +458,7 @@ export default function App() {
                 <div>
                   <button
                     ref={emojiBtnRef}
-                    onClick={() => setEmojiOpen(true)}
+                    onClick={() => setEmojiOpen((prev) => !prev)}
                     className='btn btn-secondary btn-icon'
                     title='Emoji einfügen'
                     aria-label='Emoji einfügen'
@@ -401,7 +475,20 @@ export default function App() {
                     </svg>
                     {sending ? 'Senden…' : 'Posten'}
                   </button>
-                  <button onClick={() => { setSource(''); setStatus([]); setError('') }} disabled={sending} className='btn'>
+                  <button
+                    onClick={() => {
+                      setSource('')
+                      setStatus([])
+                      setError('')
+                      setPendingMedia((prev) => {
+                        if (!prev || Object.keys(prev).length === 0) return prev
+                        revokeAllPendingMedia(prev)
+                        return {}
+                      })
+                    }}
+                    disabled={sending}
+                    className='btn'
+                  >
                     <svg className='icon icon-left' viewBox='0 0 24 24' aria-hidden='true'>
                       <path d='M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.3 19.71 2.89 18.3 9.18 12 2.89 5.71 4.3 4.29 10.59 10.6l6.3-6.31z'/>
                     </svg>
@@ -501,9 +588,15 @@ export default function App() {
                         />
                         <button
                           onClick={() => {
+                            revokeMediaItems([item])
                             setPendingMedia((s) => {
                               const arr = Array.isArray(s[i]) ? s[i].slice() : []
                               arr.splice(idx, 1)
+                              if (arr.length === 0) {
+                                const next = { ...s }
+                                delete next[i]
+                                return next
+                              }
                               return { ...s, [i]: arr }
                             })
                           }}
@@ -534,7 +627,7 @@ export default function App() {
                         <path d='M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h14V5H5zm3 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm11 9l-5-6-4 5-2-3-4 4v2h15v-2z'/>
                       </svg>
                     </button>
-                    {!!tenorKey ? (
+                    {!!tenorKey || hasProxy ? (
                       <button
                         onClick={() => { setGifTargetIndex(i); setGifPickerOpen(true) }}
                         disabled={(Array.isArray(pendingMedia[i]) ? pendingMedia[i].length : 0) >= MAX_MEDIA_PER_SKEET}
@@ -558,6 +651,7 @@ export default function App() {
                     {status[i].state === 'pending' && <span style={{ color: '#777' }}>wartet…</span>}
                     {status[i].state === 'posting' && <span style={{ color: '#005' }}>{status[i].info || 'sendet…'}</span>}
                     {status[i].state === 'ok' && <span style={{ color: '#060' }}>ok · {status[i].uri}</span>}
+                    {status[i].state === 'aborted' && <span style={{ color: '#777' }}>abgebrochen</span>}
                     {status[i].state === 'error' && <span style={{ color: '#900' }}>Fehler: {status[i].message}</span>}
                   </div>
                 ) : null}
@@ -579,7 +673,7 @@ export default function App() {
         <p>Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.</p>
         <p>Bilder werden beim Speichern hochgeladen (max. 4 je Skeet).</p>
         <p>Der Zähler zeigt die aktuelle Zeichenanzahl je Skeet im Verhältnis zum Limit der ausgewählten Plattformen.</p>
-        <p>Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.</p>
+        <p>Die automatische Nummerierung (1/x) lässt sich im Tab Einstellungen aktivieren oder deaktivieren.</p>
       </Modal>
 
       <Modal
@@ -590,7 +684,7 @@ export default function App() {
         <p>Schreibe den gesamten Thread in ein Feld. Du kannst <code className='panel-inset' style={{ padding: '2px 4px' }}>---</code> als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.</p>
         <p>Emojis fügst du direkt im Text ein. Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal 4 Bilder pro Skeet.</p>
         <p>Der Zähler in der Vorschau zeigt die aktuelle Zeichenanzahl je Skeet im Verhältnis zum Limit der gewählten Plattformen.</p>
-        <p>Die automatische Nummerierung (1/x) kann über die Option am Editor ein‑ oder ausgeschaltet werden.</p>
+        <p>Die automatische Nummerierung (1/x) steuerst du ebenfalls über den Tab Einstellungen.</p>
       </Modal>
 
       {/* hidden file input for media selection */}
@@ -606,14 +700,18 @@ export default function App() {
           if (typeof idx !== 'number') return
           if (!files.length) return
           setPendingMedia((s) => {
-            const arr = Array.isArray(s[idx]) ? s[idx].slice() : []
+            const base = Array.isArray(s[idx]) ? s[idx] : []
+            const arr = base.slice()
+            let changed = false
             for (const file of files) {
               if (!ALLOWED_MIMES.includes(file.type)) continue
               if (file.size > MAX_BYTES) continue
               if (arr.length >= MAX_MEDIA_PER_SKEET) break
               const url = URL.createObjectURL(file)
               arr.push({ file, url, alt: '' })
+              changed = true
             }
+            if (!changed) return s
             return { ...s, [idx]: arr }
           })
           try { e.target.value = '' } catch {}
@@ -621,7 +719,7 @@ export default function App() {
       />
 
       <GifPicker
-        open={!!tenorKey && gifPickerOpen}
+        open={gifPickerOpen && (!!tenorKey || hasProxy)}
         maxBytes={MAX_BYTES}
         browserKey={tenorKey}
         onClose={() => setGifPickerOpen(false)}
@@ -640,7 +738,10 @@ export default function App() {
             const url = URL.createObjectURL(file)
             setPendingMedia((s) => {
               const arr = Array.isArray(s[idx]) ? s[idx].slice() : []
-              if (arr.length >= MAX_MEDIA_PER_SKEET) return s
+              if (arr.length >= MAX_MEDIA_PER_SKEET) {
+                revokeObjectUrl(url)
+                return s
+              }
               arr.push({ file, url, alt: '' })
               return { ...s, [idx]: arr }
             })

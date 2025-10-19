@@ -4,6 +4,13 @@ Alle nennenswerten Änderungen an diesem Projekt.
 
 ## Unreleased
 
+### Added
+- ThreadWriter: Vitest-Testsetup inklusive Unit- sowie Integrations-Tests für Segmentaufteilung und Posting-Flow.
+
+### Changed
+- ThreadWriter: `Ctrl`/`Cmd` + `Enter` fügt jetzt automatisch einen Trenner (`---`) ein; Nummerierung bleibt bei leeren Segmenten aus.
+- Repo: Entfernt verwaiste Log-Datei `:electron` und in `.gitignore` aufgenommen, damit Windows-Checkouts nicht mehr scheitern.
+
 ## v1.2.0 - 2025-10-18
 
 ### Added

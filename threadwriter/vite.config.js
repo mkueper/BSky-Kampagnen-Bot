@@ -42,4 +42,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@emoji-mart/react', '@emoji-mart/data'],
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: r('src/test/setup.js'),
+  },
 })
