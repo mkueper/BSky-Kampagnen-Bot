@@ -9,27 +9,31 @@ import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
-  panel: 'relative h-full w-full overflow-hidden rounded-2xl border border-border bg-background-elevated p-4 shadow-soft flex flex-col',
-  header: 'flex flex-col gap-3 border-b border-border pb-3',
+  panel: 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated shadow-soft',
+  header: 'flex flex-col gap-3 border-b border-border/80 bg-background px-4 py-3',
   title: 'text-base font-semibold text-foreground',
   searchBar: 'flex w-full items-center gap-2',
   input: 'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
   buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
   button: 'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
-  content: 'mt-3 flex-1 overflow-y-auto space-y-3 pr-1',
-  grid: 'grid grid-cols-2 gap-2 md:grid-cols-3',
+  content: 'flex-1 overflow-y-auto bg-background px-4 py-4',
+  grid: 'grid grid-cols-3 gap-3',
   itemButton: 'overflow-hidden rounded-xl border border-border bg-background-subtle transition hover:ring-2 hover:ring-primary/40',
-  image: 'h-32 w-full object-cover',
+  image: 'h-24 w-full object-cover',
   statusText: 'text-xs text-foreground-muted',
   loadingMore: 'text-xs text-foreground-muted',
   footer: 'hidden',
-  skeleton: 'h-32 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
+  skeleton: 'h-24 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
   error: 'text-sm text-destructive'
 }
 
-const DASHBOARD_GIF_PICKER_PANEL_STYLE = {
-  width: 'min(48vw, 520px)',
-  height: 'min(48vh, 520px)'
+const DASHBOARD_GIF_PICKER_STYLES = {
+  overlay: { padding: '16px' },
+  panel: { width: 'min(520px, 92vw)', height: 'min(420px, 92vh)', padding: 0 },
+  grid: { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' },
+  itemButton: { borderRadius: '14px' },
+  image: { height: '120px' },
+  skeleton: { height: '120px' }
 }
 
 const PLATFORM_LIMITS = {
@@ -873,7 +877,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         open={gifPicker.open}
         onClose={() => setGifPicker({ open: false })}
         classNames={DASHBOARD_GIF_PICKER_CLASSES}
-        panelProps={{ style: DASHBOARD_GIF_PICKER_PANEL_STYLE }}
+        styles={DASHBOARD_GIF_PICKER_STYLES}
         onPick={async ({ downloadUrl }) => {
           try {
             const res = await fetch(downloadUrl)
