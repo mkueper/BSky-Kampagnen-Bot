@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Button from './Button'
-import GifPicker from './GifPicker'
-import EmojiPicker from './EmojiPicker'
+import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -308,7 +307,9 @@ export default function Composer ({ reply = null, onSent }) {
         onClose={() => setEmojiPickerOpen(false)}
         anchorRef={emojiButtonRef}
         onPick={(emoji) => {
-          insertAtCursor(emoji)
+          const value = emoji?.native || emoji?.shortcodes || emoji?.id
+          if (!value) return
+          insertAtCursor(value)
           setEmojiPickerOpen(false)
         }}
       />

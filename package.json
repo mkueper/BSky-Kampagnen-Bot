@@ -104,7 +104,8 @@
   "workspaces": {
     "packages": [
       "dashboard",
-      "bsky-client"
+      "bsky-client",
+      "packages/media-pickers"
     ]
   },
   "build": {

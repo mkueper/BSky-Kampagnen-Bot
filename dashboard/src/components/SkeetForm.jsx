@@ -5,8 +5,32 @@ import MediaDialog from './MediaDialog'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import Modal from './ui/Modal'
-import GifPicker from './GifPicker'
-import EmojiPicker from './EmojiPicker'
+import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+
+const DASHBOARD_GIF_PICKER_CLASSES = {
+  overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
+  panel: 'relative h-full w-full overflow-hidden rounded-2xl border border-border bg-background-elevated p-4 shadow-soft flex flex-col',
+  header: 'flex flex-col gap-3 border-b border-border pb-3',
+  title: 'text-base font-semibold text-foreground',
+  searchBar: 'flex w-full items-center gap-2',
+  input: 'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
+  buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
+  button: 'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
+  content: 'mt-3 flex-1 overflow-y-auto space-y-3 pr-1',
+  grid: 'grid grid-cols-2 gap-2 md:grid-cols-3',
+  itemButton: 'overflow-hidden rounded-xl border border-border bg-background-subtle transition hover:ring-2 hover:ring-primary/40',
+  image: 'h-32 w-full object-cover',
+  statusText: 'text-xs text-foreground-muted',
+  loadingMore: 'text-xs text-foreground-muted',
+  footer: 'hidden',
+  skeleton: 'h-32 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
+  error: 'text-sm text-destructive'
+}
+
+const DASHBOARD_GIF_PICKER_PANEL_STYLE = {
+  width: 'min(48vw, 520px)',
+  height: 'min(48vh, 520px)'
+}
 
 const PLATFORM_LIMITS = {
   bluesky: 300,
@@ -848,6 +872,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       <GifPicker
         open={gifPicker.open}
         onClose={() => setGifPicker({ open: false })}
+        classNames={DASHBOARD_GIF_PICKER_CLASSES}
+        panelProps={{ style: DASHBOARD_GIF_PICKER_PANEL_STYLE }}
         onPick={async ({ downloadUrl }) => {
           try {
             const res = await fetch(downloadUrl)
@@ -881,17 +907,20 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         open={emojiPicker.open}
         onClose={() => setEmojiPicker({ open: false })}
         anchorRef={textareaRef}
-        onPick={(em) => {
+        verticalAlign='center'
+        onPick={(emoji) => {
+          const value = emoji?.native || emoji?.shortcodes || emoji?.id
+          if (!value) return
           try {
             const ta = textareaRef.current
             if (!ta) return
             const { selectionStart = content.length, selectionEnd = content.length } = ta
-            const next = `${content.slice(0, selectionStart)}${em}${content.slice(selectionEnd)}`
+            const next = `${content.slice(0, selectionStart)}${value}${content.slice(selectionEnd)}`
             setContent(next)
             setEmojiPicker({ open: false })
             setTimeout(() => {
               try {
-                const pos = selectionStart + em.length
+                const pos = selectionStart + value.length
                 ta.selectionStart = pos
                 ta.selectionEnd = pos
                 ta.focus()
