@@ -15,7 +15,8 @@ export default function Button ({
   const variants = {
     primary: 'bg-primary text-primary-foreground shadow-soft hover:opacity-95',
     secondary: 'bg-background-subtle text-foreground hover:bg-background',
-    ghost: 'text-foreground-muted hover:bg-background-subtle'
+    ghost: 'text-foreground-muted hover:bg-background-subtle',
+    outline: 'border border-border bg-background text-foreground hover:bg-background-subtle'
   }
   const cls = [base, sizes[size] || sizes.md, variants[variant] || variants.primary, className]
     .filter(Boolean)
@@ -24,4 +25,3 @@ export default function Button ({
     <button type={type} disabled={disabled} className={cls} {...rest}>{children}</button>
   )
 }
-

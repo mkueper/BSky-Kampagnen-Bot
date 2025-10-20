@@ -9,6 +9,21 @@
 module.exports = (sequelize, DataTypes) => {
   const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
 
+  const normalizePlatforms = (value) => {
+    if (Array.isArray(value)) {
+      return value.filter(Boolean);
+    }
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const Skeet = sequelize.define(
     "Skeet",
     {
@@ -56,17 +71,29 @@ module.exports = (sequelize, DataTypes) => {
           }
         },
         targetPlatformsNotEmpty() {
-          const value = Array.isArray(this.targetPlatforms) ? this.targetPlatforms : [];
+          const value = normalizePlatforms(this.targetPlatforms);
           if (value.length === 0) {
             throw new Error("targetPlatforms darf nicht leer sein.");
           }
         },
         targetPlatformsAllowed() {
-          const value = Array.isArray(this.targetPlatforms) ? this.targetPlatforms : [];
+          const value = normalizePlatforms(this.targetPlatforms);
           const invalid = value.filter((p) => !ALLOWED_PLATFORMS.includes(p));
           if (invalid.length > 0) {
             throw new Error(`Ungültige Plattform(en): ${invalid.join(", ")}`);
           }
+        },
+      },
+      hooks: {
+        beforeValidate(instance) {
+          const value = normalizePlatforms(instance.targetPlatforms);
+          if (value.length > 0) {
+            instance.setDataValue('targetPlatforms', value);
+          }
+        },
+        beforeSave(instance) {
+          const value = normalizePlatforms(instance.targetPlatforms);
+          instance.setDataValue('targetPlatforms', value);
         },
       },
     }

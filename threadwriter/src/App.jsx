@@ -640,6 +640,10 @@ export default function App() {
                           <path d='M4 4h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3.5 5H6v6h1.5V9zm6.5 0h-5v6h1.5v-2H13v-1.5h-3.5V10H14V9zm1.5 0v6H17V13h2v-1.5h-2V10h2V9h-3z'/>
                         </svg>
                       </button>
+                    ) : !!tenorKey ? (
+                      <span style={{ marginLeft: 8, fontSize: 12, color: '#a00' }} title='Kein Tenor-Proxy verfügbar. Key nötig.'>
+                        GIF-Proxy nicht erreichbar
+                      </span>
                     ) : null}
                     <span style={{ marginLeft: 8, fontSize: 12, color: '#666' }}>
                       {(Array.isArray(pendingMedia[i]) ? pendingMedia[i].length : 0)}/{MAX_MEDIA_PER_SKEET}
