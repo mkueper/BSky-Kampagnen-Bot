@@ -1,5 +1,7 @@
 // src/services/pollingService.js
-// Plain JS, ESM. Keine Typen. Leicht integrierbar in React oder Vanilla UI.
+// Enthält einen anwendungsunabhängigen Polling-Controller. Er berücksichtigt
+// Tab-Sichtbarkeit, Benutzerinteraktionen sowie einen Master-Tab-Mechanismus,
+// um mehrfaches Polling bei mehreren offenen Fenstern zu vermeiden.
 
 export function createPollingController({
   // Pflicht: Funktionen, die neue Daten holen (Promise<array|object|null>)
@@ -22,7 +24,8 @@ export function createPollingController({
   heartbeatMs = 2_000,        // Master-Tab Heartbeat
   channelName = 'bsky-campaign-bot-poll-master',
 } = {}) {
-  // --- interner Zustand ---
+  // --- Interner Zustand ----------------------------------------------------
+  // Die folgenden Variablen kapseln sämtliche Laufzeitdaten des Controllers.
   let lastInteraction = getNow();
   let timerId = null;
   let stopped = true;
@@ -40,7 +43,8 @@ export function createPollingController({
     : null;
   const tabId = `${getNow()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  // Hilfen
+  // --- Hilfsfunktionen -----------------------------------------------------
+  // Kleinere Utilities, damit das Kern-Handling weiter unten schlanker bleibt.
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
   const withJitter = (ms) => {
     const delta = ms * jitterRatio;
@@ -49,6 +53,7 @@ export function createPollingController({
   };
   const sinceLastInteraction = () => getNow() - lastInteraction;
 
+  // Ermittelt den aktuellen Betriebsmodus abhängig von Sichtbarkeit und Fokus.
   function currentMode() {
     if (typeof isRelevantView === 'function' && isRelevantView() === false) return 'off';
     if (isHidden) return minimalPingWhenHidden ? 'hidden' : 'paused';
@@ -99,6 +104,7 @@ export function createPollingController({
     backoffMs = Math.min(backoffMaxMs, backoffMs ? backoffMs * 2 : backoffStartMs);
   }
 
+  // Hauptschleife: führt die hinterlegten Fetch-Callbacks aus und reagiert auf Fehler.
   async function tick() {
     if (stopped) return;
     if (!isMaster) {
@@ -140,6 +146,7 @@ export function createPollingController({
   }
 
   // --- Sofort-Trigger (z. B. nach „Skeet gesendet“) ---
+  // Sofortiges Polling auf Anforderung, etwa nach erfolgreichen Mutationen.
   async function triggerNow({ force = false } = {}) {
     // optional: auch im paused/off Modus anstoßen, wenn force=true
     if (!force && (currentMode() === 'off' || currentMode() === 'paused')) return;
@@ -168,7 +175,7 @@ export function createPollingController({
     }
   }
 
-  // --- Event-Handler: Aktivität erfassen ---
+  // --- Event-Handler: Aktivität erfassen -----------------------------------
   const onVisibility = () => {
     isHidden = document.hidden;
     // Sichtbarkeit ändert die Mode-Logik -> Timer neu setzen
@@ -178,13 +185,14 @@ export function createPollingController({
   const onBlur = () => { hasFocus = false; schedule(); };
   const onInteract = () => { lastInteraction = getNow(); /* kein sofortiges schedule, um Spam zu vermeiden */ };
 
-  // --- Master-Tab Wahl via BroadcastChannel ---
+  // --- Master-Tab Wahl via BroadcastChannel --------------------------------
   function sendBeat() {
     lastBeat = getNow();
     if (bc) bc.postMessage({ type: 'beat', tabId, ts: lastBeat });
   }
 
   let beatTimer = null;
+  // Sendet regelmäßig Herzschläge, damit andere Tabs erkennen, ob ein Master aktiv ist.
   function startBeating() {
     stopBeating();
     beatTimer = setInterval(() => {
@@ -222,6 +230,8 @@ export function createPollingController({
     }
   };
 
+  // Führt eine sehr einfache Master-Wahl durch: wer nach kurzer Zeit keinen
+  // fremden Heartbeat bemerkt, erklärt sich selbst zum Master.
   function electMaster() {
     // Grobe, einfache Election:
     // - Bei Start claimen wir die Master-Rolle
@@ -243,6 +253,8 @@ export function createPollingController({
   }
 
   // --- Lifecycle ---
+  // Startet den Poller: registriert Event-Listener, wählt ggf. den Master-Tab
+  // und legt den ersten Timer an.
   async function start() {
     if (!stopped) return;
     stopped = false;
@@ -264,6 +276,7 @@ export function createPollingController({
     schedule();
   }
 
+  // Stoppt sämtliche Aktivitäten und bereinigt Event-Listener.
   function stop() {
     if (stopped) return;
     stopped = true;
@@ -285,7 +298,7 @@ export function createPollingController({
     log('stopped');
   }
 
-  // Public API
+  // Öffentliche Steuerfunktionen, die von außen verwendet werden können.
   return {
     start,
     stop,

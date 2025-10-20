@@ -1,3 +1,5 @@
+// Zentrale Einstiegskomponente für das Dashboard. Kümmert sich um Navigation,
+// Datenabfragen, Themenverwaltung sowie das Einbinden der verschiedenen Views.
 import { useEffect, useRef, useState, useMemo } from 'react'
 import {
   DownloadIcon,
@@ -34,6 +36,7 @@ import { formatTime } from './utils/formatTime'
 import { getRepeatDescription } from './utils/timeUtils'
 import { useToast } from './hooks/useToast'
 
+// UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
   bluesky: 'Bluesky',
   mastodon: 'Mastodon'
@@ -92,6 +95,8 @@ async function saveBlobWithPicker (blob, suggestedName) {
   return { filename: suggestedName, method: 'download' }
 }
 
+// Seitenstruktur für die linke Navigation. Hier steht, welche Tabs angezeigt
+// werden und unter welchen IDs sie später adressiert werden.
 const NAV_ITEMS = [
   { id: 'overview', label: 'Übersicht', icon: ViewHorizontalIcon },
   {
@@ -117,6 +122,7 @@ const NAV_ITEMS = [
   { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
 ]
 
+// Sekundäre Überschriften, die in den einzelnen Ansichten eingeblendet werden.
 const HEADER_CAPTIONS = {
   overview: 'Übersicht',
   skeets: 'Skeets',
@@ -130,6 +136,7 @@ const HEADER_CAPTIONS = {
   about: 'Über Kampagnenbot'
 }
 
+// Haupt-Titelzeile der App, getrennt nach Ansicht.
 const HEADER_TITLES = {
   overview: 'Bluesky Kampagnen-Dashboard',
   skeets: 'Skeets',
@@ -142,6 +149,7 @@ const HEADER_TITLES = {
   config: 'Einstellungen & Automatisierung'
 }
 
+// Theme-Konfiguration – liefert Icon, Label und Farbschema für die Theme-Umschaltung.
 const THEMES = ['light', 'dark', 'midnight']
 const THEME_CONFIG = {
   light: { label: 'Helles Theme', colorScheme: 'light', icon: SunIcon },
@@ -151,6 +159,7 @@ const THEME_CONFIG = {
 const DEFAULT_THEME = THEMES[0]
 
 function App () {
+  // --- Globale UI-Zustände -------------------------------------------------
   const [activeView, setActiveView] = useState('overview')
   const { config: clientConfigPreset } = useClientConfig()
   const [credsOkOverride, setCredsOkOverride] = useState(false)
@@ -214,6 +223,8 @@ function App () {
 
   // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
   // Wichtig: Vor useSkeets/useThreads aufrufen, damit sseConnected verfügbar ist.
+  // Echtzeit-Aktualisierung: sobald der Backend-SSE-Stream ein Ereignis meldet,
+  // forcieren wir ein erneutes Laden der relevanten Datensätze.
   const { connected: sseConnected } = useSse({
     onSkeetEvent: async () => {
       try { await refreshSkeetsNow({ force: true }) } catch { /* ignore */ }
@@ -223,6 +234,7 @@ function App () {
     },
   })
 
+  // Skeet-bezogene Hooks bündeln sämtliche Listen, Detail-Puffer und Aktionen.
   const {
     plannedSkeets,
     publishedSkeets,
@@ -245,6 +257,7 @@ function App () {
     sseConnected
   })
 
+  // Entsprechende Hook für Threads – analog zu useSkeets.
   const {
     threads,
     loading: threadsLoading,
@@ -531,6 +544,7 @@ function App () {
     setActiveView('skeets-plan')
   }
 
+  // Löschen geplanter Skeets inkl. Sicherheitsabfrage und Toast-Meldungen.
   const handleDelete = async skeet => {
     setConfirmDialog({
       open: true,

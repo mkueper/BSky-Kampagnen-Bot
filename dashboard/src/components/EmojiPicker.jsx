@@ -1,9 +1,9 @@
+// Leichtgewichtiger Emoji-Picker als Popover, angeheftet an einen Trigger-Button.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-// Daten für emoji-mart werden dynamisch geladen (vermeidet harte Build-Abhängigkeit)
-// und nutzt eine feste JSON-Quelle, um Auflösungsprobleme zur Laufzeit zu vermeiden.
+import Picker from '@emoji-mart/react'
+import data from '@emoji-mart/data'
 
 export default function EmojiPicker({ open, onClose, onPick, anchorRef }) {
-
   // Close on Escape
   useEffect(() => {
     if (!open) return
@@ -17,6 +17,7 @@ export default function EmojiPicker({ open, onClose, onPick, anchorRef }) {
   const [pos, setPos] = useState({ top: -9999, left: -9999 })
   const [positioned, setPositioned] = useState(false)
   // Positionierungshelfer (breiten-/höhenbegrenzt, mit Rand)
+  // Berechnet die Popover-Position und hält das Panel innerhalb des Viewports.
   const updatePosition = (setReady = false) => {
     try {
       const a = anchorRef?.current
@@ -70,20 +71,9 @@ export default function EmojiPicker({ open, onClose, onPick, anchorRef }) {
     return () => document.removeEventListener('mousedown', onDown)
   }, [open, onClose, anchorRef])
 
-  const containerRef = useRef(null)
-  const [useFallback, setUseFallback] = useState(false)
-
-  // cleanup on close (remove mounted picker DOM)
-  useEffect(() => {
-    if (open) return
-    try {
-      const n = containerRef.current
-      if (n) { n.innerHTML = ''; delete n.dataset.mounted }
-    } catch {}
-    setUseFallback(false)
-  }, [open])
-
   if (!open) return null
+  // Overlay wird als Portals zentriertes Popover gerendert; pointer-events-none
+  // verhindert ungewollte Klicks außerhalb des Dialogs.
   return (
     <div className='fixed inset-0 z-[1000] pointer-events-none' role='presentation' aria-hidden>
       <div
@@ -94,69 +84,16 @@ export default function EmojiPicker({ open, onClose, onPick, anchorRef }) {
         aria-label='Emoji auswählen'
         style={{ position: 'fixed', top: pos.top, left: pos.left, width: 'min(92vw, 354px)', maxHeight: '80vh', overflow: 'auto', visibility: positioned ? 'visible' : 'hidden' }}
       >
-        <div ref={(node) => {
-          if (!node) return
-          containerRef.current = node
-          // Mount vanilla emoji-mart Picker into this container
-          // Defer to next tick to avoid duplicate mounts
-          Promise.resolve().then(async () => {
-            if (!open) return
-            if (node.dataset.mounted === '1') return
-            try {
-              const mod = await import('emoji-mart')
-              const Picker = mod.Picker || mod.default || mod
-              const dMod = await import('@emoji-mart/data/sets/15/native.json')
-              const data = dMod.default || dMod
-              const picker = new Picker({
-                data,
-                onEmojiSelect: (e) => onPick?.(e?.native || e?.shortcodes || e?.id),
-                locale: 'de',
-                theme: 'auto',
-                navPosition: 'top',
-                previewPosition: 'none'
-              })
-              // Falls der Knoten während des Imports entfernt wurde, nicht anhängen
-              if (!node.isConnected) return
-              node.innerHTML = ''
-              node.appendChild(picker)
-              node.dataset.mounted = '1'
-              setUseFallback(false)
-            } catch (e) {
-              // Log once to help debugging and keep empty fallback
-              try { console.error('[Dashboard EmojiPicker] failed to mount emoji-mart', e?.message || String(e)) } catch {}
-              setUseFallback(true)
-            }
-          })
-        }} />
-        {useFallback ? (
-          <div className='p-1'>
-            <FallbackEmojiGrid onPick={(em) => { onPick?.(em); onClose?.() }} />
-          </div>
-        ) : null}
+        <Picker
+          data={data}
+          onEmojiSelect={(e) => onPick?.(e?.native || e?.shortcodes || e?.id)}
+          locale='de'
+          theme='auto'
+          navPosition='top'
+          previewPosition='none'
+          searchPosition='sticky'
+        />
       </div>
-    </div>
-  )
-}
-
-function FallbackEmojiGrid({ onPick }) {
-  const EMOJIS = [
-    '😀','😁','😂','🤣','😊','😍','😘','😉','🙂','🙃','😎','🤓','🥳','🤩',
-    '👍','👎','👏','🙌','🙏','💪','🔥','✨','💡','🚀','🎉','✅','❌','⚠️','❗','❓',
-    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💖','💔','💯','⭐','🌟','🤝','👋'
-  ]
-  return (
-    <div className='grid grid-cols-8 gap-1 sm:grid-cols-10'>
-      {EMOJIS.map((em) => (
-        <button
-          key={em}
-          type='button'
-          className='rounded-lg border border-border bg-background px-1 py-1 text-lg hover:bg-background-elevated'
-          onClick={() => onPick?.(em)}
-          aria-label={`Emoji ${em} einfügen`}
-        >
-          <span>{em}</span>
-        </button>
-      ))}
     </div>
   )
 }
