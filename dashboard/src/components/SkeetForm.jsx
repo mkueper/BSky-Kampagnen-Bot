@@ -129,6 +129,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const maxContentLength = resolveMaxLength(targetPlatforms)
   const toast = useToast()
   const { config: clientConfig } = useClientConfig()
+  const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
+  const mastodonConfigured = Boolean(clientConfig?.platforms?.mastodonConfigured)
   const imagePolicy = clientConfig?.images || {
     maxCount: 4,
     maxBytes: 8 * 1024 * 1024,
@@ -224,8 +226,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       resetToDefaults()
     }
   }, [editingSkeet])
+  
+  // Mastodon deaktivieren, wenn keine Zugangsdaten vorhanden
+  useEffect(() => {
+    if (!mastodonConfigured) {
+      setTargetPlatforms(prev => prev.filter(p => p !== 'mastodon'))
+    }
+  }, [mastodonConfigured])
 
   function togglePlatform (name) {
+    if (name === 'mastodon' && !mastodonConfigured) return
     setTargetPlatforms(prev => {
       if (prev.includes(name)) {
         if (prev.length === 1) return prev
@@ -353,6 +363,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         >
           {['bluesky', 'mastodon'].map(platform => {
             const isActive = targetPlatforms.includes(platform)
+            const disabled = platform === 'mastodon' && !mastodonConfigured
+            const title = disabled ? 'Mastodon-Zugang nicht konfiguriert' : undefined
             return (
               <label
                 key={platform}
@@ -360,12 +372,15 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   isActive
                     ? 'border-primary bg-primary/10 text-primary shadow-soft'
                     : 'border-border text-foreground-muted hover:border-primary/50'
-                }`}
+                } ${disabled ? 'opacity-60 cursor-not-allowed hover:border-border' : ''}`}
+                aria-disabled={disabled || undefined}
+                title={title}
               >
                 <input
                   type='checkbox'
                   className='sr-only'
-                  checked={isActive}
+                  checked={isActive && !disabled}
+                  disabled={disabled}
                   onChange={() => togglePlatform(platform)}
                 />
                 <span className='capitalize'>
@@ -481,6 +496,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               >
                 <span className='text-base md:text-lg leading-none'>🖼️</span>
               </button>
+              {tenorAvailable ? (
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
@@ -494,6 +510,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               >
                 GIF
               </button>
+              ) : null}
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
@@ -525,6 +542,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               >
                 <span className='text-base md:text-lg leading-none'>🖼️</span>
               </button>
+              {tenorAvailable ? (
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
@@ -535,6 +553,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               >
                 GIF
               </button>
+              ) : null}
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
@@ -873,40 +892,42 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         }}
         onClose={() => setMediaDialog({ open: false })}
       />
-      <GifPicker
-        open={gifPicker.open}
-        onClose={() => setGifPicker({ open: false })}
-        classNames={DASHBOARD_GIF_PICKER_CLASSES}
-        styles={DASHBOARD_GIF_PICKER_STYLES}
-        onPick={async ({ downloadUrl }) => {
-          try {
-            const res = await fetch(downloadUrl)
-            const blob = await res.blob()
-            if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
-              toast.error({ title: 'GIF zu groß', description: 'Bitte ein kleineres GIF wählen.' })
-              return
+      {tenorAvailable ? (
+        <GifPicker
+          open={gifPicker.open}
+          onClose={() => setGifPicker({ open: false })}
+          classNames={DASHBOARD_GIF_PICKER_CLASSES}
+          styles={DASHBOARD_GIF_PICKER_STYLES}
+          onPick={async ({ downloadUrl }) => {
+            try {
+              const res = await fetch(downloadUrl)
+              const blob = await res.blob()
+              if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+                toast.error({ title: 'GIF zu groß', description: 'Bitte ein kleineres GIF wählen.' })
+                return
+              }
+              const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+              const reader = new FileReader()
+              reader.onload = () => {
+                setPendingMedia(arr => [
+                  ...arr,
+                  {
+                    filename: file.name,
+                    mime: file.type,
+                    data: reader.result,
+                    altText: ''
+                  }
+                ])
+              }
+              reader.readAsDataURL(file)
+            } catch (e) {
+              toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
+            } finally {
+              setGifPicker({ open: false })
             }
-            const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
-            const reader = new FileReader()
-            reader.onload = () => {
-              setPendingMedia(arr => [
-                ...arr,
-                {
-                  filename: file.name,
-                  mime: file.type,
-                  data: reader.result,
-                  altText: ''
-                }
-              ])
-            }
-            reader.readAsDataURL(file)
-          } catch (e) {
-            toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
-          } finally {
-            setGifPicker({ open: false })
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
       <EmojiPicker
         open={emojiPicker.open}
         onClose={() => setEmojiPicker({ open: false })}

@@ -54,6 +54,10 @@ async function getCredentials (req, res) {
       mastodon: {
         apiUrl: process.env.MASTODON_API_URL || 'https://mastodon.social',
         hasAccessToken: Boolean(process.env.MASTODON_ACCESS_TOKEN)
+      },
+      tenor: {
+        // Nur Zustand exponieren, Key selbst bleibt verborgen
+        hasApiKey: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
       }
     })
   } catch (error) {
@@ -73,7 +77,8 @@ async function updateCredentials (req, res) {
       // Secrets optional: nur setzen, wenn übergeben (nicht leer)
       BLUESKY_APP_PASSWORD: sanitizeValue(payload.blueskyAppPassword),
       MASTODON_API_URL: sanitizeValue(payload.mastodonApiUrl),
-      MASTODON_ACCESS_TOKEN: sanitizeValue(payload.mastodonAccessToken)
+      MASTODON_ACCESS_TOKEN: sanitizeValue(payload.mastodonAccessToken),
+      TENOR_API_KEY: sanitizeValue(payload.tenorApiKey)
     }
 
     // Set/merge values; secrets nur wenn nicht leer übergeben
@@ -82,6 +87,7 @@ async function updateCredentials (req, res) {
     if (entries.MASTODON_API_URL) map.set('MASTODON_API_URL', entries.MASTODON_API_URL)
     if (entries.BLUESKY_APP_PASSWORD) map.set('BLUESKY_APP_PASSWORD', entries.BLUESKY_APP_PASSWORD)
     if (entries.MASTODON_ACCESS_TOKEN) map.set('MASTODON_ACCESS_TOKEN', entries.MASTODON_ACCESS_TOKEN)
+    if (entries.TENOR_API_KEY) map.set('TENOR_API_KEY', entries.TENOR_API_KEY)
 
     writeEnvFileMap(envPath, map)
 
@@ -91,6 +97,7 @@ async function updateCredentials (req, res) {
     if (map.has('BLUESKY_APP_PASSWORD')) process.env.BLUESKY_APP_PASSWORD = map.get('BLUESKY_APP_PASSWORD')
     if (map.has('MASTODON_API_URL')) process.env.MASTODON_API_URL = map.get('MASTODON_API_URL')
     if (map.has('MASTODON_ACCESS_TOKEN')) process.env.MASTODON_ACCESS_TOKEN = map.get('MASTODON_ACCESS_TOKEN')
+    if (map.has('TENOR_API_KEY')) process.env.TENOR_API_KEY = map.get('TENOR_API_KEY')
 
     res.json({ ok: true })
   } catch (error) {

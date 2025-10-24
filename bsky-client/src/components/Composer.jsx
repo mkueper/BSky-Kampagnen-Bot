@@ -20,6 +20,21 @@ export default function Composer ({ reply = null, onSent }) {
   const cursorRef = useRef({ start: 0, end: 0 })
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [tenorAvailable, setTenorAvailable] = useState(false)
+
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/client-config')
+        const data = await res.json().catch(() => ({}))
+        if (!ignore && res.ok) {
+          setTenorAvailable(Boolean(data?.gifs?.tenorAvailable))
+        }
+      } catch { /* ignore */ }
+    })()
+    return () => { ignore = true }
+  }, [])
 
   const firstUrl = useMemo(() => {
     try {
@@ -238,15 +253,17 @@ export default function Composer ({ reply = null, onSent }) {
         >
           <span className='text-base leading-none md:text-lg'>🖼️</span>
         </Button>
-        <Button
-          type='button'
-          variant='outline'
-          disabled={mediaDisabled}
-          onClick={() => setGifPickerOpen(true)}
-          title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
-        >
-          GIF
-        </Button>
+        {tenorAvailable ? (
+          <Button
+            type='button'
+            variant='outline'
+            disabled={mediaDisabled}
+            onClick={() => setGifPickerOpen(true)}
+            title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
+          >
+            GIF
+          </Button>
+        ) : null}
         <Button
           ref={emojiButtonRef}
           type='button'
@@ -296,12 +313,14 @@ export default function Composer ({ reply = null, onSent }) {
           <span className='text-xs text-muted-foreground'>{message}</span>
         ) : null}
       </div>
-      <GifPicker
-        open={gifPickerOpen}
-        onClose={() => setGifPickerOpen(false)}
-        onPick={handleGifPick}
-        maxBytes={MAX_GIF_BYTES}
-      />
+      {tenorAvailable ? (
+        <GifPicker
+          open={gifPickerOpen}
+          onClose={() => setGifPickerOpen(false)}
+          onPick={handleGifPick}
+          maxBytes={MAX_GIF_BYTES}
+        />
+      ) : null}
       <EmojiPicker
         open={emojiPickerOpen}
         onClose={() => setEmojiPickerOpen(false)}
