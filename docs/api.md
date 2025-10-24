@@ -1,82 +1,216 @@
 # API Quick Reference
 
-Übersicht zentraler HTTP‑Endpunkte. Alle Routen sind JSON‑basiert. Erfolgsantworten liefern `200 OK` (oder `201 Created` bei Anlage). Fehler enthalten `{ error: string }` und nutzen passende Statuscodes.
+Übersicht über die wichtigsten HTTP‑Endpunkte des Projekts.
 
-## Konfiguration
+- Alle Routen liefern bzw. erwarten JSON (`Content-Type: application/json`), sofern nicht anders erwähnt.
+- Erfolgreiche Operationen geben `200 OK` bzw. `201 Created` zurück. Fehlerantworten folgen dem Muster `{ "error": "Beschreibung" }` und verwenden sinnvolle Statuscodes.
+- **Achtung:** Es existiert noch **keine Authentifizierung**. Betreibe die API nur lokal oder hinter einem gesicherten Netzwerk/Proxy.
 
-- GET `/api/client-config`
-  - Liefert Client‑Konfiguration (Polling‑Intervalle, Jitter, Heartbeat, Locale, Timezone)
-  - Beispielantwort (gekürzt):
-    ```json
-    {
-      "polling": {
-        "skeets": { "activeMs": 8000, "idleMs": 40000, "hiddenMs": 180000, "minimalHidden": false },
-        "threads": { "activeMs": 8000, "idleMs": 40000, "hiddenMs": 180000, "minimalHidden": false },
-        "backoffStartMs": 10000, "backoffMaxMs": 300000, "jitterRatio": 0.15, "heartbeatMs": 2000
-      },
-      "locale": "de-DE",
-      "timeZone": "Europe/Berlin"
-    }
-    ```
+---
 
-- GET `/api/settings/scheduler`
-- PUT `/api/settings/scheduler`
-  - Body: `{ scheduleTime: string, timeZone: string, postRetries: number, postBackoffMs: number, postBackoffMaxMs: number }`
-  - Antwort: `{ values, defaults }`
+## Grundlegende Konfiguration & Monitoring
 
-- GET `/api/settings/client-polling`
-- PUT `/api/settings/client-polling`
-  - Body (Auszug): `{ threadActiveMs, threadIdleMs, threadHiddenMs, skeetActiveMs, skeetIdleMs, skeetHiddenMs, backoffStartMs, backoffMaxMs, jitterRatio, heartbeatMs }`
-  - Antwort: `{ values, defaults }`
+- **GET `/api/client-config`**  
+  Liefert die vereinigte Client-Konfiguration für das Dashboard. Enthält Polling-Intervalle, Heartbeat, Jitter, Locale, Zeitzone sowie Flags wie `needsCredentials`.
 
-## Skeets
+- **GET/PUT `/api/settings/scheduler`**  
+  Lesen bzw. Schreiben des Scheduler-Setups. Request-Payload (PUT):  
+  ```json
+  {
+    "scheduleTime": "* * * * *",
+    "timeZone": "Europe/Berlin",
+    "postRetries": 4,
+    "postBackoffMs": 600,
+    "postBackoffMaxMs": 5000
+  }
+  ```  
+  Response enthält `{ "values": {...}, "defaults": {...} }`.
 
-- GET `/api/skeets?includeDeleted=1|0&onlyDeleted=1|0`
-- POST `/api/skeets`
-  - Body (Auszug): `{ content: string, scheduledAt?: string|null, repeat?: 'none'|'daily'|'weekly'|'monthly', targetPlatforms?: string[] }`
-- PATCH `/api/skeets/:id`
-- DELETE `/api/skeets/:id?permanent=1|0`
-- POST `/api/skeets/:id/retract` (Remote‑Löschen auf Plattformen)
-- POST `/api/skeets/:id/restore`
+- **GET/PUT `/api/settings/client-polling`**  
+  Persistiert (in der DB) Fallback-Intervalle für Skeet-/Thread-Polling plus Backoff/Jitter. Körper beinhaltet Felder wie `threadActiveMs`, `skeetHiddenMs`, `backoffStartMs`, `heartbeatMs`.
 
-- GET `/api/reactions/:skeetId`
-  - Aggregiert Likes/Reposts (Bluesky, optional Mastodon), speichert Metriken im Datensatz und liefert `{ total, platforms, errors? }`.
+- **POST `/api/heartbeat`**  
+  Vom Dashboard-Master-Tab gesendeter Heartbeat. Aktualisiert den Präsenzstatus, damit der Scheduler den Engagement-Collector bei abwesenden Clients drosseln kann.
 
-## Threads
+- **GET `/api/events` (Server-Sent Events)**  
+  Stream für Echtzeit-Updates. Events:
+  - `skeet:updated` – Änderungen an Skeets (Status, Löschung, Restore).
+  - `skeet:engagement` – aktualisierte Likes/Reposts für einen Skeet.
+  - `thread:updated` – Statuswechsel eines Threads (z. B. `publishing` → `published`).
+  - `thread:engagement` – Ergebnisse eines Engagement-Refreshs.
+  - `ping` – Keepalive alle 25 s.  
+  Client sollte `EventSource` verwenden und bei Abbruch reconnecten.
 
-- GET `/api/threads?status=draft|scheduled|published|deleted`
-- GET `/api/threads/:id`
-- POST `/api/threads`
-  - Body (Auszug): `{ title?: string, scheduledAt?: string|null, status?: 'draft'|'scheduled', targetPlatforms?: string[], appendNumbering?: boolean, skeets: { sequence?: number, content: string }[] }`
-- PATCH `/api/threads/:id`
-- DELETE `/api/threads/:id?permanent=1|0`
-- POST `/api/threads/:id/retract` (Remote‑Löschen auf Plattformen; wandert in Papierkorb)
-- POST `/api/threads/:id/restore`
+---
 
-- POST `/api/threads/:id/engagement/refresh`
-  - On‑Demand‑Collector für Likes/Reposts/Replies pro Segment; Antwort: `{ ok: true, totals, platforms }`.
+## Skeets (Einzelposts)
 
-## Import/Export
+- **GET `/api/skeets`**  
+  Optionaler Query-String:
+  - `includeDeleted=1` – inkludiert Papierkorb-Einträge (Soft-Delete).
+  - `onlyDeleted=1` – liefert ausschließlich gelöschte Einträge.
 
-- GET `/api/skeets/export[?includeMedia=0|1]`
-  - Liefert geplante Skeets als JSON. Enthält neben Metadaten jetzt auch optionale Medien je Skeet (max. 4) mit Base64-Inhalt und ALT‑Text.
-  - `includeMedia`: Standard `1` (inkludiert Medien). Mit `0` werden Medien zur Dateigrößenreduktion weggelassen.
-  - Medienobjekt: `{ filename?, mime, altText?, data }` wobei `data` eine Data‑URL (`data:<mime>;base64,<...>`) ist. `filename` ist optional und dient nur als Hinweis.
-- POST `/api/skeets/import`
-  - Akzeptiert die oben genannte Struktur; Medien werden gespeichert und ALT‑Texte übernommen.
-  - Duplikatprüfung: gleicher `content` + Termin/Repeat‑Kombination wird übersprungen.
-- GET `/api/threads/export[?status=...&includeMedia=0|1]`
-  - Liefert Threads (standardmäßig Drafts/Geplant) inkl. Segmenten. Jedes Segment kann Medien enthalten (Struktur wie oben, max. 4 pro Segment).
-  - `includeMedia`: Standard `1` (inkludiert Medien). Mit `0` werden Medien zur Dateigrößenreduktion weggelassen.
-- POST `/api/threads/import`
-  - Akzeptiert Threads mit `segments[].media[]`. Medien werden gespeichert, ALT‑Texte übernommen. `filename` ist optional; fehlt es, wird ein generischer Name verwendet.
-  - Duplikatprüfung: gleicher `title` und `scheduledAt` sowie identische Segment‑Texte in gleicher Reihenfolge werden übersprungen.
+- **POST `/api/skeets`**  
+  Legt einen Skeet an. Felder (Auszug):  
+  `content`, `scheduledAt` (ISO), `repeat` (`none|daily|weekly|monthly`), `repeatDayOfWeek`, `repeatDayOfMonth`, `targetPlatforms` (z. B. `["bluesky","mastodon"]`).
 
-Hinweis: Import erwartet eine passende JSON‑Struktur aus dem jeweiligen Export.
+- **PATCH `/api/skeets/:id`**  
+  Teilaktualisierung (gleiches Payload-Schema wie beim Anlegen).
 
-Größenhinweis
-- Durch Base64‑Inhalte können Exporte groß werden. Das serverseitige Limit für JSON‑Bodies ist via `JSON_BODY_LIMIT_MB` (Default 25) konfigurierbar.
-## Präsenz / Heartbeat
+- **DELETE `/api/skeets/:id`**  
+  Standard: Soft-Delete (`deletedAt` wird gesetzt). Mit `?permanent=1` endgültig löschen.
 
-- POST `/api/heartbeat`
-  - Wird vom Dashboard‑Master‑Tab periodisch aufgerufen und signalisiert dem Backend, dass ein aktiver Client vorhanden ist. Das Backend drosselt den periodischen Engagement‑Collector, wenn längere Zeit kein Heartbeat empfangen wurde.
+- **POST `/api/skeets/:id/retract`**  
+  Entfernt veröffentlichte Posts auf den Zielplattformen (soweit möglich). Optionaler Body: `{ "platforms": ["bluesky"] }`.
+
+- **POST `/api/skeets/:id/restore`**  
+  Stellt einen gelöschten Skeet wieder her (Soft-Delete).
+
+- **POST `/api/skeets/:id/publish-now`**  
+  Überspringt den Scheduler und veröffentlicht sofort (sofern Credentials vorhanden). Antwort enthält den aktualisierten Datensatz.
+
+- **GET `/api/skeets/export?includeMedia=1`**  
+  Liefert geplante Skeets als JSON. Medien werden (standardmäßig) als Data-URL eingebettet (`{ mime, altText?, data, filename? }`). Mit `includeMedia=0` lassen sich Medien weglassen.
+
+- **POST `/api/skeets/import`**  
+  Erwartet die vom Export gelieferte Struktur (`[{ ...skeet, media: [...] }]`). Medien werden gespeichert; Duplikate (Inhalt + Termin/Repeat) werden übersprungen.
+
+- **POST `/api/skeets/:id/media`**  
+  Fügt einem Skeet bis zu vier Bilder hinzu. Payload:  
+  `{ "data": "data:<mime>;base64,...", "mime": "image/png", "altText": "Beschreibung", "filename": "bild.png" }`.
+
+- **PATCH `/api/skeet-media/:mediaId`**  
+  Aktualisiert ALT-Text oder Reihenfolge (`{ "altText": "…" , "order": 1 }`).
+
+- **DELETE `/api/skeet-media/:mediaId`**  
+  Entfernt einen Medienanhang.
+
+---
+
+## Threads (Mehrteilige Kampagnen)
+
+- **GET `/api/threads`**  
+  Optional `?status=draft|scheduled|publishing|published|failed|deleted`.
+
+- **GET `/api/threads/:id`**  
+  Liefert Thread inkl. Segmenten, Reaktionen und Medien.
+
+- **POST `/api/threads`**  
+  Payload (Auszug):  
+  ```json
+  {
+    "title": "Launch-Plan",
+    "scheduledAt": "2025-01-31T10:00:00Z",
+    "targetPlatforms": ["bluesky"],
+    "appendNumbering": true,
+    "segments": [
+      { "sequence": 0, "content": "Part 1" },
+      { "sequence": 1, "content": "Part 2" }
+    ]
+  }
+  ```
+  Medien lassen sich im Anschluss pro Segment hochladen.
+
+- **PATCH `/api/threads/:id`**  
+  Aktualisiert Metadaten oder Segmente (analog zum POST-Payload).
+
+- **DELETE `/api/threads/:id`**  
+  Soft-Delete (Papierkorb). Mit `?permanent=1` vollständige Löschung.
+
+- **POST `/api/threads/:id/retract`**  
+  Entfernt veröffentlichte Segmente plattformweise und verschiebt den Thread in den Papierkorb.
+
+- **POST `/api/threads/:id/restore`**  
+  Stellt gelöschte Threads wieder her.
+
+- **POST `/api/threads/:id/publish-now`**  
+  Versendet einen Thread ohne Scheduler. Antwort enthält den aktualisierten Thread (inkl. Segmentstatus).
+
+- **GET `/api/threads/export`**  
+  Exportiert (standardmäßig Draft- & geplante) Threads inklusive Segmenten/Medien. Parameter:
+  - `status=draft|scheduled|published|deleted`
+  - `includeMedia=0|1`
+
+- **POST `/api/threads/import`**  
+  Erwartet Export-Format. Enthält `segments[].media[]` mit Data-URLs. Duplikate (Titel + Termin + identische Segmente) werden ignoriert.
+
+- **POST `/api/threads/:id/segments/:sequence/media`**  
+  Hängt Medien an ein Segment (`sequence` basiert auf Segment-Reihenfolge). Payload wie bei Skeet-Medien.
+
+- **PATCH `/api/media/:mediaId`** / **DELETE `/api/media/:mediaId`**  
+  Aktualisieren/Löschen von Thread-Segment-Medien.
+
+- **POST `/api/threads/:id/engagement/refresh`**  
+  Sammeln von Likes/Reposts/Replies für einen konkreten Thread. Antwort u. a. `{ "totals": { "likes": 5, "reposts": 2, "replies": 1 } }`.
+
+- **POST `/api/threads/engagement/refresh-all`**  
+  Batch-Refresh für alle veröffentlichten Threads. Nutzt Präsenz-Informationen, um nicht häufiger als konfiguriert zu laufen.
+
+---
+
+## Engagement & Reaktionen
+
+- **GET `/api/reactions/:skeetId`**  
+  Aggregiert Likes/Reposts je Plattform. Antwort enthält `total`, `platforms`, optionale `errors`. Speichert Zähler direkt am Skeet.
+
+- **GET `/api/replies/:skeetId`**  
+  Liefert Replies aus Bluesky (und Mastodon, sofern Token vorhanden). Antwort kann neben einer `items`-Liste auch `errors` enthalten, wenn Plattformen fehlschlagen.
+
+- **POST `/api/engagement/refresh-many`**  
+  Batch-Aktualisierung für sichtbar gelistete Entities (`{ "entity": "skeet", "ids": [1,2,3] }`). Antwort listet Resultate pro ID.
+
+---
+
+## Bluesky-Direktaktionen (Dashboard → Bluesky-API)
+
+- **GET `/api/bsky/timeline?tab=discover|following|mutuals|friends-popular|best-of-follows`**  
+  Liefert den entsprechenden Feed für den integrierten Client.
+
+- **POST `/api/bsky/post`**  
+  Direktes Posten eines Skeets über den eingebauten Composer. Payload umfasst `text`, optionale `reply`-Informationen und Medien-Strukturen analog zu den Planern.
+
+- **POST `/api/bsky/reply`**  
+  Antwortet auf einen existierenden Post (`{ uri, cid, text }`).
+
+- **POST/DELETE `/api/bsky/like`**, **POST/DELETE `/api/bsky/repost`**  
+  Likes/Reposts für gegebene URIs. Body: `{ "uri": "...", "cid": "..." }`.
+
+- **GET `/api/bsky/reactions`**  
+  Lightweight-Abfrage von Likes/Reposts für eine einzelne URI.
+
+---
+
+## Hilfsendpunkte & Werkzeuge
+
+- **GET `/api/preview?url=...`**  
+  Liefert og:image, Titel und Beschreibung für Link-Previews im Composer.
+
+- **GET/PUT `/api/config/credentials`**  
+  Liest bzw. schreibt Bluesky/Mastodon-Zugangsdaten in die `.env`. PUT erwartet u. a. `blueskyServerUrl`, `blueskyIdentifier`, `blueskyAppPassword`.
+
+- **POST `/api/uploads/temp`**  
+  Temporäre Ablage für Medien während der Thread-Bearbeitung. Body wie bei Medienendpunkten. Antwort liefert u. a. `tempId`, `previewUrl`, `size`. Limit via `UPLOAD_MAX_BYTES` (Default 8 MB).
+
+- **GET `/api/tenor/featured`**, **GET `/api/tenor/search?q=...`**  
+  Proxy zum Tenor-GIF-API. Aktiv nur mit gesetztem `TENOR_API_KEY`.
+
+- **POST `/api/maintenance/cleanup-mastodon`**  
+  Hilfsroute ohne Auth – entfernt Waisen in Mastodon-Daten. Nur in vertrauenswürdigen Netzen ausführen!
+
+- **GET `/health`**  
+  Health-Check (Version, Environment). Verwendet von Docker-Healthcheck.
+
+---
+
+## Import-/Upload-Limits
+
+- `JSON_BODY_LIMIT_MB` steuert die maximale Größe von JSON-Requests (Standard 25 MB) – relevant für Importe und Medienanhänge.
+- `UPLOAD_MAX_BYTES` begrenzt serverseitiges Zwischenspeichern von Base64-Medien (Default 8–10 MB, je nach Codepfad).
+- Je Skeet/Segment sind aktuell maximal vier Medien vorgesehen.
+
+---
+
+## Hinweise
+
+- Die API geht davon aus, dass Scheduler und Datenbank konsistent arbeiten. Bei manuellen Änderungen immer die Baseline-Migration (`migrations/00000000000000-baseline-rebuild.js`) berücksichtigen.
+- Viele Endpunkte geben zusätzlich Metadaten zurück (z. B. `platformResults`, `metadata`). Felder können Strings oder bereits geparste Objekte sein – die Frontend-Hooks normalisieren sie entsprechend.

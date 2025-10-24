@@ -11,7 +11,6 @@ Geeignet für lokale Entwicklung, manuelle Tests oder kleine Selbst-Hostings ohn
 - Bluesky-Identifier und App-Passwort
 
 Optional:
-- PostgreSQL oder MySQL, falls du nicht mit SQLite arbeiten möchtest
 - `nodemon` für komfortable Entwicklung (per `npm install -g nodemon`)
 
 ---
@@ -63,11 +62,9 @@ npm run build:frontend
 
 ```bash
 npm run migrate:dev
-# optional Seeds laden:
-npm run seed:dev
+# optionale Seeds (nur wenn eigene Seed-Dateien hinterlegt wurden):
+# npm run seed:dev
 ```
-
-> Tipp: Standardmäßig ist `sequelize.sync()` in der lokalen Entwicklung aktiv. Du kannst dies mit `DB_SYNC=false` in `.env` deaktivieren und ausschließlich Migrationen verwenden (`npm run migrate:dev`).
 
 ## 6. Server starten
 
@@ -82,7 +79,7 @@ Der Server lauscht standardmäßig auf <http://localhost:3000>. Für einen produ
 
 ## Zusätzliche Hinweise
 
-- **Datenbank:** Ohne weitere Konfiguration wird eine SQLite-Datei im Projektverzeichnis erstellt. Für PostgreSQL/MySQL entsprechende Verbindungsdaten in `.env` setzen. Ein Überblick über Tabellen und Migrationen findet sich in `docs/database.md`.
+- **Datenbank:** Ohne weitere Konfiguration wird eine SQLite-Datei (`data/bluesky_campaign_development.sqlite`) angelegt. Alternative SQL-Dialekte lassen sich über `DATABASE_URL` ausprobieren, werden aber derzeit nicht offiziell unterstützt.
 - **Logs:** Standardmäßig werden Logs in der Konsole ausgegeben. Für lokale Tests kann `npm run dev` mit automatischem Reload genutzt werden.
 - **Sicherheit:** `.env` niemals ins Repository einchecken. Verwende für Tests Dummy-Zugangsdaten.
 - **Backups:** Bei SQLite reicht das Kopieren der Datenbankdatei. Für andere Datenbanken stehen `pg_dump` bzw. `mysqldump` zur Verfügung.
