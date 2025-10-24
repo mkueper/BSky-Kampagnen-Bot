@@ -2,16 +2,17 @@
 
 Die Tabelle definiert die Farbzuordnung für Status in UI-Komponenten und Diagrammen. Änderungen sollten synchron im Frontend, in den CSS-Variablen und in den Mermaid-Diagrammen übernommen werden.
 
-| Status      | Farbe (Hex) | Verwendung |
-|-------------|-------------|------------|
-| draft       | `#9e9e9e`   | Entwürfe, noch nicht geplant |
-| scheduled   | `#1976d2`   | Geplante Posts/Threads |
-| sending     | `#ff9800`   | Aktive Ausführung im Scheduler |
-| sent        | `#4caf50`   | Erfolgreich veröffentlichte Inhalte |
-| failed      | `#f44336`   | Fehlgeschlagene Jobs |
-| cancelled   | `#757575`   | Manuell gestoppte Jobs |
-| archived    | `#607d8b`   | Archivierte Inhalte |
-| deleted     | `#000000`   | Dauerhaft gelöschte Einträge |
-| Start/End   | `#ffffff`   | Start- bzw. Endknoten in Diagrammen |
+| Status / Badge | Farbe (Hex) / Variant | Verwendung |
+|----------------|-----------------------|------------|
+| `draft`        | `#9e9e9e`             | Entwürfe ohne Termin/Veröffentlichung |
+| `scheduled`    | `#1976d2`             | Geplante Skeets/Threads |
+| `publishing`   | `#ff9800`             | Thread wird gerade versendet |
+| `published`    | `#4caf50`             | Erfolgreich veröffentlichte Inhalte |
+| `failed`       | `#f44336`             | Fehler beim Versand oder Engagement-Retrieval |
+| `deleted`      | `#000000`             | Papierkorb / permanent gelöscht |
+| `pending`      | Badge-Variant `outline` | Plattform noch ausstehend (siehe `PlatformBadges`) |
+| `sent`         | Badge-Variant `success` | Plattform erfolgreich veröffentlicht |
+| `partial`      | Badge-Variant `warning` | Teilweise gelöscht oder nur teilweise gesendet |
+| Start/End      | `#ffffff`             | Start- bzw. Endknoten in Diagrammen |
 
-> Tipp: Für Dark-Mode-Anpassungen den Kontrast mit Tools wie WebAIM prüfen.
+> Tipp: In Komponenten bevorzugt Tailwind-Variablen (`bg-primary`, `text-foreground` etc.) verwenden und nur bei Diagrammen/Legenden Hex-Werte hinterlegen. Für Dark-Mode-Anpassungen den Kontrast mit Tools wie WebAIM prüfen.

@@ -5,17 +5,28 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 ## Bausteine
 
 - `Card` (`dashboard/src/components/ui/Card.jsx`)
-  - Standardkarte mit Border, Shadow, optionalem Hover (Elevate)
-  - Props: `hover` (bool), `padding` (Tailwind‑Klassen)
+  - Standardkarte mit Border, Shadow, optionalem Hover (`hover`-Prop)
+  - Padding via Tailwind-Klasse (`padding`-Prop) steuerbar
 
 - `Button` (`dashboard/src/components/ui/Button.jsx`)
   - Varianten: `primary`, `secondary`, `neutral`, `warning`, `destructive`, `ghost`
-  - Einheitliche Größen/Abstände; `disabled` korrekt gestylt
+  - Größen: `md`, `icon`; disabled-Zustand und Fokus sind vordefiniert
 
 - `Badge` (`dashboard/src/components/ui/Badge.jsx`)
   - Varianten: `neutral`, `outline`, `success`, `warning`, `destructive`
-  - Größen: `sm`, `md`
-  - Optionales `icon`‑Prop für kompakte Chips (z. B. Plattform‑Icons)
+  - Größen: `sm`, `md`; optionales `icon` für Plattform-Symbole
+
+- `SummaryCard` (`dashboard/src/components/ui/SummaryCard.jsx`)
+  - Zahlenkacheln für Kennzahlen (Übersicht). Akzeptiert `label`, `value`, optionale Trend-Indikatoren.
+
+- `ActivityPanel` (`dashboard/src/components/ui/ActivityPanel.jsx`)
+  - Umschlag für Listenbereiche mit Tabs/Filter, z. B. Skeet-Aktivität.
+
+- `FloatingToolbar` (`dashboard/src/components/ui/FloatingToolbar.jsx`)
+  - Kontextbezogene Toolbar, die beim Scrollen eingeblendet wird. Nutzt Portals; Buttons bitte über die vorhandenen Varianten anlegen.
+
+- `ToastProvider` & `useToast` (`dashboard/src/components/ui/ToastProvider.jsx`, `hooks/useToast.js`)
+  - Einheitliche Toasts (`success`, `error`, `info`). Bitte keine ad-hoc `alert()` verwenden.
 
 ## Patterns
 
@@ -23,6 +34,8 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 - Karten: `Card` als Wrapper, konsistente Abstände via `padding` steuern.
 - Listen: Karten‑Hover nur, wenn die Karte interaktiv wirkt.
 - Badges: Status‐Farben konsistent (Grün=success, Amber=warning, Rot=destructive).
+- SSE-Hooks: `useSse` vor `useSkeets`/`useThreads` initialisieren, damit `sseConnected` korrekt übergeben wird und Polling sich selbst deaktiviert.
+- Floating Toolbar erst einblenden, wenn Aktionen verfügbar sind (z. B. sichtbare IDs vorhanden); ansonsten versteckt lassen.
 
 ## Beispiele
 
@@ -50,5 +63,5 @@ function Example() {
 ## Hinweise
 
 - Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight).
+- Für themenabhängige Styles bevorzugt CSS-Variablen (`bg-background`, `text-foreground`, …) statt fixer Hex-Werte verwenden.
 - Bitte neue Oberflächen bevorzugt auf diesen Bausteinen aufbauen.
-

@@ -72,6 +72,7 @@ docker compose exec backend npm run migrate:prod
 
 - Frontend: <http://localhost:${FRONTEND_PORT:-8080}>
 - Backend-API: <http://localhost:${BACKEND_PORT:-3000}>
+- SQLite-Datenbank und Uploads liegen im benannten Volume `data` (`/app/data` im Backend-Container).
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).
 
@@ -107,14 +108,14 @@ docker compose logs -f
 docker compose down
 ```
 
-Wenn du mit einer externen Datenbank arbeiten möchtest (z. B. PostgreSQL), kannst du den auskommentierten `db`-Service in `docker-compose.yml` reaktivieren oder über eine eigene Compose-Datei definieren.
+Wenn du mit einer externen Datenbank experimentieren möchtest, kannst du den auskommentierten `db`-Service in `docker-compose.yml` reaktivieren oder ein eigenes Compose-File ergänzen. Beachte, dass die Baseline-Migration aktuell SQLite-Pragmas nutzt – zusätzliche Tests sind erforderlich.
 
 ---
 
 ## Hinweise für den Produktivbetrieb
 
 - **Netzwerk:** Reverse Proxy (z. B. Traefik/Nginx) mit HTTPS vorschalten. Domains und Zertifikate außerhalb von Docker verwalten.
-- **Backups:** Volume `db_data` regelmäßig sichern. Für PostgreSQL bietet sich `pg_dump` an.
+- **Backups:** Volume `data` regelmäßig sichern (enthält SQLite + Uploads). Bei experimentellen Fremd-Datenbanken zusätzlich DB-spezifische Dumps einplanen.
 - **Updates:** Bei neuen Versionen `git pull`, anschließend `docker compose build`, `docker compose up -d` und `docker compose exec backend npm run migrate:prod` ausführen.
 - **Monitoring:** Docker-Healthchecks und Log-Aggregation (z. B. Loki, Elastic) einrichten, um Scheduler-Fehler früh zu erkennen.
 - **Schema & Migrationen:** Details zu Tabellen und Abläufen findest du in `../database.md`.

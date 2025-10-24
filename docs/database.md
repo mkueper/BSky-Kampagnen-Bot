@@ -1,108 +1,118 @@
 # Datenbankhandbuch
 
-Dieser Leitfaden beschreibt das aktuelle Datenbankschema des **BSky-Kampagnen-Bot**, die wichtigsten Tabellen sowie bewährte Abläufe für Migrationen und Pflege. Stand: September 2025.
+Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewährte Abläufe für Pflege & Migrationen zusammen. Basis ist der Zustand des Haupt-Branches (2025).
 
 ---
 
 ## Überblick
 
-- **Datenbanksysteme:** SQLite (Standard), optional PostgreSQL oder MySQL.
-- **ORM & Migrationen:** Sequelize; alle Änderungen werden als versionierte Migrationen unter `migrations/` abgelegt.
-- **Laufzeitzugriff:** Models liegen in `src/models/`, Services verwenden ausschließlich diese Abstraktion.
+- **Datenbanksystem:** SQLite (Standard). Andere Dialekte lassen sich über `DATABASE_URL` konfigurieren, werden jedoch aktuell nicht offiziell unterstützt, da die Baseline-Migration SQLite-spezifische PRAGMAs nutzt.
+- **ORM & Migrationen:** Sequelize. Die komplette Schema-Definition liegt in `migrations/00000000000000-baseline-rebuild.js` und wird beim Serverstart idempotent ausgeführt.
+- **Models & Zugriff:** Initialisiert über `backend/src/data/models/index.js`. Services verwenden ausschließlich diesen Einstieg, damit Relationen & Hooks konsistent bleiben.
+- **Speicherort:** Standardmäßig `./data/bluesky_campaign_<env>.sqlite`. Über `SQLITE_STORAGE` lässt sich ein abweichender Pfad setzen; Ordner werden beim Start automatisch angelegt.
 
-| Tabelle    | Zweck                                               |
-|------------|-----------------------------------------------------|
-| `Threads`  | Gruppiert mehrere Skeets zu einem redaktionellen Faden. |
-| `Skeets`   | Kernobjekt für geplante/veröffentlichte Beiträge inkl. Scheduling. |
-| `Replies`  | Persistiert eingehende Antworten aus Bluesky/Mastodon. |
-| `Settings` | Key-Value-Store für Scheduler- und Retry-Konfiguration. |
+| Tabelle              | Zweck                                                                 |
+|----------------------|-----------------------------------------------------------------------|
+| `Threads`            | Metadaten für mehrteilige Kampagnen (Titel, Status, Zeitzone-Infos)   |
+| `ThreadSkeets`       | Segmente eines Threads inkl. Zeichenanzahl, Remote-IDs, Status        |
+| `ThreadSkeetMedia`   | Medien je Thread-Segment                                              |
+| `Skeets`             | Einzelposts (geplant, veröffentlicht, wiederkehrend)                  |
+| `SkeetMedia`         | Medien je Skeet                                                       |
+| `SkeetReactions`     | Pro-Segment-Reaktionen (Replies, Likes etc.)                          |
+| `Replies`            | Aggregierte Antworten auf veröffentlichte Skeets                      |
+| `Settings`           | Key-Value-Store für Scheduler-/Client-Konfiguration                   |
 
 ---
 
 ## Tabellen im Detail
 
 ### Threads (`Threads`)
+- **Primärschlüssel:** `id` (INTEGER, auto increment)
+- **Felder:** `title`, `scheduledAt`, `status` (`draft|scheduled|publishing|published|failed|deleted`), `targetPlatforms` (JSON), `appendNumbering`, `metadata` (JSON-Objekt).
+- **Timestamps:** `createdAt`, `updatedAt`
+- **Relationen:** `Thread.hasMany(ThreadSkeet, { as: "segments" })`, `Thread.hasMany(Skeet, { as: "scheduledSkeets" })`
 
-- **Primärschlüssel:** `id` (INTEGER, auto-increment)
-- `title` – Anzeigename des Threads (TEXT, not null)
-- `createdAt` – Erstellungszeitpunkt (DATETIME, Default `CURRENT_TIMESTAMP`)
-- **Relationen:** `Skeets.threadId → Threads.id`
-- **Quelle:** Migration `20250810101350-baseline-init.js`
+### Thread-Segmente (`ThreadSkeets`)
+- **Felder:** `sequence`, `content`, `appendNumbering`, `characterCount`, `postedAt`, `remoteId`, `platformPayload` (JSON pro Plattform).
+- **Indices:** `(threadId, sequence)` eindeutig (`threadSkeets_thread_sequence_unique`), Index auf `remoteId`.
+- **Relationen:** `belongsTo(Thread)`, `hasMany(SkeetReaction)`, `hasMany(ThreadSkeetMedia)`
+
+### Thread-Segment-Medien (`ThreadSkeetMedia`)
+- **Felder:** `threadSkeetId`, `order`, `path`, `mime`, `size`, `altText`
+- **Anwendung:** Dateien liegen im Upload-Verzeichnis (`UPLOAD_DIR`, Standard `data/uploads`). Reihenfolge wird über `order` gesteuert.
 
 ### Skeets (`Skeets`)
+- **Felder:** `content`, `scheduledAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
+- **Soft-Delete:** `paranoid: true` → `deletedAt`.
+- **Indices:** auf `scheduledAt`, `threadId`, `deletedAt`.
+- **Validierungen:** Pflichttermin bei `repeat = 'none'`, Wiederholungswerte bei `weekly`/`monthly`, gültige Plattformen.
 
-- **Primärschlüssel:** `id`
-- `content` (TEXT, not null)
-- `scheduledAt` (DATETIME, optional) – nächster Ausführungszeitpunkt
-- `postUri` (STRING, optional) – URI des veröffentlichten Posts
-- `likesCount` / `repostsCount` (INTEGER, Default 0)
-- `postedAt` (DATETIME, optional)
-- `repeat` (STRING, Default `none`) – Wiederholungsmodus (`none`, `daily`, `weekly`, `monthly`)
-- `repeatDayOfWeek` (INTEGER, optional) – 0–6 (Sonntag–Samstag)
-- `repeatDayOfMonth` (INTEGER, optional) – 1–31
-- `threadId` (INTEGER, optional, FK → `Threads.id`)
-- `isThreadPost` (BOOLEAN, Default false)
-- `targetPlatforms` (TEXT/JSON, Default `['bluesky']`) – gespeicherte Plattformliste
-- `platformResults` (TEXT/JSON, optional) – API-Rückmeldungen je Plattform
-- `createdAt` / `updatedAt` (DATETIME, Default `CURRENT_TIMESTAMP`)
-- **Indizes:** auf `scheduledAt`, `threadId`
-- **Quelle:** Basismigration + `20250820120000-add-target-platforms.js`
+### Skeet-Medien (`SkeetMedia`)
+- Aufbau analog zu `ThreadSkeetMedia` (`skeetId`, `order`, `path`, `mime`, `size`, `altText`).
+
+### Skeet-Reaktionen (`SkeetReactions`)
+- Speichert pro Segment (`threadSkeetId`) Aggregationen: `type` (reply/like/repost), `authorHandle`, `authorDisplayName`, `content`, `metadata` (JSON), `fetchedAt`, `remoteId`.
+- Indizes auf `threadSkeetId` und `remoteId`.
 
 ### Replies (`Replies`)
-
-- **Primärschlüssel:** `id`
-- `skeetId` (INTEGER, not null, FK → `Skeets.id`) – Zugehöriger Beitrag
-- `authorHandle` (STRING, not null)
-- `content` (TEXT, not null) – Plaintext nach Normalisierung
-- `platform` (STRING, optional) – z. B. `bluesky` oder `mastodon`
-- `createdAt` / `updatedAt` (DATETIME, Default `CURRENT_TIMESTAMP`)
-- **Relationen:** `Replies` werden beim erneuten Import für einen Skeet überschrieben (`DELETE + INSERT`).
-- **Quelle:** Basismigration + `20250925120000-add-platform-to-replies.js`
+- Antworten auf Einzel-Skeets (nicht auf Thread-Segmente): `skeetId`, `authorHandle`, `content` (bereits von HTML befreit), `platform`.
+- Bei jedem Refresh wird der Satz für den Skeet komplett neu geschrieben (`DELETE` + `INSERT`).
 
 ### Settings (`Settings`)
-
-- **Primärschlüssel:** `id`
-- `key` (STRING, unique, not null) – z. B. `SCHEDULE_TIME`
-- `value` (TEXT, optional)
-- `createdAt` / `updatedAt` (DATETIME, Default `CURRENT_TIMESTAMP`)
-- **Genutzte Keys:** Siehe `src/services/settingsService.js` (`SCHEDULE_TIME`, `TIME_ZONE`, `POST_RETRIES`, `POST_BACKOFF_MS`, `POST_BACKOFF_MAX_MS`).
-- **Quelle:** Migration `20250924110000-create-settings-table.js`
+- Key-Value-Speicher (`key` eindeutig). Aktuelle Keys siehe `backend/src/core/services/settingsService.js` (`SCHEDULE_TIME`, `TIME_ZONE`, `POST_RETRIES`, `POST_BACKOFF_MS`, `POST_BACKOFF_MAX_MS`, sowie Client-Polling-Overrides).
 
 ---
 
-## Migrationen ausführen
+## Migrationen & Schema-Pflege
 
-| Umgebung      | Befehl                            |
-|---------------|-----------------------------------|
-| Lokal (SQLite) | `npm run migrate:dev`             |
-| Test           | `npm run migrate:test`            |
-| Produktion     | `npm run migrate:prod`            |
-| Docker Compose | `docker compose exec backend npm run migrate:prod` |
+1. **Baseline**  
+   Beim Start führt `backend/server.js` die Baseline-Migration immer aus:
+   ```js
+   const migration = require('migrations/00000000000000-baseline-rebuild.js');
+   await migration.up(queryInterface, Sequelize);
+   ```
+   Dadurch werden fehlende Tabellen/Spalten ergänzt, ohne bestehende Installationen zu zerstören.
 
-> **Hinweis:** Nach jedem Deploy mit Schemaänderungen muss die passende Migration auf dem Zielsystem ausgeführt werden, bevor neue App-Versionen starten.
+2. **Zusätzliche Migrationen**
+   - Lokal: `npm run migrate:dev`
+   - Test: `npm run migrate:test`
+   - Produktion: `npm run migrate:prod`
+   - Docker: `docker compose exec backend npm run migrate:prod`
 
-Rollback ist über `npx sequelize-cli db:migrate:undo` (oder `:undo:all`) möglich. Vor produktiven Rollbacks unbedingt ein Backup einspielen bzw. auf Schemaverträglichkeit prüfen.
+   Rollbacks sind via `npx sequelize-cli db:migrate:undo` möglich (nur mit aktuellem Backup empfohlen).
+
+3. **`sequelize.sync()`**
+   - Standardmäßig deaktiviert. Kann im Development per `DB_SYNC=true` (z. B. in `.env.local`) eingeschaltet werden.
+   - Produktion: unbedingt `DB_SYNC=false` belassen und ausschließlich Migrationen verwenden.
+
+4. **Datenbankpfade**
+   - `SQLITE_STORAGE` überschreibt den Speicherort.
+   - Die Standard-Dateien liegen in `data/` und sind je Umgebung getrennt (`development/test/production`).
 
 ---
 
-## Pflege & Best Practices
+## Backups & Betrieb
 
-- **Backups:**
-  - *SQLite:* Kopie der Datenbankdatei (`data/*.sqlite`).
-  - *PostgreSQL/MySQL:* Regelmäßige Dumps (`pg_dump`, `mysqldump`).
-- **Seeds:** Aktuell nicht aktiv im Repo hinterlegt; eigene Seeds können über `db:seed`-Kommandos eingebunden werden.
-- **Schema-Änderungen:**
-  1. Migration schreiben (Add/Change von Spalten, Indizes, FK).
-  2. Models & Services synchron halten.
-  3. Dokumentation (dieses Dokument) aktualisieren.
-- **Mehr-Plattform-Support:** Neue Spalten (z. B. in `Replies` oder `platformResults`) stets migrationsfähig gestalten und Default-Werte für bestehende Einträge definieren.
+- **SQLite:** Reicht eine Kopie der `.sqlite`-Datei. Bei laufender Anwendung kurzzeitig stoppen oder `sqlite3 .dump` verwenden, um inkonsistente Snapshots zu vermeiden.
+- **Uploads:** Medien werden in `data/uploads` (Skeets & Threads) bzw. `data/temp` (Draft-Uploads) abgelegt. Für Voll-Backups beide Ordner einbeziehen.
+- **Engagement-Daten:** `SkeetReactions` und `Replies` können bei Bedarf neu aufgebaut werden (`refresh`-Endpunkte), haben daher geringere Backup-Priorität.
+- **Docker:** Volume `data` beinhaltet sowohl Datenbank als auch Uploads.
+
+---
+
+## Best Practices für Schema-Änderungen
+
+1. Baseline erweitern oder neue Migration schreiben (bitte die idempotente Struktur beibehalten).
+2. Model in `backend/src/data/models/*.js` anpassen (Datentypen, Defaults, Hooks).
+3. Services/Controller aktualisieren.
+4. Dokumentation (dieses Dokument, README, API-Doku) ergänzen.
+5. Tests/Fixtures prüfen (`backend/tests`).
 
 ---
 
 ## Referenzen
 
-- Models: `src/models/*.js`
-- Migrationen: `migrations/*.js`
-- Services: `src/services/`
-- Scheduler/Config: `src/services/scheduler.js`, `src/services/settingsService.js`
-
+- **Model-Definitionen:** `backend/src/data/models/*.js`
+- **Baseline-Migration:** `migrations/00000000000000-baseline-rebuild.js`
+- **Scheduler & Services:** `backend/src/core/services/*`
+- **Konfiguration:** `config/config.js`, `.env.sample`
