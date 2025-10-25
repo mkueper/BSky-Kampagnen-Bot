@@ -12,7 +12,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "install:all": "npm install"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
