@@ -27,4 +27,14 @@ export default defineConfig({
       allow: [workspaceRoot],
     },
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './vitest.setup.js',
+    globals: true,
+    coverage: {
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/__tests__/**', 'src/main.jsx']
+    }
+  }
 });
