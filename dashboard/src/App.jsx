@@ -1171,7 +1171,11 @@ function App () {
           onThreadSaved={handleThreadSaved}
           onCancel={editingThreadId ? handleThreadCancel : undefined}
           onSuggestMoveToSkeets={(content) => {
-            try { setEditingThreadId(null) } catch {}
+            try {
+              setEditingThreadId(null)
+            } catch (error) {
+              console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
+            }
             setSkeetDraftContent(content || '')
             setActiveView('skeets-plan')
           }}

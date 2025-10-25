@@ -462,7 +462,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                     e.preventDefault()
                     setEmojiPicker({ open: true })
                   }
-                } catch {}
+                } catch { 
+                  // Shortcut konnte nicht verarbeitet werden; ignorieren
+                }
               }}
               placeholder='Was möchtest du veröffentlichen?'
               rows={10}
@@ -682,11 +684,27 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             type='time'
             value={scheduledTime}
             ref={timeInputRef}
-            onClick={() => { try { timeInputRef.current?.showPicker?.() } catch {} }}
-            onFocus={() => { try { timeInputRef.current?.showPicker?.() } catch {} }}
+            onClick={() => {
+              try {
+                timeInputRef.current?.showPicker?.()
+              } catch { 
+                // showPicker nicht verfügbar
+              }
+            }}
+            onFocus={() => {
+              try {
+                timeInputRef.current?.showPicker?.()
+              } catch { 
+                // showPicker nicht verfügbar
+              }
+            }}
             onChange={e => {
               setScheduledTime(e.target.value)
-              try { timeInputRef.current?.blur?.() } catch {}
+              try {
+                timeInputRef.current?.blur?.()
+              } catch { 
+                // blur konnte nicht erzwungen werden
+              }
             }}
             className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
           />
@@ -774,8 +792,20 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               type='date'
               value={scheduledDate}
               ref={dateInputRef}
-              onClick={() => { try { dateInputRef.current?.showPicker?.() } catch {} }}
-              onFocus={() => { try { dateInputRef.current?.showPicker?.() } catch {} }}
+              onClick={() => {
+                try {
+                  dateInputRef.current?.showPicker?.()
+                } catch { 
+                  // showPicker nicht verfügbar
+                }
+              }}
+              onFocus={() => {
+                try {
+                  dateInputRef.current?.showPicker?.()
+                } catch { 
+                  // showPicker nicht verfügbar
+                }
+              }}
               onChange={e => setScheduledDate(e.target.value)}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
             />
@@ -950,9 +980,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 ta.selectionStart = pos
                 ta.selectionEnd = pos
                 ta.focus()
-              } catch {}
+              } catch { 
+                // Cursor konnte nicht aktualisiert werden
+              }
             }, 0)
-          } catch {}
+          } catch { 
+            // Einfügen fehlgeschlagen; Eingabe unverändert lassen
+          }
         }}
       />
       {/* Info: Skeet-Text */}

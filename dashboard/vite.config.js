@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import path from "node:path";
 
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.resolve(currentDir, "..");
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -12,7 +15,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       // Link the workspace package as source so Vite transpiles JSX
-      "bsky-client": path.resolve(__dirname, "../bsky-client/src"),
+      "bsky-client": path.resolve(workspaceRoot, "bsky-client/src"),
     },
   },
   optimizeDeps: {
@@ -21,7 +24,7 @@ export default defineConfig({
   server: {
     fs: {
       // allow serving files from one directory up (monorepo workspace)
-      allow: [path.resolve(__dirname, "..")],
+      allow: [workspaceRoot],
     },
   },
 });

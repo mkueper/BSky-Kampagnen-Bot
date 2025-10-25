@@ -573,7 +573,7 @@ function ThreadForm ({
       if (!isEditMode) {
         restoreFromThread(null)
       }
-    } catch (error) {
+    } catch (error) { 
       console.error('Thread konnte nicht gespeichert werden:', error)
       toast.error({
         title: isEditMode
@@ -983,9 +983,13 @@ function ThreadForm ({
                 ta.selectionStart = pos
                 ta.selectionEnd = pos
                 ta.focus()
-              } catch {}
+              } catch { 
+                // Cursor konnte nicht neu gesetzt werden
+              }
             }, 0)
-          } catch {}
+          } catch { 
+            // Einfügen fehlgeschlagen; Eingabe sauber lassen
+          }
         }}
       />
       {tenorAvailable ? (

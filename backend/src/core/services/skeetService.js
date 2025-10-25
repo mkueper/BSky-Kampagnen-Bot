@@ -8,6 +8,16 @@ const { deletePost } = require('./postService');
 const events = require('./events');
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('./platformContext');
 
+function emitSkeetEvent(eventName, payload) {
+  try {
+    events.emit(eventName, payload);
+  } catch (error) {
+    log.warn(`Event ${eventName} konnte nicht gesendet werden`, {
+      error: error?.message || String(error)
+    });
+  }
+}
+
 function normalizeTargetPlatforms(raw) {
   if (!raw) {
     return [];
@@ -241,7 +251,7 @@ async function createSkeet(payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Erstellen des Skeet", { error: e?.message || String(e) }); }
-  try { events.emit('skeet:updated', { id: skeet.id, status: attributes.repeat === 'none' ? 'scheduled' : 'scheduled' }); } catch { /* ignore SSE emit error */ }
+  emitSkeetEvent('skeet:updated', { id: skeet.id, status: attributes.repeat === 'none' ? 'scheduled' : 'scheduled' });
   return skeet;
 }
 
@@ -250,11 +260,9 @@ async function updateSkeet(id, payload) {
   if (!skeet) {
     throw new Error('Skeet nicht gefunden.');
   }
-  try {
-    // Hinweis für Validierung: vorhandene Medien berücksichtigen
-    const existingCount = await SkeetMedia.count({ where: { skeetId: skeet.id } }).catch(() => 0);
-    skeet._hasExistingMedia = existingCount > 0;
-  } catch {}
+  // Hinweis für Validierung: vorhandene Medien berücksichtigen
+  const existingCount = await SkeetMedia.count({ where: { skeetId: skeet.id } }).catch(() => 0);
+  skeet._hasExistingMedia = existingCount > 0;
   const attributes = buildSkeetAttributes(payload, skeet);
   attributes.platformResults = {};
   if (attributes.repeat === 'none') {
@@ -283,7 +291,7 @@ async function updateSkeet(id, payload) {
       }
     }
   } catch (e) { log.error("Fehler beim Aktualisieren des Skeet", { error: e?.message || String(e) }); }
-  try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
+  emitSkeetEvent('skeet:updated', { id: skeet.id });
   return skeet;
 }
 
@@ -293,7 +301,7 @@ async function deleteSkeet(id, { permanent = false } = {}) {
     throw new Error('Skeet nicht gefunden.');
   }
   await skeet.destroy({ force: Boolean(permanent) });
-  try { events.emit('skeet:updated', { id: skeet.id, status: 'deleted', permanent: Boolean(permanent) }); } catch { /* ignore SSE emit error */ }
+  emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'deleted', permanent: Boolean(permanent) });
 }
 
 async function retractSkeet(id, options = {}) {
@@ -368,7 +376,7 @@ async function retractSkeet(id, options = {}) {
     }
 
     await skeet.update(updatePayload);
-    try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
+    emitSkeetEvent('skeet:updated', { id: skeet.id });
   }
 
   const fresh = await Skeet.findByPk(id, { paranoid: false });
@@ -390,7 +398,7 @@ async function restoreSkeet(id) {
     return skeet;
   }
   await skeet.restore();
-  try { events.emit('skeet:updated', { id: skeet.id }); } catch { /* ignore SSE emit error */ }
+  emitSkeetEvent('skeet:updated', { id: skeet.id });
   return skeet;
 }
 

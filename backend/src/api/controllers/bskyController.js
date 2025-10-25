@@ -87,7 +87,16 @@ async function postReply(req, res) {
     if (mediaInput.length > 0) {
       const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
       const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
-      try { if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true }) } catch {}
+      try {
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true })
+        }
+      } catch (error) {
+        log.warn('Upload-Verzeichnis konnte nicht erstellt werden', {
+          uploadDir,
+          error: error?.message || String(error)
+        })
+      }
       for (const m of mediaInput.slice(0, 4)) {
         try {
           const mime = m?.mime || 'image/jpeg'
@@ -102,7 +111,12 @@ async function postReply(req, res) {
               media.push({ path: finalPath, mime, altText: typeof m.altText === 'string' ? m.altText : '' })
             }
           }
-        } catch {}
+        } catch (error) {
+          log.warn('Medien konnten nicht übernommen werden (Reply)', {
+            tempId: m?.tempId,
+            error: error?.message || String(error)
+          })
+        }
       }
     }
 
@@ -141,7 +155,16 @@ async function postNow(req, res) {
     if (mediaInput.length > 0) {
       const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
       const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
-      try { if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true }) } catch {}
+      try {
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true })
+        }
+      } catch (error) {
+        log.warn('Upload-Verzeichnis konnte nicht erstellt werden (postNow)', {
+          uploadDir,
+          error: error?.message || String(error)
+        })
+      }
       for (const m of mediaInput.slice(0, 4)) {
         try {
           const mime = m?.mime || 'image/jpeg'
@@ -156,7 +179,12 @@ async function postNow(req, res) {
               media.push({ path: finalPath, mime, altText: typeof m.altText === 'string' ? m.altText : '' })
             }
           }
-        } catch {}
+        } catch (error) {
+          log.warn('Medien konnten nicht übernommen werden (postNow)', {
+            tempId: m?.tempId,
+            error: error?.message || String(error)
+          })
+        }
       }
     }
 
