@@ -16,7 +16,8 @@ describe('engagement filters (mastodon skip without ids)', () => {
     vi.spyOn(models.Thread, 'findByPk').mockResolvedValue({
       id: 1,
       metadata: { platformResults: { } },
-      segments: [ { id: 10, sequence: 0, remoteId: 'at://did:example/post/xyz' } ]
+      segments: [ { id: 10, sequence: 0, remoteId: 'at://did:example/post/xyz' } ],
+      update: vi.fn().mockResolvedValue()
     })
     // No-op sequelize transaction
     vi.spyOn(models.sequelize, 'transaction').mockImplementation(async (fn) => fn({}))
