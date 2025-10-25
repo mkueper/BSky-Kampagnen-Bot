@@ -24,12 +24,13 @@ const DASHBOARD_GIF_PICKER_CLASSES = {
   loadingMore: 'text-xs text-foreground-muted',
   footer: 'hidden',
   skeleton: 'h-24 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
-  error: 'text-sm text-destructive'
+  error: 'text-sm text-destructive',
 }
 
 const DASHBOARD_GIF_PICKER_STYLES = {
   overlay: { padding: '16px' },
-  panel: { width: 'min(520px, 92vw)', height: 'min(420px, 92vh)', padding: 0 },
+  //panel: { width: 'min(520px, 92vw)', height: 'min(420px, 92vh)', padding: 0 },
+  panel: { width: '70vw', maxWidth: '1200px' },
   grid: { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' },
   itemButton: { borderRadius: '14px' },
   image: { height: '120px' },

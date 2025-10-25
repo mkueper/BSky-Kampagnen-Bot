@@ -924,7 +924,7 @@ function App () {
 
   const handleFormSaved = async () => {
     setEditingSkeet(null)
-    try { setSkeetDraftContent('') } catch {}
+    try { setSkeetDraftContent('') } catch (e) { console.error(e); }
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
     setActiveView('skeets-overview')
     setActiveDashboardTab('planned')

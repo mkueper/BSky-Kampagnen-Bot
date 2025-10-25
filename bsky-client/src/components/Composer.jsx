@@ -316,6 +316,7 @@ export default function Composer ({ reply = null, onSent }) {
       {tenorAvailable ? (
         <GifPicker
           open={gifPickerOpen}
+          styles={{ panel: { width: '70vw', maxWidth: '1200px' }}}
           onClose={() => setGifPickerOpen(false)}
           onPick={handleGifPick}
           maxBytes={MAX_GIF_BYTES}
