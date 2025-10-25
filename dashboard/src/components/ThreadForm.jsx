@@ -6,8 +6,37 @@ import MediaDialog from './MediaDialog'
 import Button from './ui/Button'
 import Modal from './ui/Modal'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
-import GifPicker from './GifPicker'
-import EmojiPicker from './EmojiPicker'
+import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+
+const DASHBOARD_GIF_PICKER_CLASSES = {
+  overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
+  panel: 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated shadow-soft',
+  header: 'flex flex-col gap-3 border-b border-border/80 bg-background px-4 py-3',
+  title: 'text-base font-semibold text-foreground',
+  searchBar: 'flex w-full items-center gap-2',
+  input: 'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
+  buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
+  button: 'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
+  content: 'flex-1 overflow-y-auto bg-background px-4 py-4',
+  grid: 'grid grid-cols-3 gap-3',
+  itemButton: 'overflow-hidden rounded-xl border border-border bg-background-subtle transition hover:ring-2 hover:ring-primary/40',
+  image: 'h-24 w-full object-cover',
+  statusText: 'text-xs text-foreground-muted',
+  loadingMore: 'text-xs text-foreground-muted',
+  footer: 'hidden',
+  skeleton: 'h-24 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
+  error: 'text-sm text-destructive'
+}
+
+const DASHBOARD_GIF_PICKER_STYLES = {
+  overlay: { padding: '16px' },
+  //panel: { width: 'min(520px, 92vw)', height: 'min(420px, 92vh)', padding: 0 },
+  panel: { width: '70vw', maxWidth: '1200px' },
+  grid: { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' },
+  itemButton: { borderRadius: '14px' },
+  image: { height: '120px' },
+  skeleton: { height: '120px' }
+}
 
 const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
@@ -139,6 +168,8 @@ function ThreadForm ({
   const textareaRef = useRef(null)
   const toast = useToast()
   const { config: clientConfig } = useClientConfig()
+  const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
+  const mastodonConfigured = Boolean(clientConfig?.platforms?.mastodonConfigured)
   const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
 
   const restoreFromThread = thread => {
@@ -182,6 +213,13 @@ function ThreadForm ({
       restoreFromThread(null)
     }
   }, [initialThread, loading, threadId])
+
+  // Mastodon aus Zielplattformen entfernen, wenn nicht konfiguriert
+  useEffect(() => {
+    if (!mastodonConfigured) {
+      setTargetPlatforms((current) => current.filter((id) => id !== 'mastodon'))
+    }
+  }, [mastodonConfigured])
 
   const limit = useMemo(() => computeLimit(targetPlatforms), [targetPlatforms])
 
@@ -382,6 +420,7 @@ function ThreadForm ({
   };
 
   const handleTogglePlatform = (platformId) => {
+    if (platformId === 'mastodon' && !mastodonConfigured) return
     setTargetPlatforms((current) => {
       if (current.includes(platformId)) {
         // Mindestens eine Plattform muss aktiv bleiben
@@ -617,6 +656,8 @@ function ThreadForm ({
                 <div className='flex flex-wrap items-center gap-2' role='group' aria-label='Zielplattformen wählen'>
                   {PLATFORM_OPTIONS.map((option) => {
                     const isActive = targetPlatforms.includes(option.id);
+                    const disabled = option.id === 'mastodon' && !mastodonConfigured;
+                    const title = disabled ? 'Mastodon-Zugang nicht konfiguriert' : `${option.label} (${option.limit})`;
                     return (
                       <label
                         key={option.id}
@@ -624,13 +665,15 @@ function ThreadForm ({
                           isActive
                             ? 'border-primary bg-primary/10 text-primary shadow-soft'
                             : 'border-border text-foreground-muted hover:border-primary/50'
-                        }`}
-                        title={`${option.label} (${option.limit})`}
+                        } ${disabled ? 'opacity-60 cursor-not-allowed hover:border-border' : ''}`}
+                        title={title}
+                        aria-disabled={disabled || undefined}
                       >
                         <input
                           type='checkbox'
                           className='sr-only'
-                          checked={isActive}
+                          checked={isActive && !disabled}
+                          disabled={disabled}
                           onChange={() => handleTogglePlatform(option.id)}
                         />
                         <span className='capitalize'>
@@ -836,6 +879,7 @@ function ThreadForm ({
                         >
                           <span className='text-base md:text-lg leading-none'>🖼️</span>
                         </button>
+                        {tenorAvailable ? (
                         <button
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
@@ -847,6 +891,7 @@ function ThreadForm ({
                         >
                           GIF
                         </button>
+                        ) : null}
                         {/* Emoji-Button entfällt: Emojis werden im Text eingefügt */}
                       </div>
                     </header>
@@ -921,17 +966,20 @@ function ThreadForm ({
         open={emojiPicker.open}
         onClose={() => setEmojiPicker({ open: false })}
         anchorRef={textareaRef}
-        onPick={(em) => {
+        verticalAlign='center'
+        onPick={(emoji) => {
+          const value = emoji?.native || emoji?.shortcodes || emoji?.id
+          if (!value) return
           try {
             const ta = textareaRef.current
             if (!ta) return
             const { selectionStart = source.length, selectionEnd = source.length } = ta
-            const next = `${source.slice(0, selectionStart)}${em}${source.slice(selectionEnd)}`
+            const next = `${source.slice(0, selectionStart)}${value}${source.slice(selectionEnd)}`
             setSource(next)
             setEmojiPicker({ open: false })
             setTimeout(() => {
               try {
-                const pos = selectionStart + em.length
+                const pos = selectionStart + value.length
                 ta.selectionStart = pos
                 ta.selectionEnd = pos
                 ta.focus()
@@ -940,29 +988,33 @@ function ThreadForm ({
           } catch {}
         }}
       />
-      <GifPicker
-        open={gifPicker.open}
-        onClose={() => setGifPicker({ open: false, index: null })}
-        onPick={async ({ downloadUrl }) => {
-          try {
-            const resp = await fetch(downloadUrl)
-            const blob = await resp.blob()
-            if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
-              setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
-              return
+      {tenorAvailable ? (
+        <GifPicker
+          open={gifPicker.open}
+          onClose={() => setGifPicker({ open: false, index: null })}
+          classNames={DASHBOARD_GIF_PICKER_CLASSES}
+          styles={DASHBOARD_GIF_PICKER_STYLES}
+          onPick={async ({ downloadUrl }) => {
+            try {
+              const resp = await fetch(downloadUrl)
+              const blob = await resp.blob()
+              if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+                setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
+                return
+              }
+              const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+              const idx = gifPicker.index
+              if (typeof idx === 'number') {
+                await handleUploadMedia(idx, file, '')
+              }
+            } catch (e) {
+              setUploadError({ open: true, message: e?.message || 'GIF konnte nicht geladen werden.' })
+            } finally {
+              setGifPicker({ open: false, index: null })
             }
-            const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
-            const idx = gifPicker.index
-            if (typeof idx === 'number') {
-              await handleUploadMedia(idx, file, '')
-            }
-          } catch (e) {
-            setUploadError({ open: true, message: e?.message || 'GIF konnte nicht geladen werden.' })
-          } finally {
-            setGifPicker({ open: false, index: null })
-          }
-        }}
-      />
+          }}
+        />
+      ) : null}
       {uploadError.open ? (
         <Modal
           open={uploadError.open}

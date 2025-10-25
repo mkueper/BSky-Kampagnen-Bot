@@ -7,6 +7,7 @@
  */
 const config = require('@config');
 const settingsService = require('@core/services/settingsService');
+const { hasCredentials: hasMastodonCredentials } = require('@core/services/mastodonClient');
 
 async function getClientConfig(req, res) {
   try {
@@ -43,6 +44,12 @@ async function getClientConfig(req, res) {
       locale: config.LOCALE,
       timeZone: config.TIME_ZONE,
       needsCredentials,
+      platforms: {
+        mastodonConfigured: Boolean(hasMastodonCredentials())
+      },
+      gifs: {
+        tenorAvailable: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Client-Konfiguration.' });

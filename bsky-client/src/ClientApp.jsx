@@ -114,6 +114,7 @@ export default function BskyClientApp () {
       <ComposeModal
         open={composeOpen}
         onClose={() => { setComposeOpen(false); setReplyTarget(null) }}
+        title={replyTarget ? 'Antworten' : 'Neuer Post'}
         actions={
           <div className='flex items-center gap-2'>
             <Button variant='secondary' onClick={() => setConfirmDiscard(true)}>Abbrechen</Button>

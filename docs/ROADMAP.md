@@ -1,57 +1,48 @@
 # Roadmap – BSky-Kampagnen-Bot
 
-Die Roadmap gliedert die Entwicklung in drei auslieferbare Phasen. Jede Phase liefert ein produktiv nutzbares System, während Architektur und Sicherheit von Anfang an auf Skalierung, Mandantentrennung und Erweiterbarkeit ausgerichtet werden.
+Die Roadmap beschreibt mittelfristige Schwerpunkte. Sie wird laufend angepasst; Feedback und Issues sind ausdrücklich willkommen.
 
 ---
 
-## Phase 1 – Minimaler Kampagnen-Bot
+## Phase 1 – Stabilisierung & Betrieb (laufend)
 
-**Ziel:** Automatisiertes Planen und Posten von Skeets/Threads mit grundlegender Sicherheit.
+**Ziel:** Das bestehende Funktionsset (Planung, Scheduler, Engagement, integrierter Bluesky-Client) robust und produktionsnah betreiben können.
 
-### Kernfunktionen
-
-- Skeets und Threads planen, Unicode-Grapheme zählen, Medienanhänge mit Alt-Texten verwalten.
-- Scheduler mit UTC-Zeitplan, optionalen Wiederholungen und Status-Warteschlange (`pending`, `running`, `done`, `failed`).
-- Kampagnen-Grundstruktur mit Zeitzone, Zeitraum und Status.
-- Speicherung wahlweise per SQLite (Standard) oder PostgreSQL/MySQL über `.env`.
-- Sicherheit: Argon2id-Hashing für Nutzerpasswörter, verschlüsselte Speicherung von Bluesky-Credentials.
+Schwerpunkte:
+- Hardening der Deployment-Pfade (Docker, systemd, Backups)
+- Verbesserte Fehlermeldungen & Telemetrie (Logging, SSE-Events)
+- Medien-Handling, Upload-Limits und Datenbank-Baseline weiter absichern
+- Dokumentation & Onboarding (dieser Stand)
 
 ---
 
-## Phase 2 – Multi-Tenant-Kampagnen-Suite
+## Phase 2 – Sicherheit & Mehrbenutzerfähigkeit
 
-**Ziel:** Mehrere Organisationen können unabhängig voneinander arbeiten, inklusive Rollen und erweiterten Tools.
+**Ziel:** Das System hinter einer Authentifizierung sicher betreiben; mehrere Nutzer:innen sollen gemeinsam arbeiten können.
 
-### Erweiterungen
-
-- Mandantentrennung per `tenant_id`, Unique-Constraints pro Tenant, Query-Filter.
-- Benutzer- und Rollenverwaltung (`owner`, `admin`, `editor`, `viewer`) inklusive Einladungen und E-Mail-Verifizierung.
-- Scheduler-Verbesserungen: Retries mit Backoff, Concurrency-Limits, Abbruch und Neuplanung.
-- Medienverwaltung mit Metadaten, Wiederverwendung und optionalem S3-Speicher.
-- Analytics: Erfassung von Likes/Reposts/Replies und Zeitreihen-Auswertung.
-- Sicherheit: Envelope-Verschlüsselung je Tenant, Audit-Logs, vorbereitete 2FA-Tabellen.
+Geplante Aufgaben:
+1. API-/Dashboard-Auth (z. B. OAuth oder App-interne Benutzerverwaltung)
+2. Rollen-/Rechtekonzept (mindestens „Admin“ vs. „Editor“)
+3. Audit-Logs für Scheduler- und Posting-Aktionen
+4. Rate-Limiting & CSRF-Schutz für kritische Endpunkte
 
 ---
 
-## Phase 3 – Vollständiger Bluesky-Client
+## Phase 3 – Plattform- & Workflow-Erweiterungen
 
-**Ziel:** Neben der Kampagnenplanung ermöglicht das Tool vollwertige Bluesky-Interaktionen.
+**Ziel:** Zusätzliche Kanäle und Automatisierungen erschließen, ohne den Kern zu überlasten.
 
-### Geplante Funktionen
-
-- Timeline-Ansichten (Home, benutzerdefinierte Feeds, Listen) mit Filter- und Suchfunktionen.
-- Interaktionen: Liken, Reposten, Zitieren, Antworten, Follow/Unfollow, Listenpflege.
-- Direktnachrichten sobald Bluesky sie bereitstellt.
-- Multi-Account-Unterstützung pro Tenant, inklusive Account-spezifischer Timelines.
-- Erweiterte Kampagnenfunktionen (Mehrkanalplanung, Crossposting-Vorbereitung).
-- Sicherheit: Vollständige 2FA (TOTP + Backup-Codes, perspektivisch WebAuthn), Geräteverwaltung, Login-Benachrichtigungen.
-- Integrationen: Webhooks, Automatisierungs-API, optional Plugin-Schnittstelle.
+Ideen & Kandidaten:
+- Mastodon-Feature-Parität (Import/Export, Reaktionen, Direkt-Client)
+- Wiederkehrende Kampagnen mit konfigurierbaren Enddaten
+- Workflow-Automatisierungen (z. B. „Review → Freigabe → Versand“)
+- Webhooks / Export-APIs für externe Auswertungen
+- Support für alternative Speicher (S3 für Medien, experimentelle Postgres-Migration)
 
 ---
 
 ## Leitprinzipien
 
-- **Open Source:** Freie Lizenz, Community-Beiträge ausdrücklich erwünscht.
-- **Architektur:** Datenbank-agnostisch, konsequente Mandantentrennung, Security-by-Design.
-- **Priorisierung:** Jede Phase liefert Mehrwert, ohne zukünftige Erweiterungen zu blockieren.
-- **Feedback:** Feature-Requests und Diskussionen über Issues, Roadmap wird kontinuierlich aktualisiert.
+- **Transparenz:** Features sollen nachvollziehbar dokumentiert sein (Changelog, Docs).
+- **Schrittweise Releases:** Jede Phase liefert ein nutzbares Zwischenergebnis; große Umbauten werden in kleine Migrationsschritte zerlegt.
+- **Community:** Feature-Requests und Diskussionen laufen über GitHub-Issues; Pull Requests sind willkommen.

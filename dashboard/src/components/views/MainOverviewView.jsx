@@ -73,23 +73,27 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
-        </Card>
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-4">
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
+          </Card>
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
+          </Card>
+        </div>
+        <div className="space-y-4">
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
+          </Card>
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
+          </Card>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

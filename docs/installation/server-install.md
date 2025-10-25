@@ -9,7 +9,7 @@ Für produktive Umgebungen ohne Containerisierung. Die folgenden Schritte richte
 - Linux-Server mit Shell-Zugriff (Ubuntu/Debian/Fedora o. Ä.)
 - Node.js ≥ 20 und npm
 - Git
-- Unterstützte Datenbank (SQLite, PostgreSQL oder MySQL)
+- SQLite als persistente Datenbank (Standard). Andere SQL-Dialekte sind möglich, erfordern jedoch zusätzliche Tests.
 - Prozessmanager (empfohlen): `pm2` oder systemd-Service
 
 Optional:
@@ -65,8 +65,8 @@ npm run build:frontend
 
 ```bash
 npm run migrate:prod
-# optional Seeds für Demo-Daten:
-npm run seed:prod
+# optionale Seeds (nur falls eigene Seed-Skripte vorliegen):
+# npm run seed:prod
 ```
 
 > Hinweis: In Produktion sollte das Schema ausschließlich per Migrationen verwaltet werden. Stelle sicher, dass `DB_SYNC=false` in deiner `.env` gesetzt ist, damit `sequelize.sync()` übersprungen wird. Für lokale Entwicklung kannst du `DB_SYNC=true` setzen.
@@ -89,7 +89,7 @@ Alternativ kann ein systemd-Service erstellt werden, der `npm start` ausführt.
 
 ## Betriebs- und Sicherheitshinweise
 
-- **Datenbank:** Bei externen Datenbanken sicherstellen, dass Firewalls nur vertrauenswürdige Verbindungen zulassen.
+- **Datenbank:** SQLite-Datei regelmäßig sichern (`data/bluesky_campaign_production.sqlite`). Bei Tests mit alternativen Datenbanken (z. B. PostgreSQL) müssen Firewall und Backups separat gepflegt werden.
 - **HTTPS:** Reverse Proxy mit Zertifikatsverwaltung (z. B. Let’s Encrypt) vor das Backend schalten.
-- **Backups:** Datenbank und `.env` regelmäßig sichern; bei PostgreSQL/MySQL automatisierte Dumps einrichten.
+- **Backups:** Neben der SQLite-Datei auch Upload-Verzeichnis (`data/uploads`) und `.env` sichern.
 - **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen, `npm run migrate:prod` ausführen und anschließend den Dienst starten.
