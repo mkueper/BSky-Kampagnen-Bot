@@ -4,20 +4,129 @@ const bsky = require('@core/services/blueskyClient')
 const fs = require('fs')
 const path = require('path')
 
+const TIMELINE_TABS = {
+  following: { type: 'timeline' },
+  discover: { type: 'feed', feedUri: bsky.FEED_GENERATORS.discover },
+  'friends-popular': { type: 'feed', feedUri: bsky.FEED_GENERATORS['friends-popular'] },
+  mutuals: { type: 'feed', feedUri: bsky.FEED_GENERATORS.mutuals },
+  'best-of-follows': { type: 'feed', feedUri: bsky.FEED_GENERATORS['best-of-follows'] }
+}
+
+const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
+
+function mapThreadNode (node) {
+  if (!node || node.$type !== THREAD_NODE_TYPE) return null
+  const post = node.post || {}
+  const author = post.author || {}
+  const record = post.record || {}
+  const replies = Array.isArray(node.replies)
+    ? node.replies.map(mapThreadNode).filter(Boolean)
+    : []
+  return {
+    uri: post.uri || null,
+    cid: post.cid || null,
+    text: record.text || '',
+    createdAt: record.createdAt || post.indexedAt || null,
+    author: {
+      handle: author.handle || '',
+      displayName: author.displayName || author.handle || '',
+      avatar: author.avatar || null
+    },
+    stats: {
+      likeCount: post.likeCount ?? 0,
+      repostCount: post.repostCount ?? 0,
+      replyCount: post.replyCount ?? 0
+    },
+    raw: { post },
+    replies
+  }
+}
+
+function extractParentChain (node) {
+  const parents = []
+  let current = node?.parent
+  while (current && current.$type === THREAD_NODE_TYPE) {
+    const mapped = mapThreadNode(current)
+    if (mapped) parents.unshift(mapped)
+    current = current.parent
+  }
+  return parents
+}
+
+function mapPostView (post) {
+  if (!post) return null
+  const author = post.author || {}
+  const record = post.record || {}
+  return {
+    uri: post.uri || null,
+    cid: post.cid || null,
+    text: record.text || '',
+    createdAt: record.createdAt || post.indexedAt || null,
+    author: {
+      handle: author.handle || '',
+      displayName: author.displayName || author.handle || '',
+      avatar: author.avatar || null
+    },
+    stats: {
+      likeCount: post.likeCount ?? 0,
+      repostCount: post.repostCount ?? 0,
+      replyCount: post.replyCount ?? 0
+    },
+    raw: { post }
+  }
+}
+
+function mapNotificationEntry (entry, subjectMap) {
+  if (!entry) return null
+  const author = entry.author || {}
+  const record = entry.record || {}
+  const reasonSubject = entry.reasonSubject || null
+  const subject = reasonSubject && subjectMap instanceof Map
+    ? subjectMap.get(reasonSubject) || null
+    : null
+  return {
+    uri: entry.uri || null,
+    cid: entry.cid || null,
+    reason: entry.reason || 'unknown',
+    reasonSubject,
+    indexedAt: entry.indexedAt || null,
+    isRead: Boolean(entry.isRead),
+    author: {
+      handle: author.handle || '',
+      displayName: author.displayName || author.handle || '',
+      avatar: author.avatar || null
+    },
+    record: {
+      type: record.$type || null,
+      text: typeof record.text === 'string' ? record.text : '',
+      reply: record.reply || null,
+      embed: record.embed || null
+    },
+    subject,
+    raw: entry
+  }
+}
+
 /**
  * GET /api/bsky/timeline?tab=discover|following&limit=..&cursor=..
- * Aktuell wird unabhängig vom Tab die persönliche Timeline geliefert.
+ * Liefert je nach Tab entweder die persönliche Timeline oder einen offiziellen Feed-Generator.
  */
 async function getTimeline(req, res) {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
     const cursor = req.query.cursor || undefined
-    const tab = String(req.query.tab || 'following')
+    const requestedTab = String(req.query.tab || 'following').toLowerCase()
+    const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
 
-    // Derzeit keine Unterscheidung – beide liefern persönliche Timeline
-    const data = await bsky.getTimeline({ limit, cursor })
+    let data = null
+    if (tabConfig.type === 'feed' && tabConfig.feedUri) {
+      data = await bsky.getFeedGenerator(tabConfig.feedUri, { limit, cursor })
+    } else {
+      data = await bsky.getTimeline({ limit, cursor })
+    }
+
     if (!data || !Array.isArray(data.feed)) {
-      return res.json({ feed: [], cursor: null })
+      return res.json({ feed: [], cursor: null, tab: requestedTab })
     }
 
     // Schlankes Mapping für das Frontend (optional, raw bleibt verfügbar)
@@ -43,10 +152,73 @@ async function getTimeline(req, res) {
       }
     })
 
-    res.json({ feed: items, cursor: data.cursor || null, tab })
+    res.json({ feed: items, cursor: data.cursor || null, tab: requestedTab })
   } catch (error) {
     log.error('timeline failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Bluesky-Timeline.' })
+  }
+}
+
+async function getNotifications (req, res) {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '40', 10) || 40, 1), 100)
+    const cursor = req.query.cursor || undefined
+    const markSeen = String(req.query.markSeen || '').toLowerCase() === 'true'
+    const data = await bsky.getNotifications({ limit, cursor })
+    const notifications = Array.isArray(data?.notifications) ? data.notifications : []
+    const subjectUris = Array.from(
+      new Set(
+        notifications
+          .map((entry) => entry?.reasonSubject)
+          .filter((uri) => typeof uri === 'string' && uri.startsWith('at://'))
+      )
+    )
+    let subjectMap = new Map()
+    if (subjectUris.length > 0) {
+      const posts = await bsky.getPostsByUri(subjectUris)
+      const mappedPosts = posts
+        .map(mapPostView)
+        .filter((item) => item?.uri)
+      subjectMap = new Map(mappedPosts.map((item) => [item.uri, item]))
+    }
+    const items = notifications
+      .map((entry) => mapNotificationEntry(entry, subjectMap))
+      .filter(Boolean)
+    if (markSeen) {
+      try {
+        await bsky.markNotificationsSeen()
+      } catch (error) {
+        log.warn('markNotificationsSeen failed', { error: error?.message || String(error) })
+      }
+    }
+    const unreadCount = notifications.reduce((sum, entry) => sum + (entry?.isRead ? 0 : 1), 0)
+    res.json({
+      notifications: items,
+      cursor: data?.cursor || null,
+      seenAt: data?.seenAt || null,
+      unreadCount
+    })
+  } catch (error) {
+    log.error('notifications failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Mitteilungen.' })
+  }
+}
+
+async function getThread(req, res) {
+  try {
+    const uri = String(req.query?.uri || '').trim()
+    if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
+    const thread = await bsky.getReplies(uri)
+    if (!thread || thread.$type !== THREAD_NODE_TYPE) {
+      return res.status(404).json({ error: 'Thread nicht gefunden.' })
+    }
+    const focus = mapThreadNode(thread)
+    if (!focus) return res.status(404).json({ error: 'Thread nicht gefunden.' })
+    const parents = extractParentChain(thread)
+    res.json({ focus, parents })
+  } catch (error) {
+    log.error('thread failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden des Threads.' })
   }
 }
 
@@ -79,7 +251,7 @@ async function postReply(req, res) {
     const env = resolvePlatformEnv('bluesky')
     const envErr = validatePlatformEnv('bluesky', env)
     if (envErr) return res.status(500).json({ error: envErr })
-    // Medien (optional) aus temp übernehmen und an sendPost übergeben
+    // Medien (optional) aus temp uebernehmen und an sendPost uebergeben
     const allowed = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
       .split(',').map((s) => s.trim()).filter(Boolean)
     const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
@@ -112,7 +284,7 @@ async function postReply(req, res) {
             }
           }
         } catch (error) {
-          log.warn('Medien konnten nicht übernommen werden (Reply)', {
+          log.warn('Medien konnten nicht uebernommen werden (Reply)', {
             tempId: m?.tempId,
             error: error?.message || String(error)
           })
@@ -145,7 +317,7 @@ async function postNow(req, res) {
     const envErr = validatePlatformEnv('bluesky', env)
     if (envErr) return res.status(500).json({ error: envErr })
 
-    // Optionale Medien aus temp übernehmen
+    // Optionale Medien aus temp uebernehmen
     const fs = require('fs')
     const path = require('path')
     const allowed = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
@@ -180,7 +352,7 @@ async function postNow(req, res) {
             }
           }
         } catch (error) {
-          log.warn('Medien konnten nicht übernommen werden (postNow)', {
+          log.warn('Medien konnten nicht uebernommen werden (postNow)', {
             tempId: m?.tempId,
             error: error?.message || String(error)
           })
@@ -199,4 +371,4 @@ async function postNow(req, res) {
   }
 }
 
-module.exports = { getTimeline, getReactions, postReply, postNow }
+module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow }

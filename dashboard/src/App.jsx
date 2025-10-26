@@ -145,7 +145,7 @@ const HEADER_TITLES = {
   threads: 'Threads',
   'threads-overview': 'Thread Übersicht',
   'threads-plan': 'Thread planen',
-  'bsky-client': 'Direkt-Client',
+  'bsky-client': 'BSky Client',
   config: 'Einstellungen & Automatisierung'
 }
 

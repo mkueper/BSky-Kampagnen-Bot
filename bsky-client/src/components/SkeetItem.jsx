@@ -51,7 +51,7 @@ function extractExternalFromEmbed (item) {
   } catch { return null }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
@@ -71,8 +71,18 @@ export default function SkeetItem({ item, variant = 'card', onReply }) {
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
     : 'px-1'
-  return (
-    <Wrapper className={baseCls} data-variant={variant} data-component='BskySkeetItem'>
+  const handleSelect = (event) => {
+    if (typeof onSelect !== 'function') return
+    if (event) {
+      const target = event.target
+      if (target?.closest?.('button, a, input, textarea')) return
+      event.preventDefault()
+    }
+    onSelect(item)
+  }
+
+  const body = (
+    <>
       <header className='flex items-center gap-3'>
         {author.avatar ? (
           <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
@@ -163,6 +173,26 @@ export default function SkeetItem({ item, variant = 'card', onReply }) {
           </div>
         </a>
       ) : null}
+    </>
+  )
+
+  return (
+    <Wrapper className={baseCls} data-variant={variant} data-component='BskySkeetItem'>
+      {typeof onSelect === 'function' ? (
+        <div
+          role='button'
+          tabIndex={0}
+          className='-mx-1 rounded-xl px-1 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 hover:bg-background-subtle/50 cursor-pointer'
+          onClick={handleSelect}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              handleSelect(event)
+            }
+          }}
+        >
+          {body}
+        </div>
+      ) : body}
       <footer className='mt-3 flex items-center gap-5 text-sm text-foreground-muted'>
         <button
           type='button'
