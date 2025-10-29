@@ -173,6 +173,7 @@ export default function BskyClientApp () {
       <Notifications
         refreshKey={notificationsRefreshTick}
         onSelectPost={selectThreadFromItem}
+        onReply={openReplyComposer}
       />
     )
   }

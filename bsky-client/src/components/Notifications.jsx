@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, LoopIcon } from '@radix-ui/react-icons'
 import Button from './Button'
 
 const REASON_COPY = {
@@ -10,7 +11,7 @@ const REASON_COPY = {
   quote: { label: 'Quote', description: 'hat deinen Beitrag zitiert.' }
 }
 
-function NotificationCard ({ item, onSelectSubject }) {
+function NotificationCard ({ item, onSelectSubject, onReply }) {
   const {
     author = {},
     reason = 'unknown',
@@ -26,6 +27,107 @@ function NotificationCard ({ item, onSelectSubject }) {
   }
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
   const recordText = record?.text || ''
+  const isReply = reason === 'reply'
+
+  const [likeUri, setLikeUri] = useState(item?.viewer?.like || null)
+  const [repostUri, setRepostUri] = useState(item?.viewer?.repost || null)
+  const [likeCount, setLikeCount] = useState(Number(item?.stats?.likeCount ?? 0))
+  const [repostCount, setRepostCount] = useState(Number(item?.stats?.repostCount ?? 0))
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+
+  const hasLiked = Boolean(likeUri)
+  const hasReposted = Boolean(repostUri)
+  const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
+  const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
+
+  async function toggleRepost () {
+    if (busy) return
+    setBusy(true)
+    try {
+      if (!hasReposted) {
+        const res = await fetch('/api/bsky/repost', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uri: item?.uri, cid: item?.cid || record?.cid }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
+        setRepostUri(data?.viewer?.repost || null)
+        if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+      } else {
+        const res = await fetch('/api/bsky/repost', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repostUri }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
+        setRepostUri(null)
+        if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+        else setRepostCount((v) => Math.max(0, v - 1))
+      }
+      setActionError('')
+    } catch (err) {
+      setActionError(err?.message || 'Aktion fehlgeschlagen')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function toggleLike () {
+    if (busy) return
+    setBusy(true)
+    try {
+      if (!hasLiked) {
+        const res = await fetch('/api/bsky/like', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uri: item?.uri, cid: item?.cid || record?.cid }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Like fehlgeschlagen')
+        setLikeUri(data?.viewer?.like || null)
+        if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
+        else setLikeCount((v) => v + 1)
+      } else {
+        const res = await fetch('/api/bsky/like', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ likeUri }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || 'Unlike fehlgeschlagen')
+        setLikeUri(null)
+        if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
+        else setLikeCount((v) => Math.max(0, v - 1))
+      }
+      setActionError('')
+    } catch (err) {
+      setActionError(err?.message || 'Aktion fehlgeschlagen')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function refreshStats () {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      const params = new URLSearchParams({ uri: String(item?.uri || '') })
+      const res = await fetch(`/api/bsky/reactions?${params.toString()}`)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Aktualisieren fehlgeschlagen')
+      if (data?.likes != null) setLikeCount(Number(data.likes))
+      if (data?.reposts != null) setRepostCount(Number(data.reposts))
+      setActionError('')
+    } catch (err) {
+      setActionError(err?.message || 'Aktualisieren fehlgeschlagen')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   return (
     <article
@@ -78,11 +180,69 @@ function NotificationCard ({ item, onSelectSubject }) {
           ) : null}
         </div>
       </div>
+      {isReply ? (
+        <>
+          <footer className='mt-3 flex flex-wrap items-center gap-4 text-sm text-foreground-muted'>
+            <button
+              type='button'
+              className='group inline-flex items-center gap-2 hover:text-foreground transition'
+              title='Antworten'
+              onClick={() => {
+                if (typeof onReply === 'function') {
+                  onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
+                }
+              }}
+            >
+              <ChatBubbleIcon className='h-5 w-5' />
+              <span>Antworten</span>
+            </button>
+            <button
+              type='button'
+              className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+              style={repostStyle}
+              title='Reskeet'
+              aria-pressed={hasReposted}
+              disabled={busy}
+              onClick={toggleRepost}
+            >
+              <LoopIcon className='h-5 w-5' />
+              <span className='tabular-nums'>{repostCount}</span>
+            </button>
+            <button
+              type='button'
+              className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+              style={likeStyle}
+              title='Gefällt mir'
+              aria-pressed={hasLiked}
+              disabled={busy}
+              onClick={toggleLike}
+            >
+              {hasLiked ? (
+                <HeartFilledIcon className='h-5 w-5' />
+              ) : (
+                <HeartIcon className='h-5 w-5' />
+              )}
+              <span className='tabular-nums'>{likeCount}</span>
+            </button>
+            <button
+              type='button'
+              className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
+              onClick={refreshStats}
+              disabled={refreshing}
+            >
+              {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
+            </button>
+          </footer>
+          {actionError ? (
+            <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+          ) : null}
+        </>
+      ) : null}
     </article>
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -145,7 +305,19 @@ export default function Notifications ({ refreshKey = 0, onSelectPost }) {
   }, [cursor, fetchPage, hasMore, loadingMore])
 
   if (loading) {
-    return <p className='text-sm text-muted-foreground'>Mitteilungen werden geladen...</p>
+    return (
+      <div className='flex min-h-[240px] items-center justify-center' data-component='BskyNotifications' data-state='loading'>
+        <div
+          className='flex flex-col items-center gap-3'
+          role='status'
+          aria-live='polite'
+          aria-label='Mitteilungen werden geladen…'
+        >
+          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
+          <span className='sr-only'>Mitteilungen werden geladen…</span>
+        </div>
+      </div>
+    )
   }
   if (error) {
     return (
@@ -166,7 +338,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost }) {
       <ul className='space-y-3'>
         {items.map((item, idx) => (
           <li key={item.uri || item.cid || `${item.reason || 'notification'}-${item.reasonSubject || idx}-${idx}`}>
-            <NotificationCard item={item} onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined} />
+            <NotificationCard
+              item={item}
+              onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
+              onReply={onReply}
+            />
           </li>
         ))}
       </ul>
