@@ -7,7 +7,7 @@ const REASON_COPY = {
   repost: { label: 'Repost', description: 'hat deinen Beitrag geteilt.' },
   follow: { label: 'Follow', description: 'folgt dir jetzt.' },
   reply: { label: 'Antwort', description: 'hat auf deinen Beitrag geantwortet.' },
-  mention: { label: 'Mention', description: 'hat dich erwaehnt.' },
+  mention: { label: 'Mention', description: 'hat dich erwähnt.' },
   quote: { label: 'Quote', description: 'hat deinen Beitrag zitiert.' }
 }
 
@@ -22,12 +22,14 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
   } = item || {}
 
   const reasonInfo = REASON_COPY[reason] || {
-    label: 'Aktivitaet',
-    description: 'hat eine Aktion ausgefuehrt.'
+    label: 'Aktivität',
+    description: 'hat eine Aktion ausgeführt.'
   }
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
+  const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  const canOpenSubject = Boolean(subject && typeof onSelectSubject === 'function')
 
   const [likeUri, setLikeUri] = useState(item?.viewer?.like || null)
   const [repostUri, setRepostUri] = useState(item?.viewer?.repost || null)
@@ -42,6 +44,15 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
 
+  const openSubject = () => { if (canOpenSubject) onSelectSubject(subject) }
+  const openSubjectOnKey = (event) => {
+    if (!canOpenSubject) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onSelectSubject(subject)
+    }
+  }
+
   async function toggleRepost () {
     if (busy) return
     setBusy(true)
@@ -53,7 +64,7 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
           body: JSON.stringify({ uri: item?.uri, cid: item?.cid || record?.cid }),
         })
         const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
+        if (!res.ok) throw new Error(data?.error || 'Reskeet fehlgeschlagen')
         setRepostUri(data?.viewer?.repost || null)
         if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
       } else {
@@ -63,7 +74,7 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
           body: JSON.stringify({ repostUri }),
         })
         const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
+        if (!res.ok) throw new Error(data?.error || 'Undo-Reskeet fehlgeschlagen')
         setRepostUri(null)
         if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
         else setRepostCount((v) => Math.max(0, v - 1))
@@ -143,9 +154,27 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
         )}
         <div className='min-w-0 flex-1 space-y-2'>
           <div className='flex flex-wrap items-center gap-2'>
-            <p className='font-semibold text-foreground truncate'>{author.displayName || author.handle || 'Unbekannt'}</p>
+            {profileUrl ? (
+              <a
+                href={profileUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='font-semibold text-foreground hover:text-primary transition truncate'
+              >
+                {author.displayName || author.handle || 'Unbekannt'}
+              </a>
+            ) : (
+              <p className='font-semibold text-foreground truncate'>{author.displayName || author.handle || 'Unbekannt'}</p>
+            )}
             {author.handle ? (
-              <p className='text-sm text-foreground-muted truncate'>@{author.handle}</p>
+              <a
+                href={profileUrl || '#'}
+                target={profileUrl ? '_blank' : undefined}
+                rel={profileUrl ? 'noopener noreferrer' : undefined}
+                className='text-sm text-foreground-muted hover:text-primary transition truncate'
+              >
+                @{author.handle}
+              </a>
             ) : null}
             <span className='ml-auto rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted'>
               {reasonInfo.label}
@@ -155,24 +184,26 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
           </p>
           {recordText ? (
-            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words'>
+            <p
+              className={`rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60' : ''}`}
+              role={canOpenSubject ? 'button' : undefined}
+              tabIndex={canOpenSubject ? 0 : undefined}
+              onClick={canOpenSubject ? openSubject : undefined}
+              onKeyDown={canOpenSubject ? openSubjectOnKey : undefined}
+            >
               {recordText}
             </p>
           ) : null}
           {subject ? (
-            <div className='rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted'>
+            <div
+              className={`rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60' : ''}`}
+              role={canOpenSubject ? 'button' : undefined}
+              tabIndex={canOpenSubject ? 0 : undefined}
+              onClick={canOpenSubject ? openSubject : undefined}
+              onKeyDown={canOpenSubject ? openSubjectOnKey : undefined}
+            >
               Bezogen auf:&nbsp;
               <span className='font-medium text-foreground'>{subject.text || 'Beitrag'}</span>
-              {onSelectSubject && subject?.uri ? (
-                <Button
-                  size='pill'
-                  variant='secondary'
-                  className='ml-3 inline-flex'
-                  onClick={() => onSelectSubject(subject)}
-                >
-                  Beitrag anzeigen
-                </Button>
-              ) : null}
             </div>
           ) : null}
           {timestamp ? (
