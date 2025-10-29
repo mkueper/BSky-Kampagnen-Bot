@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import { BskyClientLayout } from './modules/layout'
+import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
 import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
@@ -106,7 +106,10 @@ export default function BskyClientApp () {
         { id: 'best-of-follows', label: 'Best of Follows' }
       ]
       return (
-        <div className='flex items-center gap-3 overflow-x-auto' data-component='BskyTimelineHeaderContent'>
+        <HorizontalScrollContainer
+          className='max-w-full'
+          data-component='BskyTimelineHeaderContent'
+        >
           {tabs.map(t => (
             <button
               key={t.id}
@@ -127,7 +130,7 @@ export default function BskyClientApp () {
               {t.label}
             </button>
           ))}
-        </div>
+        </HorizontalScrollContainer>
       )
     }
     if (section === 'notifications') {
