@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+﻿#!/bin/bash
 set -eu
 set -o pipefail 2>/dev/null || true
 
