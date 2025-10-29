@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useBskyEngagement } from '../shared'
+import { useBskyEngagement, RichText } from '../shared'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -110,7 +110,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           </time>
         ) : null}
       </header>
-      <p className='mt-3 whitespace-pre-wrap break-words text-sm text-foreground'>{text}</p>
+      <p className='mt-3 text-sm text-foreground'>
+        <RichText text={text} className='whitespace-pre-wrap break-words' />
+      </p>
 
       {images.length > 0 ? (
         <div className='mt-3' data-component='BskySkeetImages'>

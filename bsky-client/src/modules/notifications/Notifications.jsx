@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, LoopIcon } from '@radix-ui/react-icons'
-import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi } from '../shared'
+import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText } from '../shared'
 
 const REASON_COPY = {
   like: { label: 'Like', description: 'hat deinen Beitrag geliked.' },
@@ -114,14 +114,16 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
           </p>
           {recordText ? (
-            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words'>
-              {recordText}
+            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+              <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
           {subject ? (
             <div className='rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted'>
               Bezogen auf:&nbsp;
-              <span className='font-medium text-foreground'>{subject.text || 'Beitrag'}</span>
+              <span className='font-medium text-foreground'>
+                <RichText text={subject.text || 'Beitrag'} />
+              </span>
             </div>
           ) : null}
           {timestamp ? (
