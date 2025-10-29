@@ -50,7 +50,7 @@
                     "build:electron:win":  "npm run build:frontend \u0026\u0026 electron-builder -w nsis",
                     "pack:electron":  "npm run build:frontend \u0026\u0026 electron-builder --dir -l AppImage",
                     "docker:build":  "docker compose build",
-                    "docker:bundle":  "./scripts/docker-bundle.sh",
+                    "docker:bundle":  "bash scripts/docker-bundle.sh",
                     "lint":  "eslint . --max-warnings=0",
                     "lint:fix":  "eslint . --fix",
                     "switchenv:dev":  "node scripts/switch-env.js dev",
