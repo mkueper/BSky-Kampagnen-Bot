@@ -1,42 +1,57 @@
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-async function requestJson(path, { method = 'GET', body, headers, ...options } = {}) {
-  const init = {
-    method,
-    headers: { ...(headers || {}) },
-    ...options,
-  };
+async function requestJson(path, { method = 'GET', body, headers, retries = 1, ...options } = {}) {
+  const serializedBody =
+    body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body));
 
-  if (body !== undefined) {
-    init.body = typeof body === 'string' ? body : JSON.stringify(body);
-    if (!init.headers['Content-Type']) init.headers['Content-Type'] = 'application/json';
+  let attempt = 0;
+  let lastError;
+
+  while (attempt <= retries) {
+    const init = {
+      method,
+      headers: { ...(headers || {}) },
+      ...options,
+    };
+
+    if (serializedBody !== undefined) {
+      init.body = serializedBody;
+      if (!init.headers['Content-Type']) init.headers['Content-Type'] = 'application/json';
+    }
+
+    try {
+      const response = await fetch(path, init);
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok) {
+        const message = data?.error || `HTTP ${response.status}`;
+        const error = new Error(message);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
+
+      return data ?? {};
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt === retries) break;
+      attempt += 1;
+    }
   }
 
-  let response;
-  try {
-    response = await fetch(path, init);
-  } catch (error) {
+  if (lastError?.message === 'Failed to fetch') {
     const networkError = new Error('Netzwerkfehler beim Kontaktieren des Backends.');
-    networkError.cause = error;
+    networkError.cause = lastError;
     throw networkError;
   }
 
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message = data?.error || `HTTP ${response.status}`;
-    const error = new Error(message);
-    error.status = response.status;
-    error.data = data;
-    throw error;
-  }
-
-  return data ?? {};
+  throw lastError;
 }
 
 export async function fetchTimeline({ tab, cursor } = {}) {
