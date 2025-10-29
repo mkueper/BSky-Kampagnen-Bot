@@ -88,7 +88,25 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
     return () => el.removeEventListener('scroll', onScroll)
   }, [loadMore])
 
-  if (loading) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='loading'>Lade Timeline…</p>
+  if (loading) {
+    return (
+      <div
+        className='flex min-h-[320px] items-center justify-center'
+        data-component='BskyTimeline'
+        data-state='loading'
+      >
+        <div
+          className='flex flex-col items-center gap-3'
+          role='status'
+          aria-live='polite'
+          aria-label='Lade Timeline…'
+        >
+          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
+          <span className='sr-only'>Lade Timeline…</span>
+        </div>
+      </div>
+    )
+  }
   if (error) return <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='error'>Fehler: {error}</p>
   if (items.length === 0) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>Keine Einträge gefunden.</p>
   return (

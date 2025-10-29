@@ -23,7 +23,7 @@ describe('Timeline', () => {
 
     render(<Timeline tab="home" />);
 
-    expect(screen.getByText(/Lade Timeline/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Lade Timeline/i)).toBeInTheDocument();
 
     expect(await screen.findByText(/Keine Eintr/i)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
