@@ -1,2 +1,3 @@
 export { default as BskyClientLayout } from './BskyClientLayout.jsx';
-\nexport { default as HorizontalScrollContainer } from './HorizontalScrollContainer.jsx';\n
+export { default as HorizontalScrollContainer } from './HorizontalScrollContainer.jsx';
+
