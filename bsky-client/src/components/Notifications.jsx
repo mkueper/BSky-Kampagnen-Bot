@@ -44,15 +44,6 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
 
-  const openSubject = () => { if (canOpenSubject) onSelectSubject(subject) }
-  const openSubjectOnKey = (event) => {
-    if (!canOpenSubject) return
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      onSelectSubject(subject)
-    }
-  }
-
   async function toggleRepost () {
     if (busy) return
     setBusy(true)
@@ -142,9 +133,25 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
 
   return (
     <article
-      className={`rounded-2xl border border-border bg-background p-4 shadow-soft ${isRead ? '' : 'ring-1 ring-primary/40'}`}
+      className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
       data-component='BskyNotificationCard'
       data-reason={reason}
+      onClick={(event) => {
+        if (!canOpenSubject) return
+        if (event.target?.closest?.('button, a')) return
+        onSelectSubject(subject)
+      }}
+      onKeyDown={(event) => {
+        if (!canOpenSubject) return
+        if (event.target?.closest?.('button, a')) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelectSubject(subject)
+        }
+      }}
+      role={canOpenSubject ? 'button' : undefined}
+      tabIndex={canOpenSubject ? 0 : undefined}
+      aria-label={canOpenSubject ? 'Thread öffnen' : undefined}
     >
       <div className='flex items-start gap-3'>
         {author.avatar ? (
@@ -184,24 +191,12 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
           </p>
           {recordText ? (
-            <p
-              className={`rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60' : ''}`}
-              role={canOpenSubject ? 'button' : undefined}
-              tabIndex={canOpenSubject ? 0 : undefined}
-              onClick={canOpenSubject ? openSubject : undefined}
-              onKeyDown={canOpenSubject ? openSubjectOnKey : undefined}
-            >
+            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words'>
               {recordText}
             </p>
           ) : null}
           {subject ? (
-            <div
-              className={`rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60' : ''}`}
-              role={canOpenSubject ? 'button' : undefined}
-              tabIndex={canOpenSubject ? 0 : undefined}
-              onClick={canOpenSubject ? openSubject : undefined}
-              onKeyDown={canOpenSubject ? openSubjectOnKey : undefined}
-            >
+            <div className='rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted'>
               Bezogen auf:&nbsp;
               <span className='font-medium text-foreground'>{subject.text || 'Beitrag'}</span>
             </div>
