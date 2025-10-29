@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, LoopIcon } from '@radix-ui/react-icons'
-import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText } from '../shared'
+import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
+import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 
 const REASON_COPY = {
   like: { label: 'Like', description: 'hat deinen Beitrag geliked.' },
@@ -148,18 +148,16 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
               <ChatBubbleIcon className='h-5 w-5' />
               <span>Antworten</span>
             </button>
-            <button
-              type='button'
-              className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+            <RepostMenuButton
+              count={repostCount}
+              hasReposted={hasReposted}
+              busy={busy}
               style={repostStyle}
-              title='Reskeet'
-              aria-pressed={hasReposted}
-              disabled={busy}
-              onClick={toggleRepost}
-            >
-              <LoopIcon className='h-5 w-5' />
-              <span className='tabular-nums'>{repostCount}</span>
-            </button>
+              onRepost={() => {
+                clearError()
+                toggleRepost()
+              }}
+            />
             <button
               type='button'
               className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
@@ -179,7 +177,7 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             <button
               type='button'
               className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
-              onClick={refreshStats}
+              onClick={refresh}
               disabled={refreshing}
             >
               {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
@@ -301,3 +299,6 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }
     </section>
   )
 }
+
+
+

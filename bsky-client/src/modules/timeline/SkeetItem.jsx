@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
-import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
+import { ChatBubbleIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useBskyEngagement, RichText } from '../shared'
+import { useBskyEngagement, RichText, RepostMenuButton } from '../shared'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -221,18 +221,16 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
           <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
         </button>
-        <button
-          type='button'
-          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+        <RepostMenuButton
+          count={repostCount}
+          hasReposted={hasReposted}
+          busy={busy}
           style={repostStyle}
-          title='Reskeet'
-          aria-pressed={hasReposted}
-          disabled={busy}
-          onClick={toggleRepost}
-        >
-          <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{repostCount}</span>
-        </button>
+          onRepost={() => {
+            clearError()
+            toggleRepost()
+          }}
+        />
         <button
           type='button'
           className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
@@ -263,3 +261,5 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
     </Wrapper>
   )
 }
+
+
