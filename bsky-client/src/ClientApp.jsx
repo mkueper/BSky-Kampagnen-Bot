@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
 import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
-import { Button, fetchThread as fetchThreadApi } from './modules/shared'
+import { Button, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
 
 export default function BskyClientApp () {
   const [section, setSection] = useState('home')
@@ -13,6 +13,8 @@ export default function BskyClientApp () {
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
+  const [timelineTopUri, setTimelineTopUri] = useState('')
+  const [timelineHasNew, setTimelineHasNew] = useState(false)
   const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null })
   const scrollPosRef = useRef(0)
   const threadScrollPosRef = useRef(0)
@@ -22,7 +24,11 @@ export default function BskyClientApp () {
     []
   )
 
-  const refreshTimeline = useCallback(() => setRefreshTick((tick) => tick + 1), [])
+  const refreshTimeline = useCallback(() => {
+    setTimelineHasNew(false)
+    setRefreshTick((tick) => tick + 1)
+  }, [])
+
   const refreshNotifications = useCallback(() => setNotificationsRefreshTick((tick) => tick + 1), [])
 
   const openReplyComposer = useCallback((target) => {
@@ -85,6 +91,30 @@ export default function BskyClientApp () {
     }
   }, [composeOpen, getScrollContainer])
 
+  useEffect(() => {
+    if (section !== 'home') return undefined
+    if (!timelineTopUri) return undefined
+
+    let ignore = false
+
+    const check = async () => {
+      try {
+        const { items } = await fetchTimelineApi({ tab: timelineTab, limit: 1 })
+        const topUri = items?.[0]?.uri || ''
+        if (!ignore && topUri && timelineTopUri && topUri !== timelineTopUri) {
+          setTimelineHasNew(true)
+        }
+      } catch {}
+    }
+
+    check()
+    const id = window.setInterval(check, 45000)
+    return () => {
+      ignore = true
+      window.clearInterval(id)
+    }
+  }, [section, timelineTab, timelineTopUri])
+
   const headerContent = useMemo(() => {
     if (section === 'home') {
       if (threadState.active) {
@@ -114,6 +144,8 @@ export default function BskyClientApp () {
               onClick={() => {
                 if (threadState.active) closeThread()
                 if (timelineTab === t.id) refreshTimeline()
+                setTimelineHasNew(false)
+                setTimelineTopUri('')
                 setTimelineTab(t.id)
               }}
               aria-current={timelineTab === t.id ? 'page' : undefined}
@@ -147,12 +179,34 @@ export default function BskyClientApp () {
   if (section === 'home') {
     content = (
       <div className='space-y-6'>
+        {timelineHasNew && !threadState.active ? (
+          <div className='sticky top-3 z-30 flex justify-center'>
+            <Button
+              variant='primary'
+              size='pill'
+              onClick={() => {
+                const el = getScrollContainer()
+                if (el) {
+                  try { el.scrollTo({ top: 0, behavior: 'smooth' }) } catch { el.scrollTop = 0 }
+                }
+                refreshTimeline()
+              }}
+            >
+              Neue Beitraege anzeigen
+            </Button>
+          </div>
+        ) : null}
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
           <Timeline
             tab={timelineTab}
             refreshKey={refreshTick}
             onReply={openReplyComposer}
             onSelectPost={selectThreadFromItem}
+            onTopItemChange={(item) => {
+              const nextUri = item?.uri || ''
+              setTimelineTopUri(nextUri)
+              setTimelineHasNew(false)
+            }}
           />
         </div>
         {threadState.active ? (
@@ -194,6 +248,7 @@ export default function BskyClientApp () {
             return
           }
           if (threadState.active) closeThread()
+          setTimelineHasNew(false)
           setSection(id)
         }}
         onOpenCompose={() => setComposeOpen(true)}

@@ -54,10 +54,11 @@ async function requestJson(path, { method = 'GET', body, headers, retries = 1, .
   throw lastError;
 }
 
-export async function fetchTimeline({ tab, cursor } = {}) {
+export async function fetchTimeline({ tab, cursor, limit } = {}) {
   const params = new URLSearchParams();
   if (tab) params.set('tab', tab);
   if (cursor) params.set('cursor', cursor);
+  if (typeof limit === 'number') params.set('limit', String(limit));
   const query = params.toString();
   const data = await requestJson(`/api/bsky/timeline${query ? `?${query}` : ''}`);
   return {

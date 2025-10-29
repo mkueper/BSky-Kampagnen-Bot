@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, refreshKey = 0, onSelectPost }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, refreshKey = 0, onSelectPost, onTopItemChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -19,10 +19,11 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
     return 'card'
   }, [renderMode])
 
-  const fetchPage = useCallback(async ({ withCursor } = {}) => {
+  const fetchPage = useCallback(async ({ withCursor, limit } = {}) => {
     const { items: nextItems, cursor: nextCursor } = await fetchTimelineApi({
       tab,
       cursor: withCursor,
+      limit,
     })
     return { nextItems, nextCursor }
   }, [tab])
@@ -34,7 +35,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
       setLoading(true)
       setError('')
       try {
-        const { nextItems, nextCursor } = await fetchPage()
+        const { nextItems, nextCursor } = await fetchPage({ limit: 20 })
         if (!ignore) {
           setItems(nextItems)
           setCursor(nextCursor)
@@ -82,6 +83,11 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [loadMore])
+
+  useEffect(() => {
+    if (!items.length) return
+    onTopItemChange?.(items[0])
+  }, [items, onTopItemChange])
 
   if (loading) {
     return (
