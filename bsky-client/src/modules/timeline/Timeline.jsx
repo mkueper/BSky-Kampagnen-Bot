@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
+import { fetchTimeline as fetchTimelineApi } from '../shared'
 
 export default function Timeline ({ tab = 'discover', renderMode, onReply, refreshKey = 0, onSelectPost }) {
   const [items, setItems] = useState([])
@@ -19,17 +20,11 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
   }, [renderMode])
 
   const fetchPage = useCallback(async ({ withCursor } = {}) => {
-    const params = new URLSearchParams()
-    if (tab) params.set('tab', tab)
-    if (withCursor) params.set('cursor', withCursor)
-    const res = await fetch(`/api/bsky/timeline?${params.toString()}`)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      throw new Error(data.error || `HTTP ${res.status}`)
-    }
-    const data = await res.json()
-    const nextItems = Array.isArray(data?.feed) ? data.feed : []
-    return { nextItems, nextCursor: data?.cursor || null }
+    const { items: nextItems, cursor: nextCursor } = await fetchTimelineApi({
+      tab,
+      cursor: withCursor,
+    })
+    return { nextItems, nextCursor }
   }, [tab])
 
   // Initial load and tab change

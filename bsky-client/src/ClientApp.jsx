@@ -3,7 +3,7 @@ import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
 import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
-import { Button } from './modules/shared'
+import { Button, fetchThread as fetchThreadApi } from './modules/shared'
 
 export default function BskyClientApp () {
   const [section, setSection] = useState('home')
@@ -51,10 +51,7 @@ export default function BskyClientApp () {
       uri: normalized
     }))
     try {
-      const params = new URLSearchParams({ uri: normalized })
-      const res = await fetch(`/api/bsky/thread?${params.toString()}`)
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Thread konnte nicht geladen werden.')
+      const data = await fetchThreadApi(normalized)
       setThreadState({ active: true, loading: false, error: '', data, uri: normalized })
     } catch (error) {
       setThreadState({
