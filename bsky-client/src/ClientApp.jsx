@@ -1,11 +1,9 @@
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import BskyClientLayout from './layout/BskyClientLayout'
-import Timeline from './components/Timeline'
-import Composer from './components/Composer'
-import ComposeModal from './components/ComposeModal'
-import Button from './components/Button'
-import ThreadView from './components/ThreadView'
-import Notifications from './components/Notifications'
+import { BskyClientLayout } from './modules/layout'
+import { Timeline, ThreadView } from './modules/timeline'
+import { Composer, ComposeModal } from './modules/composer'
+import { Notifications } from './modules/notifications'
+import { Button } from './modules/shared'
 
 export default function BskyClientApp () {
   const [section, setSection] = useState('home')
