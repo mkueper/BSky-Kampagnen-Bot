@@ -6,7 +6,10 @@
       "type": "shell",
       "command": "npm run build",
       "options": {
-        "cwd": "${workspaceFolder}/dashboard"
+        "cwd": "${workspaceFolder}/dashboard",
+        "env": {
+          "npm_config_workspaces": "true"
+        }
       },
       "problemMatcher": []
     }
