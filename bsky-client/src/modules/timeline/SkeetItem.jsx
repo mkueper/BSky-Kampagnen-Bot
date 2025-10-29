@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
-import { useCardConfig } from '../context/CardConfigContext'
+import { useCardConfig } from '../../context/CardConfigContext.jsx'
 
 function extractImagesFromEmbed (item) {
   try {

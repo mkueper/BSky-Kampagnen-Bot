@@ -1,5 +1,5 @@
-import SidebarNav from '../components/SidebarNav'
-import ScrollTopButton from '../components/ScrollTopButton'
+import SidebarNav from './SidebarNav'
+import { ScrollTopButton } from '../timeline'
 import { PlusIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientLayout ({

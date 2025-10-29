@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Button from './Button'
+import { Button } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 
 const MAX_MEDIA_COUNT = 4

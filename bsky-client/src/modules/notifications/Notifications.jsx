@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, LoopIcon } from '@radix-ui/react-icons'
-import Button from './Button'
+import { Button } from '../shared'
 
 const REASON_COPY = {
   like: { label: 'Like', description: 'hat deinen Beitrag geliked.' },
