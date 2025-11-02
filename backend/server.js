@@ -110,6 +110,8 @@ app.post("/api/bsky/repost", bskyActionsController.repost);
 app.delete("/api/bsky/repost", bskyActionsController.unrepost);
 // Bluesky utility
 app.get("/api/bsky/reactions", bskyController.getReactions);
+app.get("/api/bsky/thread", bskyController.getThread);
+app.get("/api/bsky/notifications", bskyController.getNotifications);
 app.post("/api/bsky/reply", bskyController.postReply);
 app.post("/api/bsky/post", bskyController.postNow);
 // Maintenance utilities (no auth yet – use behind trusted network)

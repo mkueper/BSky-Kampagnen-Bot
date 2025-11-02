@@ -9,7 +9,15 @@ async function like(req, res) {
     if (!uri || !cid) return res.status(400).json({ error: 'uri und cid erforderlich' })
     const likeUri = await bsky.likePost(uri, cid)
     let totals = null
-    try { const r = await bsky.getReactions(uri); totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length } } catch {}
+    try {
+      const r = await bsky.getReactions(uri)
+      totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length }
+    } catch (error) {
+      log.warn('Reaktionen nach Like konnten nicht geladen werden', {
+        uri,
+        error: error?.message || String(error)
+      })
+    }
     res.json({ ok: true, viewer: { like: likeUri }, totals })
   } catch (e) {
     log.error('like failed', { error: e?.message || String(e) })
@@ -36,7 +44,15 @@ async function repost(req, res) {
     if (!uri || !cid) return res.status(400).json({ error: 'uri und cid erforderlich' })
     const repostUri = await bsky.repostPost(uri, cid)
     let totals = null
-    try { const r = await bsky.getReactions(uri); totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length } } catch {}
+    try {
+      const r = await bsky.getReactions(uri)
+      totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length }
+    } catch (error) {
+      log.warn('Reaktionen nach Repost konnten nicht geladen werden', {
+        uri,
+        error: error?.message || String(error)
+      })
+    }
     res.json({ ok: true, viewer: { repost: repostUri }, totals })
   } catch (e) {
     log.error('repost failed', { error: e?.message || String(e) })

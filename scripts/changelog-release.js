@@ -49,7 +49,7 @@ for (const line of unreleased) {
   if (trimmed.startsWith('- ')) {
     const sec = currentSection || 'Misc';
     if (!sections.has(sec)) sections.set(sec, []);
-    const bulletCore = trimmed.replace(/^\-\s+/, '');
+    const bulletCore = trimmed.replace(/^-+\s+/, '');
     const dated = currentDate ? `- [${currentDate}] ${bulletCore}` : `- ${bulletCore}`;
     sections.get(sec).push(dated);
   }

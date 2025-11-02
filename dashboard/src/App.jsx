@@ -145,7 +145,7 @@ const HEADER_TITLES = {
   threads: 'Threads',
   'threads-overview': 'Thread Übersicht',
   'threads-plan': 'Thread planen',
-  'bsky-client': 'Direkt-Client',
+  'bsky-client': 'BSky Client',
   config: 'Einstellungen & Automatisierung'
 }
 
@@ -924,7 +924,7 @@ function App () {
 
   const handleFormSaved = async () => {
     setEditingSkeet(null)
-    try { setSkeetDraftContent('') } catch {}
+    try { setSkeetDraftContent('') } catch (e) { console.error(e); }
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
     setActiveView('skeets-overview')
     setActiveDashboardTab('planned')
@@ -1171,7 +1171,11 @@ function App () {
           onThreadSaved={handleThreadSaved}
           onCancel={editingThreadId ? handleThreadCancel : undefined}
           onSuggestMoveToSkeets={(content) => {
-            try { setEditingThreadId(null) } catch {}
+            try {
+              setEditingThreadId(null)
+            } catch (error) {
+              console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
+            }
             setSkeetDraftContent(content || '')
             setActiveView('skeets-plan')
           }}

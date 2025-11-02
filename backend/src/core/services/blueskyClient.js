@@ -16,6 +16,13 @@ const { AtpAgent } = require("@atproto/api");
 const agent = new AtpAgent({ service: serverUrl });
 let loginPromise = null;
 
+const OFFICIAL_FEED_GENERATORS = {
+  discover: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
+  mutuals: 'at://did:plc:tenurhgjptubkk5zf5qhi3og/app.bsky.feed.generator/mutuals',
+  'friends-popular': 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends',
+  'best-of-follows': 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/best-of-follows'
+};
+
 
 /**
  * Meldet den Agenten mit den hinterlegten App-Credentials an.
@@ -102,17 +109,59 @@ async function getReplies(postUri) {
   return thread.data.thread;
 }
 
+async function getNotifications ({ limit = 30, cursor } = {}) {
+  await ensureLoggedIn();
+  const res = await agent.app.bsky.notification.listNotifications({ limit, cursor });
+  return res?.data ?? null;
+}
+
+async function markNotificationsSeen (seenAt = new Date().toISOString()) {
+  await ensureLoggedIn();
+  await agent.app.bsky.notification.updateSeen({ seenAt });
+}
+
+async function getPostsByUri (uris = []) {
+  await ensureLoggedIn();
+  const list = Array.isArray(uris) ? uris.filter(Boolean) : [];
+  if (!list.length) return [];
+  const chunkSize = 25;
+  const posts = [];
+  for (let i = 0; i < list.length; i += chunkSize) {
+    const chunk = list.slice(i, i + chunkSize);
+    try {
+      const res = await agent.app.bsky.feed.getPosts({ uris: chunk });
+      if (Array.isArray(res?.data?.posts)) posts.push(...res.data.posts);
+    } catch (error) {
+      log.warn('getPosts chunk failed', { error: error?.message || String(error), size: chunk.length });
+    }
+  }
+  return posts;
+}
+
 module.exports = {
   login,
   postSkeet,
   getReactions,
   getReplies,
+  getNotifications,
+  markNotificationsSeen,
+  getPostsByUri,
+  FEED_GENERATORS: OFFICIAL_FEED_GENERATORS,
   /**
    * Liefert die persönliche Timeline des eingeloggten Accounts
    */
   async getTimeline({ limit = 30, cursor } = {}) {
     await ensureLoggedIn();
     const res = await agent.app.bsky.feed.getTimeline({ limit, cursor });
+    return res?.data ?? null;
+  },
+  /**
+   * Lädt einen offiziellen Feed-Generator (z. B. Discover/Mutuals)
+   */
+  async getFeedGenerator(feedUri, { limit = 30, cursor } = {}) {
+    if (!feedUri) throw new Error('feedUri erforderlich');
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.feed.getFeed({ feed: feedUri, limit, cursor });
     return res?.data ?? null;
   },
   /**

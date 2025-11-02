@@ -4,17 +4,27 @@ Das Diagramm vermittelt einen schnellen Überblick über die Kernkomponenten des
 
 ```mermaid
 flowchart TD
-  FE["Web-Frontend (React)"]
-  BE["Backend-API (Node/Express)"]
-  DB["Datenbank (SQLite / PostgreSQL / MySQL)"]
-  SCH["Scheduler / Job-Queue"]
-  BSKY["Bluesky API (ATProto)"]
+  subgraph Backend
+    BE["Express API"]
+    SCH["Scheduler & Worker"]
+    SSE["SSE / Presence Service"]
+  end
 
-  FE --> BE
+  FE["Web-Frontend (React/Vite)"]
+  DB["SQLite (data/bluesky_campaign_<env>.sqlite)"]
+  BSKY["Bluesky API (ATProto)"]
+  MASTO["Mastodon API (optional)"]
+  TENOR["Tenor GIF Proxy (optional)"]
+
+  FE -- REST --> BE
+  FE -- SSE --> SSE
+  SSE -- Push Events --> FE
   BE <--> DB
   BE <--> SCH
-  BE --> BSKY
   SCH --> BSKY
+  BE --> BSKY
+  BE --> MASTO
+  BE --> TENOR
 ```
 
 > Für produktive Setups empfiehlt sich zusätzlich ein Reverse Proxy (z. B. Traefik oder Nginx) vor Backend und Frontend.

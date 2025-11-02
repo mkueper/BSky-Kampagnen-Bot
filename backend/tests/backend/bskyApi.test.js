@@ -24,8 +24,8 @@ describe('bsky API', () => {
 
   it('POST /api/bsky/reply validates input', async () => {
     const ctrl = loadController()
-    let statusCode = 200; let payload = null
-    const res = { status: (c) => { statusCode = c; return { json: (o) => { payload = o } } }, json: (o) => { payload = o } }
+    let statusCode = 200
+    const res = { status: (c) => { statusCode = c; return { json: () => {} } }, json: () => {} }
     await ctrl.postReply({ body: {} }, res)
     expect(statusCode).toBe(400)
   })

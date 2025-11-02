@@ -16,6 +16,26 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDateParts(value) {
+  if (!value) {
+    return { dateText: "", timeText: "" };
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { dateText: value, timeText: "" };
+  }
+  const dateText = new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+  const timeText = new Intl.DateTimeFormat("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+  return { dateText, timeText };
+}
+
 function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeetsOverview, onOpenThreadsOverview }) {
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
@@ -73,23 +93,27 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
-        </Card>
-        <Card padding="px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
-          <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
-        </Card>
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-4">
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
+          </Card>
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
+          </Card>
+        </div>
+        <div className="space-y-4">
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
+          </Card>
+          <Card padding="px-5 py-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
+          </Card>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -109,14 +133,22 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
           tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
         >
           <h3 className="text-lg font-semibold">Nächster Skeet</h3>
-          {skeetStats.next ? (
-            <div className="mt-3 space-y-2 text-sm">
-              <p className="font-medium text-foreground">{formatDate(skeetStats.next.scheduledAt)}</p>
-              <p className="text-foreground-muted">
-                {(skeetStats.next.content || "").toString().trim() || "Kein Inhalt vorhanden"}
-              </p>
-            </div>
-          ) : (
+          {skeetStats.next ? (() => {
+            const { dateText, timeText } = formatDateParts(skeetStats.next.scheduledAt);
+            return (
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex flex-col">
+                  <p className="font-semibold text-foreground text-base break-words leading-tight">{dateText}</p>
+                  {timeText ? (
+                    <p className="text-sm text-foreground-muted leading-snug">{timeText} Uhr</p>
+                  ) : null}
+                </div>
+                <p className="text-foreground-muted">
+                  {(skeetStats.next.content || "").toString().trim() || "Kein Inhalt vorhanden"}
+                </p>
+              </div>
+            )
+          })() : (
             <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Skeet.</p>
           )}
         </Card>
@@ -137,16 +169,24 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
           tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
         >
           <h3 className="text-lg font-semibold">Nächster Thread</h3>
-          {threadStats.next ? (
-            <div className="mt-3 space-y-2 text-sm">
-              <p className="font-medium text-foreground">{formatDate(threadStats.next.scheduledAt)}</p>
-              <p className="text-foreground-muted">
-                {(threadStats.next.title || threadStats.next.segments?.[0]?.content || "")
-                  .toString()
-                  .trim() || "Kein Titel hinterlegt"}
-              </p>
-            </div>
-          ) : (
+          {threadStats.next ? (() => {
+            const { dateText, timeText } = formatDateParts(threadStats.next.scheduledAt);
+            return (
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex flex-col">
+                  <p className="font-semibold text-foreground text-base break-words leading-tight">{dateText}</p>
+                  {timeText ? (
+                    <p className="text-sm text-foreground-muted leading-snug">{timeText} Uhr</p>
+                  ) : null}
+                </div>
+                <p className="text-foreground-muted">
+                  {(threadStats.next.title || threadStats.next.segments?.[0]?.content || "")
+                    .toString()
+                    .trim() || "Kein Titel hinterlegt"}
+                </p>
+              </div>
+            )
+          })() : (
             <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Thread.</p>
           )}
         </Card>

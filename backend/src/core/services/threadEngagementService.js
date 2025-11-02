@@ -14,6 +14,15 @@ const {
   getStatusContext: mastoGetStatusContext,
 } = require("./mastodonClient");
 
+function emitThreadEvent(eventName, payload) {
+  try {
+    events.emit(eventName, payload);
+  } catch (error) {
+    log.warn(`Event ${eventName} konnte nicht gesendet werden`, {
+      error: error?.message || String(error)
+    });
+  }
+}
 function extractMastodonStatusId(uri) {
   if (!uri) return null;
   try {
@@ -253,7 +262,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
 
   metadata.platformResults = platformResults;
   await thread.update({ metadata });
-  try { events.emit('thread:engagement', { id, totals: { likes: totalLikes, reposts: totalReposts, replies: totalReplies } }); } catch { /* ignore SSE emit error */ }
+  emitThreadEvent('thread:engagement', { id, totals: { likes: totalLikes, reposts: totalReposts, replies: totalReplies } });
   if (isEngagementDebug()) {
     log.debug(`Refresh done | thread=${id} | totals: likes=${totalLikes}, reposts=${totalReposts}, replies=${totalReplies}`);
   }
@@ -310,7 +319,14 @@ module.exports = {
         delete pr.mastodon
         meta.platformResults = pr
         if (!dryRun) {
-          try { await row.update({ metadata: meta }) } catch {}
+          try {
+            await row.update({ metadata: meta });
+          } catch (error) {
+            log.warn('Thread-Metadaten konnten nicht aktualisiert werden', {
+              threadId: row.id,
+              error: error?.message || String(error)
+            });
+          }
         }
         cleaned += 1
       }

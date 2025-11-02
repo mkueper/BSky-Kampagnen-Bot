@@ -12,7 +12,8 @@ export default tseslint.config(
       "node_modules/",
       "dist/",
       "dashboard/dist/",
-      "dashboard/node_modules/"
+      "dashboard/node_modules/",
+      "bsky-client/dist/"
     ],
   },
   js.configs.recommended,

@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+﻿#!/bin/bash
+set -eu
+set -o pipefail 2>/dev/null || true
 
 # Always operate from the project root, regardless of the caller's CWD
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,10 +33,6 @@ PROJECT_CONTENT=(
 
 if [[ -f .env.sample ]]; then
   PROJECT_CONTENT+=(".env.sample")
-fi
-
-if [[ -f .npmrc ]]; then
-  PROJECT_CONTENT+=(".npmrc")
 fi
 
 mkdir -p "${BUNDLES_DIR}"
@@ -88,6 +85,13 @@ cp docker-compose.yml "${APP_DIR}/docker-compose.yml"
 # .dockerignore für robuste Docker-Builds in das Bundle aufnehmen (falls vorhanden)
 if [[ -f .dockerignore ]]; then
   cp .dockerignore "${APP_DIR}/.dockerignore"
+fi
+
+# Use dedicated npm configuration for container builds if available
+if [[ -f .docker-npmrc ]]; then
+  cp .docker-npmrc "${APP_DIR}/.npmrc"
+elif [[ -f .npmrc ]]; then
+  cp .npmrc "${APP_DIR}/.npmrc"
 fi
 
 # Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien auf Root-Ebene

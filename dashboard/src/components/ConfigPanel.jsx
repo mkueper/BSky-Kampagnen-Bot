@@ -879,9 +879,10 @@ function CredentialsSection () {
     blueskyIdentifier: '',
     blueskyAppPassword: '',
     mastodonApiUrl: '',
-    mastodonAccessToken: ''
+    mastodonAccessToken: '',
+    tenorApiKey: ''
   })
-  const [hasSecret, setHasSecret] = useState({ bsky: false, masto: false })
+  const [hasSecret, setHasSecret] = useState({ bsky: false, masto: false, tenor: false })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [blink, setBlink] = useState({})
@@ -913,7 +914,8 @@ function CredentialsSection () {
           }))
           setHasSecret({
             bsky: Boolean(data?.bluesky?.hasAppPassword),
-            masto: Boolean(data?.mastodon?.hasAccessToken)
+            masto: Boolean(data?.mastodon?.hasAccessToken),
+            tenor: Boolean(data?.tenor?.hasApiKey)
           })
         }
       } catch (error) {
@@ -954,6 +956,7 @@ function CredentialsSection () {
       const payload = { ...next }
       if (!payload.blueskyAppPassword) delete payload.blueskyAppPassword
       if (!payload.mastodonAccessToken) delete payload.mastodonAccessToken
+      if (!payload.tenorApiKey) delete payload.tenorApiKey
       const res = await fetch('/api/config/credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -966,7 +969,8 @@ function CredentialsSection () {
       await res.json().catch(() => ({}))
       if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
       if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
-      setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '' }))
+      if (values.tenorApiKey) setHasSecret(s => ({ ...s, tenor: true }))
+      setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '', tenorApiKey: '' }))
       toast.success({ title: 'Gespeichert', description: 'Zugangsdaten aktualisiert.' })
 
       // Nach dem Speichern direkt entsperren und zur Übersicht wechseln.
@@ -1027,6 +1031,16 @@ function CredentialsSection () {
                 <span className='text-sm font-medium'>Access Token</span>
                 <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.masto ? '••••••••' : ''} value={values.mastodonAccessToken} onChange={onChange('mastodonAccessToken')} />
                 <p className='text-xs text-foreground-muted'>Leer lassen, um das bestehende Token zu behalten.</p>
+              </label>
+            </div>
+          </section>
+          <section className='space-y-4'>
+            <h4 className='text-lg font-semibold'>Tenor (GIF Suche)</h4>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <label className='space-y-1 md:w-1/2'>
+                <span className='text-sm font-medium'>API Key</span>
+                <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.tenor ? '••••••••' : ''} value={values.tenorApiKey} onChange={onChange('tenorApiKey')} />
+                <p className='text-xs text-foreground-muted'>Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).</p>
               </label>
             </div>
           </section>

@@ -4,45 +4,30 @@ Das Zustandsdiagramm zeigt alle möglichen Status eines einzelnen Skeets und die
 
 ```mermaid
 stateDiagram-v2
-  state "draft" as draft_state
-  state "scheduled" as scheduled_state
-  state "sending" as sending_state
-  state "sent" as sent_state
-  state "failed" as failed_state
-  state "cancelled" as cancelled_state
-  state "archived" as archived_state
-  state "deleted" as deleted_state
+  state "Entwurf" as draft_state
+  state "Geplant" as planned_state
+  state "Veröffentlicht" as published_state
+  state "Papierkorb" as trash_state
 
   style draft_state fill:#9e9e9e,color:#fff
-  style scheduled_state fill:#1976d2,color:#fff
-  style sending_state fill:#ff9800,color:#000
-  style sent_state fill:#4caf50,color:#fff
-  style failed_state fill:#f44336,color:#fff
-  style cancelled_state fill:#757575,color:#fff
-  style archived_state fill:#607d8b,color:#fff
-  style deleted_state fill:#000000,color:#fff
+  style planned_state fill:#1976d2,color:#fff
+  style published_state fill:#4caf50,color:#fff
+  style trash_state fill:#000000,color:#fff
 
   [*] --> draft_state
 
-  draft_state --> scheduled_state: planen
-  draft_state --> deleted_state: löschen
+  draft_state --> planned_state: Termin setzen
+  draft_state --> published_state: Publish-now
+  draft_state --> trash_state: Löschen
 
-  scheduled_state --> cancelled_state: stornieren
-  scheduled_state --> sending_state: Job startet
+  planned_state --> draft_state: Termin entfernen
+  planned_state --> published_state: Scheduler sendet
+  planned_state --> trash_state: Löschen/Verwerfen
 
-  sending_state --> sent_state: Post erfolgreich
-  sending_state --> failed_state: Fehler beim Versand
+  published_state --> trash_state: Retract oder Löschen
 
-  failed_state --> scheduled_state: Retry planen
-  failed_state --> cancelled_state: stornieren
-  failed_state --> deleted_state: löschen
-
-  cancelled_state --> scheduled_state: reaktivieren
-  cancelled_state --> deleted_state: löschen
-
-  sent_state --> archived_state: archivieren
-  sent_state --> deleted_state: löschen
-
-  deleted_state --> [*]
-  archived_state --> [*]
+  trash_state --> planned_state: Wiederherstellen
+  trash_state --> [*]: Permanent löschen
 ```
+
+> Wiederkehrende Skeets (`repeat != 'none'`) bleiben nach erfolgreicher Ausführung im Status *Geplant* – der Scheduler berechnet beim Versand automatisch den nächsten Termin.

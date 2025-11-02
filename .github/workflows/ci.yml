@@ -30,3 +30,9 @@ jobs:
         run: npm run -s lint
         continue-on-error: true
 
+      - name: Backend tests
+        run: npm run test --workspace backend
+
+      - name: Dashboard tests
+        run: npm run test --workspace dashboard
+

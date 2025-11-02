@@ -11,7 +11,7 @@ import { useClientConfig } from './useClientConfig'
 
 // Utility: Zielplattformen unabhängig davon normalisieren, ob sie als JSON-String
 // oder Array vom Backend geliefert werden.
-function parseTargetPlatforms (value) {
+export function parseTargetPlatforms (value) {
   if (Array.isArray(value)) {
     return value
   }
@@ -30,7 +30,7 @@ function parseTargetPlatforms (value) {
 
 // Utility: Plattform-spezifische Ergebnisse (URI, Status, Fehler) in ein
 // bearbeitbares Objekt überführen.
-function parsePlatformResults (value) {
+export function parsePlatformResults (value) {
   if (!value) {
     return {}
   }
@@ -55,7 +55,7 @@ function parsePlatformResults (value) {
 }
 
 // Ermittelt ein sinnvolles Retry-After (ms) aus Response-Headern
-function extractRetryAfterMs (res) {
+export function extractRetryAfterMs (res) {
   try {
     const ra = res.headers.get('retry-after')
     if (ra) {

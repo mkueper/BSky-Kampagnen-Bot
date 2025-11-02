@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
 
-Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (optional PostgreSQL), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert.
+Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (Standard), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert. Andere SQL-Dialekte lassen sich prinzipiell über `DATABASE_URL` einbinden, gelten aber noch als experimentell, weil die Baseline-Migration aktuell SQLite-Pragmas verwendet.
 
 > Hinweis (Sicherheit & Reifegrad)
 >
@@ -21,6 +21,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; aktuell Bluesky und Mastodon.
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
 - **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
+- **Direkter Bluesky-Client** – Integrierte Timeline mit Composer (Discover/Following u. a.) sowie rudimentäre Reply-Funktion.
 
 > Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (Multi-Tenant, zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
@@ -44,7 +45,10 @@ npm run build:frontend
 cp .env.sample .env
 # BLUESKY_IDENTIFIER / BLUESKY_APP_PASSWORD (optional MASTODON_*) ergänzen
 
-# Entwicklung starten (mit automatischem Reload)
+# Schema vorbereiten (idempotente Baseline + optionale Migrationen)
+npm run migrate:dev
+
+# Entwicklung starten (mit automatischem Reload und Env-Autokonfiguration)
 npm run start:dev
 ```
 
@@ -79,6 +83,7 @@ docker compose up -d
 
 - Backend erreichbar unter `http://localhost:${BACKEND_PORT:-3000}`
 - Frontend erreichbar unter `http://localhost:${FRONTEND_PORT:-8080}`
+- SQLite-Datenbanken liegen im Volume `data` und werden vom Backend-Container unter `/app/data` gepflegt.
 
 > Nach dem Hochfahren einmalig (und nach jedem Update) `docker compose exec backend npm run migrate:prod` ausführen.
 
@@ -134,6 +139,12 @@ Changelog pflegen:
 | `BACKEND_INTERNAL_PORT` | Interner Backend-Port (Container)                        | `3000`   |
 | `BACKEND_PORT`          | Exponierter Backend-Port                                 | `3000`   |
 | `FRONTEND_PORT`         | Port des Nginx-Frontends                                 | `8080`   |
+| `SCHEDULER_DISCARD_MODE`| Demo-Modus: Jobs werden „erfolgreich“ verworfen          | `false`  |
+| `JSON_BODY_LIMIT_MB`    | Max. Größe für JSON-Bodies (z. B. Media-Import)          | `25`     |
+| `ENGAGEMENT_ACTIVE_MIN_MS` | Minimaler Abstand automatischer Engagement-Refreshs bei aktiven Clients | `120000` |
+| `ENGAGEMENT_IDLE_MIN_MS`   | Minimaler Abstand im Idle-Modus (keine Heartbeats)     | `1200000`|
+| `CLIENT_IDLE_THRESHOLD_MS` | Dauer ohne Heartbeat, bevor der Server „idle“ annimmt  | `1200000`|
+| `UPLOAD_MAX_BYTES`     | Upload-Limit für Medien (Skeets/Threads/Temp)             | `8388608` (8 MB) |
 
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
@@ -178,10 +189,14 @@ Diese Endpunkte sind vor allem für die UI und Admin‑Tasks relevant.
 - `GET /api/client-config` – Read‑only Client‑Konfiguration (Polling‑Intervalle etc.).
 - `GET /api/settings/scheduler` – Scheduler‑Einstellungen (Cron/Zeitzone/Retries).
 - `PUT /api/settings/scheduler` – Scheduler‑Einstellungen speichern.
-- `GET /api/settings/client-polling` – Client‑Polling‑Einstellungen (DB‑Overrides).
-- `PUT /api/settings/client-polling` – Client‑Polling‑Einstellungen speichern.
+- `GET /api/settings/client-polling` – Client-Polling-Einstellungen (DB‑Overrides).
+- `PUT /api/settings/client-polling` – Client-Polling-Einstellungen speichern.
+- `POST /api/skeets/:id/publish-now` / `POST /api/threads/:id/publish-now` – Sofortversand ohne Scheduler.
 - `POST /api/threads/:id/engagement/refresh` – Engagement (Likes/Reposts/Replies) für einen Thread neu sammeln.
+- `POST /api/engagement/refresh-many` – Batch-Refresh für sichtbar gelistete Skeets.
 - `GET /api/reactions/:skeetId` – Reaktionen für einen veröffentlichten Skeet laden (on‑demand).
+- `GET /api/events` – Server-Sent Events für Live-Updates (skeet:/thread:-Events).
+- `GET /api/bsky/timeline` – Datenquelle für den integrierten Bluesky-Client.
 
 Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests verwendet werden.
 
@@ -191,10 +206,11 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 
 - **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build:frontend`).
 - **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
- - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
+- **Client-Tests:** `npm run test --workspace bsky-client` führt die Vitest-Suite (React Testing Library) für den integrierten Bluesky-Client aus; für den Watch-Modus steht `npm run test:watch --workspace bsky-client` zur Verfügung.
+- **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
  - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
-- **Bundle (inkl. Datenbank):** `npm run docker:bundle` erstellt ein Zip (`dist/bundles/…`) mit Docker-Compose-Dateien, vollständigem Projekt (ohne `node_modules`/`dist`) und der aktuellen SQLite-Datenbank – ideal zum Kopieren auf einen Server.
+- **Bundle (inkl. Datenbank):** `npm run docker:bundle` erstellt ein Zip (`dist/bundles/…`) mit Docker-Compose-Dateien, vollständigem Projekt (ohne `node_modules`/`dist`) und der aktuellen SQLite-Datenbank – ideal zum Kopieren auf einen Server. Innerhalb des Bundles landet eine `.npmrc` mit `workspaces=false`, damit die Container-Installation weiterhin nur das Backend einspielt.
 
 ---
 

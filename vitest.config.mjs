@@ -12,7 +12,7 @@ export default defineConfig({
     // Die Testumgebung für das Backend ist 'node'.
     environment: 'node',
     globals: true,
-    setupFiles: ['tests/setup.alias.js'],
+    setupFiles: [new URL('./tests/setup.alias.js', import.meta.url).pathname],
   },
   resolve: {
     alias: {
