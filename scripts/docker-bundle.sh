@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -eu
 set -o pipefail 2>/dev/null || true
 
@@ -67,6 +67,19 @@ if [[ -d bsky-client ]]; then
     -cf - bsky-client | tar -xf - -C "${APP_DIR}"
 fi
 
+# Ergänze optionale Workspace-Packages (z. B. media-pickers)
+if [[ -d packages ]]; then
+  echo "Füge packages/ Workspace-Inhalte hinzu (ohne node_modules/dist)" >&2
+  tar \
+    --exclude='./packages/*/node_modules' \
+    --exclude='./packages/*/dist' \
+    --exclude='./packages/*/.env' \
+    --exclude='./packages/*/.env.local' \
+    --exclude='./packages/*/.env.dev' \
+    --exclude='./packages/*/.env.prod' \
+    -cf - packages | tar -xf - -C "${APP_DIR}"
+fi
+
 # Entferne alle node_modules-Verzeichnisse, um Bundle schlank zu halten
 find "${APP_DIR}" -type d -name 'node_modules' -prune -exec rm -rf '{}' +
 
@@ -87,11 +100,16 @@ if [[ -f .dockerignore ]]; then
   cp .dockerignore "${APP_DIR}/.dockerignore"
 fi
 
-# Use dedicated npm configuration for container builds if available
+# Use npm configuration if provided, but strip settings that disable workspaces
 if [[ -f .docker-npmrc ]]; then
-  cp .docker-npmrc "${APP_DIR}/.npmrc"
+  awk 'BEGIN{IGNORECASE=1} !/^\s*(npm_config_)?workspaces\s*=/ {print}' .docker-npmrc > "${APP_DIR}/.npmrc"
 elif [[ -f .npmrc ]]; then
-  cp .npmrc "${APP_DIR}/.npmrc"
+  awk 'BEGIN{IGNORECASE=1} !/^\s*(npm_config_)?workspaces\s*=/ {print}' .npmrc > "${APP_DIR}/.npmrc"
+fi
+
+# Remove the file if filtering left it empty
+if [[ -f "${APP_DIR}/.npmrc" && ! -s "${APP_DIR}/.npmrc" ]]; then
+  rm -f "${APP_DIR}/.npmrc"
 fi
 
 # Sicherheitsnetz: Entferne versehentlich kopierte .env-Dateien auf Root-Ebene

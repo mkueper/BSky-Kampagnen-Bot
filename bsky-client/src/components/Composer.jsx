@@ -5,7 +5,7 @@ import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 
-export default function Composer ({ reply = null, onSent }) {
+export default function Composer ({ reply = null, quote = null, onClearQuote, onSent }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
@@ -20,6 +20,7 @@ export default function Composer ({ reply = null, onSent }) {
   const cursorRef = useRef({ start: 0, end: 0 })
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const clearQuote = typeof onClearQuote === 'function' ? onClearQuote : () => {}
   const [tenorAvailable, setTenorAvailable] = useState(false)
 
   useEffect(() => {
@@ -42,6 +43,16 @@ export default function Composer ({ reply = null, onSent }) {
       return m ? m[0] : ''
     } catch { return '' }
   }, [text])
+
+  useEffect(() => {
+    if (!quote) return
+    setText((prev) => {
+      if (prev && prev.trim().length > 0) return prev
+      const link = buildQuoteLink(quote)
+      if (!link) return prev
+      return `${link}\n\n`
+    })
+  }, [quote])
 
   useEffect(() => {
     const el = textareaRef.current
@@ -191,18 +202,27 @@ export default function Composer ({ reply = null, onSent }) {
         setMessage('Gesendet.')
         setText('')
         setPendingMedia([])
+        if (quote) clearQuote()
         if (typeof onSent === 'function') onSent()
       } else {
+        const payload = {
+          text: content,
+          media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime }))
+        }
+        if (quote?.uri && quote?.cid) {
+          payload.quote = { uri: quote.uri, cid: quote.cid }
+        }
         const res = await fetch('/api/bsky/post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: content, media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })) })
+          body: JSON.stringify(payload)
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
         setMessage('Gesendet.')
         setText('')
         setPendingMedia([])
+        if (quote) clearQuote()
         if (typeof onSent === 'function') onSent()
       }
     } catch (err) {
@@ -217,6 +237,26 @@ export default function Composer ({ reply = null, onSent }) {
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       <label className='block text-sm font-medium'>Inhalt</label>
+      {quote ? (
+        <div className='flex items-start gap-3 rounded-xl border border-border bg-background-subtle/70 p-3 text-sm text-foreground'>
+          <div className='min-w-0 flex-1'>
+            <p className='text-xs uppercase tracking-wide text-foreground-muted'>Post wird zitiert</p>
+            <p className='mt-1 font-semibold text-foreground truncate'>{quote?.author?.displayName || quote?.author?.handle || 'Unbekannter Account'}</p>
+            {quote?.text ? (
+              <p className='mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-foreground-muted'>{quote.text}</p>
+            ) : (
+              <p className='mt-1 text-sm text-foreground-muted'>Kein Text vorhanden.</p>
+            )}
+          </div>
+          <button
+            type='button'
+            className='inline-flex shrink-0 items-center rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:bg-background transition'
+            onClick={clearQuote}
+          >
+            Entfernen
+          </button>
+        </div>
+      ) : null}
       <textarea
         ref={textareaRef}
         value={text}
@@ -355,6 +395,23 @@ function clampSelection (pos, length) {
   if (pos < 0) return 0
   if (pos > length) return length
   return pos
+}
+
+function buildQuoteLink (quote) {
+  try {
+    const uri = String(quote?.uri || '').trim()
+    if (!uri || !uri.startsWith('at://')) return ''
+    const parts = uri.split('/')
+    const rkey = parts[parts.length - 1]
+    if (!rkey) return ''
+    const handle = String(quote?.author?.handle || '').trim()
+    const did = parts.length >= 3 ? parts[2] : ''
+    const profile = handle || did
+    if (!profile) return ''
+    return `https://bsky.app/profile/${profile}/post/${rkey}`
+  } catch {
+    return ''
+  }
 }
 
 function blobToDataUrl (blob) {

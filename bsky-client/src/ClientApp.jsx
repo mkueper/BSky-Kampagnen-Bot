@@ -15,9 +15,12 @@ export default function BskyClientApp () {
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
-  const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null })
+  const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null, context: null })
+  const [timelineItems, setTimelineItems] = useState([])
+  const [quoteTarget, setQuoteTarget] = useState(null)
   const scrollPosRef = useRef(0)
   const threadScrollPosRef = useRef(0)
+  const threadContextRef = useRef(null)
 
   const getScrollContainer = useCallback(
     () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
@@ -28,17 +31,40 @@ export default function BskyClientApp () {
   const refreshNotifications = useCallback(() => setNotificationsRefreshTick((tick) => tick + 1), [])
 
   const openReplyComposer = useCallback((target) => {
+    setQuoteTarget(null)
     setReplyTarget(target)
     setComposeOpen(true)
   }, [])
 
+  const openQuoteComposer = useCallback((target) => {
+    const normalizedUri = target?.uri || target?.raw?.post?.uri || null
+    const normalizedCid = target?.cid || target?.raw?.post?.cid || null
+    const normalized = normalizedUri
+      ? {
+          uri: normalizedUri,
+          cid: normalizedCid,
+          author: target?.author || target?.raw?.post?.author || null,
+          text: target?.text || target?.raw?.post?.record?.text || '',
+          raw: target?.raw || null
+        }
+      : null
+    setReplyTarget(null)
+    setQuoteTarget(normalized)
+    setComposeOpen(true)
+  }, [])
+
   const closeThread = useCallback(() => {
-    setThreadState({ active: false, loading: false, error: '', data: null, uri: null })
+    threadContextRef.current = null
+    setThreadState({ active: false, loading: false, error: '', data: null, uri: null, context: null })
     const el = getScrollContainer()
     if (el) el.scrollTop = threadScrollPosRef.current || 0
   }, [getScrollContainer])
 
-  const loadThread = useCallback(async (uri, { rememberScroll = false } = {}) => {
+  const loadThread = useCallback(async (uri, options = {}) => {
+    const { rememberScroll = false } = options
+    const hasContext = options && Object.prototype.hasOwnProperty.call(options, 'context')
+    const contextValue = hasContext ? options.context : threadContextRef.current
+    threadContextRef.current = contextValue ?? null
     const normalized = String(uri || '').trim()
     if (!normalized) return
     if (rememberScroll) {
@@ -50,33 +76,51 @@ export default function BskyClientApp () {
       loading: true,
       error: '',
       data: prev?.uri === normalized ? prev.data : null,
-      uri: normalized
+      uri: normalized,
+      context: threadContextRef.current
     }))
     try {
       const params = new URLSearchParams({ uri: normalized })
       const res = await fetch(`/api/bsky/thread?${params.toString()}`)
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Thread konnte nicht geladen werden.')
-      setThreadState({ active: true, loading: false, error: '', data, uri: normalized })
+      setThreadState({ active: true, loading: false, error: '', data, uri: normalized, context: threadContextRef.current })
     } catch (error) {
       setThreadState({
         active: true,
         loading: false,
         data: null,
         uri: normalized,
-        error: error?.message || 'Thread konnte nicht geladen werden.'
+        error: error?.message || 'Thread konnte nicht geladen werden.',
+        context: threadContextRef.current
       })
     }
   }, [getScrollContainer])
 
   const selectThreadFromItem = useCallback((item) => {
     const uri = item?.uri || item?.raw?.post?.uri
-    if (uri) loadThread(uri, { rememberScroll: !threadState.active })
-  }, [loadThread, threadState.active])
+    if (!uri) return
+    let context = null
+    if (timelineItems.length > 0) {
+      const idx = timelineItems.findIndex((it) => it?.uri === uri)
+      if (idx > -1) {
+        const previous = timelineItems.slice(0, idx)
+        context = {
+          timeline: {
+            tab: timelineTab,
+            previous
+          }
+        }
+      }
+    }
+    loadThread(uri, { rememberScroll: !threadState.active, context })
+  }, [loadThread, threadState.active, timelineItems, timelineTab])
 
   const reloadThread = useCallback(() => {
-    if (threadState.uri) loadThread(threadState.uri)
-  }, [threadState.uri, loadThread])
+    if (threadState.uri) {
+      loadThread(threadState.uri, { context: threadState.context })
+    }
+  }, [threadState.uri, threadState.context, loadThread])
 
   useEffect(() => {
     const el = getScrollContainer()
@@ -150,11 +194,13 @@ export default function BskyClientApp () {
     content = (
       <div className='space-y-6'>
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Timeline
+        <Timeline
             tab={timelineTab}
             refreshKey={refreshTick}
             onReply={openReplyComposer}
             onSelectPost={selectThreadFromItem}
+            onQuote={openQuoteComposer}
+            onItemsChange={setTimelineItems}
           />
         </div>
         {threadState.active ? (
@@ -163,6 +209,7 @@ export default function BskyClientApp () {
             onReload={reloadThread}
             onReply={openReplyComposer}
             onSelectPost={selectThreadFromItem}
+            onQuote={openQuoteComposer}
           />
         ) : null}
       </div>
@@ -206,8 +253,8 @@ export default function BskyClientApp () {
       </BskyClientLayout>
       <ComposeModal
         open={composeOpen}
-        onClose={() => { setComposeOpen(false); setReplyTarget(null) }}
-        title={replyTarget ? 'Antworten' : 'Neuer Post'}
+        onClose={() => { setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}
+        title={replyTarget ? 'Antworten' : (quoteTarget ? 'Post zitieren' : 'Neuer Post')}
         actions={
           <div className='flex items-center gap-2'>
             <Button variant='secondary' onClick={() => setConfirmDiscard(true)}>Abbrechen</Button>
@@ -215,7 +262,12 @@ export default function BskyClientApp () {
           </div>
         }
       >
-        <Composer reply={replyTarget} onSent={() => { setComposeOpen(false); setReplyTarget(null) }} />
+        <Composer
+          reply={replyTarget}
+          quote={quoteTarget}
+          onClearQuote={() => setQuoteTarget(null)}
+          onSent={() => { setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}
+        />
       </ComposeModal>
 
       {composeOpen && confirmDiscard ? (
@@ -226,7 +278,7 @@ export default function BskyClientApp () {
             <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen moechtest?</p>
             <div className='mt-4 flex items-center justify-end gap-2'>
               <Button variant='secondary' onClick={() => setConfirmDiscard(false)}>Abbrechen</Button>
-              <Button variant='primary' onClick={() => { setConfirmDiscard(false); setComposeOpen(false); setReplyTarget(null) }}>Verwerfen</Button>
+              <Button variant='primary' onClick={() => { setConfirmDiscard(false); setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}>Verwerfen</Button>
             </div>
           </div>
         </div>

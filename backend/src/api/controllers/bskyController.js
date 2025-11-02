@@ -361,6 +361,13 @@ async function postNow(req, res) {
     }
 
     const payload = { content: text }
+    const quote = req.body?.quote
+    if (quote && quote.uri && quote.cid) {
+      payload.quote = {
+        uri: String(quote.uri),
+        cid: String(quote.cid)
+      }
+    }
     if (media.length > 0) payload.media = media
     const result = await sendPost(payload, 'bluesky', env)
     if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })

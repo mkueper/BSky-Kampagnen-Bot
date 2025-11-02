@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, refreshKey = 0, onSelectPost }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, refreshKey = 0, onSelectPost, onItemsChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -88,6 +88,12 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
     return () => el.removeEventListener('scroll', onScroll)
   }, [loadMore])
 
+  useEffect(() => {
+    if (typeof onItemsChange === 'function') {
+      onItemsChange(items)
+    }
+  }, [items, onItemsChange])
+
   if (loading) {
     return (
       <div
@@ -118,6 +124,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, refre
             variant={variant}
             onReply={onReply}
             onSelect={onSelectPost ? (() => onSelectPost(it)) : undefined}
+            onQuote={onQuote}
           />
         </li>
       ))}

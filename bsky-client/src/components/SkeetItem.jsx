@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../context/CardConfigContext'
 
@@ -51,7 +51,7 @@ function extractExternalFromEmbed (item) {
   } catch { return null }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onSelect }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
@@ -61,12 +61,74 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
   const [likeCount, setLikeCount] = useState(Number(item?.stats?.likeCount ?? 0))
   const [repostCount, setRepostCount] = useState(Number(item?.stats?.repostCount ?? 0))
   const [busy, setBusy] = useState(false)
+  const [repostMenuOpen, setRepostMenuOpen] = useState(false)
+  const [repostMenuAlignLeft, setRepostMenuAlignLeft] = useState(false)
+  const [repostMenuOffset, setRepostMenuOffset] = useState(0)
+  const repostButtonRef = useRef(null)
+  const repostMenuRef = useRef(null)
+  const repostMenuPanelRef = useRef(null)
   const hasLiked = Boolean(likeUri)
   const hasReposted = Boolean(repostUri)
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
   const [actionError, setActionError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const repostMenuClass = repostMenuAlignLeft ? 'origin-top-left' : 'origin-top-right'
+  const repostMenuStyle = repostMenuAlignLeft
+    ? { left: 0, right: 'auto', transform: `translateX(${Math.max(repostMenuOffset, 0)}px)` }
+    : { right: 0, left: 'auto', transform: `translateX(-${Math.max(repostMenuOffset, 0)}px)` }
+  useEffect(() => {
+    if (!repostMenuOpen) return
+    function handlePointerDown (event) {
+      if (!repostMenuRef.current) return
+      if (repostMenuRef.current.contains(event.target)) return
+      setRepostMenuOpen(false)
+    }
+    function handleEscape (event) {
+      if (event.key === 'Escape') {
+        setRepostMenuOpen(false)
+      }
+    }
+    function updatePlacement () {
+      try {
+        const panel = repostMenuPanelRef.current
+        const button = repostButtonRef.current
+        if (!panel || !button) return
+        const panelRect = panel.getBoundingClientRect()
+        const buttonRect = button.getBoundingClientRect()
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0
+        const margin = 12
+        if (!viewportWidth) {
+          setRepostMenuAlignLeft(false)
+          setRepostMenuOffset(0)
+          return
+        }
+        const overflowLeft = margin - buttonRect.left
+        const overflowRight = buttonRect.right - (viewportWidth - margin)
+        if (overflowLeft > 0) {
+          setRepostMenuAlignLeft(true)
+          setRepostMenuOffset(overflowLeft)
+        } else if (overflowRight > 0) {
+          setRepostMenuAlignLeft(false)
+          setRepostMenuOffset(overflowRight)
+        } else {
+          setRepostMenuAlignLeft(false)
+          setRepostMenuOffset(0)
+        }
+      } catch {}
+    }
+    setTimeout(updatePlacement, 0)
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+    window.addEventListener('resize', updatePlacement)
+    window.addEventListener('scroll', updatePlacement, true)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+      window.removeEventListener('resize', updatePlacement)
+      window.removeEventListener('scroll', updatePlacement, true)
+    }
+  }, [repostMenuOpen])
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -207,40 +269,77 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
           <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
         </button>
-        <button
-          type='button'
-          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
-          style={repostStyle}
-          title='Reskeet'
-          aria-pressed={hasReposted}
-          disabled={busy}
-          onClick={async () => {
-            if (busy) return
-            setBusy(true)
-            try {
-              if (!hasReposted) {
-                const res = await fetch('/api/bsky/repost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
-                setRepostUri(data?.viewer?.repost || null)
-                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-              } else {
-                const res = await fetch('/api/bsky/repost', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repostUri }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
-                setRepostUri(null)
-                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-                else setRepostCount(v => Math.max(0, v - 1))
-              }
-              setActionError('')
-            } catch (e) {
-              setActionError(e?.message || 'Aktion fehlgeschlagen')
-            } finally { setBusy(false) }
-          }}
-        >
-          <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{repostCount}</span>
-        </button>
+        <div className='relative inline-flex items-center' ref={repostMenuRef}>
+          <button
+            type='button'
+            ref={repostButtonRef}
+            className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+            style={repostStyle}
+            title='Reskeet'
+            aria-pressed={hasReposted}
+            disabled={busy}
+            onClick={() => {
+              if (busy) return
+              setRepostMenuOpen((value) => !value)
+            }}
+          >
+            <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
+            <span className='tabular-nums'>{repostCount}</span>
+          </button>
+          {repostMenuOpen ? (
+            <div
+              ref={repostMenuPanelRef}
+              className={`absolute top-full z-20 mt-2 w-48 rounded-xl border border-border bg-background shadow-soft ring-1 ring-border/40 ${repostMenuClass}`}
+              style={repostMenuStyle}
+            >
+              <button
+                type='button'
+                className='w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background-subtle transition'
+                disabled={busy}
+                onClick={async () => {
+                  if (busy) return
+                  setBusy(true)
+                  try {
+                    if (!hasReposted) {
+                      const res = await fetch('/api/bsky/repost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
+                      const data = await res.json().catch(() => ({}))
+                      if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
+                      setRepostUri(data?.viewer?.repost || null)
+                      if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+                    } else {
+                      const res = await fetch('/api/bsky/repost', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repostUri }) })
+                      const data = await res.json().catch(() => ({}))
+                      if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
+                      setRepostUri(null)
+                      if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
+                      else setRepostCount(v => Math.max(0, v - 1))
+                    }
+                    setActionError('')
+                    setRepostMenuOpen(false)
+                  } catch (e) {
+                    setActionError(e?.message || 'Aktion fehlgeschlagen')
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+              >
+                {hasReposted ? 'Reskeet zurücknehmen' : 'Reskeet teilen'}
+              </button>
+              <button
+                type='button'
+                className='w-full px-3 py-2 text-left text-sm text-foreground hover:bg-background-subtle transition'
+                onClick={() => {
+                  setRepostMenuOpen(false)
+                  if (typeof onQuote === 'function') {
+                    onQuote(item)
+                  }
+                }}
+              >
+                Mit Kommentar posten
+              </button>
+            </div>
+          ) : null}
+        </div>
         <button
           type='button'
           className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}

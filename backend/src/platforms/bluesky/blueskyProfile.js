@@ -94,6 +94,12 @@ const blueskyProfile = {
         },
       };
     }
+    if (input.quote && input.quote.uri && input.quote.cid) {
+      payload.quote = {
+        uri: input.quote.uri,
+        cid: input.quote.cid,
+      };
+    }
     return payload;
   },
 
@@ -115,6 +121,9 @@ const blueskyProfile = {
     await rt.detectFacets(agent);
 
     let embed = undefined;
+    const quoteRecord = payload.quote && payload.quote.uri && payload.quote.cid
+      ? { uri: payload.quote.uri, cid: payload.quote.cid }
+      : null;
     const media = Array.isArray(payload.media) ? payload.media.slice(0, 4) : [];
     if (media.length > 0) {
       const fs = require('fs');
@@ -130,6 +139,20 @@ const blueskyProfile = {
       }
       if (images.length > 0) {
         embed = { $type: 'app.bsky.embed.images', images };
+      }
+    }
+    if (quoteRecord) {
+      if (embed && embed.$type?.startsWith('app.bsky.embed.images')) {
+        embed = {
+          $type: 'app.bsky.embed.recordWithMedia',
+          record: quoteRecord,
+          media: embed,
+        };
+      } else {
+        embed = {
+          $type: 'app.bsky.embed.record',
+          record: quoteRecord,
+        };
       }
     }
 
