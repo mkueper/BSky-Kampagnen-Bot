@@ -1,4 +1,4 @@
-import Button from './Button'
+import { Button } from '../shared'
 
 export default function ComposeModal ({ open, onClose, children, actions = null, title = 'Neuer Post' }) {
   if (!open) return null

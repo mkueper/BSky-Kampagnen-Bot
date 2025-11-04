@@ -1,4 +1,4 @@
-import Button from './Button'
+import { Button } from '../shared'
 import SkeetItem from './SkeetItem'
 
 function ReplyList ({ nodes = [], depth = 0, onReply, onSelect }) {

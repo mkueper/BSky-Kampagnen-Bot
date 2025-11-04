@@ -8,8 +8,8 @@ import {
   BookmarkIcon,
   PersonIcon,
   GearIcon,
-  PlusIcon
-} from '@radix-ui/react-icons'
+  PlusIcon,
+} from '@radix-ui/react-icons';
 
 const NAV = [
   { id: 'home', label: 'Home', icon: HomeIcon },
@@ -20,29 +20,28 @@ const NAV = [
   { id: 'lists', label: 'Listen', icon: ListBulletIcon },
   { id: 'saved', label: 'Gespeichert', icon: BookmarkIcon },
   { id: 'profile', label: 'Profil', icon: PersonIcon },
-  { id: 'settings', label: 'Einstellungen', icon: GearIcon }
-]
+  { id: 'settings', label: 'Einstellungen', icon: GearIcon },
+];
 
-export default function SidebarNav ({ active, onSelect, onCompose }) {
+export default function SidebarNav({ active, onSelect, onCompose }) {
   return (
     <nav
-      className='flex h-full w-full flex-col items-start gap-2'
-      data-component='BskyPrimaryNav'
-      aria-label='Hauptnavigation'
+      className="flex h-full w-full flex-col items-start gap-2"
+      data-component="BskyPrimaryNav"
+      aria-label="Hauptnavigation"
     >
       <div
-
-        className='min-h-0 flex flex-1 flex-col space-y-1 overflow-y-auto pr-1' data-componet='Ich muss weg'
+        className="min-h-0 flex flex-1 flex-col space-y-1 overflow-y-auto pr-1"
         style={{ scrollbarGutter: 'stable' }}
       >
-        {NAV.map(item => {
-          const Icon = item.icon
-          const isActive = active === item.id
-          const disabled = Boolean(item.disabled)
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          const isActive = active === item.id;
+          const disabled = Boolean(item.disabled);
           return (
             <button
               key={item.id}
-              type='button'
+              type="button"
               onClick={() => !disabled && onSelect(item.id)}
               disabled={disabled}
               aria-current={isActive ? 'page' : undefined}
@@ -56,25 +55,25 @@ export default function SidebarNav ({ active, onSelect, onCompose }) {
               data-nav-item={item.id}
               title={item.label}
             >
-              {Icon ? <Icon className='h-10 w-10 shrink-0' /> : null}
-              <span className='hidden xl:inline truncate'>{item.label}</span>
+              {Icon ? <Icon className="h-10 w-10 shrink-0" /> : null}
+              <span className="hidden xl:inline truncate">{item.label}</span>
             </button>
-          )
+          );
         })}
-        <div className='pt-2'>
+        <div className="pt-2">
           <button
-            type='button'
+            type="button"
             onClick={onCompose}
-            className='inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-            aria-label='Neuer Post'
-            data-nav-item='compose'
-            title='Neuer Post'
+            className="inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Neuer Post"
+            data-nav-item="compose"
+            title="Neuer Post"
           >
-            <PlusIcon className='h-10 w-10' />
-            <span className='hidden xl:inline truncate'>Neuer Post</span>
+            <PlusIcon className="h-10 w-10" />
+            <span className="hidden xl:inline truncate">Neuer Post</span>
           </button>
         </div>
       </div>
     </nav>
-  )
+  );
 }

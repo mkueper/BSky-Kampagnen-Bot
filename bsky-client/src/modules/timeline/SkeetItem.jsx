@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
-import { ChatBubbleIcon, LoopIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
-import { useCardConfig } from '../context/CardConfigContext'
+import { useMemo } from 'react'
+import { ChatBubbleIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
+import { useCardConfig } from '../../context/CardConfigContext.jsx'
+import { useBskyEngagement, RichText, RepostMenuButton } from '../shared'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -56,17 +57,27 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const { config } = useCardConfig()
-  const [likeUri, setLikeUri] = useState(item?.raw?.post?.viewer?.like || null)
-  const [repostUri, setRepostUri] = useState(item?.raw?.post?.viewer?.repost || null)
-  const [likeCount, setLikeCount] = useState(Number(item?.stats?.likeCount ?? 0))
-  const [repostCount, setRepostCount] = useState(Number(item?.stats?.repostCount ?? 0))
-  const [busy, setBusy] = useState(false)
-  const hasLiked = Boolean(likeUri)
-  const hasReposted = Boolean(repostUri)
+  const {
+    likeCount,
+    repostCount,
+    hasLiked,
+    hasReposted,
+    busy,
+    refreshing,
+    error: actionError,
+    toggleLike,
+    toggleRepost,
+    refresh,
+    clearError,
+  } = useBskyEngagement({
+    uri: item?.uri,
+    cid: item?.cid || item?.raw?.post?.cid,
+    initialLikes: stats?.likeCount,
+    initialReposts: stats?.repostCount,
+    viewer: item?.raw?.post?.viewer || item?.viewer,
+  })
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
-  const [actionError, setActionError] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
     ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
@@ -99,7 +110,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           </time>
         ) : null}
       </header>
-      <p className='mt-3 whitespace-pre-wrap break-words text-sm text-foreground'>{text}</p>
+      <p className='mt-3 text-sm text-foreground'>
+        <RichText text={text} className='whitespace-pre-wrap break-words' />
+      </p>
 
       {images.length > 0 ? (
         <div className='mt-3' data-component='BskySkeetImages'>
@@ -200,6 +213,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           title='Antworten'
           onClick={() => {
             if (typeof onReply === 'function') {
+              clearError()
               onReply({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid })
             }
           }}
@@ -207,40 +221,16 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
           <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
         </button>
-        <button
-          type='button'
-          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+        <RepostMenuButton
+          count={repostCount}
+          hasReposted={hasReposted}
+          busy={busy}
           style={repostStyle}
-          title='Reskeet'
-          aria-pressed={hasReposted}
-          disabled={busy}
-          onClick={async () => {
-            if (busy) return
-            setBusy(true)
-            try {
-              if (!hasReposted) {
-                const res = await fetch('/api/bsky/repost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Repost fehlgeschlagen')
-                setRepostUri(data?.viewer?.repost || null)
-                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-              } else {
-                const res = await fetch('/api/bsky/repost', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repostUri }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Undo-Repost fehlgeschlagen')
-                setRepostUri(null)
-                if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-                else setRepostCount(v => Math.max(0, v - 1))
-              }
-              setActionError('')
-            } catch (e) {
-              setActionError(e?.message || 'Aktion fehlgeschlagen')
-            } finally { setBusy(false) }
+          onRepost={() => {
+            clearError()
+            toggleRepost()
           }}
-        >
-          <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{repostCount}</span>
-        </button>
+        />
         <button
           type='button'
           className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
@@ -248,30 +238,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
           title='Gefällt mir'
           aria-pressed={hasLiked}
           disabled={busy}
-          onClick={async () => {
-            if (busy) return
-            setBusy(true)
-            try {
-              if (!hasLiked) {
-                const res = await fetch('/api/bsky/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Like fehlgeschlagen')
-                setLikeUri(data?.viewer?.like || null)
-                if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
-                else setLikeCount(v => v + 1)
-              } else {
-                const res = await fetch('/api/bsky/like', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ likeUri }) })
-                const data = await res.json().catch(() => ({}))
-                if (!res.ok) throw new Error(data?.error || 'Unlike fehlgeschlagen')
-                setLikeUri(null)
-                if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
-                else setLikeCount(v => Math.max(0, v - 1))
-              }
-              setActionError('')
-            } catch (e) {
-              setActionError(e?.message || 'Aktion fehlgeschlagen')
-            } finally { setBusy(false) }
-          }}
+          onClick={toggleLike}
         >
           {hasLiked ? (
             <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
@@ -283,21 +250,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
         <button
           type='button'
           className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
-          onClick={async () => {
-            if (refreshing) return
-            setRefreshing(true)
-            try {
-              const params = new URLSearchParams({ uri: String(item?.uri || '') })
-              const res = await fetch(`/api/bsky/reactions?${params.toString()}`)
-              const data = await res.json().catch(() => ({}))
-              if (!res.ok) throw new Error(data?.error || 'Fehler beim Aktualisieren')
-              if (data?.likes != null) setLikeCount(Number(data.likes))
-              if (data?.reposts != null) setRepostCount(Number(data.reposts))
-              setActionError('')
-            } catch (e) {
-              setActionError(e?.message || 'Aktualisieren fehlgeschlagen')
-            } finally { setRefreshing(false) }
-          }}
+          onClick={refresh}
         >
           {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
         </button>
@@ -308,3 +261,5 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
     </Wrapper>
   )
 }
+
+

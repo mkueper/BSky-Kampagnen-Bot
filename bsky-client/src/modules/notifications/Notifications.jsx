@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, LoopIcon } from '@radix-ui/react-icons'
-import Button from './Button'
+import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
+import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 
 const REASON_COPY = {
   like: { label: 'Like', description: 'hat deinen Beitrag geliked.' },
@@ -31,105 +31,28 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
   const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
   const canOpenSubject = Boolean(subject && typeof onSelectSubject === 'function')
 
-  const [likeUri, setLikeUri] = useState(item?.viewer?.like || null)
-  const [repostUri, setRepostUri] = useState(item?.viewer?.repost || null)
-  const [likeCount, setLikeCount] = useState(Number(item?.stats?.likeCount ?? 0))
-  const [repostCount, setRepostCount] = useState(Number(item?.stats?.repostCount ?? 0))
-  const [busy, setBusy] = useState(false)
-  const [actionError, setActionError] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
+  const {
+    likeCount,
+    repostCount,
+    hasLiked,
+    hasReposted,
+    busy,
+    refreshing,
+    error: actionError,
+    toggleLike,
+    toggleRepost,
+    refresh,
+    clearError,
+  } = useBskyEngagement({
+    uri: item?.uri,
+    cid: item?.cid || record?.cid,
+    initialLikes: item?.stats?.likeCount,
+    initialReposts: item?.stats?.repostCount,
+    viewer: item?.viewer,
+  })
 
-  const hasLiked = Boolean(likeUri)
-  const hasReposted = Boolean(repostUri)
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
-
-  async function toggleRepost () {
-    if (busy) return
-    setBusy(true)
-    try {
-      if (!hasReposted) {
-        const res = await fetch('/api/bsky/repost', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uri: item?.uri, cid: item?.cid || record?.cid }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Reskeet fehlgeschlagen')
-        setRepostUri(data?.viewer?.repost || null)
-        if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-      } else {
-        const res = await fetch('/api/bsky/repost', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ repostUri }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Undo-Reskeet fehlgeschlagen')
-        setRepostUri(null)
-        if (data?.totals?.reposts != null) setRepostCount(Number(data.totals.reposts))
-        else setRepostCount((v) => Math.max(0, v - 1))
-      }
-      setActionError('')
-    } catch (err) {
-      setActionError(err?.message || 'Aktion fehlgeschlagen')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function toggleLike () {
-    if (busy) return
-    setBusy(true)
-    try {
-      if (!hasLiked) {
-        const res = await fetch('/api/bsky/like', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uri: item?.uri, cid: item?.cid || record?.cid }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Like fehlgeschlagen')
-        setLikeUri(data?.viewer?.like || null)
-        if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
-        else setLikeCount((v) => v + 1)
-      } else {
-        const res = await fetch('/api/bsky/like', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ likeUri }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Unlike fehlgeschlagen')
-        setLikeUri(null)
-        if (data?.totals?.likes != null) setLikeCount(Number(data.totals.likes))
-        else setLikeCount((v) => Math.max(0, v - 1))
-      }
-      setActionError('')
-    } catch (err) {
-      setActionError(err?.message || 'Aktion fehlgeschlagen')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function refreshStats () {
-    if (refreshing) return
-    setRefreshing(true)
-    try {
-      const params = new URLSearchParams({ uri: String(item?.uri || '') })
-      const res = await fetch(`/api/bsky/reactions?${params.toString()}`)
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Aktualisieren fehlgeschlagen')
-      if (data?.likes != null) setLikeCount(Number(data.likes))
-      if (data?.reposts != null) setRepostCount(Number(data.reposts))
-      setActionError('')
-    } catch (err) {
-      setActionError(err?.message || 'Aktualisieren fehlgeschlagen')
-    } finally {
-      setRefreshing(false)
-    }
-  }
 
   return (
     <article
@@ -191,14 +114,16 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
           </p>
           {recordText ? (
-            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words'>
-              {recordText}
+            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+              <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
           {subject ? (
             <div className='rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted'>
               Bezogen auf:&nbsp;
-              <span className='font-medium text-foreground'>{subject.text || 'Beitrag'}</span>
+              <span className='font-medium text-foreground'>
+                <RichText text={subject.text || 'Beitrag'} />
+              </span>
             </div>
           ) : null}
           {timestamp ? (
@@ -213,27 +138,26 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
               title='Antworten'
-              onClick={() => {
-                if (typeof onReply === 'function') {
-                  onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
-                }
-              }}
-            >
+          onClick={() => {
+            if (typeof onReply === 'function') {
+              clearError()
+              onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
+            }
+          }}
+        >
               <ChatBubbleIcon className='h-5 w-5' />
               <span>Antworten</span>
             </button>
-            <button
-              type='button'
-              className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+            <RepostMenuButton
+              count={repostCount}
+              hasReposted={hasReposted}
+              busy={busy}
               style={repostStyle}
-              title='Reskeet'
-              aria-pressed={hasReposted}
-              disabled={busy}
-              onClick={toggleRepost}
-            >
-              <LoopIcon className='h-5 w-5' />
-              <span className='tabular-nums'>{repostCount}</span>
-            </button>
+              onRepost={() => {
+                clearError()
+                toggleRepost()
+              }}
+            />
             <button
               type='button'
               className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
@@ -253,7 +177,7 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
             <button
               type='button'
               className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
-              onClick={refreshStats}
+              onClick={refresh}
               disabled={refreshing}
             >
               {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
@@ -279,18 +203,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
   const fetchPage = useCallback(async ({ withCursor, markSeen = false } = {}) => {
-    const params = new URLSearchParams()
-    if (withCursor) params.set('cursor', withCursor)
-    if (markSeen) params.set('markSeen', 'true')
-    const query = params.toString()
-    const res = await fetch(query ? `/api/bsky/notifications?${query}` : '/api/bsky/notifications')
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      throw new Error(data?.error || `HTTP ${res.status}`)
-    }
-    const data = await res.json()
-    const notifications = Array.isArray(data?.notifications) ? data.notifications : []
-    return { notifications, cursor: data?.cursor || null }
+    const { items: notifications, cursor: nextCursor } = await fetchNotificationsApi({
+      cursor: withCursor,
+      markSeen,
+    })
+    return { notifications, cursor: nextCursor }
   }, [])
 
   useEffect(() => {
@@ -382,3 +299,6 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }
     </section>
   )
 }
+
+
+
