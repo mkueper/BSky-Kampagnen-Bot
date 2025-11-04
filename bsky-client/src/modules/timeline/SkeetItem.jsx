@@ -52,10 +52,40 @@ function extractExternalFromEmbed (item) {
   } catch { return null }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onSelect }) {
+function extractQuoteFromEmbed (item) {
+  try {
+    const post = item?.raw?.post || {}
+    const e = post?.embed || {}
+    const t = e?.$type
+    let recordView = null
+    if (typeof t === 'string') {
+      if (t.startsWith('app.bsky.embed.recordWithMedia')) {
+        recordView = e?.record || null
+      } else if (t.startsWith('app.bsky.embed.record')) {
+        recordView = e
+      }
+    }
+    if (!recordView) return null
+    const author = recordView?.author || {}
+    const value = recordView?.value || {}
+    return {
+      uri: recordView?.uri || null,
+      cid: recordView?.cid || null,
+      text: typeof value?.text === 'string' ? value.text : '',
+      author: {
+        handle: author?.handle || '',
+        displayName: author?.displayName || author?.handle || '',
+        avatar: author?.avatar || null
+      }
+    }
+  } catch { return null }
+}
+
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
+  const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
   const { config } = useCardConfig()
   const {
     likeCount,
@@ -113,6 +143,29 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
       <p className='mt-3 text-sm text-foreground'>
         <RichText text={text} className='whitespace-pre-wrap break-words' />
       </p>
+
+      {quoted ? (
+        <div className='mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground' data-component='BskyQuoteCard'>
+          <div className='flex items-start gap-3'>
+            {quoted.author.avatar ? (
+              <img src={quoted.author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
+            ) : (
+              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+            )}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-semibold text-foreground'>{quoted.author.displayName || quoted.author.handle || 'Unbekannt'}</p>
+              {quoted.author.handle ? (
+                <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+              ) : null}
+              {quoted.text ? (
+                <div className='mt-2 text-sm text-foreground'>
+                  <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {images.length > 0 ? (
         <div className='mt-3' data-component='BskySkeetImages'>
@@ -230,6 +283,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onSelect })
             clearError()
             toggleRepost()
           }}
+          onQuote={onQuote ? (() => {
+            clearError()
+            onQuote(item)
+          }) : undefined}
         />
         <button
           type='button'

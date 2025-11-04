@@ -94,6 +94,12 @@ const blueskyProfile = {
         },
       };
     }
+    if (input.quote && input.quote.uri && input.quote.cid) {
+      payload.quote = {
+        uri: input.quote.uri,
+        cid: input.quote.cid,
+      };
+    }
     return payload;
   },
 
@@ -114,8 +120,8 @@ const blueskyProfile = {
     const rt = new RichText({ text });
     await rt.detectFacets(agent);
 
-    let embed = undefined;
     const media = Array.isArray(payload.media) ? payload.media.slice(0, 4) : [];
+    let imagesEmbed = null;
     if (media.length > 0) {
       const fs = require('fs');
       const images = [];
@@ -129,8 +135,28 @@ const blueskyProfile = {
         }
       }
       if (images.length > 0) {
-        embed = { $type: 'app.bsky.embed.images', images };
+        imagesEmbed = { $type: 'app.bsky.embed.images', images };
       }
+    }
+
+    const quoteRef = payload.quote && payload.quote.uri && payload.quote.cid
+      ? { uri: payload.quote.uri, cid: payload.quote.cid }
+      : null;
+
+    let embed = undefined;
+    if (quoteRef && imagesEmbed) {
+      embed = {
+        $type: 'app.bsky.embed.recordWithMedia',
+        record: quoteRef,
+        media: imagesEmbed,
+      };
+    } else if (quoteRef) {
+      embed = {
+        $type: 'app.bsky.embed.record',
+        record: quoteRef,
+      };
+    } else if (imagesEmbed) {
+      embed = imagesEmbed;
     }
 
     const res = await agent.post({

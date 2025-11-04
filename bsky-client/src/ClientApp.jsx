@@ -4,12 +4,14 @@ import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
 import { Button, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
+import { ReloadIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientApp () {
   const [section, setSection] = useState('home')
   const [composeOpen, setComposeOpen] = useState(false)
   const [timelineTab, setTimelineTab] = useState('discover')
   const [replyTarget, setReplyTarget] = useState(null)
+  const [quoteTarget, setQuoteTarget] = useState(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
@@ -32,8 +34,42 @@ export default function BskyClientApp () {
   const refreshNotifications = useCallback(() => setNotificationsRefreshTick((tick) => tick + 1), [])
 
   const openReplyComposer = useCallback((target) => {
+    setQuoteTarget(null)
     setReplyTarget(target)
     setComposeOpen(true)
+  }, [])
+
+  const resolveQuoteTarget = useCallback((source) => {
+    if (!source) return null
+    const rawPost = source?.raw?.post || null
+    const record = rawPost?.record || source?.record || {}
+    const author = source?.author || rawPost?.author || record?.author || {}
+    const uri = source?.uri || rawPost?.uri || record?.uri || ''
+    const cid = source?.cid || rawPost?.cid || record?.cid || ''
+    if (!uri || !cid) return null
+    return {
+      uri,
+      cid,
+      text: source?.text || record?.text || '',
+      author: {
+        handle: author?.handle || '',
+        displayName: author?.displayName || author?.handle || '',
+        avatar: author?.avatar || null
+      }
+    }
+  }, [])
+
+  const openQuoteComposer = useCallback((source) => {
+    const normalized = resolveQuoteTarget(source)
+    if (!normalized) return
+    setReplyTarget(null)
+    setQuoteTarget(normalized)
+    setComposeOpen(true)
+  }, [resolveQuoteTarget])
+
+  const resetComposerTargets = useCallback(() => {
+    setReplyTarget(null)
+    setQuoteTarget(null)
   }, [])
 
   const closeThread = useCallback(() => {
@@ -118,10 +154,24 @@ export default function BskyClientApp () {
   const headerContent = useMemo(() => {
     if (section === 'home') {
       if (threadState.active) {
+        const busy = threadState.loading
         return (
           <div className='flex items-center justify-between gap-3' data-component='BskyThreadHeader'>
             <p className='text-sm text-foreground-muted truncate'>Thread-Ansicht</p>
-            <Button variant='secondary' size='pill' onClick={closeThread}>Zurueck zur Timeline</Button>
+            <div className='flex items-center gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                size='pill'
+                onClick={reloadThread}
+                disabled={busy}
+                aria-label='Thread neu laden'
+              >
+                <ReloadIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+                <span className='hidden sm:inline'>Neu laden</span>
+              </Button>
+              <Button variant='secondary' size='pill' onClick={closeThread}>Zurueck zur Timeline</Button>
+            </div>
           </div>
         )
       }
@@ -201,6 +251,7 @@ export default function BskyClientApp () {
             tab={timelineTab}
             refreshKey={refreshTick}
             onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
             onSelectPost={selectThreadFromItem}
             onTopItemChange={(item) => {
               const nextUri = item?.uri || ''
@@ -226,6 +277,7 @@ export default function BskyClientApp () {
         refreshKey={notificationsRefreshTick}
         onSelectPost={selectThreadFromItem}
         onReply={openReplyComposer}
+        onQuote={openQuoteComposer}
       />
     )
   }
@@ -259,8 +311,8 @@ export default function BskyClientApp () {
       </BskyClientLayout>
       <ComposeModal
         open={composeOpen}
-        onClose={() => { setComposeOpen(false); setReplyTarget(null) }}
-        title={replyTarget ? 'Antworten' : 'Neuer Post'}
+        onClose={() => { setComposeOpen(false); resetComposerTargets() }}
+        title={replyTarget ? 'Antworten' : (quoteTarget ? 'Post zitieren' : 'Neuer Post')}
         actions={
           <div className='flex items-center gap-2'>
             <Button variant='secondary' onClick={() => setConfirmDiscard(true)}>Abbrechen</Button>
@@ -268,7 +320,15 @@ export default function BskyClientApp () {
           </div>
         }
       >
-        <Composer reply={replyTarget} onSent={() => { setComposeOpen(false); setReplyTarget(null) }} />
+        <Composer
+          reply={replyTarget}
+          quote={quoteTarget}
+          onCancelQuote={() => setQuoteTarget(null)}
+          onSent={() => {
+            setComposeOpen(false)
+            resetComposerTargets()
+          }}
+        />
       </ComposeModal>
 
       {composeOpen && confirmDiscard ? (
@@ -279,7 +339,11 @@ export default function BskyClientApp () {
             <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen moechtest?</p>
             <div className='mt-4 flex items-center justify-end gap-2'>
               <Button variant='secondary' onClick={() => setConfirmDiscard(false)}>Abbrechen</Button>
-              <Button variant='primary' onClick={() => { setConfirmDiscard(false); setComposeOpen(false); setReplyTarget(null) }}>Verwerfen</Button>
+              <Button variant='primary' onClick={() => {
+                setConfirmDiscard(false)
+                setComposeOpen(false)
+                resetComposerTargets()
+              }}>Verwerfen</Button>
             </div>
           </div>
         </div>

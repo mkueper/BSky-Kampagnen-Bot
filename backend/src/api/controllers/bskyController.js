@@ -14,13 +14,27 @@ const TIMELINE_TABS = {
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 
+function toTimestamp (value) {
+  if (!value) return 0
+  const ms = Date.parse(value)
+  return Number.isNaN(ms) ? 0 : ms
+}
+
+function sortThreadReplies (nodes = []) {
+  return nodes.slice().sort((a, b) => {
+    const aTs = toTimestamp(a?.createdAt) || toTimestamp(a?.raw?.post?.indexedAt)
+    const bTs = toTimestamp(b?.createdAt) || toTimestamp(b?.raw?.post?.indexedAt)
+    return aTs - bTs
+  })
+}
+
 function mapThreadNode (node) {
   if (!node || node.$type !== THREAD_NODE_TYPE) return null
   const post = node.post || {}
   const author = post.author || {}
   const record = post.record || {}
   const replies = Array.isArray(node.replies)
-    ? node.replies.map(mapThreadNode).filter(Boolean)
+    ? sortThreadReplies(node.replies.map(mapThreadNode).filter(Boolean))
     : []
   return {
     uri: post.uri || null,
@@ -308,8 +322,11 @@ async function postReply(req, res) {
 
 async function postNow(req, res) {
   try {
-    const text = String(req.body?.text || '').trim()
-    if (!text) return res.status(400).json({ error: 'text erforderlich' })
+    const text = typeof req.body?.text === 'string' ? req.body.text.trim() : ''
+    const quoteUri = typeof req.body?.quote?.uri === 'string' ? req.body.quote.uri.trim() : ''
+    const quoteCid = typeof req.body?.quote?.cid === 'string' ? req.body.quote.cid.trim() : ''
+    const hasQuote = Boolean(quoteUri && quoteCid)
+    if (!text && !hasQuote) return res.status(400).json({ error: 'text oder quote erforderlich' })
     const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('@core/services/platformContext')
     const { sendPost } = require('@core/services/postService')
     ensurePlatforms()
@@ -362,6 +379,7 @@ async function postNow(req, res) {
 
     const payload = { content: text }
     if (media.length > 0) payload.media = media
+    if (hasQuote) payload.quote = { uri: quoteUri, cid: quoteCid }
     const result = await sendPost(payload, 'bluesky', env)
     if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
     res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })

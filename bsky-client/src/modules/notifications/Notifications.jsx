@@ -11,7 +11,7 @@ const REASON_COPY = {
   quote: { label: 'Quote', description: 'hat deinen Beitrag zitiert.' }
 }
 
-function NotificationCard ({ item, onSelectSubject, onReply }) {
+function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
   const {
     author = {},
     reason = 'unknown',
@@ -157,6 +157,10 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
                 clearError()
                 toggleRepost()
               }}
+              onQuote={onQuote ? (() => {
+                clearError()
+                onQuote(item)
+              }) : undefined}
             />
             <button
               type='button'
@@ -192,7 +196,7 @@ function NotificationCard ({ item, onSelectSubject, onReply }) {
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -285,6 +289,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply }
               item={item}
               onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
               onReply={onReply}
+              onQuote={onQuote}
             />
           </li>
         ))}
