@@ -1,4 +1,18 @@
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
+﻿const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+const ensureFetch = () => {
+  if (typeof globalThis.fetch === 'function') {
+    return globalThis.fetch.bind(globalThis);
+  }
+  throw new Error('Fetch API ist in dieser Umgebung nicht verfuegbar.');
+};
+
+const createSearchParams = (init) => {
+  if (typeof globalThis.URLSearchParams === 'function') {
+    return new globalThis.URLSearchParams(init);
+  }
+  throw new Error('URLSearchParams ist in dieser Umgebung nicht verfuegbar.');
+};
 
 async function requestJson(path, { method = 'GET', body, headers, retries = 1, ...options } = {}) {
   const serializedBody =
@@ -20,7 +34,7 @@ async function requestJson(path, { method = 'GET', body, headers, retries = 1, .
     }
 
     try {
-      const response = await fetch(path, init);
+      const response = await ensureFetch()(path, init);
 
       let data = null;
       try {
@@ -55,7 +69,7 @@ async function requestJson(path, { method = 'GET', body, headers, retries = 1, .
 }
 
 export async function fetchTimeline({ tab, cursor, limit } = {}) {
-  const params = new URLSearchParams();
+  const params = createSearchParams();
   if (tab) params.set('tab', tab);
   if (cursor) params.set('cursor', cursor);
   if (typeof limit === 'number') params.set('limit', String(limit));
@@ -68,7 +82,7 @@ export async function fetchTimeline({ tab, cursor, limit } = {}) {
 }
 
 export async function fetchNotifications({ cursor, markSeen } = {}) {
-  const params = new URLSearchParams();
+  const params = createSearchParams();
   if (cursor) params.set('cursor', cursor);
   if (markSeen) params.set('markSeen', 'true');
   const query = params.toString();
@@ -80,7 +94,7 @@ export async function fetchNotifications({ cursor, markSeen } = {}) {
 }
 
 export async function fetchThread(uri) {
-  const params = new URLSearchParams();
+  const params = createSearchParams();
   params.set('uri', uri);
   return requestJson(`/api/bsky/thread?${params.toString()}`);
 }
@@ -118,8 +132,11 @@ export async function unrepostPost({ repostUri }) {
 }
 
 export async function fetchReactions({ uri }) {
-  const params = new URLSearchParams({ uri });
+  const params = createSearchParams({ uri });
   return requestJson(`/api/bsky/reactions?${params.toString()}`);
 }
 
 export { requestJson };
+
+
+
