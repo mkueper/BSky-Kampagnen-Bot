@@ -30,6 +30,17 @@ const log = createLogger('platform:bluesky');
  * @param {BlueskyEnv} env - Konfigurationswerte aus .env bzw. Datenbank
  * @returns {Promise<BskyAgent>}
  */
+// Cache, damit wir nicht für jede Anfrage einen neuen Agenten aufbauen müssen.
+const agentCache = new Map(); // key -> { agent, appPassword, promise }
+
+function buildCacheKey(env) {
+  return `${env.serverUrl}::${env.identifier}`;
+}
+
+function isAgentSessionActive(agent) {
+  return Boolean(agent?.session?.did);
+}
+
 async function createAgent(env) {
   // Lazy import to avoid requiring optional deps during unit tests
   const { BskyAgent } = require("@atproto/api");
@@ -39,6 +50,34 @@ async function createAgent(env) {
     password: env.appPassword,
   });
   return agent;
+}
+
+async function getAgent(env) {
+  const key = buildCacheKey(env);
+  const cached = agentCache.get(key);
+  if (
+    cached?.agent &&
+    cached.appPassword === env.appPassword &&
+    isAgentSessionActive(cached.agent)
+  ) {
+    return cached.agent;
+  }
+  if (cached?.promise) {
+    return cached.promise;
+  }
+
+  const promise = createAgent(env)
+    .then((agent) => {
+      agentCache.set(key, { agent, appPassword: env.appPassword });
+      return agent;
+    })
+    .catch((error) => {
+      agentCache.delete(key);
+      throw error;
+    });
+
+  agentCache.set(key, { promise, appPassword: env.appPassword });
+  return promise;
 }
 
 /**
@@ -112,7 +151,7 @@ const blueskyProfile = {
       throw new Error("Bluesky-Env unvollständig (serverUrl, identifier, appPassword erforderlich).");
     }
 
-    const agent = await createAgent(env);
+    const agent = await getAgent(env);
 
     const text = payload.text;
     // Lazy import RichText to avoid hard dep during tests
@@ -185,7 +224,7 @@ const blueskyProfile = {
       throw new Error('Bluesky-URI zum Löschen fehlt.');
     }
 
-    const agent = await createAgent(env);
+    const agent = await getAgent(env);
     await agent.deletePost(uri);
     return { uri };
   },

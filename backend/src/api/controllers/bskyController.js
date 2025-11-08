@@ -1,8 +1,8 @@
 const { createLogger } = require('@utils/logging')
 const log = createLogger('api:bsky')
 const bsky = require('@core/services/blueskyClient')
-const fs = require('fs')
 const path = require('path')
+const fsp = require('fs/promises')
 
 const TIMELINE_TABS = {
   following: { type: 'timeline' },
@@ -11,6 +11,11 @@ const TIMELINE_TABS = {
   mutuals: { type: 'feed', feedUri: bsky.FEED_GENERATORS.mutuals },
   'best-of-follows': { type: 'feed', feedUri: bsky.FEED_GENERATORS['best-of-follows'] }
 }
+
+const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 
@@ -119,6 +124,66 @@ function mapNotificationEntry (entry, subjectMap) {
     subject,
     raw: entry
   }
+}
+
+async function collectMediaFromTemp (mediaInput = [], contextLabel = 'post') {
+  if (!Array.isArray(mediaInput) || mediaInput.length === 0) return []
+  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
+  const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
+
+  try {
+    await fsp.mkdir(uploadDir, { recursive: true })
+  } catch (error) {
+    log.warn('Upload-Verzeichnis konnte nicht erstellt werden', {
+      scope: contextLabel,
+      uploadDir,
+      error: error?.message || String(error)
+    })
+  }
+
+  const collected = []
+  for (const m of mediaInput.slice(0, 4)) {
+    try {
+      const mime = m?.mime || 'image/jpeg'
+      if (!ALLOWED_IMAGE_TYPES.includes(mime)) continue
+      if (!m?.tempId) continue
+      const tempPath = path.join(tempDir, String(m.tempId))
+      const stat = await fsp.stat(tempPath).catch(() => null)
+      if (!stat || stat.size <= 0) continue
+      const safeName = String(m.filename || m.tempId).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0, 120)
+      const finalBase = `${Date.now()}-${safeName}`
+      const finalPath = path.join(uploadDir, finalBase)
+      await fsp.rename(tempPath, finalPath)
+      collected.push({
+        path: finalPath,
+        mime,
+        altText: typeof m.altText === 'string' ? m.altText : ''
+      })
+    } catch (error) {
+      log.warn('Medien konnten nicht übernommen werden', {
+        scope: contextLabel,
+        tempId: m?.tempId,
+        error: error?.message || String(error)
+      })
+    }
+  }
+  return collected
+}
+
+async function cleanupMediaFiles (files = [], contextLabel = 'post') {
+  if (!Array.isArray(files) || files.length === 0) return
+  await Promise.all(files.map(async (filePath) => {
+    if (!filePath) return
+    try {
+      await fsp.unlink(filePath)
+    } catch (error) {
+      log.warn('Upload konnte nicht bereinigt werden', {
+        scope: contextLabel,
+        filePath,
+        error: error?.message || String(error)
+      })
+    }
+  }))
 }
 
 /**
@@ -265,55 +330,23 @@ async function postReply(req, res) {
     const env = resolvePlatformEnv('bluesky')
     const envErr = validatePlatformEnv('bluesky', env)
     if (envErr) return res.status(500).json({ error: envErr })
-    // Medien (optional) aus temp uebernehmen und an sendPost uebergeben
-    const allowed = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
-      .split(',').map((s) => s.trim()).filter(Boolean)
+    // Medien (optional) aus temp übernehmen und an sendPost übergeben
     const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
-    const media = []
-    if (mediaInput.length > 0) {
-      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
-      const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
-      try {
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true })
-        }
-      } catch (error) {
-        log.warn('Upload-Verzeichnis konnte nicht erstellt werden', {
-          uploadDir,
-          error: error?.message || String(error)
-        })
-      }
-      for (const m of mediaInput.slice(0, 4)) {
-        try {
-          const mime = m?.mime || 'image/jpeg'
-          if (!allowed.includes(mime)) continue
-          if (m?.tempId) {
-            const tempPath = path.join(tempDir, String(m.tempId))
-            const st = fs.statSync(tempPath)
-            if (st && st.size > 0) {
-              const finalBase = `${Date.now()}-${String(m.filename || m.tempId).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0,120)}`
-              const finalPath = path.join(uploadDir, finalBase)
-              fs.renameSync(tempPath, finalPath)
-              media.push({ path: finalPath, mime, altText: typeof m.altText === 'string' ? m.altText : '' })
-            }
-          }
-        } catch (error) {
-          log.warn('Medien konnten nicht uebernommen werden (Reply)', {
-            tempId: m?.tempId,
-            error: error?.message || String(error)
-          })
-        }
-      }
-    }
+    const media = await collectMediaFromTemp(mediaInput, 'postReply')
 
     const payload = { content: text, reply: { root, parent } }
     if (media.length > 0) payload.media = media
 
-    const result = await sendPost(payload, 'bluesky', env)
-    if (!result?.ok) {
-      return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+    const mediaPaths = media.map((item) => item?.path).filter(Boolean)
+    try {
+      const result = await sendPost(payload, 'bluesky', env)
+      if (!result?.ok) {
+        return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+      }
+      res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
+    } finally {
+      await cleanupMediaFiles(mediaPaths, 'postReply')
     }
-    res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
   } catch (error) {
     log.error('postReply failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Senden der Antwort.' })
@@ -334,55 +367,22 @@ async function postNow(req, res) {
     const envErr = validatePlatformEnv('bluesky', env)
     if (envErr) return res.status(500).json({ error: envErr })
 
-    // Optionale Medien aus temp uebernehmen
-    const fs = require('fs')
-    const path = require('path')
-    const allowed = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
-      .split(',').map((s) => s.trim()).filter(Boolean)
+    // Optionale Medien aus temp übernehmen
     const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
-    const media = []
-    if (mediaInput.length > 0) {
-      const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
-      const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
-      try {
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true })
-        }
-      } catch (error) {
-        log.warn('Upload-Verzeichnis konnte nicht erstellt werden (postNow)', {
-          uploadDir,
-          error: error?.message || String(error)
-        })
-      }
-      for (const m of mediaInput.slice(0, 4)) {
-        try {
-          const mime = m?.mime || 'image/jpeg'
-          if (!allowed.includes(mime)) continue
-          if (m?.tempId) {
-            const tempPath = path.join(tempDir, String(m.tempId))
-            const st = fs.statSync(tempPath)
-            if (st && st.size > 0) {
-              const finalBase = `${Date.now()}-${String(m.filename || m.tempId).replace(/[^A-Za-z0-9._-]+/g, '_').slice(0,120)}`
-              const finalPath = path.join(uploadDir, finalBase)
-              fs.renameSync(tempPath, finalPath)
-              media.push({ path: finalPath, mime, altText: typeof m.altText === 'string' ? m.altText : '' })
-            }
-          }
-        } catch (error) {
-          log.warn('Medien konnten nicht uebernommen werden (postNow)', {
-            tempId: m?.tempId,
-            error: error?.message || String(error)
-          })
-        }
-      }
-    }
+    const media = await collectMediaFromTemp(mediaInput, 'postNow')
 
     const payload = { content: text }
     if (media.length > 0) payload.media = media
     if (hasQuote) payload.quote = { uri: quoteUri, cid: quoteCid }
-    const result = await sendPost(payload, 'bluesky', env)
-    if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
-    res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
+
+    const mediaPaths = media.map((item) => item?.path).filter(Boolean)
+    try {
+      const result = await sendPost(payload, 'bluesky', env)
+      if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+      res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
+    } finally {
+      await cleanupMediaFiles(mediaPaths, 'postNow')
+    }
   } catch (error) {
     log.error('postNow failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Senden.' })
