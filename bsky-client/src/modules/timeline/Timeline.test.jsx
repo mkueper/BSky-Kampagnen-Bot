@@ -39,6 +39,6 @@ describe('Timeline', () => {
     render(<Timeline tab="discover" />);
 
     expect(await screen.findByText(/Fehler: kaputt/i)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

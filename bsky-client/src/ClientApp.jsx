@@ -1,23 +1,24 @@
-import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import BskyClientLayout from './layout/BskyClientLayout'
-import Timeline from './components/Timeline'
-import Composer from './components/Composer'
-import ComposeModal from './components/ComposeModal'
-import Button from './components/Button'
-import ThreadView from './components/ThreadView'
-import Notifications from './components/Notifications'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
+import { Timeline, ThreadView } from './modules/timeline'
+import { Composer, ComposeModal } from './modules/composer'
+import { Notifications } from './modules/notifications'
+import { Button, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
+import { ReloadIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientApp () {
   const [section, setSection] = useState('home')
   const [composeOpen, setComposeOpen] = useState(false)
   const [timelineTab, setTimelineTab] = useState('discover')
   const [replyTarget, setReplyTarget] = useState(null)
+  const [quoteTarget, setQuoteTarget] = useState(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
   const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null, context: null })
   const [timelineItems, setTimelineItems] = useState([])
-  const [quoteTarget, setQuoteTarget] = useState(null)
+  const [timelineTopUri, setTimelineTopUri] = useState('')
+  const [timelineHasNew, setTimelineHasNew] = useState(false)
   const scrollPosRef = useRef(0)
   const threadScrollPosRef = useRef(0)
   const threadContextRef = useRef(null)
@@ -27,7 +28,11 @@ export default function BskyClientApp () {
     []
   )
 
-  const refreshTimeline = useCallback(() => setRefreshTick((tick) => tick + 1), [])
+  const refreshTimeline = useCallback(() => {
+    setTimelineHasNew(false)
+    setRefreshTick((tick) => tick + 1)
+  }, [])
+
   const refreshNotifications = useCallback(() => setNotificationsRefreshTick((tick) => tick + 1), [])
 
   const openReplyComposer = useCallback((target) => {
@@ -36,21 +41,37 @@ export default function BskyClientApp () {
     setComposeOpen(true)
   }, [])
 
-  const openQuoteComposer = useCallback((target) => {
-    const normalizedUri = target?.uri || target?.raw?.post?.uri || null
-    const normalizedCid = target?.cid || target?.raw?.post?.cid || null
-    const normalized = normalizedUri
-      ? {
-          uri: normalizedUri,
-          cid: normalizedCid,
-          author: target?.author || target?.raw?.post?.author || null,
-          text: target?.text || target?.raw?.post?.record?.text || '',
-          raw: target?.raw || null
-        }
-      : null
+  const resolveQuoteTarget = useCallback((source) => {
+    if (!source) return null
+    const rawPost = source?.raw?.post || null
+    const record = rawPost?.record || source?.record || {}
+    const author = source?.author || rawPost?.author || record?.author || {}
+    const uri = source?.uri || rawPost?.uri || record?.uri || ''
+    const cid = source?.cid || rawPost?.cid || record?.cid || ''
+    if (!uri || !cid) return null
+    return {
+      uri,
+      cid,
+      text: source?.text || record?.text || '',
+      author: {
+        handle: author?.handle || '',
+        displayName: author?.displayName || author?.handle || '',
+        avatar: author?.avatar || null
+      }
+    }
+  }, [])
+
+  const openQuoteComposer = useCallback((source) => {
+    const normalized = resolveQuoteTarget(source)
+    if (!normalized) return
     setReplyTarget(null)
     setQuoteTarget(normalized)
     setComposeOpen(true)
+  }, [resolveQuoteTarget])
+
+  const resetComposerTargets = useCallback(() => {
+    setReplyTarget(null)
+    setQuoteTarget(null)
   }, [])
 
   const closeThread = useCallback(() => {
@@ -80,10 +101,7 @@ export default function BskyClientApp () {
       context: threadContextRef.current
     }))
     try {
-      const params = new URLSearchParams({ uri: normalized })
-      const res = await fetch(`/api/bsky/thread?${params.toString()}`)
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || 'Thread konnte nicht geladen werden.')
+      const data = await fetchThreadApi(normalized)
       setThreadState({ active: true, loading: false, error: '', data, uri: normalized, context: threadContextRef.current })
     } catch (error) {
       setThreadState({
@@ -134,13 +152,51 @@ export default function BskyClientApp () {
     }
   }, [composeOpen, getScrollContainer])
 
+  useEffect(() => {
+    if (section !== 'home') return undefined
+    if (!timelineTopUri) return undefined
+
+    let ignore = false
+
+    const check = async () => {
+      try {
+        const { items } = await fetchTimelineApi({ tab: timelineTab, limit: 1 })
+        const topUri = items?.[0]?.uri || ''
+        if (!ignore && topUri && timelineTopUri && topUri !== timelineTopUri) {
+          setTimelineHasNew(true)
+        }
+      } catch {}
+    }
+
+    check()
+    const id = window.setInterval(check, 45000)
+    return () => {
+      ignore = true
+      window.clearInterval(id)
+    }
+  }, [section, timelineTab, timelineTopUri])
+
   const headerContent = useMemo(() => {
     if (section === 'home') {
       if (threadState.active) {
+        const busy = threadState.loading
         return (
           <div className='flex items-center justify-between gap-3' data-component='BskyThreadHeader'>
             <p className='text-sm text-foreground-muted truncate'>Thread-Ansicht</p>
-            <Button variant='secondary' size='pill' onClick={closeThread}>Zurueck zur Timeline</Button>
+            <div className='flex items-center gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                size='pill'
+                onClick={reloadThread}
+                disabled={busy}
+                aria-label='Thread neu laden'
+              >
+                <ReloadIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+                <span className='hidden sm:inline'>Neu laden</span>
+              </Button>
+              <Button variant='secondary' size='pill' onClick={closeThread}>Zurueck zur Timeline</Button>
+            </div>
           </div>
         )
       }
@@ -152,7 +208,10 @@ export default function BskyClientApp () {
         { id: 'best-of-follows', label: 'Best of Follows' }
       ]
       return (
-        <div className='flex items-center gap-3 overflow-x-auto' data-component='BskyTimelineHeaderContent'>
+        <HorizontalScrollContainer
+          className='max-w-full'
+          data-component='BskyTimelineHeaderContent'
+        >
           {tabs.map(t => (
             <button
               key={t.id}
@@ -160,6 +219,8 @@ export default function BskyClientApp () {
               onClick={() => {
                 if (threadState.active) closeThread()
                 if (timelineTab === t.id) refreshTimeline()
+                setTimelineHasNew(false)
+                setTimelineTopUri('')
                 setTimelineTab(t.id)
               }}
               aria-current={timelineTab === t.id ? 'page' : undefined}
@@ -173,7 +234,7 @@ export default function BskyClientApp () {
               {t.label}
             </button>
           ))}
-        </div>
+        </HorizontalScrollContainer>
       )
     }
     if (section === 'notifications') {
@@ -193,14 +254,36 @@ export default function BskyClientApp () {
   if (section === 'home') {
     content = (
       <div className='space-y-6'>
+        {timelineHasNew && !threadState.active ? (
+          <div className='sticky top-3 z-30 flex justify-center'>
+            <Button
+              variant='primary'
+              size='pill'
+              onClick={() => {
+                const el = getScrollContainer()
+                if (el) {
+                  try { el.scrollTo({ top: 0, behavior: 'smooth' }) } catch { el.scrollTop = 0 }
+                }
+                refreshTimeline()
+              }}
+            >
+              Neue Beitraege anzeigen
+            </Button>
+          </div>
+        ) : null}
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-        <Timeline
+          <Timeline
             tab={timelineTab}
             refreshKey={refreshTick}
             onReply={openReplyComposer}
-            onSelectPost={selectThreadFromItem}
             onQuote={openQuoteComposer}
+            onSelectPost={selectThreadFromItem}
             onItemsChange={setTimelineItems}
+            onTopItemChange={(item) => {
+              const nextUri = item?.uri || ''
+              setTimelineTopUri(nextUri)
+              setTimelineHasNew(false)
+            }}
           />
         </div>
         {threadState.active ? (
@@ -221,6 +304,7 @@ export default function BskyClientApp () {
         refreshKey={notificationsRefreshTick}
         onSelectPost={selectThreadFromItem}
         onReply={openReplyComposer}
+        onQuote={openQuoteComposer}
       />
     )
   }
@@ -243,6 +327,7 @@ export default function BskyClientApp () {
             return
           }
           if (threadState.active) closeThread()
+          setTimelineHasNew(false)
           setSection(id)
         }}
         onOpenCompose={() => setComposeOpen(true)}
@@ -253,7 +338,7 @@ export default function BskyClientApp () {
       </BskyClientLayout>
       <ComposeModal
         open={composeOpen}
-        onClose={() => { setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}
+        onClose={() => { setComposeOpen(false); resetComposerTargets() }}
         title={replyTarget ? 'Antworten' : (quoteTarget ? 'Post zitieren' : 'Neuer Post')}
         actions={
           <div className='flex items-center gap-2'>
@@ -265,8 +350,11 @@ export default function BskyClientApp () {
         <Composer
           reply={replyTarget}
           quote={quoteTarget}
-          onClearQuote={() => setQuoteTarget(null)}
-          onSent={() => { setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}
+          onCancelQuote={() => setQuoteTarget(null)}
+          onSent={() => {
+            setComposeOpen(false)
+            resetComposerTargets()
+          }}
         />
       </ComposeModal>
 
@@ -278,7 +366,11 @@ export default function BskyClientApp () {
             <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen moechtest?</p>
             <div className='mt-4 flex items-center justify-end gap-2'>
               <Button variant='secondary' onClick={() => setConfirmDiscard(false)}>Abbrechen</Button>
-              <Button variant='primary' onClick={() => { setConfirmDiscard(false); setComposeOpen(false); setReplyTarget(null); setQuoteTarget(null) }}>Verwerfen</Button>
+              <Button variant='primary' onClick={() => {
+                setConfirmDiscard(false)
+                setComposeOpen(false)
+                resetComposerTargets()
+              }}>Verwerfen</Button>
             </div>
           </div>
         </div>

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Button from './Button'
+import { Button, RichText } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+import { VideoIcon } from '@radix-ui/react-icons'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 
-export default function Composer ({ reply = null, quote = null, onClearQuote, onSent }) {
+export default function Composer ({ reply = null, quote = null, onCancelQuote, onClearQuote, onSent }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
@@ -20,8 +21,24 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
   const cursorRef = useRef({ start: 0, end: 0 })
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const clearQuote = typeof onClearQuote === 'function' ? onClearQuote : () => {}
+  const cancelQuote = typeof onCancelQuote === 'function'
+    ? onCancelQuote
+    : (typeof onClearQuote === 'function' ? onClearQuote : () => {})
   const [tenorAvailable, setTenorAvailable] = useState(false)
+  const quoteInfo = useMemo(() => {
+    if (!quote || !quote.uri || !quote.cid) return null
+    const author = quote.author || {}
+    return {
+      uri: String(quote.uri),
+      cid: String(quote.cid),
+      text: String(quote.text || ''),
+      author: {
+        displayName: author.displayName || author.handle || '',
+        handle: author.handle || '',
+        avatar: author.avatar || null
+      }
+    }
+  }, [quote])
 
   useEffect(() => {
     let ignore = false
@@ -180,8 +197,8 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
     e.preventDefault()
     setMessage('')
     const content = String(text || '').trim()
-    if (!content) {
-      setMessage('Bitte Text eingeben.')
+    if (!content && !quoteInfo) {
+      setMessage('Bitte Text eingeben oder ein Zitat verwenden.')
       return
     }
     setSending(true)
@@ -202,27 +219,24 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
         setMessage('Gesendet.')
         setText('')
         setPendingMedia([])
-        if (quote) clearQuote()
+        if (quote) cancelQuote()
         if (typeof onSent === 'function') onSent()
       } else {
-        const payload = {
-          text: content,
-          media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime }))
-        }
-        if (quote?.uri && quote?.cid) {
-          payload.quote = { uri: quote.uri, cid: quote.cid }
-        }
         const res = await fetch('/api/bsky/post', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            text: content,
+            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
+            quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : undefined
+          })
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
         setMessage('Gesendet.')
         setText('')
         setPendingMedia([])
-        if (quote) clearQuote()
+        if (quote) cancelQuote()
         if (typeof onSent === 'function') onSent()
       }
     } catch (err) {
@@ -251,7 +265,7 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
           <button
             type='button'
             className='inline-flex shrink-0 items-center rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:bg-background transition'
-            onClick={clearQuote}
+            onClick={cancelQuote}
           >
             Entfernen
           </button>
@@ -268,6 +282,44 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
         className='max-h-48 w-full overflow-auto rounded-md border bg-background p-3'
         placeholder='Was möchtest du posten?'
       />
+      {quoteInfo ? (
+        <div className='rounded-xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
+          <div className='flex items-start gap-3'>
+            {quoteInfo.author.avatar ? (
+              <img
+                src={quoteInfo.author.avatar}
+                alt=''
+                className='h-10 w-10 shrink-0 rounded-full border border-border object-cover'
+              />
+            ) : (
+              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+            )}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-semibold text-foreground'>
+                {quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt'}
+              </p>
+              {quoteInfo.author.handle ? (
+                <p className='truncate text-xs text-foreground-muted'>@{quoteInfo.author.handle}</p>
+              ) : null}
+              {quoteInfo.text ? (
+                <div className='mt-2 text-sm text-foreground'>
+                  <RichText text={quoteInfo.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                </div>
+              ) : null}
+            </div>
+            {onCancelQuote ? (
+              <button
+                type='button'
+                className='ml-2 rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+                onClick={onCancelQuote}
+                title='Zitat entfernen'
+              >
+                Entfernen
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {pendingMedia.length > 0 ? (
         <div className='mt-2 grid grid-cols-2 gap-2'>
           {pendingMedia.map((m, idx) => (
@@ -314,7 +366,8 @@ export default function Composer ({ reply = null, quote = null, onClearQuote, on
             onClick={() => setGifPickerOpen(true)}
             title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
           >
-            GIF
+            <VideoIcon className='h-4 w-4' aria-hidden='true' />
+            <span>GIF</span>
           </Button>
         ) : null}
         <Button

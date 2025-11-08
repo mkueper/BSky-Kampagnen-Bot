@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
+import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, refreshKey = 0, onSelectPost, onItemsChange }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, refreshKey = 0, onSelectPost, onTopItemChange, onItemsChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -18,18 +19,13 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
     return 'card'
   }, [renderMode])
 
-  const fetchPage = useCallback(async ({ withCursor } = {}) => {
-    const params = new URLSearchParams()
-    if (tab) params.set('tab', tab)
-    if (withCursor) params.set('cursor', withCursor)
-    const res = await fetch(`/api/bsky/timeline?${params.toString()}`)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      throw new Error(data.error || `HTTP ${res.status}`)
-    }
-    const data = await res.json()
-    const nextItems = Array.isArray(data?.feed) ? data.feed : []
-    return { nextItems, nextCursor: data?.cursor || null }
+  const fetchPage = useCallback(async ({ withCursor, limit } = {}) => {
+    const { items: nextItems, cursor: nextCursor } = await fetchTimelineApi({
+      tab,
+      cursor: withCursor,
+      limit,
+    })
+    return { nextItems, nextCursor }
   }, [tab])
 
   // Initial load and tab change
@@ -39,7 +35,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
       setLoading(true)
       setError('')
       try {
-        const { nextItems, nextCursor } = await fetchPage()
+        const { nextItems, nextCursor } = await fetchPage({ limit: 20 })
         if (!ignore) {
           setItems(nextItems)
           setCursor(nextCursor)
@@ -89,10 +85,9 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
   }, [loadMore])
 
   useEffect(() => {
-    if (typeof onItemsChange === 'function') {
-      onItemsChange(items)
-    }
-  }, [items, onItemsChange])
+    onTopItemChange?.(items[0] || null)
+    onItemsChange?.(items)
+  }, [items, onTopItemChange, onItemsChange])
 
   if (loading) {
     return (
@@ -123,9 +118,9 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
             item={it}
             variant={variant}
             onReply={onReply}
-            onSelect={onSelectPost ? (() => onSelectPost(it)) : undefined}
             onQuote={onQuote}
-          />
+            onSelect={onSelectPost ? (() => onSelectPost(it)) : undefined}
+        />
         </li>
       ))}
       {loadingMore ? (
