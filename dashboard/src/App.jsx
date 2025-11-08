@@ -121,6 +121,17 @@ const NAV_ITEMS = [
   { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
 ]
 
+const VALID_VIEWS = (() => {
+  const ids = new Set()
+  for (const item of NAV_ITEMS) {
+    ids.add(item.id)
+    if (Array.isArray(item.children)) {
+      item.children.forEach(child => ids.add(child.id))
+    }
+  }
+  return ids
+})()
+
 // Sekundäre Überschriften, die in den einzelnen Ansichten eingeblendet werden.
 const HEADER_CAPTIONS = {
   overview: 'Übersicht',
@@ -159,9 +170,23 @@ const DEFAULT_THEME = THEMES[0]
 
 const BskyClientAppLazy = lazy(() => import('bsky-client'))
 
+const DEFAULT_VIEW = 'overview'
+
+function readViewFromLocation () {
+  if (typeof window === 'undefined') return DEFAULT_VIEW
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const paramView = params.get('view')
+    if (paramView && VALID_VIEWS.has(paramView)) return paramView
+    const hash = window.location.hash?.replace('#', '') || ''
+    if (hash && VALID_VIEWS.has(hash)) return hash
+  } catch {}
+  return DEFAULT_VIEW
+}
+
 function App () {
   // --- Globale UI-Zustände -------------------------------------------------
-  const [activeView, setActiveView] = useState('overview')
+  const [activeView, setActiveView] = useState(readViewFromLocation)
   const { config: clientConfigPreset } = useClientConfig()
   const [credsOkOverride, setCredsOkOverride] = useState(false)
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
@@ -171,6 +196,33 @@ function App () {
       setActiveView('config')
     }
   }, [gatedNeedsCreds])
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const syncUrl = () => {
+      try {
+        const url = new URL(window.location.href)
+        if (url.searchParams.get('view') === activeView) return
+        url.searchParams.set('view', activeView)
+        window.history.replaceState({}, '', url)
+      } catch {}
+    }
+    syncUrl()
+    return undefined
+  }, [activeView])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handler = () => {
+      const next = readViewFromLocation()
+      setActiveView(prev => (prev === next ? prev : next))
+    }
+    window.addEventListener('popstate', handler)
+    window.addEventListener('hashchange', handler)
+    return () => {
+      window.removeEventListener('popstate', handler)
+      window.removeEventListener('hashchange', handler)
+    }
+  }, [])
 
   // Allow internal navigation events without full reload
   useEffect(() => {

@@ -18,6 +18,7 @@ export default function BskyClientApp () {
   const [timelineTopUri, setTimelineTopUri] = useState('')
   const [timelineHasNew, setTimelineHasNew] = useState(false)
   const [timelineLoading, setTimelineLoading] = useState(true)
+  const [timelineReady, setTimelineReady] = useState(false)
   const [mediaLightbox, setMediaLightbox] = useState({ open: false, images: [], index: 0 })
   const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null })
   const scrollPosRef = useRef(0)
@@ -31,6 +32,7 @@ export default function BskyClientApp () {
 
   const refreshTimeline = useCallback(() => {
     setTimelineHasNew(false)
+    setTimelineReady(false)
     setRefreshTick((tick) => tick + 1)
   }, [])
 
@@ -222,33 +224,50 @@ export default function BskyClientApp () {
         { id: 'best-of-follows', label: 'Best of Follows' }
       ]
       return (
-        <HorizontalScrollContainer
-          className='max-w-full'
-          data-component='BskyTimelineHeaderContent'
-        >
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              type='button'
-              onClick={() => {
-                if (threadState.active) closeThread({ force: true })
-                if (timelineTab === t.id) refreshTimeline()
-                setTimelineHasNew(false)
-                setTimelineTopUri('')
-                setTimelineTab(t.id)
-              }}
-              aria-current={timelineTab === t.id ? 'page' : undefined}
-              className={`rounded-2xl px-3 py-1 text-sm transition ${
-                timelineTab === t.id
-                  ? 'bg-background-subtle text-foreground'
-                  : 'text-foreground-muted'
-              }`}
-              data-tab={t.id}
-            >
-              {t.label}
-            </button>
-          ))}
-        </HorizontalScrollContainer>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <HorizontalScrollContainer
+            className='max-w-full'
+            data-component='BskyTimelineHeaderContent'
+          >
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                type='button'
+                onClick={() => {
+                  if (threadState.active) closeThread({ force: true })
+                  if (timelineTab === t.id) refreshTimeline()
+                  setTimelineHasNew(false)
+                  setTimelineTopUri('')
+                  setTimelineTab(t.id)
+                }}
+                aria-current={timelineTab === t.id ? 'page' : undefined}
+                className={`rounded-2xl px-3 py-1 text-sm transition ${
+                  timelineTab === t.id
+                    ? 'bg-background-subtle text-foreground'
+                    : 'text-foreground-muted'
+                }`}
+                data-tab={t.id}
+              >
+                {t.label}
+              </button>
+            ))}
+          </HorizontalScrollContainer>
+          <Button
+            variant='primary'
+            size='pill'
+            onClick={() => {
+              const el = getScrollContainer()
+              if (el) {
+                try { el.scrollTo({ top: 0, behavior: 'smooth' }) } catch { el.scrollTop = 0 }
+              }
+              refreshTimeline()
+            }}
+            disabled={!timelineReady || timelineLoading || !timelineHasNew}
+            className='whitespace-nowrap'
+          >
+            {timelineHasNew ? 'Neue Beitraege anzeigen' : 'Aktuell'}
+          </Button>
+        </div>
       )
     }
     if (section === 'notifications') {
@@ -260,62 +279,47 @@ export default function BskyClientApp () {
       )
     }
     return null
-  }, [section, threadState.active, threadState.loading, closeThread, timelineTab, refreshTimeline, refreshNotifications])
+  }, [section, threadState.active, threadState.loading, closeThread, timelineTab, refreshTimeline, refreshNotifications, timelineReady, timelineHasNew, timelineLoading, getScrollContainer])
 
   const topBlock = null
 
-  let content = null
-  if (section === 'home') {
-    content = (
-      <div className='space-y-6'>
-        {timelineHasNew && !threadState.active && !timelineLoading ? (
-          <div className='sticky top-3 z-30 flex justify-center'>
-            <Button
-              variant='primary'
-              size='pill'
-              onClick={() => {
-                const el = getScrollContainer()
-                if (el) {
-                  try { el.scrollTo({ top: 0, behavior: 'smooth' }) } catch { el.scrollTop = 0 }
-                }
-                refreshTimeline()
-              }}
-            >
-              Neue Beitraege anzeigen
-            </Button>
-          </div>
-        ) : null}
-        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Timeline
-            tab={timelineTab}
-            refreshKey={refreshTick}
-            onLoadingChange={setTimelineLoading}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-            onTopItemChange={(item) => {
-              const nextUri = item?.uri || ''
-              setTimelineTopUri(nextUri)
-              setTimelineHasNew(false)
-            }}
-          />
-        </div>
-        {threadState.active ? (
-          <ThreadView
-            state={threadState}
-            onReload={reloadThread}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-          />
-        ) : null}
+  const homeContent = (
+    <div className='space-y-6'>
+      <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+        <Timeline
+          tab={timelineTab}
+          refreshKey={refreshTick}
+          onLoadingChange={setTimelineLoading}
+          isActive={section === 'home'}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onViewMedia={openMediaPreview}
+          onSelectPost={selectThreadFromItem}
+          onTopItemChange={(item) => {
+            const nextUri = item?.uri || ''
+            setTimelineTopUri(nextUri)
+            setTimelineHasNew(false)
+            setTimelineReady(true)
+          }}
+        />
       </div>
-    )
-  } else if (section === 'search') content = <div className='text-sm text-muted-foreground'>Suche folgt</div>
+      {threadState.active ? (
+        <ThreadView
+          state={threadState}
+          onReload={reloadThread}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onViewMedia={openMediaPreview}
+          onSelectPost={selectThreadFromItem}
+        />
+      ) : null}
+    </div>
+  )
+
+  let secondaryContent = null
+  if (section === 'search') secondaryContent = <div className='text-sm text-muted-foreground'>Suche folgt</div>
   else if (section === 'notifications') {
-    content = (
+    secondaryContent = (
       <Notifications
         refreshKey={notificationsRefreshTick}
         onSelectPost={selectThreadFromItem}
@@ -324,12 +328,17 @@ export default function BskyClientApp () {
       />
     )
   }
-  else if (section === 'chat') content = <div className='text-sm text-muted-foreground'>Chat folgt</div>
-  else if (section === 'feeds') content = <div className='text-sm text-muted-foreground'>Feeds folgt</div>
-  else if (section === 'lists') content = <div className='text-sm text-muted-foreground'>Listen folgt</div>
-  else if (section === 'saved') content = <div className='text-sm text-muted-foreground'>Gespeichert folgt</div>
-  else if (section === 'profile') content = <div className='text-sm text-muted-foreground'>Profil folgt</div>
-  else if (section === 'settings') content = <div className='text-sm text-muted-foreground'>Einstellungen folgt</div>
+  else if (section === 'chat') secondaryContent = <div className='text-sm text-muted-foreground'>Chat folgt</div>
+  else if (section === 'feeds') secondaryContent = <div className='text-sm text-muted-foreground'>Feeds folgt</div>
+  else if (section === 'lists') secondaryContent = <div className='text-sm text-muted-foreground'>Listen folgt</div>
+  else if (section === 'saved') secondaryContent = <div className='text-sm text-muted-foreground'>Gespeichert folgt</div>
+  else if (section === 'profile') secondaryContent = <div className='text-sm text-muted-foreground'>Profil folgt</div>
+  else if (section === 'settings') secondaryContent = <div className='text-sm text-muted-foreground'>Einstellungen folgt</div>
+
+  useEffect(() => {
+    setTimelineReady(false)
+  }, [timelineTab])
+
 
   return (
     <>
@@ -350,7 +359,10 @@ export default function BskyClientApp () {
         headerContent={headerContent}
         topBlock={topBlock}
       >
-        {content}
+        <div style={{ display: section === 'home' ? 'block' : 'none' }} aria-hidden={section !== 'home'}>
+          {homeContent}
+        </div>
+        {section === 'home' ? null : secondaryContent}
       </BskyClientLayout>
       <ComposeModal
         open={composeOpen}

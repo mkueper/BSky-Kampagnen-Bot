@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -70,7 +70,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
   // Scroll listener on the outer BSky scroll container to trigger loadMore
   useEffect(() => {
     const el = typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null
-    if (!el) return
+    if (!el || !isActive) return
     const onScroll = () => {
       const { scrollTop, clientHeight, scrollHeight } = el
       if (scrollHeight <= 0) return
@@ -82,7 +82,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [loadMore])
+  }, [loadMore, isActive])
 
   useEffect(() => {
     if (typeof onLoadingChange === 'function') {

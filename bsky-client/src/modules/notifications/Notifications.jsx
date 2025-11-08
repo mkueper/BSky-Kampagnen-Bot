@@ -3,12 +3,104 @@ import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icon
 import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 
 const REASON_COPY = {
-  like: { label: 'Like', description: 'hat deinen Beitrag geliked.' },
-  repost: { label: 'Repost', description: 'hat deinen Beitrag geteilt.' },
-  follow: { label: 'Follow', description: 'folgt dir jetzt.' },
-  reply: { label: 'Antwort', description: 'hat auf deinen Beitrag geantwortet.' },
-  mention: { label: 'Mention', description: 'hat dich erwähnt.' },
-  quote: { label: 'Quote', description: 'hat deinen Beitrag zitiert.' }
+  like: {
+    label: 'Like',
+    description: ({ subjectType = 'Beitrag', additionalCount = 0, reason = 'like' } = {}) => {
+      const viaRepost = reason === 'like-via-repost'
+      const target = viaRepost ? 'deinen Repost' : `deinen ${subjectType}`
+      if (additionalCount > 0) {
+        return `und ${additionalCount} weitere haben ${target} mit „Gefällt mir“ markiert.`
+      }
+      return `gefällt ${target}.`
+    }
+  },
+  repost: {
+    label: 'Repost',
+    description: ({ subjectType = 'Beitrag', additionalCount = 0, reason = 'repost' } = {}) => {
+      const viaRepost = reason === 'repost-via-repost'
+      const action = viaRepost ? 'deinen Repost erneut geteilt' : `deinen ${subjectType} erneut geteilt`
+      if (additionalCount > 0) {
+        return `und ${additionalCount} weitere haben ${action}.`
+      }
+      return `hat ${action}.`
+    }
+  },
+  follow: {
+    label: 'Follow',
+    description: ({ additionalCount = 0 } = {}) => {
+      if (additionalCount > 0) {
+        return `und ${additionalCount} weitere folgen dir jetzt.`
+      }
+      return 'folgt dir jetzt.'
+    }
+  },
+  reply: {
+    label: 'Reply',
+    description: () => 'hat auf deinen Beitrag geantwortet.'
+  },
+  mention: {
+    label: 'Mention',
+    description: () => 'hat dich in einem Beitrag erwähnt.'
+  },
+  quote: {
+    label: 'Quote',
+    description: ({ subjectType = 'Beitrag', additionalCount = 0 } = {}) => {
+      if (additionalCount > 0) {
+        return `und ${additionalCount} weitere haben deinen ${subjectType} zitiert.`
+      }
+      return `hat deinen ${subjectType} zitiert.`
+    }
+  },
+  'subscribed-post': {
+    label: 'Subscribed Post',
+    description: () => 'hat einen abonnierten Beitrag veröffentlicht.'
+  }
+}
+
+REASON_COPY['like-via-repost'] = {
+  ...REASON_COPY.like,
+  label: 'Like'
+}
+REASON_COPY['repost-via-repost'] = {
+  ...REASON_COPY.repost,
+  label: 'Repost'
+}
+
+function resolveSubjectType (subject) {
+  const record = subject?.raw?.post?.record || subject?.record || null
+  if (!record) return 'Beitrag'
+  if (record?.reply) return 'Antwort'
+  const embedType = record?.embed?.$type || record?.embed?.record?.$type || ''
+  if (embedType.includes('record')) return 'Repost'
+  return 'Beitrag'
+}
+
+function extractSubjectPreview (subject) {
+  const record = subject?.raw?.post?.record || subject?.record || null
+  const embed = subject?.raw?.post?.embed || record?.embed || null
+  const images = []
+  if (embed?.images && Array.isArray(embed.images)) {
+    images.push(...embed.images)
+  } else if (embed?.media?.images && Array.isArray(embed.media.images)) {
+    images.push(...embed.media.images)
+  }
+  const firstImage = images.find(img => img?.thumb || img?.fullsize) || null
+  const external = embed?.external || embed?.media?.external || null
+  return {
+    image: firstImage
+      ? {
+          src: firstImage.fullsize || firstImage.thumb,
+          alt: firstImage.alt || ''
+        }
+      : null,
+    external: external
+      ? {
+          uri: external.uri,
+          title: external.title || external.uri,
+          description: external.description || ''
+        }
+      : null
+  }
 }
 
 function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
@@ -21,10 +113,14 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
     isRead
   } = item || {}
 
+  const subjectType = useMemo(() => resolveSubjectType(subject), [subject])
   const reasonInfo = REASON_COPY[reason] || {
     label: 'Aktivität',
-    description: 'hat eine Aktion ausgeführt.'
+    description: () => 'hat eine Aktion ausgeführt.'
   }
+  const reasonDescription = typeof reasonInfo.description === 'function'
+    ? reasonInfo.description({ subjectType, reason, additionalCount: item?.additionalCount || 0 })
+    : reasonInfo.description
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
@@ -118,21 +214,14 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
             <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
           ) : null}
           <p className='text-sm text-foreground'>
-            {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
+            <span className='font-semibold'>{author.displayName || author.handle || 'Jemand'}</span> {reasonDescription}
           </p>
           {recordText ? (
             <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
-          {subject ? (
-            <div className='rounded-xl border border-dashed border-border px-3 py-2 text-xs text-foreground-muted'>
-              Bezogen auf:&nbsp;
-              <span className='font-medium text-foreground'>
-                <RichText text={subject.text || 'Beitrag'} />
-              </span>
-            </div>
-          ) : null}
+          {subject ? <NotificationSubjectPreview subject={subject} /> : null}
           {timestamp ? (
             <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
           ) : null}
@@ -200,6 +289,62 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
         </>
       ) : null}
     </article>
+  )
+}
+
+function NotificationSubjectPreview ({ subject }) {
+  const author = subject?.author || {}
+  const preview = extractSubjectPreview(subject)
+  const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
+  const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  return (
+    <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2'>
+      <div className='flex items-center gap-3'>
+        {author.avatar ? (
+          <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
+        ) : (
+          <div className='h-8 w-8 rounded-full border border-border bg-background' />
+        )}
+        <div className='min-w-0'>
+          {profileUrl ? (
+            <a
+              href={profileUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='font-semibold text-foreground hover:text-primary transition truncate'
+            >
+              {author.displayName || author.handle || 'Profil'}
+            </a>
+          ) : (
+            <p className='font-semibold text-foreground truncate'>{author.displayName || author.handle || 'Profil'}</p>
+          )}
+          {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
+        </div>
+      </div>
+      {subject?.text ? (
+        <div className='text-sm text-foreground'>
+          <RichText text={subject.text} className='whitespace-pre-wrap break-words' />
+        </div>
+      ) : null}
+      {preview.image ? (
+        <div className='overflow-hidden rounded-xl border border-border'>
+          <img src={preview.image.src} alt={preview.image.alt || ''} className='w-full object-cover max-h-48' loading='lazy' />
+        </div>
+      ) : null}
+      {preview.external ? (
+        <a
+          href={preview.external.uri}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='block rounded-xl border border-border bg-background px-3 py-2 text-sm hover:bg-background-subtle transition'
+        >
+          <p className='font-medium text-foreground truncate'>{preview.external.title}</p>
+          {preview.external.description ? (
+            <p className='text-xs text-foreground-muted line-clamp-2'>{preview.external.description}</p>
+          ) : null}
+        </a>
+      ) : null}
+    </div>
   )
 }
 
@@ -311,5 +456,3 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     </section>
   )
 }
-
-
