@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 export function useVisibleIds({ root = null, rootMargin = '0px', threshold = 0.1 } = {}) {
   const [visible, setVisible] = useState(() => new Set());
   const observerRef = useRef(null);
+  const elementsRef = useRef(new Map());
 
   useEffect(() => {
     const opts = { root, rootMargin, threshold };
@@ -20,17 +21,40 @@ export function useVisibleIds({ root = null, rootMargin = '0px', threshold = 0.1
       });
     }, opts);
     observerRef.current = obs;
-    return () => obs.disconnect();
+
+    elementsRef.current.forEach((el) => {
+      if (el) obs.observe(el);
+    });
+
+    return () => {
+      obs.disconnect();
+      observerRef.current = null;
+    };
   }, [root, rootMargin, threshold]);
 
-  const getRefForId = useMemo(() => (id) => (el) => {
-    if (!observerRef.current || !el) return;
-    el.dataset.vid = String(id);
-    observerRef.current.observe(el);
-  }, []);
+  const getRefForId = useMemo(
+    () => (id) => (el) => {
+      const idStr = String(id);
+      const prev = elementsRef.current.get(idStr);
+      if (prev && observerRef.current) {
+        observerRef.current.unobserve(prev);
+      }
+
+      if (!el) {
+        elementsRef.current.delete(idStr);
+        return;
+      }
+
+      el.dataset.vid = idStr;
+      elementsRef.current.set(idStr, el);
+      if (observerRef.current) {
+        observerRef.current.observe(el);
+      }
+    },
+    []
+  );
 
   const visibleIds = useMemo(() => Array.from(visible).map((v) => Number(v)).filter(Number.isFinite), [visible]);
 
   return { getRefForId, visibleIds };
 }
-

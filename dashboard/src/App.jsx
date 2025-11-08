@@ -1,6 +1,6 @@
 // Zentrale Einstiegskomponente für das Dashboard. Kümmert sich um Navigation,
 // Datenabfragen, Themenverwaltung sowie das Einbinden der verschiedenen Views.
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { Suspense, useEffect, useRef, useState, useMemo, lazy } from 'react'
 import {
   DownloadIcon,
   GearIcon,
@@ -24,7 +24,6 @@ import MainOverviewView from './components/views/MainOverviewView'
 import AboutView from './components/views/AboutView'
 import DashboardView from './components/views/DashboardView'
 import ThreadDashboardView from './components/views/ThreadDashboardView'
-import BskyClientApp from 'bsky-client'
 import SkeetForm from './components/SkeetForm'
 import ThreadForm from './components/ThreadForm'
 import ConfigPanel from './components/ConfigPanel'
@@ -157,6 +156,8 @@ const THEME_CONFIG = {
   midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: ShadowIcon }
 }
 const DEFAULT_THEME = THEMES[0]
+
+const BskyClientAppLazy = lazy(() => import('bsky-client'))
 
 function App () {
   // --- Globale UI-Zustände -------------------------------------------------
@@ -1139,7 +1140,9 @@ function App () {
   } else if (activeView === 'bsky-client') {
     content = (
       <Card padding='p-4'>
-        <BskyClientApp />
+        <Suspense fallback={<p className='p-6 text-sm text-foreground-muted'>Bluesky Client wird geladen…</p>}>
+          <BskyClientAppLazy />
+        </Suspense>
       </Card>
     )
   } else if (activeView === 'about') {

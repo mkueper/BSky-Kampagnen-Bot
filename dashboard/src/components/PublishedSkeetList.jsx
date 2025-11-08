@@ -171,7 +171,7 @@ function PublishedSkeetList({
                     </p>
                   </div>
 
-                  {Object.keys(reactions).length > 0 && (
+                  {Object.keys(reactions).length > 0 ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       {Object.entries(reactions).map(([platformId, stats]) => (
                         <div key={platformId} className="rounded-2xl border border-border bg-background-subtle/80 p-4 text-sm">
@@ -181,13 +181,13 @@ function PublishedSkeetList({
                           <p className="mt-1 text-foreground-muted">Likes {stats.likes} · Reposts {stats.reposts}</p>
                         </div>
                       ))}
-                      {reactionErrors && (
-                        <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                          Fehler: {Object.values(reactionErrors).join(", ")}
-                        </div>
-                      )}
                     </div>
-                  )}
+                  ) : null}
+                  {reactionErrors ? (
+                    <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                      Fehler: {Object.values(reactionErrors).join(", ")}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

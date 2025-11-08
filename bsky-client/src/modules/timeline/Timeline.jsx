@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -83,6 +83,12 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [loadMore])
+
+  useEffect(() => {
+    if (typeof onLoadingChange === 'function') {
+      onLoadingChange(loading)
+    }
+  }, [loading, onLoadingChange])
 
   useEffect(() => {
     if (!items.length) return

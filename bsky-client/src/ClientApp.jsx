@@ -17,6 +17,7 @@ export default function BskyClientApp () {
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
   const [timelineTopUri, setTimelineTopUri] = useState('')
   const [timelineHasNew, setTimelineHasNew] = useState(false)
+  const [timelineLoading, setTimelineLoading] = useState(true)
   const [mediaLightbox, setMediaLightbox] = useState({ open: false, images: [], index: 0 })
   const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null })
   const scrollPosRef = useRef(0)
@@ -267,7 +268,7 @@ export default function BskyClientApp () {
   if (section === 'home') {
     content = (
       <div className='space-y-6'>
-        {timelineHasNew && !threadState.active ? (
+        {timelineHasNew && !threadState.active && !timelineLoading ? (
           <div className='sticky top-3 z-30 flex justify-center'>
             <Button
               variant='primary'
@@ -288,6 +289,7 @@ export default function BskyClientApp () {
           <Timeline
             tab={timelineTab}
             refreshKey={refreshTick}
+            onLoadingChange={setTimelineLoading}
             onReply={openReplyComposer}
             onQuote={openQuoteComposer}
             onViewMedia={openMediaPreview}
