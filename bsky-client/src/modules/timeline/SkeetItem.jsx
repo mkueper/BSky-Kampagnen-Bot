@@ -66,26 +66,68 @@ function extractQuoteFromEmbed (item) {
       }
     }
     if (!recordView) return null
-    const author = recordView?.author || {}
-    const value = recordView?.value || {}
+    const view = recordView?.record && recordView?.record?.$type
+      ? recordView.record
+      : recordView
+    const viewType = view?.$type || ''
+    if (viewType.endsWith('#viewBlocked')) {
+      return {
+        uri: view?.uri || null,
+        cid: view?.cid || null,
+        text: '',
+        author: {},
+        status: 'blocked',
+        statusMessage: 'Dieser Beitrag ist geschützt oder blockiert.'
+      }
+    }
+    if (viewType.endsWith('#viewNotFound')) {
+      return {
+        uri: view?.uri || null,
+        cid: view?.cid || null,
+        text: '',
+        author: {},
+        status: 'not_found',
+        statusMessage: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.'
+      }
+    }
+    if (viewType.endsWith('#viewDetached')) {
+      return {
+        uri: view?.uri || null,
+        cid: view?.cid || null,
+        text: '',
+        author: {},
+        status: 'detached',
+        statusMessage: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+      }
+    }
+    const author = view?.author || {}
+    const value = view?.value || {}
     return {
-      uri: recordView?.uri || null,
-      cid: recordView?.cid || null,
+      uri: view?.uri || null,
+      cid: view?.cid || null,
       text: typeof value?.text === 'string' ? value.text : '',
       author: {
         handle: author?.handle || '',
         displayName: author?.displayName || author?.handle || '',
         avatar: author?.avatar || null
-      }
+      },
+      status: 'ok',
+      statusMessage: ''
     }
   } catch { return null }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onSelect }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
+  const quotedAuthorLabel = quoted ? (quoted.author?.displayName || quoted.author?.handle || 'Unbekannt') : ''
+  const quotedAuthorMissing = quoted ? !(quoted.author?.displayName || quoted.author?.handle) : false
+  const quotedStatusMessage = quoted && quoted.status && quoted.status !== 'ok'
+    ? (quoted.statusMessage || 'Der Original-Beitrag kann nicht angezeigt werden.')
+    : ''
+  const quoteClickable = !quotedStatusMessage && quoted?.uri && typeof onSelect === 'function'
   const { config } = useCardConfig()
   const {
     likeCount,
@@ -122,6 +164,39 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     onSelect(item)
   }
 
+  const handleMediaPreview = (event, index = 0) => {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    if (typeof onViewMedia === 'function' && images.length > 0) {
+      const safeIndex = Math.max(0, Math.min(index, images.length - 1))
+      onViewMedia(images, safeIndex)
+    }
+  }
+
+  const handleMediaKeyDown = (event, index = 0) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleMediaPreview(event, index)
+    }
+  }
+
+  const handleSelectQuoted = (event) => {
+    if (typeof onSelect !== 'function') return
+    if (!quoted?.uri || quotedStatusMessage) return
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    onSelect({
+      uri: quoted.uri,
+      cid: quoted.cid,
+      text: quoted.text,
+      author: quoted.author,
+      raw: { post: { uri: quoted.uri, cid: quoted.cid, author: quoted.author, record: { text: quoted.text } } }
+    })
+  }
+
   const body = (
     <>
       <header className='flex items-center gap-3'>
@@ -145,67 +220,111 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       </p>
 
       {quoted ? (
-        <div className='mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground' data-component='BskyQuoteCard'>
-          <div className='flex items-start gap-3'>
-            {quoted.author.avatar ? (
-              <img src={quoted.author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
-            ) : (
-              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
-            )}
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-semibold text-foreground'>{quoted.author.displayName || quoted.author.handle || 'Unbekannt'}</p>
-              {quoted.author.handle ? (
-                <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
-              ) : null}
-              {quoted.text ? (
-                <div className='mt-2 text-sm text-foreground'>
-                  <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
-                </div>
-              ) : null}
+        <div
+          className={`mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${
+            quoteClickable
+              ? 'cursor-pointer transition hover:bg-background-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              : ''
+          }`}
+          data-component='BskyQuoteCard'
+          role={quoteClickable ? 'button' : undefined}
+          tabIndex={quoteClickable ? 0 : undefined}
+          onClick={quoteClickable ? handleSelectQuoted : undefined}
+          onKeyDown={
+            quoteClickable
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    handleSelectQuoted(event)
+                  }
+                }
+              : undefined
+          }
+        >
+          {quotedStatusMessage ? (
+            <p className='text-sm text-foreground-muted'>{quotedStatusMessage}</p>
+          ) : (
+            <div className='flex items-start gap-3'>
+              {quoted.author?.avatar ? (
+                <img src={quoted.author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
+              ) : (
+                <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+              )}
+              <div className='min-w-0 flex-1'>
+                <p className='truncate text-sm font-semibold text-foreground'>{quotedAuthorLabel}</p>
+                {quotedAuthorMissing ? (
+                  <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                ) : null}
+                {quoted.author?.handle ? (
+                  <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+                ) : null}
+                {quoted.text ? (
+                  <div className='mt-2 text-sm text-foreground'>
+                    <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : null}
 
       {images.length > 0 ? (
         <div className='mt-3' data-component='BskySkeetImages'>
           {images.length === 1 ? (
-            <img
-              src={images[0].src}
-              alt={images[0].alt || ''}
-              className='w-full rounded-xl border border-border'
-              style={{
-                ...(config?.mode === 'fixed'
-                  ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
-                  : { maxHeight: (config?.singleMax ?? 360) }),
-                width: '100%',
-                height: 'auto',
-                objectFit: 'contain',
-                backgroundColor: 'var(--background-subtle, #f6f6f6)'
-              }}
-              loading='lazy'
-            />
+            <div
+              role='button'
+              tabIndex={0}
+              className='group block cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
+              onClick={(event) => handleMediaPreview(event, 0)}
+              onKeyDown={(event) => handleMediaKeyDown(event, 0)}
+              aria-label='Bild vergrößert anzeigen'
+            >
+              <img
+                src={images[0].src}
+                alt={images[0].alt || ''}
+                className='w-full rounded-xl border border-border'
+                style={{
+                  ...(config?.mode === 'fixed'
+                    ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
+                    : { maxHeight: (config?.singleMax ?? 360) }),
+                  width: '100%',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  backgroundColor: 'var(--background-subtle, #f6f6f6)'
+                }}
+                loading='lazy'
+              />
+            </div>
           ) : (
             <div className='grid gap-2'
               style={{ gridTemplateColumns: images.length === 2 ? '1fr 1fr' : '1fr 1fr' }}
             >
               {images.map((im, idx) => (
-                <img
+                <div
                   key={idx}
-                  src={im.src}
-                  alt={im.alt || ''}
-                  className='w-full rounded-xl border border-border'
-                  style={{
-                    ...(config?.mode === 'fixed'
-                      ? { height: (config?.multiMax ?? 180), maxHeight: (config?.multiMax ?? 180) }
-                      : { maxHeight: (config?.multiMax ?? 180) }),
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    backgroundColor: 'var(--background-subtle, #f6f6f6)'
-                  }}
-                  loading='lazy'
-                />
+                  role='button'
+                  tabIndex={0}
+                  className='cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
+                  onClick={(event) => handleMediaPreview(event, idx)}
+                  onKeyDown={(event) => handleMediaKeyDown(event, idx)}
+                  aria-label='Bild vergrößert anzeigen'
+                >
+                  <img
+                    src={im.src}
+                    alt={im.alt || ''}
+                    className='w-full rounded-xl border border-border'
+                    style={{
+                      ...(config?.mode === 'fixed'
+                        ? { height: (config?.multiMax ?? 180), maxHeight: (config?.multiMax ?? 180) }
+                        : { maxHeight: (config?.multiMax ?? 180) }),
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      backgroundColor: 'var(--background-subtle, #f6f6f6)'
+                    }}
+                    loading='lazy'
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -318,5 +437,3 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     </Wrapper>
   )
 }
-
-

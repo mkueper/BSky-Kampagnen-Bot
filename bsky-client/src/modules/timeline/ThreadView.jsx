@@ -9,6 +9,8 @@ function ThreadNodeList ({
   depth = 0,
   highlightUri,
   onReply,
+  onQuote,
+  onViewMedia,
   onSelect
 }) {
   if (!Array.isArray(nodes) || nodes.length === 0) return null
@@ -49,11 +51,13 @@ function ThreadNodeList ({
               ) : null}
 
               <div className={isFocus ? 'rounded-2xl ring-2 ring-primary/40' : ''}>
-                <SkeetItem
-                  item={node}
-                  onReply={onReply}
-                  onSelect={onSelect ? (() => onSelect(node)) : undefined}
-                />
+              <SkeetItem
+                item={node}
+                onReply={onReply}
+                onQuote={onQuote}
+                onViewMedia={onViewMedia}
+                onSelect={onSelect ? ((selected) => onSelect(selected || node)) : undefined}
+              />
               </div>
             </div>
 
@@ -64,6 +68,8 @@ function ThreadNodeList ({
                   depth={depth + 1}
                   highlightUri={highlightUri}
                   onReply={onReply}
+                  onQuote={onQuote}
+                  onViewMedia={onViewMedia}
                   onSelect={onSelect}
                 />
               </div>
@@ -75,7 +81,7 @@ function ThreadNodeList ({
   )
 }
 
-export default function ThreadView ({ state, onReload, onReply, onSelectPost }) {
+export default function ThreadView ({ state, onReload, onReply, onQuote, onViewMedia, onSelectPost }) {
   const { loading, error, data } = state || {}
   const parents = Array.isArray(data?.parents) ? data.parents : []
   const focus = data?.focus || null
@@ -123,6 +129,8 @@ export default function ThreadView ({ state, onReload, onReply, onSelectPost }) 
           nodes={threadNodes}
           highlightUri={focus?.uri}
           onReply={onReply}
+          onQuote={onQuote}
+          onViewMedia={onViewMedia}
           onSelect={onSelectPost}
         />
       ) : null}

@@ -3,7 +3,7 @@ import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
 import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
-import { Button, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
+import { Button, MediaLightbox, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
 import { ReloadIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientApp () {
@@ -17,9 +17,11 @@ export default function BskyClientApp () {
   const [notificationsRefreshTick, setNotificationsRefreshTick] = useState(0)
   const [timelineTopUri, setTimelineTopUri] = useState('')
   const [timelineHasNew, setTimelineHasNew] = useState(false)
+  const [mediaLightbox, setMediaLightbox] = useState({ open: false, images: [], index: 0 })
   const [threadState, setThreadState] = useState({ active: false, loading: false, error: '', data: null, uri: null })
   const scrollPosRef = useRef(0)
   const threadScrollPosRef = useRef(0)
+  const threadHistoryRef = useRef([])
 
   const getScrollContainer = useCallback(
     () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
@@ -72,7 +74,35 @@ export default function BskyClientApp () {
     setQuoteTarget(null)
   }, [])
 
-  const closeThread = useCallback(() => {
+  const openMediaPreview = useCallback((items = [], startIndex = 0) => {
+    if (!Array.isArray(items) || items.length === 0) return
+    const safeIndex = Math.max(0, Math.min(startIndex, items.length - 1))
+    setMediaLightbox({ open: true, images: items, index: safeIndex })
+  }, [])
+
+  const closeMediaPreview = useCallback(() => {
+    setMediaLightbox(prev => ({ ...prev, open: false }))
+  }, [])
+
+  const navigateMediaPreview = useCallback((direction) => {
+    setMediaLightbox(prev => {
+      if (!prev.open || prev.images.length === 0) return prev
+      const delta = direction === 'prev' ? -1 : 1
+      const nextIndex = (prev.index + delta + prev.images.length) % prev.images.length
+      return { ...prev, index: nextIndex }
+    })
+  }, [])
+
+  const closeThread = useCallback((options = {}) => {
+    const { force = false } = options
+    const history = threadHistoryRef.current
+    if (!force && Array.isArray(history) && history.length > 0) {
+      const previous = history[history.length - 1]
+      threadHistoryRef.current = history.slice(0, -1)
+      setThreadState(previous || { active: false, loading: false, error: '', data: null, uri: null })
+      return
+    }
+    threadHistoryRef.current = []
     setThreadState({ active: false, loading: false, error: '', data: null, uri: null })
     const el = getScrollContainer()
     if (el) el.scrollTop = threadScrollPosRef.current || 0
@@ -85,17 +115,25 @@ export default function BskyClientApp () {
       const el = getScrollContainer()
       if (el) threadScrollPosRef.current = el.scrollTop || 0
     }
-    setThreadState((prev) => ({
-      active: true,
-      loading: true,
-      error: '',
-      data: prev?.uri === normalized ? prev.data : null,
-      uri: normalized
-    }))
+    setThreadState((prev) => {
+      if (!prev?.active) {
+        threadHistoryRef.current = []
+      } else if (prev?.uri && prev.uri !== normalized) {
+        threadHistoryRef.current = [...threadHistoryRef.current, { ...prev }]
+      }
+      return {
+        active: true,
+        loading: true,
+        error: '',
+        data: prev?.uri === normalized ? prev.data : null,
+        uri: normalized
+      }
+    })
     try {
       const data = await fetchThreadApi(normalized)
-      setThreadState({ active: true, loading: false, error: '', data, uri: normalized })
+      setThreadState({ active: true, loading: false, error: '', data, uri: normalized });
     } catch (error) {
+      console.error('Thread konnte nicht geladen werden', error)
       setThreadState({
         active: true,
         loading: false,
@@ -142,7 +180,7 @@ export default function BskyClientApp () {
         }
       } catch {}
     }
-
+    
     check()
     const id = window.setInterval(check, 45000)
     return () => {
@@ -167,8 +205,8 @@ export default function BskyClientApp () {
                 disabled={busy}
                 aria-label='Thread neu laden'
               >
-                <ReloadIcon className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
-                <span className='hidden sm:inline'>Neu laden</span>
+                <ReloadIcon className={`h-4 w-4 shrink-0 transition ${busy ? 'animate-spin' : ''}`} />
+                <span className='hidden sm:inline pl-1'>Neu laden</span>
               </Button>
               <Button variant='secondary' size='pill' onClick={closeThread}>Zurueck zur Timeline</Button>
             </div>
@@ -192,7 +230,7 @@ export default function BskyClientApp () {
               key={t.id}
               type='button'
               onClick={() => {
-                if (threadState.active) closeThread()
+                if (threadState.active) closeThread({ force: true })
                 if (timelineTab === t.id) refreshTimeline()
                 setTimelineHasNew(false)
                 setTimelineTopUri('')
@@ -221,7 +259,7 @@ export default function BskyClientApp () {
       )
     }
     return null
-  }, [section, threadState.active, closeThread, timelineTab, refreshTimeline, refreshNotifications])
+  }, [section, threadState.active, threadState.loading, closeThread, timelineTab, refreshTimeline, refreshNotifications])
 
   const topBlock = null
 
@@ -252,6 +290,7 @@ export default function BskyClientApp () {
             refreshKey={refreshTick}
             onReply={openReplyComposer}
             onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
             onSelectPost={selectThreadFromItem}
             onTopItemChange={(item) => {
               const nextUri = item?.uri || ''
@@ -265,6 +304,8 @@ export default function BskyClientApp () {
             state={threadState}
             onReload={reloadThread}
             onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
             onSelectPost={selectThreadFromItem}
           />
         ) : null}
@@ -294,12 +335,12 @@ export default function BskyClientApp () {
         activeSection={section}
         onSelectSection={(id) => {
           if (id === 'home') {
-            if (threadState.active) closeThread()
+            if (threadState.active) closeThread({ force: true })
             else if (section === 'home') refreshTimeline()
             setSection('home')
             return
           }
-          if (threadState.active) closeThread()
+          if (threadState.active) closeThread({ force: true })
           setTimelineHasNew(false)
           setSection(id)
         }}
@@ -347,6 +388,15 @@ export default function BskyClientApp () {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {mediaLightbox.open ? (
+        <MediaLightbox
+          images={mediaLightbox.images}
+          index={mediaLightbox.index}
+          onClose={closeMediaPreview}
+          onNavigate={navigateMediaPreview}
+        />
       ) : null}
     </>
   )

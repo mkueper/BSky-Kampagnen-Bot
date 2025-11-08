@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, refreshKey = 0, onSelectPost, onTopItemChange }) {
+export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -119,7 +119,8 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
             variant={variant}
             onReply={onReply}
             onQuote={onQuote}
-            onSelect={onSelectPost ? (() => onSelectPost(it)) : undefined}
+            onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
+            onViewMedia={onViewMedia}
           />
         </li>
       ))}
