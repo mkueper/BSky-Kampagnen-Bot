@@ -54,6 +54,10 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
 
+  const authorDisplayName = author.displayName || author.handle || ''
+  const authorLabel = authorDisplayName || 'Unbekannt'
+  const authorFallbackHint = authorDisplayName ? '' : 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.'
+
   return (
     <article
       className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
@@ -91,10 +95,10 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
                 rel='noopener noreferrer'
                 className='font-semibold text-foreground hover:text-primary transition truncate'
               >
-                {author.displayName || author.handle || 'Unbekannt'}
+                {authorLabel}
               </a>
             ) : (
-              <p className='font-semibold text-foreground truncate'>{author.displayName || author.handle || 'Unbekannt'}</p>
+              <p className='font-semibold text-foreground truncate'>{authorLabel}</p>
             )}
             {author.handle ? (
               <a
@@ -110,6 +114,9 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
               {reasonInfo.label}
             </span>
           </div>
+          {authorFallbackHint ? (
+            <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
+          ) : null}
           <p className='text-sm text-foreground'>
             {author.displayName || author.handle || 'Jemand'} {reasonInfo.description}
           </p>
@@ -304,6 +311,5 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     </section>
   )
 }
-
 
 

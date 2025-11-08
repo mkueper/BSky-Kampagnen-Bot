@@ -36,6 +36,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       }
     }
   }, [quote])
+  const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
+  const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
+  const inlineQuoteAuthorLabel = quote?.author?.displayName || quote?.author?.handle || 'Unbekannter Account'
+  const inlineQuoteAuthorMissing = Boolean(quote && !(quote.author?.displayName || quote.author?.handle))
 
   useEffect(() => {
     let ignore = false
@@ -248,8 +252,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             )}
             <div className='min-w-0 flex-1'>
               <p className='truncate text-sm font-semibold text-foreground'>
-                {quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt'}
+                {quoteInfoAuthorLabel}
               </p>
+              {quoteInfoAuthorMissing ? (
+                <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+              ) : null}
               {quoteInfo.author.handle ? (
                 <p className='truncate text-xs text-foreground-muted'>@{quoteInfo.author.handle}</p>
               ) : null}

@@ -23,7 +23,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
 - **Direkter Bluesky-Client** – Integrierte Timeline mit Composer (Discover/Following u. a.) sowie rudimentäre Reply-Funktion.
 
-> Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (Multi-Tenant, zusätzliche Plattformen, erweiterte Analysen) geplant sind.
+> Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
 ---
 
