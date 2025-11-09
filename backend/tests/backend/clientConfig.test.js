@@ -7,13 +7,13 @@ vi.mock('@core/services/settingsService', () => {
     default: {},
     getClientPollingSettings: vi.fn(async () => ({
       values: {
-        threadActiveMs: 30000,
+        threadActiveMs: 8000,
         threadIdleMs: 120000,
-        threadHiddenMs: 300000,
+        threadHiddenMs: 180000,
         threadMinimalHidden: false,
-        skeetActiveMs: 30000,
+        skeetActiveMs: 8000,
         skeetIdleMs: 120000,
-        skeetHiddenMs: 300000,
+        skeetHiddenMs: 180000,
         skeetMinimalHidden: false,
         backoffStartMs: 10000,
         backoffMaxMs: 300000,
