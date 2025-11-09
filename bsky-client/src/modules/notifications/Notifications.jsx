@@ -66,6 +66,10 @@ REASON_COPY['repost-via-repost'] = {
   label: 'Repost via Repost'
 }
 
+function isViaRepostReason (reason) {
+  return reason === 'like-via-repost' || reason === 'repost-via-repost'
+}
+
 function resolveSubjectType (subject) {
   const record = subject?.raw?.post?.record || subject?.record || null
   if (!record) return 'Beitrag'
@@ -100,6 +104,56 @@ function extractSubjectPreview (subject) {
           description: external.description || ''
         }
       : null
+  }
+}
+
+function extractQuotedPost (subject) {
+  const embed = subject?.raw?.post?.embed || subject?.record?.embed || null
+  const embedType = embed?.$type || ''
+  let recordView = null
+  if (typeof embedType === 'string') {
+    if (embedType.startsWith('app.bsky.embed.recordWithMedia')) {
+      recordView = embed?.record || null
+    } else if (embedType.startsWith('app.bsky.embed.record')) {
+      recordView = embed
+    }
+  }
+  if (!recordView) return null
+  const view = recordView?.record && recordView?.record?.$type
+    ? recordView.record
+    : recordView
+  const viewType = view?.$type || ''
+  if (viewType.endsWith('#viewBlocked')) {
+    return {
+      status: 'blocked',
+      statusMessage: 'Dieser Beitrag ist geschützt oder blockiert.'
+    }
+  }
+  if (viewType.endsWith('#viewNotFound')) {
+    return {
+      status: 'not_found',
+      statusMessage: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.'
+    }
+  }
+  if (viewType.endsWith('#viewDetached')) {
+    return {
+      status: 'detached',
+      statusMessage: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+    }
+  }
+  const author = view?.author || {}
+  const value = view?.value || {}
+  return {
+    status: 'ok',
+    statusMessage: '',
+    uri: view?.uri || null,
+    cid: view?.cid || null,
+    text: typeof value?.text === 'string' ? value.text : '',
+    author: {
+      handle: author?.handle || '',
+      displayName: author?.displayName || author?.handle || '',
+      avatar: author?.avatar || null
+    }
   }
 }
 
@@ -221,7 +275,7 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
-          {subject ? <NotificationSubjectPreview subject={subject} /> : null}
+          {subject ? <NotificationSubjectPreview subject={subject} reason={reason} /> : null}
           {timestamp ? (
             <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
           ) : null}
@@ -292,11 +346,17 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
   )
 }
 
-function NotificationSubjectPreview ({ subject }) {
+function NotificationSubjectPreview ({ subject, reason }) {
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
   const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  const showQuoted = isViaRepostReason(reason)
+  const quoted = showQuoted ? extractQuotedPost(subject) : null
+  const quotedAuthorLabel = quoted?.author
+    ? (quoted.author.displayName || quoted.author.handle || 'Unbekannt')
+    : ''
+  const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
   return (
     <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2'>
       <div className='flex items-center gap-3'>
@@ -343,6 +403,40 @@ function NotificationSubjectPreview ({ subject }) {
             <p className='text-xs text-foreground-muted line-clamp-2'>{preview.external.description}</p>
           ) : null}
         </a>
+      ) : null}
+      {quoted ? (
+        <div className='space-y-1'>
+          <p className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>Originaler Beitrag</p>
+          <div className='rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground'>
+            {quoted.status !== 'ok' ? (
+              <p className='text-xs text-foreground-muted'>{quoted.statusMessage}</p>
+            ) : (
+              <div className='space-y-2'>
+                <div className='flex items-center gap-3'>
+                  {quoted.author?.avatar ? (
+                    <img src={quoted.author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
+                  ) : (
+                    <div className='h-8 w-8 rounded-full border border-border bg-background-subtle' />
+                  )}
+                  <div className='min-w-0'>
+                    <p className='truncate text-sm font-semibold text-foreground'>{quotedAuthorLabel}</p>
+                    {quotedAuthorMissing ? (
+                      <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                    ) : null}
+                    {quoted.author?.handle ? (
+                      <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+                    ) : null}
+                  </div>
+                </div>
+                {quoted.text ? (
+                  <div className='text-sm text-foreground'>
+                    <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
   )

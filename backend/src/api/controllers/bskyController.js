@@ -100,9 +100,18 @@ function mapNotificationEntry (entry, subjectMap) {
   const author = entry.author || {}
   const record = entry.record || {}
   const reasonSubject = entry.reasonSubject || null
-  const subject = reasonSubject && subjectMap instanceof Map
-    ? subjectMap.get(reasonSubject) || null
-    : null
+  let subject = null
+  if (subjectMap instanceof Map) {
+    if (reasonSubject) {
+      subject = subjectMap.get(reasonSubject) || null
+    }
+    if (!subject) {
+      const recordSubjectUri = record?.subject?.uri
+      if (typeof recordSubjectUri === 'string') {
+        subject = subjectMap.get(recordSubjectUri) || null
+      }
+    }
+  }
   return {
     uri: entry.uri || null,
     cid: entry.cid || null,
@@ -302,9 +311,18 @@ async function getNotifications (req, res) {
     const notifications = Array.isArray(data?.notifications) ? data.notifications : []
     const subjectUris = Array.from(
       new Set(
-        notifications
-          .map((entry) => entry?.reasonSubject)
-          .filter((uri) => typeof uri === 'string' && uri.startsWith('at://'))
+        notifications.flatMap((entry) => {
+          const list = []
+          const reasonSubject = entry?.reasonSubject
+          if (typeof reasonSubject === 'string' && reasonSubject.startsWith('at://')) {
+            list.push(reasonSubject)
+          }
+          const recordSubjectUri = entry?.record?.subject?.uri
+          if (typeof recordSubjectUri === 'string' && recordSubjectUri.startsWith('at://')) {
+            list.push(recordSubjectUri)
+          }
+          return list
+        })
       )
     )
     let subjectMap = new Map()
