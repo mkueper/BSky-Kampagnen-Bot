@@ -15,6 +15,12 @@ const { AtpAgent } = require("@atproto/api");
 
 const agent = new AtpAgent({ service: serverUrl });
 let loginPromise = null;
+let refreshPromise = null;
+let refreshTimer = null;
+const DEFAULT_REFRESH_INTERVAL_MS = 60 * 1000; // 1 Minute
+const sessionRefreshInterval =
+  Number(process.env.BLUESKY_SESSION_REFRESH_INTERVAL_MS) ||
+  DEFAULT_REFRESH_INTERVAL_MS;
 
 const OFFICIAL_FEED_GENERATORS = {
   discover: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
@@ -39,6 +45,7 @@ async function login() {
   try {
     await agent.login({ identifier, password: appPassword });
     log.info("Bluesky Login ok", { serverUrl, did: agent?.session?.did || null, identifier });
+    scheduleSessionRefresh();
   } catch (e) {
     log.error("Bluesky Login fehlgeschlagen", { error: e?.message || String(e) });
     throw e;
@@ -58,6 +65,52 @@ async function ensureLoggedIn() {
   }
 
   await loginPromise;
+}
+
+function scheduleSessionRefresh () {
+  if (!sessionRefreshInterval || sessionRefreshInterval <= 0) return;
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    try {
+      await refreshSession();
+    } catch (error) {
+      log.warn('Bluesky Session-Refresh fehlgeschlagen', { error: error?.message || String(error) });
+    } finally {
+      scheduleSessionRefresh();
+    }
+  }, sessionRefreshInterval);
+  if (typeof refreshTimer.unref === 'function') refreshTimer.unref();
+}
+
+async function refreshSession () {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    if (!agent?.session?.did) {
+      await ensureLoggedIn();
+      return;
+    }
+    if (typeof agent.sessionManager?.refreshSession === 'function') {
+      await agent.sessionManager.refreshSession();
+      log.debug('Bluesky Session erneuert');
+      return;
+    }
+    // Fallback: Login erneut ausführen
+    await login();
+  })()
+    .catch(async (error) => {
+      log.warn('Bluesky Session konnte nicht erneuert werden, versuche Re-Login', { error: error?.message || String(error) });
+      // Reset Session, damit ensureLoggedIn einen frischen Login erzwingt
+      try {
+        await agent.logout();
+      } catch (logoutError) {
+        log.debug('Logout nach fehlgeschlagenem Refresh nicht möglich', { error: logoutError?.message || String(logoutError) });
+      }
+      await ensureLoggedIn();
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+  return refreshPromise;
 }
 
 /**

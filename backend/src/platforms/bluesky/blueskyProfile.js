@@ -32,6 +32,11 @@ const log = createLogger('platform:bluesky');
  */
 // Cache, damit wir nicht für jede Anfrage einen neuen Agenten aufbauen müssen.
 const agentCache = new Map(); // key -> { agent, appPassword, promise }
+const keepAliveTimers = new Map();
+const DEFAULT_REFRESH_INTERVAL_MS = 60 * 1000;
+const keepAliveInterval =
+  Number(process.env.BLUESKY_SESSION_REFRESH_INTERVAL_MS) ||
+  DEFAULT_REFRESH_INTERVAL_MS;
 
 function buildCacheKey(env) {
   return `${env.serverUrl}::${env.identifier}`;
@@ -39,6 +44,35 @@ function buildCacheKey(env) {
 
 function isAgentSessionActive(agent) {
   return Boolean(agent?.session?.did);
+}
+
+async function refreshAgentSession(agent) {
+  if (!agent?.session?.did) return;
+  if (typeof agent.sessionManager?.refreshSession === 'function') {
+    await agent.sessionManager.refreshSession();
+    return;
+  }
+  if (typeof agent.refreshSession === 'function') {
+    await agent.refreshSession();
+  }
+}
+
+function ensureAgentKeepAlive(key, agent) {
+  if (!keepAliveInterval || keepAliveInterval <= 0) return;
+  if (!agent?.session?.did) return;
+  const existing = keepAliveTimers.get(key);
+  if (existing) clearInterval(existing);
+  const timer = setInterval(async () => {
+    if (!agent?.session?.did) return;
+    try {
+      await refreshAgentSession(agent);
+      log.debug('Bluesky Agent Session erneuert', { key });
+    } catch (error) {
+      log.warn('Bluesky Agent Session konnte nicht erneuert werden', { key, error: error?.message || String(error) });
+    }
+  }, keepAliveInterval);
+  if (typeof timer.unref === 'function') timer.unref();
+  keepAliveTimers.set(key, timer);
 }
 
 async function createAgent(env) {
@@ -60,6 +94,9 @@ async function getAgent(env) {
     cached.appPassword === env.appPassword &&
     isAgentSessionActive(cached.agent)
   ) {
+    if (!keepAliveTimers.has(key)) {
+      ensureAgentKeepAlive(key, cached.agent);
+    }
     return cached.agent;
   }
   if (cached?.promise) {
@@ -69,6 +106,7 @@ async function getAgent(env) {
   const promise = createAgent(env)
     .then((agent) => {
       agentCache.set(key, { agent, appPassword: env.appPassword });
+      ensureAgentKeepAlive(key, agent);
       return agent;
     })
     .catch((error) => {

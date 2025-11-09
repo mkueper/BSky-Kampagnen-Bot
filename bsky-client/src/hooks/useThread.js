@@ -10,7 +10,10 @@ export function useThread() {
   const requestIdRef = useRef(0);
 
   const getScrollContainer = useCallback(
-    () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
+    () => {
+      const doc = typeof globalThis !== 'undefined' ? globalThis.document : null;
+      return doc ? doc.getElementById('bsky-scroll-container') : null;
+    },
     []
   );
 
@@ -41,7 +44,9 @@ export function useThread() {
       if (requestId !== requestIdRef.current) return;
       dispatch({ type: 'SET_THREAD_STATE', payload: { active: true, loading: false, error: '', data, uri: normalized } });
     } catch (error) {
-      console.error('Thread konnte nicht geladen werden', error);
+      if (globalThis?.console?.error) {
+        globalThis.console.error('Thread konnte nicht geladen werden', error);
+      }
       if (requestId !== requestIdRef.current) return;
       dispatch({
         type: 'SET_THREAD_STATE',
