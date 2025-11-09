@@ -300,6 +300,15 @@ module.exports = {
     });
     return res?.data ?? { actors: [], cursor: null };
   },
+  async getProfile(actor) {
+    const normalized = String(actor || '').trim();
+    if (!normalized) {
+      throw new Error('actor erforderlich');
+    }
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.actor.getProfile({ actor: normalized });
+    return res?.data ?? null;
+  },
   async searchFeeds({ q, limit = 25, cursor } = {}) {
     await ensureLoggedIn();
     const res = await agent.rpc.get({

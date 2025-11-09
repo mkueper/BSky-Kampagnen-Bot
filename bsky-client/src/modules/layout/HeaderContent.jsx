@@ -44,65 +44,36 @@ ThreadHeader.displayName = 'ThreadHeader'
 
 export const TimelineHeader = React.memo(function TimelineHeader ({
   timelineTab,
-  timelineReady,
-  timelineLoading,
-  timelineHasNew,
-  onSelectTab,
-  onRefresh,
-  onScrollTop
+  onSelectTab
 }) {
   return (
-    <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-      <HorizontalScrollContainer
-        className='max-w-full'
-        data-component='BskyTimelineHeaderContent'
-      >
-        {TIMELINE_TABS.map(t => (
-          <button
-            key={t.id}
-            type='button'
-            onClick={() => onSelectTab(t.id)}
-            aria-current={timelineTab === t.id ? 'page' : undefined}
-            className={`rounded-2xl px-3 py-1 text-sm transition ${
-              timelineTab === t.id
-                ? 'bg-background-subtle text-foreground'
-                : 'text-foreground-muted'
-            }`}
-            data-tab={t.id}
-          >
-            {t.label}
-          </button>
-        ))}
-      </HorizontalScrollContainer>
-      <Button
-        variant='primary'
-        size='pill'
-        onClick={() => {
-          onScrollTop()
-          onRefresh()
-        }}
-        disabled={!timelineReady || timelineLoading || !timelineHasNew}
-        className='whitespace-nowrap'
-      >
-        {timelineHasNew ? 'Neue Beitraege anzeigen' : 'Aktuell'}
-      </Button>
-    </div>
+    <HorizontalScrollContainer
+      className='max-w-full'
+      data-component='BskyTimelineHeaderContent'
+    >
+      {TIMELINE_TABS.map(t => (
+        <button
+          key={t.id}
+          type='button'
+          onClick={() => onSelectTab(t.id)}
+          aria-current={timelineTab === t.id ? 'page' : undefined}
+          className={`rounded-2xl px-3 py-1 text-sm transition ${
+            timelineTab === t.id
+              ? 'bg-background-subtle text-foreground'
+              : 'text-foreground-muted'
+          }`}
+          data-tab={t.id}
+        >
+          {t.label}
+        </button>
+      ))}
+    </HorizontalScrollContainer>
   )
-}, (prev, next) => (
-  prev.timelineTab === next.timelineTab &&
-  prev.timelineReady === next.timelineReady &&
-  prev.timelineLoading === next.timelineLoading &&
-  prev.timelineHasNew === next.timelineHasNew
-))
+}, (prev, next) => prev.timelineTab === next.timelineTab)
 
 TimelineHeader.propTypes = {
   timelineTab: PropTypes.string.isRequired,
-  timelineReady: PropTypes.bool.isRequired,
-  timelineLoading: PropTypes.bool.isRequired,
-  timelineHasNew: PropTypes.bool.isRequired,
-  onSelectTab: PropTypes.func.isRequired,
-  onRefresh: PropTypes.func.isRequired,
-  onScrollTop: PropTypes.func.isRequired
+  onSelectTab: PropTypes.func.isRequired
 }
 
 TimelineHeader.displayName = 'TimelineHeader'

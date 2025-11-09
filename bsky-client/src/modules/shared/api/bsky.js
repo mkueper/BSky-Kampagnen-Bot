@@ -151,6 +151,13 @@ export async function searchBsky({ query, type, cursor, limit } = {}) {
   };
 }
 
-export { requestJson };
+export async function fetchProfile(actor) {
+  const normalized = String(actor || '').trim();
+  if (!normalized) throw new Error('actor erforderlich');
+  const params = createSearchParams({ actor: normalized });
+  const data = await requestJson(`/api/bsky/profile?${params.toString()}`);
+  return data?.profile || null;
+}
 
+export { requestJson };
 

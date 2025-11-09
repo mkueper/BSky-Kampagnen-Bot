@@ -49,6 +49,7 @@ function mapThreadNode (node) {
     createdAt: record.createdAt || post.indexedAt || null,
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -84,6 +85,7 @@ function mapPostView (post) {
     createdAt: record.createdAt || post.indexedAt || null,
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -143,6 +145,7 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
     isRead: Boolean(entry.isRead),
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -169,6 +172,7 @@ function mapSearchPost (post) {
     createdAt: record.createdAt || post.indexedAt || null,
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -442,6 +446,32 @@ async function search (req, res) {
   }
 }
 
+async function getProfile (req, res) {
+  const actor = String(req.query?.actor || '').trim()
+  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  try {
+    const data = await bsky.getProfile(actor)
+    if (!data) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' })
+    const profile = {
+      did: data.did || null,
+      handle: data.handle || '',
+      displayName: data.displayName || data.handle || '',
+      avatar: data.avatar || null,
+      description: data.description || '',
+      followersCount: data.followersCount ?? 0,
+      followsCount: data.followsCount ?? 0,
+      postsCount: data.postsCount ?? 0,
+      viewer: data.viewer || null,
+      labels: data.labels || [],
+      associated: data.associated || null
+    }
+    return res.json({ profile })
+  } catch (error) {
+    log.error('getProfile failed', { error: error?.message || String(error), actor })
+    return res.status(500).json({ error: error?.message || 'Profil konnte nicht geladen werden.' })
+  }
+}
+
 async function postReply(req, res) {
   try {
     const text = String(req.body?.text || '').trim()
@@ -516,4 +546,4 @@ async function postNow(req, res) {
   }
 }
 
-module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search }
+module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search, getProfile }

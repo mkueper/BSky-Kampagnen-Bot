@@ -3,6 +3,7 @@ import SkeetItem from './SkeetItem'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
+const BASE_PADDING = 32
 
 function ThreadNodeList ({
   nodes = [],
@@ -23,6 +24,7 @@ function ThreadNodeList ({
         const hasChildren = Array.isArray(node?.replies) && node.replies.length > 0
         const showConnector = depth > 0 || !isLast || hasChildren
         const appliedIndent = depth * INDENT_STEP
+        const connectorLeft = BASE_PADDING - 14 + appliedIndent
         const isFocus = highlightUri && node?.uri === highlightUri
         const verticalStyle = {
           top: depth === 0 ? `${CONNECTOR_OFFSET}px` : '0px',
@@ -33,19 +35,25 @@ function ThreadNodeList ({
         }
 
         return (
-          <div key={key} className='relative space-y-4' style={{ marginLeft: appliedIndent }}>
-            <div className='relative pl-8'>
+          <div
+            key={key}
+            className='relative space-y-4'
+          >
+            <div
+              className='relative'
+              style={{ paddingLeft: BASE_PADDING + appliedIndent }}
+            >
               {showConnector ? (
                 <>
                   <span
                     aria-hidden='true'
-                    className='pointer-events-none absolute left-2 w-px bg-border/50'
-                    style={verticalStyle}
+                    className='pointer-events-none absolute w-px bg-border/50'
+                    style={{ ...verticalStyle, left: `${connectorLeft}px` }}
                   />
                   <span
                     aria-hidden='true'
-                    className='pointer-events-none absolute left-2 w-4 border-t border-border/50'
-                    style={horizontalStyle}
+                    className='pointer-events-none absolute w-4 border-t border-border/50'
+                    style={{ ...horizontalStyle, left: `${connectorLeft}px` }}
                   />
                 </>
               ) : null}

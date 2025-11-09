@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { ChatBubbleIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useBskyEngagement, RichText, RepostMenuButton } from '../shared'
+import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger } from '../shared'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -197,17 +197,28 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     })
   }
 
+  const actorIdentifier = author?.did || author?.handle || ''
+
   const body = (
     <>
       <header className='flex items-center gap-3'>
-        {author.avatar ? (
-          <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
-        ) : (
-          <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
-        )}
-        <div className='min-w-0'>
-          <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</p>
-          <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
+        <ProfilePreviewTrigger actor={actorIdentifier} fallback={author} className='inline-flex'>
+          {author.avatar ? (
+            <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
+          ) : (
+            <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+          )}
+        </ProfilePreviewTrigger>
+        <div className='min-w-0 flex-1'>
+          <ProfilePreviewTrigger
+            actor={actorIdentifier}
+            fallback={author}
+            as='span'
+            className='inline-flex max-w-full flex-col min-w-0'
+          >
+            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</p>
+            <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
+          </ProfilePreviewTrigger>
         </div>
         {createdAt ? (
           <time className='ml-auto whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>

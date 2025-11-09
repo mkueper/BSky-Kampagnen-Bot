@@ -17,9 +17,6 @@ export default function BskyClientApp () {
     timelineTab,
     refreshTick,
     notificationsRefreshTick,
-    timelineHasNew,
-    timelineLoading,
-    timelineReady,
     timelineTopUri
   } = useAppState()
   const dispatch = useAppDispatch()
@@ -95,12 +92,7 @@ export default function BskyClientApp () {
       return (
         <TimelineHeader
           timelineTab={timelineTab}
-          timelineReady={timelineReady}
-          timelineLoading={timelineLoading}
-          timelineHasNew={timelineHasNew}
           onSelectTab={handleTimelineTabSelect}
-          onRefresh={refreshTimeline}
-          onScrollTop={scrollTimelineToTop}
         />
       )
     }
@@ -118,12 +110,7 @@ export default function BskyClientApp () {
     threadState.active,
     threadState.loading,
     timelineTab,
-    timelineReady,
-    timelineLoading,
-    timelineHasNew,
     handleTimelineTabSelect,
-    refreshTimeline,
-    scrollTimelineToTop,
     reloadThread,
     closeThread,
     refreshNotifications

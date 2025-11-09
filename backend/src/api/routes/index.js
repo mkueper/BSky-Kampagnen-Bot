@@ -56,6 +56,7 @@ router.get("/bsky/notifications", bskyController.getNotifications);
 router.post("/bsky/reply", bskyController.postReply);
 router.post("/bsky/post", bskyController.postNow);
 router.get("/bsky/search", bskyController.search);
+router.get("/bsky/profile", bskyController.getProfile);
 
 // Maintenance
 router.post("/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
