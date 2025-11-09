@@ -180,7 +180,7 @@ function readViewFromLocation () {
     if (paramView && VALID_VIEWS.has(paramView)) return paramView
     const hash = window.location.hash?.replace('#', '') || ''
     if (hash && VALID_VIEWS.has(hash)) return hash
-  } catch(e) {console.log('Fehler: e')}
+  } catch(e) {console.log('Fehler: ', e)}
   return DEFAULT_VIEW
 }
 
@@ -204,7 +204,7 @@ function App () {
         if (url.searchParams.get('view') === activeView) return
         url.searchParams.set('view', activeView)
         window.history.replaceState({}, '', url)
-      } catch {}
+      } catch(e) {console.log('Fehler: ', e)}
     }
     syncUrl()
     return undefined
