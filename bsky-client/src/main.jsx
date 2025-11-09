@@ -1,14 +1,14 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import ClientApp from './ClientApp'
-import { CardConfigProvider } from './context/CardConfigContext'
+import { AppProvider } from './context/AppContext'
 
 const rootEl = document.getElementById('root')
 const root = createRoot(rootEl)
 root.render(
   <React.StrictMode>
-    <CardConfigProvider>
+    <AppProvider>
       <ClientApp />
-    </CardConfigProvider>
+    </AppProvider>
   </React.StrictMode>
 )

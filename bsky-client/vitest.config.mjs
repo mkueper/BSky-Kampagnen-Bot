@@ -10,6 +10,7 @@ export default mergeConfig(
       setupFiles: './vitest.setup.js',
       include: ['src/**/*.test.{js,jsx,ts,tsx}'],
       css: true,
+      pool: 'threads',
     },
   }),
 );
