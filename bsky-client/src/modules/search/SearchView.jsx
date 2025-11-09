@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button, searchBsky, RichText } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
@@ -34,6 +34,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [recentSearches, setRecentSearches] = useState([])
+  const loadMoreTriggerRef = useRef(null)
 
   const normalizedDraft = draftQuery.trim()
   const normalizedQuery = query.trim()
@@ -127,9 +128,9 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
     setQuery(trimmed)
   }, [draftQuery, rememberSearch])
 
-  const loadMore = useCallback(async () => {
-    if (!cursor || loading || loadingMore || !hasQuery) return
-    setLoadingMore(true)
+ const loadMore = useCallback(async () => {
+   if (!cursor || loading || loadingMore || !hasQuery) return
+   setLoadingMore(true)
     try {
       const { items: nextItems, cursor: nextCursor } = await searchBsky({ query, type: activeTab, cursor })
       setItems(prev => [...prev, ...nextItems])
@@ -140,6 +141,25 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
       setLoadingMore(false)
     }
   }, [cursor, loading, loadingMore, hasQuery, query, activeTab])
+
+  useEffect(() => {
+    if (!cursor || !hasQuery || !loadMoreTriggerRef.current) return
+    const root = typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        loadMore()
+      }
+    }, {
+      root,
+      rootMargin: '200px 0px 200px 0px'
+    })
+    const target = loadMoreTriggerRef.current
+    observer.observe(target)
+    return () => observer.unobserve(target)
+  }, [cursor, hasQuery, loadMore])
 
   const postsContent = useMemo(() => {
     if (!isPostsTab) return null
@@ -332,10 +352,11 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
       <div className='space-y-4'>
         {renderResults()}
         {cursor && hasQuery ? (
-          <div className='flex justify-center'>
-            <Button variant='secondary' onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? 'Lade…' : 'Mehr laden'}
-            </Button>
+          <div
+            ref={loadMoreTriggerRef}
+            className='py-4 text-center text-sm text-foreground-muted'
+          >
+            {loadingMore ? 'Lade…' : 'Weitere Ergebnisse werden automatisch geladen…'}
           </div>
         ) : null}
       </div>

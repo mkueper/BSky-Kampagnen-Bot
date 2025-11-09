@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
 import { Button, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 
@@ -157,7 +157,7 @@ function extractQuotedPost (subject) {
   }
 }
 
-function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
+function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote }) {
   const {
     author = {},
     reason = 'unknown',
@@ -179,6 +179,7 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
   const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  const canOpenItem = typeof onSelectItem === 'function'
   const canOpenSubject = Boolean(subject && typeof onSelectSubject === 'function')
 
   const {
@@ -210,25 +211,25 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
 
   return (
     <article
-      className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenSubject ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
+      className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
       data-component='BskyNotificationCard'
       data-reason={reason}
       onClick={(event) => {
-        if (!canOpenSubject) return
+        if (!canOpenItem) return
         if (event.target?.closest?.('button, a')) return
-        onSelectSubject(subject)
+        onSelectItem(subject || item)
       }}
       onKeyDown={(event) => {
-        if (!canOpenSubject) return
+        if (!canOpenItem) return
         if (event.target?.closest?.('button, a')) return
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onSelectSubject(subject)
+          onSelectItem(subject || item)
         }
       }}
-      role={canOpenSubject ? 'button' : undefined}
-      tabIndex={canOpenSubject ? 0 : undefined}
-      aria-label={canOpenSubject ? 'Thread öffnen' : undefined}
+      role={canOpenItem ? 'button' : undefined}
+      tabIndex={canOpenItem ? 0 : undefined}
+      aria-label={canOpenItem ? 'Thread öffnen' : undefined}
     >
       <div className='flex items-start gap-3'>
         {author.avatar ? (
@@ -275,7 +276,14 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
-          {subject ? <NotificationSubjectPreview subject={subject} reason={reason} /> : null}
+          {subject ? (
+            <NotificationSubjectPreview
+              subject={subject}
+              reason={reason}
+              onSelect={canOpenSubject ? onSelectSubject : undefined}
+              onSelectQuoted={onSelectSubject}
+            />
+          ) : null}
           {timestamp ? (
             <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
           ) : null}
@@ -346,7 +354,7 @@ function NotificationCard ({ item, onSelectSubject, onReply, onQuote }) {
   )
 }
 
-function NotificationSubjectPreview ({ subject, reason }) {
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted }) {
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
@@ -357,8 +365,44 @@ function NotificationSubjectPreview ({ subject, reason }) {
     ? (quoted.author.displayName || quoted.author.handle || 'Unbekannt')
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
+  const canOpenSubject = typeof onSelect === 'function'
+  const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
+
+  const handleSelectSubject = useCallback((event) => {
+    if (!canOpenSubject) return
+    if (event?.target?.closest?.('a, button')) return
+    event.preventDefault()
+    event.stopPropagation()
+    onSelect(subject)
+  }, [canOpenSubject, onSelect, subject])
+
+  const handleSelectQuoted = useCallback((event) => {
+    if (!canOpenQuoted) return
+    event.preventDefault()
+    event.stopPropagation()
+    onSelectQuoted({
+      uri: quoted.uri,
+      cid: quoted.cid,
+      text: quoted.text,
+      author: quoted.author,
+      raw: { post: { uri: quoted.uri, cid: quoted.cid, author: quoted.author, record: { text: quoted.text } } }
+    })
+  }, [canOpenQuoted, onSelectQuoted, quoted])
+
   return (
-    <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2'>
+    <div
+      className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2 ${
+        canOpenSubject ? 'cursor-pointer transition hover:bg-background-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' : ''
+      }`}
+      role={canOpenSubject ? 'button' : undefined}
+      tabIndex={canOpenSubject ? 0 : undefined}
+      onClick={canOpenSubject ? handleSelectSubject : undefined}
+      onKeyDown={canOpenSubject ? ((event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          handleSelectSubject(event)
+        }
+      }) : undefined}
+    >
       <div className='flex items-center gap-3'>
         {author.avatar ? (
           <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
@@ -407,7 +451,19 @@ function NotificationSubjectPreview ({ subject, reason }) {
       {quoted ? (
         <div className='space-y-1'>
           <p className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>Originaler Beitrag</p>
-          <div className='rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground'>
+          <div
+            className={`rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground ${
+              canOpenQuoted ? 'cursor-pointer transition hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' : ''
+            }`}
+            role={canOpenQuoted ? 'button' : undefined}
+            tabIndex={canOpenQuoted ? 0 : undefined}
+            onClick={canOpenQuoted ? handleSelectQuoted : undefined}
+            onKeyDown={canOpenQuoted ? ((event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                handleSelectQuoted(event)
+              }
+            }) : undefined}
+          >
             {quoted.status !== 'ok' ? (
               <p className='text-xs text-foreground-muted'>{quoted.statusMessage}</p>
             ) : (
@@ -449,6 +505,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   const [cursor, setCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [retryTick, setRetryTick] = useState(0)
+  const loadMoreTriggerRef = useRef(null)
 
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
@@ -497,6 +554,27 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     }
   }, [cursor, fetchPage, hasMore, loadingMore])
 
+  useEffect(() => {
+    if (!hasMore || !loadMoreTriggerRef.current) return
+    const root = typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        loadMore()
+      }
+    }, {
+      root,
+      rootMargin: '200px 0px 200px 0px'
+    })
+    const target = loadMoreTriggerRef.current
+    observer.observe(target)
+    return () => {
+      observer.unobserve(target)
+    }
+  }, [hasMore, loadMore])
+
   if (loading) {
     return (
       <div className='flex min-h-[240px] items-center justify-center' data-component='BskyNotifications' data-state='loading'>
@@ -533,6 +611,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
           <li key={item.uri || item.cid || `${item.reason || 'notification'}-${item.reasonSubject || idx}-${idx}`}>
             <NotificationCard
               item={item}
+              onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
               onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
               onReply={onReply}
               onQuote={onQuote}
@@ -541,10 +620,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
         ))}
       </ul>
       {hasMore ? (
-        <div className='text-center'>
-          <Button variant='secondary' onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? 'Lade...' : 'Mehr laden'}
-          </Button>
+        <div
+          ref={loadMoreTriggerRef}
+          className='py-4 text-center text-sm text-foreground-muted'
+        >
+          {loadingMore ? 'Lade…' : 'Weitere Mitteilungen werden automatisch geladen…'}
         </div>
       ) : null}
     </section>
