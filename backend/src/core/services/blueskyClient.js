@@ -228,4 +228,31 @@ module.exports = {
       rkey
     })
   },
+  async searchPosts({ q, limit = 25, cursor, sort } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.feed.searchPosts({
+      q,
+      limit,
+      cursor,
+      sort
+    });
+    return res?.data ?? { posts: [], cursor: null };
+  },
+  async searchProfiles({ q, limit = 25, cursor } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.actor.searchActors({
+      q,
+      limit,
+      cursor
+    });
+    return res?.data ?? { actors: [], cursor: null };
+  },
+  async searchFeeds({ q, limit = 25, cursor } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.rpc.get({
+      method: 'app.bsky.feed.searchFeedGenerators',
+      params: { q, limit, cursor }
+    });
+    return res?.data ?? { feeds: [], cursor: null };
+  },
 };

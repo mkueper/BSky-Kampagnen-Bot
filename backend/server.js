@@ -114,6 +114,7 @@ app.get("/api/bsky/thread", bskyController.getThread);
 app.get("/api/bsky/notifications", bskyController.getNotifications);
 app.post("/api/bsky/reply", bskyController.postReply);
 app.post("/api/bsky/post", bskyController.postNow);
+app.get("/api/bsky/search", bskyController.search);
 // Maintenance utilities (no auth yet – use behind trusted network)
 app.post("/api/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
 // Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)

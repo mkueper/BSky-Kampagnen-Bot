@@ -3,6 +3,7 @@ import { BskyClientLayout, HorizontalScrollContainer } from './modules/layout'
 import { Timeline, ThreadView } from './modules/timeline'
 import { Composer, ComposeModal } from './modules/composer'
 import { Notifications } from './modules/notifications'
+import SearchView from './modules/search/SearchView'
 import { Button, MediaLightbox, fetchThread as fetchThreadApi, fetchTimeline as fetchTimelineApi } from './modules/shared'
 import { ReloadIcon } from '@radix-ui/react-icons'
 
@@ -317,7 +318,14 @@ export default function BskyClientApp () {
   )
 
   let secondaryContent = null
-  if (section === 'search') secondaryContent = <div className='text-sm text-muted-foreground'>Suche folgt</div>
+  if (section === 'search') secondaryContent = (
+    <SearchView
+      onSelectPost={selectThreadFromItem}
+      onReply={openReplyComposer}
+      onQuote={openQuoteComposer}
+      onViewMedia={openMediaPreview}
+    />
+  )
   else if (section === 'notifications') {
     secondaryContent = (
       <Notifications

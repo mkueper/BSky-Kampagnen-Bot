@@ -126,6 +126,61 @@ function mapNotificationEntry (entry, subjectMap) {
   }
 }
 
+function mapSearchPost (post) {
+  if (!post) return null
+  const author = post.author || {}
+  const record = post.record || {}
+  return {
+    uri: post.uri || null,
+    cid: post.cid || null,
+    text: record.text || '',
+    createdAt: record.createdAt || post.indexedAt || null,
+    author: {
+      handle: author.handle || '',
+      displayName: author.displayName || author.handle || '',
+      avatar: author.avatar || null
+    },
+    stats: {
+      likeCount: post.likeCount ?? 0,
+      repostCount: post.repostCount ?? 0,
+      replyCount: post.replyCount ?? 0
+    },
+    raw: { post }
+  }
+}
+
+function mapSearchActor (actor) {
+  if (!actor) return null
+  return {
+    did: actor.did || null,
+    handle: actor.handle || '',
+    displayName: actor.displayName || actor.handle || '',
+    description: actor.description || '',
+    avatar: actor.avatar || null,
+    indexedAt: actor.indexedAt || actor.createdAt || null,
+    viewer: actor.viewer || null,
+    labels: actor.labels || []
+  }
+}
+
+function mapSearchFeed (feed) {
+  if (!feed) return null
+  const creator = feed.creator || {}
+  return {
+    uri: feed.uri || null,
+    cid: feed.cid || null,
+    displayName: feed.displayName || '',
+    description: feed.description || '',
+    likeCount: feed.likeCount ?? feed.likes ?? 0,
+    avatar: feed.avatar || null,
+    creator: {
+      handle: creator.handle || '',
+      displayName: creator.displayName || creator.handle || '',
+      avatar: creator.avatar || null
+    }
+  }
+}
+
 async function collectMediaFromTemp (mediaInput = [], contextLabel = 'post') {
   if (!Array.isArray(mediaInput) || mediaInput.length === 0) return []
   const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
@@ -315,6 +370,36 @@ async function getReactions(req, res) {
   }
 }
 
+async function search (req, res) {
+  try {
+    const type = String(req.query?.type || 'top').toLowerCase()
+    const q = String(req.query?.q || '').trim()
+    if (!q) return res.status(400).json({ error: 'q erforderlich' })
+    const limit = Math.min(Math.max(parseInt(req.query?.limit || '25', 10) || 25, 1), 50)
+    const cursor = req.query?.cursor || undefined
+
+    if (type === 'people') {
+      const data = await bsky.searchProfiles({ q, limit, cursor })
+      const items = Array.isArray(data?.actors) ? data.actors.map(mapSearchActor).filter(Boolean) : []
+      return res.json({ items, cursor: data?.cursor || null, type: 'people' })
+    }
+
+    if (type === 'feeds') {
+      const data = await bsky.searchFeeds({ q, limit, cursor })
+      const items = Array.isArray(data?.feeds) ? data.feeds.map(mapSearchFeed).filter(Boolean) : []
+      return res.json({ items, cursor: data?.cursor || null, type: 'feeds' })
+    }
+
+    const sort = type === 'latest' ? 'latest' : 'top'
+    const data = await bsky.searchPosts({ q, limit, cursor, sort })
+    const posts = Array.isArray(data?.posts) ? data.posts.map(mapSearchPost).filter(Boolean) : []
+    return res.json({ items: posts, cursor: data?.cursor || null, type: sort })
+  } catch (error) {
+    log.error('search failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Suche fehlgeschlagen.' })
+  }
+}
+
 async function postReply(req, res) {
   try {
     const text = String(req.body?.text || '').trim()
@@ -389,4 +474,4 @@ async function postNow(req, res) {
   }
 }
 
-module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow }
+module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search }

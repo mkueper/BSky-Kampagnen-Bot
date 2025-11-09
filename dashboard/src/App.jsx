@@ -180,7 +180,7 @@ function readViewFromLocation () {
     if (paramView && VALID_VIEWS.has(paramView)) return paramView
     const hash = window.location.hash?.replace('#', '') || ''
     if (hash && VALID_VIEWS.has(hash)) return hash
-  } catch {}
+  } catch(e) {console.log('Fehler: e')}
   return DEFAULT_VIEW
 }
 

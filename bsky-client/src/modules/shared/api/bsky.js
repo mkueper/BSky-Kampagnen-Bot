@@ -136,7 +136,21 @@ export async function fetchReactions({ uri }) {
   return requestJson(`/api/bsky/reactions?${params.toString()}`);
 }
 
-export { requestJson };
+export async function searchBsky({ query, type, cursor, limit } = {}) {
+  const params = createSearchParams();
+  if (query) params.set('q', query);
+  if (type) params.set('type', type);
+  if (cursor) params.set('cursor', cursor);
+  if (typeof limit === 'number') params.set('limit', String(limit));
+  const queryString = params.toString();
+  const data = await requestJson(`/api/bsky/search${queryString ? `?${queryString}` : ''}`);
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    cursor: data?.cursor || null,
+    type: data?.type || type || 'top'
+  };
+}
 
+export { requestJson };
 
 

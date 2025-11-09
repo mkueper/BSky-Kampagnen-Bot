@@ -59,11 +59,11 @@ const REASON_COPY = {
 
 REASON_COPY['like-via-repost'] = {
   ...REASON_COPY.like,
-  label: 'Like'
+  label: 'Like via Repost'
 }
 REASON_COPY['repost-via-repost'] = {
   ...REASON_COPY.repost,
-  label: 'Repost'
+  label: 'Repost via Repost'
 }
 
 function resolveSubjectType (subject) {

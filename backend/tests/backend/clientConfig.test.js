@@ -17,7 +17,7 @@ vi.mock('@core/services/settingsService', () => {
         skeetMinimalHidden: false,
         backoffStartMs: 10000,
         backoffMaxMs: 300000,
-        jitterRatio: 0.2,
+        jitterRatio: 0.15,
         heartbeatMs: 2000,
       }
     }))
@@ -45,9 +45,9 @@ describe('getClientConfig', () => {
     }
     await getClientConfig(req, res)
     expect(payload).toBeTruthy()
-    expect(payload.polling.threads.activeMs).toBe(30000)
+    expect(payload.polling.threads.activeMs).toBe(8000)
     expect(payload.polling.skeets.hiddenMs).toBe(300000)
-    expect(payload.polling.jitterRatio).toBe(0.2)
+    expect(payload.polling.jitterRatio).toBe(0.15)
     expect(payload.needsCredentials).toBe(true)
   })
 
