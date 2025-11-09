@@ -10,6 +10,9 @@ const SEARCH_TABS = [
   { id: 'feeds', label: 'Feeds' }
 ]
 
+const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
+const RECENT_SEARCH_LIMIT = 8
+
 const buildFeedUrl = (feed) => {
   if (!feed?.uri) return null
   const parts = String(feed.uri).split('/')
@@ -30,9 +33,64 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  const [recentSearches, setRecentSearches] = useState([])
 
-  const hasQuery = query.trim().length > 0
+  const normalizedDraft = draftQuery.trim()
+  const normalizedQuery = query.trim()
+  const hasQuery = normalizedQuery.length > 0
   const isPostsTab = activeTab === 'top' || activeTab === 'latest'
+  const isAuthorSearch = normalizedDraft.startsWith('from:')
+  const availableTabs = useMemo(() => {
+    if (!isAuthorSearch) return SEARCH_TABS
+    return SEARCH_TABS.filter(tab => tab.id === 'top' || tab.id === 'latest')
+  }, [isAuthorSearch])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage.getItem(RECENT_SEARCH_STORAGE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        const normalized = parsed
+          .map(item => (typeof item === 'string' ? item.trim() : ''))
+          .filter(Boolean)
+          .slice(0, RECENT_SEARCH_LIMIT)
+        setRecentSearches(normalized)
+      }
+    } catch {
+      // ignore malformed storage
+    }
+  }, [])
+
+  const rememberSearch = useCallback((term) => {
+    const normalized = term.trim()
+    if (!normalized) return
+    setRecentSearches((prev) => {
+      const next = [normalized, ...prev.filter(item => item !== normalized)].slice(0, RECENT_SEARCH_LIMIT)
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify(next))
+        } catch {
+          // ignore storage errors
+        }
+      }
+      return next
+    })
+  }, [])
+
+  const handleSelectRecent = useCallback((term) => {
+    rememberSearch(term)
+    setDraftQuery(term)
+    setQuery(term)
+  }, [rememberSearch])
+
+  useEffect(() => {
+    if (!query) return
+    if (draftQuery.trim().length === 0) {
+      setQuery('')
+    }
+  }, [draftQuery, query])
 
   useEffect(() => {
     if (!hasQuery) {
@@ -65,8 +123,9 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
     event?.preventDefault()
     const trimmed = draftQuery.trim()
     if (!trimmed) return
+    rememberSearch(trimmed)
     setQuery(trimmed)
-  }, [draftQuery])
+  }, [draftQuery, rememberSearch])
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading || loadingMore || !hasQuery) return
@@ -187,9 +246,32 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
     )
   }, [activeTab, items])
 
+  const recentSearchesContent = useMemo(() => {
+    if (!recentSearches.length) {
+      return <p className='text-sm text-foreground-muted'>Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.</p>
+    }
+    return (
+      <div className='space-y-3'>
+        <p className='text-sm font-semibold text-foreground'>Letzte Suchanfragen</p>
+        <div className='flex flex-wrap gap-2'>
+          {recentSearches.map((term) => (
+            <button
+              key={term}
+              type='button'
+              onClick={() => handleSelectRecent(term)}
+              className='rounded-full border border-border px-4 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }, [recentSearches, handleSelectRecent])
+
   const renderResults = () => {
     if (!hasQuery) {
-      return <p className='text-sm text-foreground-muted'>Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.</p>
+      return recentSearchesContent
     }
     if (loading) {
       return (
@@ -232,7 +314,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
       </form>
 
       <div className='flex flex-wrap gap-2'>
-        {SEARCH_TABS.map(tab => (
+        {availableTabs.map(tab => (
           <button
             key={tab.id}
             type='button'
