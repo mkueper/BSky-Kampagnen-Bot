@@ -18,6 +18,7 @@ const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,imag
   .filter(Boolean)
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
+const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 
 function toTimestamp (value) {
   if (!value) return 0
@@ -95,7 +96,28 @@ function mapPostView (post) {
   }
 }
 
-function mapNotificationEntry (entry, subjectMap) {
+function aggregateNotificationEntries (notifications = []) {
+  const grouped = []
+  const groupMap = new Map()
+  for (const entry of notifications) {
+    if (!entry || typeof entry !== 'object') continue
+    const reason = entry.reason || ''
+    const subjectUri = entry.reasonSubject || entry?.record?.subject?.uri || null
+    const canGroup = subjectUri && GROUPABLE_NOTIFICATION_REASONS.has(reason)
+    const key = canGroup ? `${reason}__${subjectUri}` : null
+    if (key && groupMap.has(key)) {
+      const bucket = groupMap.get(key)
+      bucket.additionalCount += 1
+      continue
+    }
+    const bucket = { entry, additionalCount: 0 }
+    grouped.push(bucket)
+    if (key) groupMap.set(key, bucket)
+  }
+  return grouped
+}
+
+function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) {
   if (!entry) return null
   const author = entry.author || {}
   const record = entry.record || {}
@@ -131,7 +153,8 @@ function mapNotificationEntry (entry, subjectMap) {
       embed: record.embed || null
     },
     subject,
-    raw: entry
+    raw: entry,
+    additionalCount
   }
 }
 
@@ -333,8 +356,9 @@ async function getNotifications (req, res) {
         .filter((item) => item?.uri)
       subjectMap = new Map(mappedPosts.map((item) => [item.uri, item]))
     }
-    const items = notifications
-      .map((entry) => mapNotificationEntry(entry, subjectMap))
+    const aggregated = aggregateNotificationEntries(notifications)
+    const items = aggregated
+      .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
       .filter(Boolean)
     if (markSeen) {
       try {
