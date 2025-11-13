@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import Button from './ui/Button'
 import Card from './ui/Card'
+import { useVirtualList } from '../hooks/useVirtualList'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 
 function parseThreadMetadata (thread) {
@@ -153,9 +154,33 @@ function ThreadOverview ({
     )
   }
 
-  return (
-    <section className='space-y-4'>
-      {threads.map(thread => {
+  const resolvedThreads = Array.isArray(threads) ? threads : []
+  const shouldVirtualize = resolvedThreads.length > 25
+  const scrollParentSelector = useCallback(() => {
+    if (typeof document === 'undefined') return null
+    return document.getElementById('app-scroll-container')
+  }, [])
+  const { isReady: virtualReady, virtualItems, totalSize, measureRef } = useVirtualList({
+    itemCount: resolvedThreads.length,
+    estimateSize: 520,
+    overscan: 6,
+    enabled: shouldVirtualize,
+    getScrollElement: scrollParentSelector
+  })
+  const getCombinedRef = useCallback(
+    (virtualIndex, threadId) => {
+      const measure = measureRef(virtualIndex)
+      const visibleRef =
+        typeof getItemRef === 'function' ? getItemRef(threadId) : null
+      return node => {
+        measure?.(node)
+        if (visibleRef) visibleRef(node)
+      }
+    },
+    [getItemRef, measureRef]
+  )
+
+  const renderThreadCard = (thread, refOverride) => {
         const segments = Array.isArray(thread.segments) ? thread.segments : []
         const firstSegment = segments[0] || {
           content: '',
@@ -326,15 +351,15 @@ function ThreadOverview ({
           }
         }
 
+        const refProp =
+          refOverride ||
+          (typeof getItemRef === 'function' ? getItemRef(thread.id) : undefined)
+
         return (
           <Card
             key={thread.id}
             id={`thread-${thread.id}`}
-            ref={
-              typeof getItemRef === 'function'
-                ? getItemRef(thread.id)
-                : undefined
-            }
+            ref={refProp}
           >
             <header className='flex flex-wrap items-center justify-between gap-3'>
               <div>
@@ -640,6 +665,34 @@ function ThreadOverview ({
               ) : null}
             </div>
           </Card>
+        )
+  }
+
+  if (!shouldVirtualize || !virtualReady) {
+    return (
+      <section className='space-y-4'>
+        {resolvedThreads.map(thread => renderThreadCard(thread))}
+      </section>
+    )
+  }
+
+  return (
+    <section
+      className='relative'
+      style={{ height: `${Math.max(totalSize, 1)}px` }}
+    >
+      {virtualItems.map(virtualItem => {
+        const thread = resolvedThreads[virtualItem.index]
+        if (!thread) return null
+        const combinedRef = getCombinedRef(virtualItem.index, thread.id)
+        return (
+          <div
+            key={thread.id}
+            className='absolute left-0 right-0 pb-4'
+            style={{ top: `${virtualItem.start}px` }}
+          >
+            {renderThreadCard(thread, combinedRef)}
+          </div>
         )
       })}
     </section>

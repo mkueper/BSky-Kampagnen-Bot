@@ -182,8 +182,16 @@ export function useThreads (options = {}) {
   }, [status])
 
   useEffect(() => {
-    loadThreads()
-  }, [loadThreads])
+    if (!enabled) return undefined
+    let cancelled = false
+    ;(async () => {
+      if (cancelled) return
+      await loadThreads()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, loadThreads])
 
   // Booster: Wenn ein Thread in Kürze fällig ist, Polling kurzzeitig beschleunigen
   const nextDueSoonActiveMs = 2000 // 2s rund um fällige Termine
@@ -203,6 +211,7 @@ export function useThreads (options = {}) {
 
   // Smart-Polling via createPollingController (ersetzt das alte Intervall)
   useEffect(() => {
+    if (!enabled) return undefined
     if (typeof window === 'undefined') return undefined
 
     const parseMs = (v, def) => {

@@ -53,7 +53,7 @@ function parseOptionalDate(value) {
   if (typeof value === 'string' && DATETIME_LOCAL_REGEX.test(value)) {
     try {
       return parseDatetimeLocal(value, config.TIME_ZONE);
-    } catch (_) {
+    } catch {
       throw new ValidationError("scheduledAt ist kein gültiges Datum.");
     }
   }

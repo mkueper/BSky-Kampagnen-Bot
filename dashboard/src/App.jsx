@@ -1,6 +1,6 @@
 // Zentrale Einstiegskomponente für das Dashboard. Kümmert sich um Navigation,
 // Datenabfragen, Themenverwaltung sowie das Einbinden der verschiedenen Views.
-import { Suspense, useEffect, useState, useMemo, lazy } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, lazy } from 'react'
 import {
   DownloadIcon,
   GearIcon,
@@ -20,13 +20,6 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
-import MainOverviewView from './components/views/MainOverviewView'
-import AboutView from './components/views/AboutView'
-import DashboardView from './components/views/DashboardView'
-import ThreadDashboardView from './components/views/ThreadDashboardView'
-import SkeetForm from './components/SkeetForm'
-import ThreadForm from './components/ThreadForm'
-import ConfigPanel from './components/ConfigPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import { useSkeets } from './hooks/useSkeets'
 import { useThreadDetail, useThreads } from './hooks/useThreads'
@@ -122,8 +115,23 @@ const THEME_CONFIG = {
 const DEFAULT_THEME = THEMES[0]
 
 const BskyClientAppLazy = lazy(() => import('bsky-client'))
+const MainOverviewView = lazy(() => import('./components/views/MainOverviewView'))
+const AboutView = lazy(() => import('./components/views/AboutView'))
+const DashboardView = lazy(() => import('./components/views/DashboardView'))
+const ThreadDashboardView = lazy(() => import('./components/views/ThreadDashboardView'))
+const SkeetForm = lazy(() => import('./components/SkeetForm'))
+const ThreadForm = lazy(() => import('./components/ThreadForm'))
+const ConfigPanel = lazy(() => import('./components/ConfigPanel'))
 
 const DEFAULT_VIEW = 'overview'
+
+function LoadingBlock ({ message }) {
+  return (
+    <div className='rounded-3xl border border-border bg-background p-6 text-sm text-foreground-muted'>
+      {message}
+    </div>
+  )
+}
 
 function App () {
   // --- Globale UI-Zustände -------------------------------------------------
@@ -147,22 +155,45 @@ function App () {
   const ThemeIcon = HookThemeIcon || SunIcon
   const [editingSkeet, setEditingSkeet] = useState(null)
   const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
+  const plannedListScrollRef = useRef(null)
   const [activeDashboardTab, setActiveDashboardTab] = useState('planned')
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [editingThreadId, setEditingThreadId] = useState(null)
   const toast = useToast()
+  const skeetViewsEnabled =
+    activeView === 'overview' ||
+    activeView === 'skeets' ||
+    activeView === 'skeets-overview'
+  const threadViewsEnabled =
+    activeView === 'overview' ||
+    activeView === 'threads' ||
+    activeView === 'threads-overview'
+  const refreshSkeetsNowRef = useRef(async () => {})
+  const refreshThreadsNowRef = useRef(async () => {})
+  const handleSkeetEvent = useCallback(async () => {
+    if (!skeetViewsEnabled) return
+    try {
+      await refreshSkeetsNowRef.current?.({ force: true })
+    } catch {
+      /* ignore */
+    }
+  }, [skeetViewsEnabled])
+  const handleThreadEvent = useCallback(async () => {
+    if (!threadViewsEnabled) return
+    try {
+      await refreshThreadsNowRef.current?.({ force: true })
+    } catch {
+      /* ignore */
+    }
+  }, [threadViewsEnabled])
 
   // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
   // Wichtig: Vor useSkeets/useThreads aufrufen, damit sseConnected verfügbar ist.
   // Echtzeit-Aktualisierung: sobald der Backend-SSE-Stream ein Ereignis meldet,
   // forcieren wir ein erneutes Laden der relevanten Datensätze.
   const { connected: sseConnected } = useSse({
-    onSkeetEvent: async () => {
-      try { await refreshSkeetsNow({ force: true }) } catch { /* ignore */ }
-    },
-    onThreadEvent: async () => {
-      try { await refreshThreadsNow({ force: true }) } catch { /* ignore */ }
-    },
+    onSkeetEvent: handleSkeetEvent,
+    onThreadEvent: handleThreadEvent
   })
 
   // Skeet-bezogene Hooks bündeln sämtliche Listen, Detail-Puffer und Aktionen.
@@ -181,12 +212,10 @@ function App () {
     reactionStats,
     replyErrors
   } = useSkeets({
-    enabled:
-      activeView === 'overview' ||
-      activeView === 'skeets' ||
-      activeView === 'skeets-overview',
+    enabled: skeetViewsEnabled,
     sseConnected
   })
+  refreshSkeetsNowRef.current = refreshSkeetsNow
 
   // Entsprechende Hook für Threads – analog zu useSkeets.
   const {
@@ -195,12 +224,10 @@ function App () {
     error: threadsError,
     refreshNow: refreshThreadsNow
   } = useThreads({
-    enabled:
-      activeView === 'overview' ||
-      activeView === 'threads' ||
-      activeView === 'threads-overview',
+    enabled: threadViewsEnabled,
     sseConnected
   })
+  refreshThreadsNowRef.current = refreshThreadsNow
   const { thread: editingThread, loading: loadingEditingThread } =
     useThreadDetail(editingThreadId, {
       autoLoad: Boolean(editingThreadId)
@@ -263,6 +290,34 @@ function App () {
       return updated ?? null
     })
   }, [plannedSkeets, publishedSkeets])
+
+  useEffect(() => {
+    if (activeView !== 'skeets-overview') return
+    if (activeDashboardTab !== 'planned') return
+    const pending = plannedListScrollRef.current
+    if (!pending) return
+    const container = document.getElementById('app-scroll-container')
+    if (!container) return
+    const applyRestore = () => {
+      const { scrollTop = null, relativeOffset = null, skeetId = null } = pending || {}
+      if (relativeOffset != null && skeetId) {
+        const entry = document.getElementById(`skeet-${skeetId}`)
+        if (entry) {
+          const containerRect = container.getBoundingClientRect()
+          const entryRect = entry.getBoundingClientRect()
+          const delta = (entryRect.top - containerRect.top) - relativeOffset
+          container.scrollTop += delta
+          plannedListScrollRef.current = null
+          return
+        }
+      }
+      if (scrollTop != null) {
+        container.scrollTop = scrollTop
+      }
+      plannedListScrollRef.current = null
+    }
+    requestAnimationFrame(applyRestore)
+  }, [activeView, activeDashboardTab, plannedSkeets])
   // --- Skeets: Übersichtskarten für Gruppen-Landing (verschoben aus Dashboard)
   const overviewStatsSkeets = useMemo(() => {
     const likes = publishedSkeets.reduce(
@@ -368,6 +423,22 @@ function App () {
   const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : ''
 
   const handleEdit = skeet => {
+    try {
+      const container = document.getElementById('app-scroll-container')
+      const payload = { scrollTop: container?.scrollTop ?? 0 }
+      if (container && skeet?.id) {
+        const entry = document.getElementById(`skeet-${skeet.id}`)
+        if (entry) {
+          const containerRect = container.getBoundingClientRect()
+          const entryRect = entry.getBoundingClientRect()
+          payload.relativeOffset = entryRect.top - containerRect.top
+          payload.skeetId = skeet.id
+        }
+      }
+      plannedListScrollRef.current = payload
+    } catch {
+      plannedListScrollRef.current = null
+    }
     setEditingSkeet(skeet)
     navigate('skeets-plan')
   }
@@ -493,16 +564,22 @@ function App () {
     : NAV_ITEMS
 
   if (gatedNeedsCreds) {
-    content = <ConfigPanel />
+    content = (
+      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+        <ConfigPanel />
+      </Suspense>
+    )
   } else if (activeView === 'overview') {
     content = (
-      <MainOverviewView
-        threads={threads}
-        plannedSkeets={plannedSkeets}
-        publishedSkeets={publishedSkeets}
-        onOpenSkeetsOverview={() => navigate('skeets-overview')}
-        onOpenThreadsOverview={() => navigate('threads-overview')}
-      />
+      <Suspense fallback={<LoadingBlock message='Übersicht wird geladen…' />}>
+        <MainOverviewView
+          threads={threads}
+          plannedSkeets={plannedSkeets}
+          publishedSkeets={publishedSkeets}
+          onOpenSkeetsOverview={() => navigate('skeets-overview')}
+          onOpenThreadsOverview={() => navigate('threads-overview')}
+        />
+      </Suspense>
     )
   } else if (activeView === 'skeets') {
     content = (
@@ -556,49 +633,57 @@ function App () {
     )
   } else if (activeView === 'skeets-overview') {
     content = (
-      <DashboardView
-        plannedSkeets={plannedSkeets}
-        publishedSkeets={publishedSkeets}
-        deletedSkeets={deletedSkeets}
-        onEditSkeet={handleEdit}
-        onDeleteSkeet={handleDeleteSkeet}
-        onRetractSkeet={handleRetractSkeet}
-        onRestoreSkeet={handleRestoreSkeet}
-        onPermanentDeleteSkeet={handlePermanentDeleteSkeet}
-        onFetchReactions={fetchReactions}
-        onShowSkeetContent={showSkeetContent}
-        onShowRepliesContent={showRepliesContent}
-        activeCardTabs={activeCardTabs}
-        repliesBySkeet={repliesBySkeet}
-        replyErrors={replyErrors}
-        loadingReplies={loadingReplies}
-        loadingReactions={loadingReactions}
-        reactionStats={reactionStats}
-        formatTime={formatTime}
-        getRepeatDescription={getRepeatDescription}
-        platformLabels={PLATFORM_LABELS}
-        activeTab={activeDashboardTab}
-        onTabChange={setActiveDashboardTab}
-        highlightedSkeetId={highlightedSkeetId}
-        onHighlightConsumed={() => setHighlightedSkeetId(null)}
-      />
+      <Suspense fallback={<LoadingBlock message='Skeet Aktivität wird geladen…' />}>
+        <DashboardView
+          plannedSkeets={plannedSkeets}
+          publishedSkeets={publishedSkeets}
+          deletedSkeets={deletedSkeets}
+          onEditSkeet={handleEdit}
+          onDeleteSkeet={handleDeleteSkeet}
+          onRetractSkeet={handleRetractSkeet}
+          onRestoreSkeet={handleRestoreSkeet}
+          onPermanentDeleteSkeet={handlePermanentDeleteSkeet}
+          onFetchReactions={fetchReactions}
+          onShowSkeetContent={showSkeetContent}
+          onShowRepliesContent={showRepliesContent}
+          activeCardTabs={activeCardTabs}
+          repliesBySkeet={repliesBySkeet}
+          replyErrors={replyErrors}
+          loadingReplies={loadingReplies}
+          loadingReactions={loadingReactions}
+          reactionStats={reactionStats}
+          formatTime={formatTime}
+          getRepeatDescription={getRepeatDescription}
+          platformLabels={PLATFORM_LABELS}
+          activeTab={activeDashboardTab}
+          onTabChange={setActiveDashboardTab}
+          highlightedSkeetId={highlightedSkeetId}
+          onHighlightConsumed={() => setHighlightedSkeetId(null)}
+        />
+      </Suspense>
     )
   } else if (activeView === 'threads-overview') {
     content = (
-      <ThreadDashboardView
-        threads={threads}
-        loading={threadsLoading}
-        error={threadsError}
-        onReload={refreshThreadsNow}
-        onEditThread={handleEditThread}
-        onDeleteThread={handleDeleteThread}
-        onRestoreThread={handleRestoreThread}
-        onDestroyThread={handleDestroyThread}
-        onRetractThread={handleRetractThread}
-      />
+      <Suspense fallback={<LoadingBlock message='Thread Aktivität wird geladen…' />}>
+        <ThreadDashboardView
+          threads={threads}
+          loading={threadsLoading}
+          error={threadsError}
+          onReload={refreshThreadsNow}
+          onEditThread={handleEditThread}
+          onDeleteThread={handleDeleteThread}
+          onRestoreThread={handleRestoreThread}
+          onDestroyThread={handleDestroyThread}
+          onRetractThread={handleRetractThread}
+        />
+      </Suspense>
     )
   } else if (activeView === 'config') {
-    content = <ConfigPanel />
+    content = (
+      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+        <ConfigPanel />
+      </Suspense>
+    )
   } else if (activeView === 'bsky-client') {
     content = (
       <Card padding='p-4'>
@@ -610,41 +695,47 @@ function App () {
   } else if (activeView === 'about') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <AboutView />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Infoansicht wird geladen…</p>}>
+          <AboutView />
+        </Suspense>
       </Card>
     )
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <SkeetForm
-          onSkeetSaved={handleFormSaved}
-          editingSkeet={editingSkeet}
-          onCancelEdit={handleCancelEdit}
-          initialContent={editingSkeet ? undefined : skeetDraftContent}
-        />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Skeet-Formular wird geladen…</p>}>
+          <SkeetForm
+            onSkeetSaved={handleFormSaved}
+            editingSkeet={editingSkeet}
+            onCancelEdit={handleCancelEdit}
+            initialContent={editingSkeet ? undefined : skeetDraftContent}
+          />
+        </Suspense>
       </Card>
     )
   } else if (activeView === 'threads-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <ThreadForm
-          key={editingThreadId || 'new'}
-          initialThread={editingThreadId ? editingThread : null}
-          loading={Boolean(
-            editingThreadId && loadingEditingThread && !editingThread
-          )}
-          onThreadSaved={handleThreadSaved}
-          onCancel={editingThreadId ? handleThreadCancel : undefined}
-          onSuggestMoveToSkeets={(content) => {
-            try {
-              setEditingThreadId(null)
-            } catch (error) {
-              console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
-            }
-            setSkeetDraftContent(content || '')
-            navigate('skeets-plan')
-          }}
-        />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Thread-Formular wird geladen…</p>}>
+          <ThreadForm
+            key={editingThreadId || 'new'}
+            initialThread={editingThreadId ? editingThread : null}
+            loading={Boolean(
+              editingThreadId && loadingEditingThread && !editingThread
+            )}
+            onThreadSaved={handleThreadSaved}
+            onCancel={editingThreadId ? handleThreadCancel : undefined}
+            onSuggestMoveToSkeets={(content) => {
+              try {
+                setEditingThreadId(null)
+              } catch (error) {
+                console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
+              }
+              setSkeetDraftContent(content || '')
+              navigate('skeets-plan')
+            }}
+          />
+        </Suspense>
       </Card>
     )
   }
