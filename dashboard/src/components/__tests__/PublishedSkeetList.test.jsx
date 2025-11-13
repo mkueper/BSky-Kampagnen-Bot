@@ -45,7 +45,7 @@ const createSkeet = id => ({
 
 describe('PublishedSkeetList', () => {
   beforeAll(() => {
-    global.ResizeObserver = ResizeObserverMock
+    globalThis.ResizeObserver = ResizeObserverMock
   })
 
   afterEach(() => {
