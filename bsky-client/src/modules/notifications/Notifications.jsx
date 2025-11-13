@@ -157,7 +157,7 @@ function extractQuotedPost (subject) {
   }
 }
 
-function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote }) {
+function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead }) {
   const {
     author = {},
     reason = 'unknown',
@@ -209,6 +209,24 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
   const authorLabel = authorDisplayName || 'Unbekannt'
   const authorFallbackHint = authorDisplayName ? '' : 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.'
 
+  const markAsRead = useCallback(() => {
+    if (!isRead && typeof onMarkRead === 'function') {
+      onMarkRead(item)
+    }
+  }, [isRead, onMarkRead, item])
+
+  const handleSelectItem = useCallback((target) => {
+    if (typeof onSelectItem !== 'function') return
+    markAsRead()
+    onSelectItem(target)
+  }, [onSelectItem, markAsRead])
+
+  const handleSelectSubject = useCallback((target) => {
+    if (typeof onSelectSubject !== 'function') return
+    markAsRead()
+    onSelectSubject(target)
+  }, [onSelectSubject, markAsRead])
+
   return (
     <article
       className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
@@ -217,14 +235,14 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
       onClick={(event) => {
         if (!canOpenItem) return
         if (event.target?.closest?.('button, a')) return
-        onSelectItem(subject || item)
+        handleSelectItem(subject || item)
       }}
       onKeyDown={(event) => {
         if (!canOpenItem) return
         if (event.target?.closest?.('button, a')) return
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onSelectItem(subject || item)
+          handleSelectItem(subject || item)
         }
       }}
       role={canOpenItem ? 'button' : undefined}
@@ -280,8 +298,8 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
             <NotificationSubjectPreview
               subject={subject}
               reason={reason}
-              onSelect={canOpenSubject ? onSelectSubject : undefined}
-              onSelectQuoted={onSelectSubject}
+              onSelect={canOpenSubject ? handleSelectSubject : undefined}
+              onSelectQuoted={handleSelectSubject}
             />
           ) : null}
           {timestamp ? (
@@ -506,7 +524,9 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   const [loadingMore, setLoadingMore] = useState(false)
   const [retryTick, setRetryTick] = useState(0)
   const loadMoreTriggerRef = useRef(null)
-  const markUnread = useCallback((count) => {
+  const [unreadCount, setUnreadCount] = useState(0)
+  const syncUnread = useCallback((count) => {
+    setUnreadCount(count)
     if (typeof onUnreadChange === 'function') {
       onUnreadChange(count)
     }
@@ -532,7 +552,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
         if (!ignore) {
           setItems(notifications)
           setCursor(nextCursor)
-          markUnread(unreadCount)
+          syncUnread(unreadCount)
         }
       } catch (err) {
         if (!ignore) setError(err?.message || 'Mitteilungen konnten nicht geladen werden.')
@@ -550,15 +570,38 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      const { notifications, cursor: nextCursor } = await fetchPage({ withCursor: cursor })
+      const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ withCursor: cursor })
       setItems(prev => [...prev, ...notifications])
       setCursor(nextCursor)
+      if (typeof unreadCount === 'number') {
+        syncUnread(unreadCount)
+      }
     } catch (err) {
       console.error('Notifications loadMore failed', err)
     } finally {
       setLoadingMore(false)
     }
   }, [cursor, fetchPage, hasMore, loadingMore])
+
+  const handleMarkRead = useCallback((notification) => {
+    if (!notification || notification.isRead) return
+    const targetId = notification.uri || notification.cid || notification.indexedAt
+    setItems(prev =>
+      prev.map(entry => {
+        const entryId = entry?.uri || entry?.cid || entry?.indexedAt
+        if (entryId === targetId) {
+          return entry.isRead ? entry : { ...entry, isRead: true }
+        }
+        return entry
+      })
+    )
+    setUnreadCount(current => {
+      if (current <= 0) return 0
+      const next = current - 1
+      if (typeof onUnreadChange === 'function') onUnreadChange(next)
+      return next
+    })
+  }, [onUnreadChange])
 
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return
@@ -621,6 +664,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
               onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
               onReply={onReply}
               onQuote={onQuote}
+              onMarkRead={handleMarkRead}
             />
           </li>
         ))}
