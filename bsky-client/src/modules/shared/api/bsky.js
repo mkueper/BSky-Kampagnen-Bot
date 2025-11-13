@@ -90,6 +90,8 @@ export async function fetchNotifications({ cursor, markSeen } = {}) {
   return {
     items: Array.isArray(data?.notifications) ? data.notifications : [],
     cursor: data?.cursor || null,
+    unreadCount: Number(data?.unreadCount) || 0,
+    seenAt: data?.seenAt || null
   };
 }
 
@@ -160,4 +162,3 @@ export async function fetchProfile(actor) {
 }
 
 export { requestJson };
-

@@ -5,7 +5,7 @@ import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { Button, fetchTimeline as fetchTimelineApi } from './modules/shared/index.js'
+import { Button, fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import { SearchView } from './modules/search/index.js'
 import { Notifications } from './modules/notifications/index.js'
@@ -17,7 +17,8 @@ export default function BskyClientApp () {
     timelineTab,
     refreshTick,
     notificationsRefreshTick,
-    timelineTopUri
+    timelineTopUri,
+    notificationsUnread
   } = useAppState()
   const dispatch = useAppDispatch()
 
@@ -99,7 +100,9 @@ export default function BskyClientApp () {
     if (section === 'notifications') {
       return (
         <div className='flex items-center justify-between gap-3'>
-          <p className='text-sm text-foreground-muted'>Mitteilungen</p>
+          <p className='text-sm text-foreground-muted'>
+            Mitteilungen{notificationsUnread > 0 ? ` · ${notificationsUnread} neu` : ''}
+          </p>
           <Button variant='secondary' size='pill' onClick={refreshNotifications}>Aktualisieren</Button>
         </div>
       )
@@ -113,7 +116,8 @@ export default function BskyClientApp () {
     handleTimelineTabSelect,
     reloadThread,
     closeThread,
-    refreshNotifications
+    refreshNotifications,
+    notificationsUnread
   ])
 
   const topBlock = null
@@ -165,6 +169,7 @@ export default function BskyClientApp () {
         onSelectPost={selectThreadFromItem}
         onReply={openReplyComposer}
         onQuote={openQuoteComposer}
+        onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
       />
     )
   }
@@ -179,11 +184,32 @@ export default function BskyClientApp () {
     dispatch({ type: 'SET_TIMELINE_READY', payload: false })
   }, [timelineTab, dispatch])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    let ignore = false
+    let timer = null
+    const checkUnread = async () => {
+      try {
+        const { unreadCount } = await fetchNotificationsApi({ limit: 1 })
+        if (!ignore) {
+          dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: unreadCount })
+        }
+      } catch {}
+    }
+    checkUnread()
+    timer = window.setInterval(checkUnread, 60000)
+    return () => {
+      ignore = true
+      if (timer) window.clearInterval(timer)
+    }
+  }, [dispatch])
+
 
   return (
     <>
       <BskyClientLayout
         activeSection={section}
+        notificationsUnread={notificationsUnread}
         onSelectSection={(id) => {
           if (id === 'home') {
             if (threadState.active) closeThread({ force: true })

@@ -498,7 +498,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -506,15 +506,20 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   const [loadingMore, setLoadingMore] = useState(false)
   const [retryTick, setRetryTick] = useState(0)
   const loadMoreTriggerRef = useRef(null)
+  const markUnread = useCallback((count) => {
+    if (typeof onUnreadChange === 'function') {
+      onUnreadChange(count)
+    }
+  }, [onUnreadChange])
 
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
   const fetchPage = useCallback(async ({ withCursor, markSeen = false } = {}) => {
-    const { items: notifications, cursor: nextCursor } = await fetchNotificationsApi({
+    const { items: notifications, cursor: nextCursor, unreadCount } = await fetchNotificationsApi({
       cursor: withCursor,
       markSeen,
     })
-    return { notifications, cursor: nextCursor }
+    return { notifications, cursor: nextCursor, unreadCount }
   }, [])
 
   useEffect(() => {
@@ -523,10 +528,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
       setLoading(true)
       setError('')
       try {
-        const { notifications, cursor: nextCursor } = await fetchPage({ markSeen: true })
+        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ markSeen: true })
         if (!ignore) {
           setItems(notifications)
           setCursor(nextCursor)
+          markUnread(unreadCount)
         }
       } catch (err) {
         if (!ignore) setError(err?.message || 'Mitteilungen konnten nicht geladen werden.')

@@ -23,7 +23,7 @@ const NAV = [
   { id: 'settings', label: 'Einstellungen', icon: GearIcon },
 ];
 
-export default function SidebarNav({ active, onSelect, onCompose }) {
+export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0 }) {
   return (
     <nav
       className="flex h-full w-full flex-col items-start gap-2"
@@ -38,6 +38,9 @@ export default function SidebarNav({ active, onSelect, onCompose }) {
           const Icon = item.icon;
           const isActive = active === item.id;
           const disabled = Boolean(item.disabled);
+          const showBadge = item.id === 'notifications' && notificationsUnread > 0;
+          const badgeLabel = notificationsUnread > 99 ? '99+' : String(notificationsUnread);
+          const label = showBadge ? `${item.label} (${badgeLabel} neu)` : item.label;
           return (
             <button
               key={item.id}
@@ -46,17 +49,22 @@ export default function SidebarNav({ active, onSelect, onCompose }) {
               disabled={disabled}
               aria-current={isActive ? 'page' : undefined}
               aria-disabled={disabled || undefined}
-              className={`inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+              aria-label={label}
+              data-nav-item={item.id}
+              title={label}
+              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-14 w-14 xl:h-auto xl:w-auto xl:px-4 xl:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 isActive
                   ? 'bg-background-subtle text-foreground shadow-soft'
                   : 'text-foreground-muted hover:text-foreground'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              aria-label={item.label}
-              data-nav-item={item.id}
-              title={item.label}
             >
               {Icon ? <Icon className="h-10 w-10 shrink-0" /> : null}
               <span className="hidden xl:inline truncate">{item.label}</span>
+              {showBadge ? (
+                <span className="absolute top-2 right-2 inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground shadow-sm xl:static xl:ml-2">
+                  {badgeLabel}
+                </span>
+              ) : null}
             </button>
           );
         })}

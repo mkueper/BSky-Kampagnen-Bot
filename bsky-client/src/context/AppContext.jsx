@@ -19,6 +19,7 @@ const initialState = {
   timelineReady: false,
   mediaLightbox: { open: false, images: [], index: 0 },
   threadState: { active: false, loading: false, error: '', data: null, uri: null },
+  notificationsUnread: 0,
 };
 
 function appReducer(state, action) {
@@ -61,6 +62,8 @@ function appReducer(state, action) {
     }
     case 'SET_THREAD_STATE':
       return { ...state, threadState: action.payload };
+    case 'SET_NOTIFICATIONS_UNREAD':
+      return { ...state, notificationsUnread: action.payload };
     default:
       throw new Error(`Unknown action: ${action.type}`);
   }
