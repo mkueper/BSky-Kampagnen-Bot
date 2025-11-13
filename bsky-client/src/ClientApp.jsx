@@ -103,7 +103,6 @@ export default function BskyClientApp () {
           <p className='text-sm text-foreground-muted'>
             Mitteilungen{notificationsUnread > 0 ? ` · ${notificationsUnread} neu` : ''}
           </p>
-          <Button variant='secondary' size='pill' onClick={refreshNotifications}>Aktualisieren</Button>
         </div>
       )
     }
