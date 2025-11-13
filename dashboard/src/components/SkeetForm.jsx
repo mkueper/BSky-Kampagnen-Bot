@@ -76,6 +76,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     () => getDefaultDateParts(timeZone) ?? { date: '', time: '' },
     [timeZone]
   )
+  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
+  const mastodonConfigured = mastodonStatus !== false
+  const defaultPlatformFallback = useMemo(
+    () => (mastodonStatus === true ? ['bluesky', 'mastodon'] : ['bluesky']),
+    [mastodonStatus]
+  )
   const [content, setContent] = useState('')
   const [repeatDaysOfWeek, setRepeatDaysOfWeek] = useState([]) // number[]: 0=So … 6=Sa
   const [targetPlatforms, setTargetPlatforms] = useState(() => {
@@ -93,11 +99,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             )
             if (allowed.length) return allowed
           }
-        }
       }
-    } catch (e){ console.log(e) }
-    // Fallback: beide Plattformen
-    return ['bluesky', 'mastodon']
+    }
+  } catch (e){ console.log(e) }
+    return defaultPlatformFallback
   })
   const [scheduledDate, setScheduledDate] = useState(defaultDateParts.date)
   const [scheduledTime, setScheduledTime] = useState(defaultDateParts.time)
@@ -109,8 +114,6 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const maxContentLength = resolveMaxLength(targetPlatforms)
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
-  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
-  const mastodonConfigured = mastodonStatus !== false
   const imagePolicy = clientConfig?.images || {
     maxCount: 4,
     maxBytes: 8 * 1024 * 1024,
@@ -182,7 +185,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
   function resetToDefaults () {
     setContent((typeof initialContent === 'string' && initialContent.length) ? initialContent : '')
-    setTargetPlatforms(['bluesky'])
+    setTargetPlatforms(defaultPlatformFallback)
     setRepeat('none')
     setRepeatDayOfMonth(null)
     setPendingMedia([])
@@ -199,7 +202,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         Array.isArray(editingSkeet.targetPlatforms) &&
           editingSkeet.targetPlatforms.length > 0
           ? editingSkeet.targetPlatforms
-          : ['bluesky']
+          : defaultPlatformFallback
       )
       setRepeat(editingSkeet.repeat ?? 'none')
       if (editingSkeet.repeat === 'weekly' && editingSkeet.repeatDayOfWeek != null) {
@@ -245,6 +248,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       setTargetPlatforms(prev => prev.filter(p => p !== 'mastodon'))
     }
   }, [mastodonStatus])
+
+  useEffect(() => {
+    if (mastodonStatus === true && !isEditing) {
+      setTargetPlatforms(prev => (prev.includes('mastodon') ? prev : [...prev, 'mastodon']))
+    }
+  }, [mastodonStatus, isEditing])
 
   function togglePlatform (name) {
     if (name === 'mastodon' && !mastodonConfigured) return

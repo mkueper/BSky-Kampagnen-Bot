@@ -18,7 +18,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Konfiguration im Dashboard** – Scheduler (Cron/Zeitzone/Retries) und Fallback‑Polling (Intervalle/Backoff/Jitter) bequem änderbar; Änderungen werden in der DB gespeichert und wirken ohne Rebuild.
 - **Engagement‑Collector** – Sammelt periodisch Likes/Reposts/Replies (Bluesky, optional Mastodon) für veröffentlichte Threads; On‑Demand Refresh pro Thread möglich.
 - **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten aus Bluesky und Mastodon direkt in der Skeet-Karte anzeigen.
-- **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; aktuell Bluesky und Mastodon.
+- **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; sobald Mastodon konfiguriert ist, wählen Skeet- und Thread-Formulare Bluesky + Mastodon automatisch vor.
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
 - **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
 - **Direkter Bluesky-Client** – Integrierte Timeline mit Composer (Discover/Following u. a.) sowie rudimentäre Reply-Funktion.

@@ -81,18 +81,11 @@ function DashboardView ({
   useEffect(() => {
     if (!highlightedSkeetId) return
     if (activeTab !== 'planned') return
-    const el = document.getElementById(`skeet-${highlightedSkeetId}`)
-    if (!el) return
-    try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-    } catch {
-      el.scrollIntoView()
-    }
     const timer = setTimeout(() => {
       onHighlightConsumed?.()
     }, 2000)
     return () => clearTimeout(timer)
-  }, [highlightedSkeetId, plannedSkeets, activeTab, onHighlightConsumed])
+  }, [highlightedSkeetId, activeTab, onHighlightConsumed])
   return (
     <div className='space-y-4'>
       

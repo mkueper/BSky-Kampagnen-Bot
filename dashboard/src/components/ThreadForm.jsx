@@ -126,9 +126,15 @@ function ThreadForm ({
     const parts = getDefaultDateParts(timeZone)
     return parts ? `${parts.date}T${parts.time}` : ''
   }, [timeZone])
+  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
+  const mastodonConfigured = mastodonStatus !== false
+  const defaultPlatformFallback = useMemo(
+    () => (mastodonStatus === true ? ['bluesky', 'mastodon'] : ['bluesky']),
+    [mastodonStatus]
+  )
   const [threadId, setThreadId] = useState(null)
   const [sending, setSending] = useState(false)
-  const [targetPlatforms, setTargetPlatforms] = useState(['bluesky'])
+  const [targetPlatforms, setTargetPlatforms] = useState(defaultPlatformFallback)
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt)
@@ -138,8 +144,6 @@ function ThreadForm ({
   const textareaRef = useRef(null)
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
-  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
-  const mastodonConfigured = mastodonStatus !== false
   const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
 
   const restoreFromThread = useCallback((thread) => {
@@ -148,7 +152,7 @@ function ThreadForm ({
       setTargetPlatforms(
         Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
           ? thread.targetPlatforms
-          : ['bluesky']
+          : defaultPlatformFallback
       )
       setAppendNumbering(Boolean(thread.appendNumbering ?? true))
       setScheduledAt(
@@ -168,7 +172,7 @@ function ThreadForm ({
       setSource(sourceValue)
     } else {
       setThreadId(null)
-      setTargetPlatforms(['bluesky'])
+      setTargetPlatforms(defaultPlatformFallback)
       setAppendNumbering(true)
       setScheduledAt(defaultScheduledAt)
       setSource('')
@@ -199,6 +203,14 @@ function ThreadForm ({
       setTargetPlatforms((current) => current.filter((id) => id !== 'mastodon'))
     }
   }, [mastodonStatus])
+
+  useEffect(() => {
+    if (mastodonStatus === true && !threadId) {
+      setTargetPlatforms((current) =>
+        current.includes('mastodon') ? current : [...current, 'mastodon']
+      )
+    }
+  }, [mastodonStatus, threadId])
 
   const limit = useMemo(() => computeLimit(targetPlatforms), [targetPlatforms])
 
