@@ -328,6 +328,8 @@ module.exports = {
   },
   /**
    * Durchsucht Bluesky-Posts (Tabs „Top“/„Latest“ im Client).
+   *
+   * @param {{q?: string, limit?: number, cursor?: string, sort?: 'top'|'latest'}} [opts]
    */
   async searchPosts({ q, limit = 25, cursor, sort } = {}) {
     await ensureLoggedIn();
@@ -341,6 +343,8 @@ module.exports = {
   },
   /**
    * Durchsucht Bluesky-Handles/Accounts („People“-Tab).
+   *
+   * @param {{q?: string, limit?: number, cursor?: string}} [opts]
    */
   async searchProfiles({ q, limit = 25, cursor } = {}) {
     await ensureLoggedIn();
@@ -353,6 +357,8 @@ module.exports = {
   },
   /**
    * Holt ein Profil anhand DID/Handle.
+   *
+   * @param {string} actor Handle oder DID
    */
   async getProfile(actor) {
     const normalized = String(actor || '').trim();
@@ -366,6 +372,8 @@ module.exports = {
   /**
    * Durchsucht Feed-Generatoren („Feeds“-Tab). Nutzt das neue API, fällt aber
    * bei älteren SDKs auf einen generischen XRPC-Call zurück.
+   *
+   * @param {{q?: string, limit?: number, cursor?: string}} [opts]
    */
   async searchFeeds({ q, limit = 25, cursor } = {}) {
     await ensureLoggedIn();
