@@ -277,6 +277,35 @@ async function cleanupMediaFiles (files = [], contextLabel = 'post') {
   }))
 }
 
+function sanitizeExternalPreview (input) {
+  if (!input || typeof input !== 'object') return null
+  const rawUri = typeof input.uri === 'string' ? input.uri.trim() : ''
+  if (!rawUri) return null
+  let parsed
+  try {
+    parsed = new URL(rawUri)
+  } catch {
+    return null
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return null
+  const trimAndLimit = (value, max) => {
+    if (!value) return ''
+    return String(value).replace(/\s+/g, ' ').trim().slice(0, max)
+  }
+  const safe = {
+    uri: parsed.toString()
+  }
+  const title = trimAndLimit(input.title || '', 300)
+  if (title) safe.title = title
+  const description = trimAndLimit(input.description || '', 1000)
+  if (description) safe.description = description
+  const image = typeof input.image === 'string' ? input.image.trim() : ''
+  if (image) safe.image = image
+  const domain = trimAndLimit(input.domain || parsed.hostname.replace(/^www\./, ''), 120)
+  if (domain) safe.domain = domain
+  return safe
+}
+
 /**
  * GET /api/bsky/timeline?tab=discover|following&limit=..&cursor=..
  * Liefert je nach Tab entweder die persönliche Timeline oder einen offiziellen Feed-Generator.
@@ -492,6 +521,8 @@ async function postReply(req, res) {
     const media = await collectMediaFromTemp(mediaInput, 'postReply')
 
     const payload = { content: text, reply: { root, parent } }
+    const externalPreview = sanitizeExternalPreview(req.body?.external)
+    if (externalPreview) payload.external = externalPreview
     if (media.length > 0) payload.media = media
 
     const mediaPaths = media.map((item) => item?.path).filter(Boolean)
@@ -530,6 +561,8 @@ async function postNow(req, res) {
 
     const payload = { content: text }
     if (media.length > 0) payload.media = media
+    const externalPreview = sanitizeExternalPreview(req.body?.external)
+    if (externalPreview) payload.external = externalPreview
     if (hasQuote) payload.quote = { uri: quoteUri, cid: quoteCid }
 
     const mediaPaths = media.map((item) => item?.path).filter(Boolean)

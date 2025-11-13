@@ -167,10 +167,10 @@
   Liefert den entsprechenden Feed für den integrierten Client.
 
 - **POST `/api/bsky/post`**  
-  Direktes Posten eines Skeets über den eingebauten Composer. Payload umfasst `text`, optionale `reply`-Informationen und Medien-Strukturen analog zu den Planern.
+  Direktes Posten eines Skeets über den eingebauten Composer. Payload umfasst `text`, optionale `reply`-Informationen, Medien-Strukturen analog zu den Planern sowie optional `external` (Link-Preview mit `uri`, `title`, `description`, `image`).
 
 - **POST `/api/bsky/reply`**  
-  Antwortet auf einen existierenden Post (`{ uri, cid, text }`).
+  Antwortet auf einen existierenden Post (`{ uri, cid, text }`). Unterstützt ebenfalls optionale Medien sowie `external`.
 
 - **POST/DELETE `/api/bsky/like`**, **POST/DELETE `/api/bsky/repost`**  
   Likes/Reposts für gegebene URIs. Body: `{ "uri": "...", "cid": "..." }`.

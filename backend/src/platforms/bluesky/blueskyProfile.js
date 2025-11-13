@@ -1,5 +1,6 @@
 const { countGraphemesSync } = require("@utils/graphemes");
 const { createLogger } = require("@utils/logging");
+const { fetch } = require('undici');
 const log = createLogger('platform:bluesky');
 
 /**
@@ -34,6 +35,8 @@ const log = createLogger('platform:bluesky');
 const agentCache = new Map(); // key -> { agent, appPassword, promise }
 const keepAliveTimers = new Map();
 const DEFAULT_REFRESH_INTERVAL_MS = 60 * 1000;
+const PREVIEW_THUMB_TIMEOUT_MS = Number(process.env.BLUESKY_PREVIEW_THUMB_TIMEOUT_MS) || 5000;
+const PREVIEW_THUMB_MAX_BYTES = Number(process.env.BLUESKY_PREVIEW_THUMB_MAX_BYTES) || (512 * 1024);
 const keepAliveInterval =
   Number(process.env.BLUESKY_SESSION_REFRESH_INTERVAL_MS) ||
   DEFAULT_REFRESH_INTERVAL_MS;
@@ -73,6 +76,82 @@ function ensureAgentKeepAlive(key, agent) {
   }, keepAliveInterval);
   if (typeof timer.unref === 'function') timer.unref();
   keepAliveTimers.set(key, timer);
+}
+
+function isBlockedHost(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  return (
+    h === 'localhost' ||
+    h === '127.0.0.1' ||
+    h.endsWith('.localhost') ||
+    h.startsWith('127.') ||
+    /^10\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(h)
+  );
+}
+
+const trimAndLimit = (value, max) => {
+  if (!value) return '';
+  return String(value).replace(/\s+/g, ' ').trim().slice(0, max);
+};
+
+async function downloadPreviewThumb(url) {
+  if (!url || typeof url !== 'string') return null;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return null;
+  if (isBlockedHost(parsed.hostname)) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PREVIEW_THUMB_TIMEOUT_MS);
+  try {
+    const resp = await fetch(parsed.toString(), { redirect: 'follow', signal: controller.signal });
+    if (!resp.ok) return null;
+    const contentType = String(resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!contentType.startsWith('image/')) return null;
+    const contentLength = Number(resp.headers.get('content-length') || '0');
+    if (contentLength > 0 && contentLength > PREVIEW_THUMB_MAX_BYTES) return null;
+    const arrayBuffer = await resp.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length === 0 || buffer.length > PREVIEW_THUMB_MAX_BYTES) return null;
+    return { buffer, mime: contentType || 'image/jpeg' };
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      log.debug('Preview-Thumbnail konnte nicht geladen werden', { error: error?.message || String(error) });
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function buildExternalEmbed(agent, meta = {}) {
+  if (!meta?.uri) return null;
+  const external = {
+    uri: meta.uri,
+    title: trimAndLimit(meta.title || meta.domain || meta.uri, 300) || meta.uri.slice(0, 300),
+    description: trimAndLimit(meta.description || '', 1000),
+  };
+  const imageUrl = typeof meta.image === 'string' ? meta.image.trim() : '';
+  if (imageUrl) {
+    const thumb = await downloadPreviewThumb(imageUrl);
+    if (thumb) {
+      try {
+        const uploaded = await agent.uploadBlob(thumb.buffer, { encoding: thumb.mime || 'image/jpeg' });
+        if (uploaded?.data?.blob) {
+          external.thumb = uploaded.data.blob;
+        }
+      } catch (error) {
+        log.warn('Preview-Thumbnail konnte nicht zu Bluesky hochgeladen werden', { error: error?.message || String(error) });
+      }
+    }
+  }
+  return { $type: 'app.bsky.embed.external', external };
 }
 
 async function createAgent(env) {
@@ -216,24 +295,33 @@ const blueskyProfile = {
       }
     }
 
+    let externalEmbed = null;
+    if (!imagesEmbed && payload.external && payload.external.uri) {
+      try {
+        externalEmbed = await buildExternalEmbed(agent, payload.external);
+      } catch (error) {
+        log.warn('External-Embed konnte nicht erstellt werden', { error: error?.message || String(error) });
+      }
+    }
+
     const quoteRef = payload.quote && payload.quote.uri && payload.quote.cid
       ? { uri: payload.quote.uri, cid: payload.quote.cid }
       : null;
 
     let embed = undefined;
-    if (quoteRef && imagesEmbed) {
+    if (quoteRef && (imagesEmbed || externalEmbed)) {
       embed = {
         $type: 'app.bsky.embed.recordWithMedia',
         record: quoteRef,
-        media: imagesEmbed,
+        media: imagesEmbed || externalEmbed,
       };
     } else if (quoteRef) {
       embed = {
         $type: 'app.bsky.embed.record',
         record: quoteRef,
       };
-    } else if (imagesEmbed) {
-      embed = imagesEmbed;
+    } else if (imagesEmbed || externalEmbed) {
+      embed = imagesEmbed || externalEmbed;
     }
 
     const res = await agent.post({

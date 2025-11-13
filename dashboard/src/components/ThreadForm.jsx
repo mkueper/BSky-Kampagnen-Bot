@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import { useClientConfig } from '../hooks/useClientConfig'
@@ -7,6 +7,11 @@ import Button from './ui/Button'
 import Modal from './ui/Modal'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+import {
+  formatDateTimeLocal,
+  getDefaultDateParts,
+  resolvePreferredTimeZone
+} from '../utils/zonedDate'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -68,48 +73,6 @@ function hardSplit (text, limit) {
   return chunks
 }
 
-function formatDateTimeLocal (date) {
-  const pad = value => String(value).padStart(2, '0')
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1)
-  const day = pad(date.getDate())
-  const hours = pad(date.getHours())
-  const minutes = pad(date.getMinutes())
-  return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
-function getDefaultScheduledAt () {
-  const now = new Date()
-  const next = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1,
-    9,
-    0,
-    0,
-    0
-  )
-  return formatDateTimeLocal(next)
-}
-
-function toDatetimeLocal (value) {
-  if (!value) {
-    return ''
-  }
-
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    if (typeof value === 'string') {
-      return value.slice(0, 16)
-    }
-    return ''
-  }
-
-  const offsetMinutes = date.getTimezoneOffset()
-  const local = new Date(date.getTime() - offsetMinutes * 60000)
-  return local.toISOString().slice(0, 16)
-}
-
 function splitRawSegments (source) {
   const normalized = source.replace(/\r\n/g, '\n')
   const lines = normalized.split('\n')
@@ -157,22 +120,29 @@ function ThreadForm ({
   onCancel,
   onSuggestMoveToSkeets
 }) {
+  const { config: clientConfig } = useClientConfig()
+  const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
+  const defaultScheduledAt = useMemo(() => {
+    const parts = getDefaultDateParts(timeZone)
+    return parts ? `${parts.date}T${parts.time}` : ''
+  }, [timeZone])
   const [threadId, setThreadId] = useState(null)
   const [sending, setSending] = useState(false)
   const [targetPlatforms, setTargetPlatforms] = useState(['bluesky'])
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
-  const [scheduledAt, setScheduledAt] = useState(() => getDefaultScheduledAt())
+  const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt)
+  const scheduledDefaultRef = useRef(defaultScheduledAt)
   const [saving, setSaving] = useState(false)
   const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
   const textareaRef = useRef(null)
   const toast = useToast()
-  const { config: clientConfig } = useClientConfig()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
-  const mastodonConfigured = Boolean(clientConfig?.platforms?.mastodonConfigured)
+  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
+  const mastodonConfigured = mastodonStatus !== false
   const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
 
-  const restoreFromThread = thread => {
+  const restoreFromThread = useCallback((thread) => {
     if (thread && thread.id) {
       setThreadId(thread.id)
       setTargetPlatforms(
@@ -182,7 +152,9 @@ function ThreadForm ({
       )
       setAppendNumbering(Boolean(thread.appendNumbering ?? true))
       setScheduledAt(
-        thread.scheduledAt ? toDatetimeLocal(thread.scheduledAt) : ''
+        thread.scheduledAt
+          ? formatDateTimeLocal(thread.scheduledAt, timeZone)
+          : ''
       )
       const sourceValue =
         typeof thread?.metadata?.source === 'string' &&
@@ -198,10 +170,10 @@ function ThreadForm ({
       setThreadId(null)
       setTargetPlatforms(['bluesky'])
       setAppendNumbering(true)
-      setScheduledAt(getDefaultScheduledAt())
+      setScheduledAt(defaultScheduledAt)
       setSource('')
     }
-  }
+  }, [defaultScheduledAt, timeZone])
 
   useEffect(() => {
     if (loading) return
@@ -212,14 +184,21 @@ function ThreadForm ({
     } else if (!initialThread && threadId !== null) {
       restoreFromThread(null)
     }
-  }, [initialThread, loading, threadId])
+  }, [initialThread, loading, threadId, restoreFromThread])
+
+  useEffect(() => {
+    if (!threadId && (!scheduledAt || scheduledAt === scheduledDefaultRef.current)) {
+      setScheduledAt(defaultScheduledAt)
+    }
+    scheduledDefaultRef.current = defaultScheduledAt
+  }, [defaultScheduledAt, scheduledAt, threadId])
 
   // Mastodon aus Zielplattformen entfernen, wenn nicht konfiguriert
   useEffect(() => {
-    if (!mastodonConfigured) {
+    if (mastodonStatus === false) {
       setTargetPlatforms((current) => current.filter((id) => id !== 'mastodon'))
     }
-  }, [mastodonConfigured])
+  }, [mastodonStatus])
 
   const limit = useMemo(() => computeLimit(targetPlatforms), [targetPlatforms])
 

@@ -146,6 +146,7 @@ function App () {
   })
   const ThemeIcon = HookThemeIcon || SunIcon
   const [editingSkeet, setEditingSkeet] = useState(null)
+  const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
   const [activeDashboardTab, setActiveDashboardTab] = useState('planned')
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [editingThreadId, setEditingThreadId] = useState(null)
@@ -379,11 +380,15 @@ function App () {
   // Thread-spezifische Aktionen liefert useThreadActions
 
   const handleFormSaved = async () => {
+    const editedId = editingSkeet?.id ?? null
     setEditingSkeet(null)
     try { setSkeetDraftContent('') } catch (e) { console.error(e); }
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
     navigate('skeets-overview')
     setActiveDashboardTab('planned')
+    if (editedId) {
+      setHighlightedSkeetId(editedId)
+    }
     await new Promise(r => setTimeout(r, 0))
     await refreshSkeetsNow({ force: true })
   }
@@ -574,6 +579,8 @@ function App () {
         platformLabels={PLATFORM_LABELS}
         activeTab={activeDashboardTab}
         onTabChange={setActiveDashboardTab}
+        highlightedSkeetId={highlightedSkeetId}
+        onHighlightConsumed={() => setHighlightedSkeetId(null)}
       />
     )
   } else if (activeView === 'threads-overview') {

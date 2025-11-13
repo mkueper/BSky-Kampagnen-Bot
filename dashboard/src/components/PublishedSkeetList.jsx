@@ -1,4 +1,5 @@
 import PlatformBadges from "./PlatformBadges";
+import ContentWithLinkPreview from "./ContentWithLinkPreview";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
@@ -128,7 +129,11 @@ function PublishedSkeetList({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
+                  <ContentWithLinkPreview
+                    content={skeet.content}
+                    mediaCount={Array.isArray(skeet.media) ? skeet.media.length : 0}
+                    className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words"
+                  />
                   {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {skeet.media.slice(0, 4).map((m, idx) => (

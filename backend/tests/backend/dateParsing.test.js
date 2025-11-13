@@ -1,6 +1,8 @@
 import 'module-alias/register'
 import { describe, it, expect } from 'vitest'
 
+process.env.TIME_ZONE = 'Europe/Berlin'
+
 // SkeetService exportiert parseOptionalDate und buildSkeetAttributes
 // (siehe module.exports am Datei-Ende)
 // Pfad relativ zum Projekt-Root
@@ -12,12 +14,10 @@ describe('parseOptionalDate (skeetService)', () => {
     expect(skeetService.parseOptionalDate('')).toBeNull()
   })
 
-  it('parses datetime-local as local time (YYYY-MM-DDTHH:mm)', () => {
+  it('parses datetime-local unter Berücksichtigung der konfigurierten Zeitzone', () => {
     const v = '2025-10-13T09:15'
     const d = skeetService.parseOptionalDate(v)
-    const expected = new Date(2025, 9, 13, 9, 15, 0, 0) // local components
-    expect(d instanceof Date && !Number.isNaN(d.getTime())).toBe(true)
-    expect(d.getTime()).toBe(expected.getTime())
+    expect(d.toISOString()).toBe('2025-10-13T07:15:00.000Z') // MEZ (-01:00)
   })
 
   it('parses ISO with Z unchanged', () => {
@@ -25,6 +25,18 @@ describe('parseOptionalDate (skeetService)', () => {
     const d = skeetService.parseOptionalDate(v)
     // toISOString sollte exakt dem Eingang entsprechen
     expect(d.toISOString()).toBe('2025-10-13T07:00:00.000Z')
+  })
+
+  it('applies MESZ offset im Sommer', () => {
+    const value = '2025-07-01T09:00'
+    const d = skeetService.parseOptionalDate(value)
+    expect(d.toISOString()).toBe('2025-07-01T07:00:00.000Z') // UTC+2
+  })
+
+  it('applies MEZ offset im Winter', () => {
+    const value = '2025-12-15T09:00'
+    const d = skeetService.parseOptionalDate(value)
+    expect(d.toISOString()).toBe('2025-12-15T08:00:00.000Z') // UTC+1
   })
 })
 

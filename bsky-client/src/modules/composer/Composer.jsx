@@ -171,6 +171,23 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }
 
+  function buildExternalPayload () {
+    if (!preview || !preview?.uri) return null
+    if (pendingMedia.length > 0) return null
+    try {
+      const normalizedUrl = new URL(preview.uri)
+      return {
+        uri: normalizedUrl.toString(),
+        title: preview.title || preview.domain || normalizedUrl.hostname,
+        description: preview.description || '',
+        image: preview.image || '',
+        domain: preview.domain || normalizedUrl.hostname.replace(/^www\./, '')
+      }
+    } catch {
+      return null
+    }
+  }
+
   async function handleSendNow (e) {
     e.preventDefault()
     setMessage('')
@@ -179,6 +196,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       setMessage('Bitte Text eingeben oder ein Zitat verwenden.')
       return
     }
+    const externalPayload = buildExternalPayload()
     setSending(true)
     try {
       if (reply && reply.uri && reply.cid) {
@@ -189,7 +207,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             text: content,
             root: { uri: reply.uri, cid: reply.cid },
             parent: { uri: reply.uri, cid: reply.cid },
-            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime }))
+            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
+            external: externalPayload
           })
         })
         const data = await res.json().catch(() => ({}))
@@ -205,7 +224,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           body: JSON.stringify({
             text: content,
             media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
-            quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : undefined
+            quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : undefined,
+            external: externalPayload
           })
         })
         const data = await res.json().catch(() => ({}))
@@ -360,6 +380,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             <div className='text-xs text-foreground-muted'>
               {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
             </div>
+            {pendingMedia.length > 0 ? (
+              <p className='mt-1 text-xs text-foreground-muted'>
+                Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
