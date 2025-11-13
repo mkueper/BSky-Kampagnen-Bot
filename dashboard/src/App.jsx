@@ -1,6 +1,6 @@
 // Zentrale Einstiegskomponente für das Dashboard. Kümmert sich um Navigation,
 // Datenabfragen, Themenverwaltung sowie das Einbinden der verschiedenen Views.
-import { Suspense, useEffect, useRef, useState, useMemo, lazy } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, lazy } from 'react'
 import {
   DownloadIcon,
   GearIcon,
@@ -20,13 +20,6 @@ import Button from './components/ui/Button'
 import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
-import MainOverviewView from './components/views/MainOverviewView'
-import AboutView from './components/views/AboutView'
-import DashboardView from './components/views/DashboardView'
-import ThreadDashboardView from './components/views/ThreadDashboardView'
-import SkeetForm from './components/SkeetForm'
-import ThreadForm from './components/ThreadForm'
-import ConfigPanel from './components/ConfigPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import { useSkeets } from './hooks/useSkeets'
 import { useThreadDetail, useThreads } from './hooks/useThreads'
@@ -34,64 +27,17 @@ import { useSse } from './hooks/useSse'
 import { formatTime } from './utils/formatTime'
 import { getRepeatDescription } from './utils/timeUtils'
 import { useToast } from './hooks/useToast'
+import { useViewState } from './hooks/useViewState'
+import { useThemeMode } from './hooks/useThemeMode'
+import { useImportExport } from './hooks/useImportExport'
+import { useConfirmDialog } from './hooks/useConfirmDialog'
+import { useSkeetActions } from './hooks/useSkeetActions'
+import { useThreadActions } from './hooks/useThreadActions'
 
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
   bluesky: 'Bluesky',
   mastodon: 'Mastodon'
-}
-
-// Einheitliche Picker-Konfiguration für Export-Dateien
-const JSON_FILE_PICKER_OPTIONS = {
-  types: [
-    {
-      description: 'JSON',
-      accept: { 'application/json': ['.json'] }
-    }
-  ]
-}
-
-/**
- * Speichert einen Blob bevorzugt über das native File-Save-API und fällt bei
- * fehlender Unterstützung auf einen klassischen Download-Link zurück.
- */
-async function saveBlobWithPicker (blob, suggestedName) {
-  if (typeof window === 'undefined') {
-    throw new Error('Speichern ist nur im Browser verfügbar.')
-  }
-
-  if (typeof window.showSaveFilePicker === 'function') {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName,
-        ...JSON_FILE_PICKER_OPTIONS
-      })
-      const writable = await handle.createWritable()
-      await writable.write(blob)
-      await writable.close()
-      return { filename: handle.name || suggestedName, method: 'picker' }
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        const abortError = new Error('Speichern abgebrochen')
-        abortError.code = 'SAVE_ABORTED'
-        throw abortError
-      }
-      console.warn(
-        'showSaveFilePicker fehlgeschlagen, fallback auf Download-Link:',
-        error
-      )
-    }
-  }
-
-  const url = window.URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = suggestedName
-  document.body.appendChild(anchor)
-  anchor.click()
-  document.body.removeChild(anchor)
-  window.URL.revokeObjectURL(url)
-  return { filename: suggestedName, method: 'download' }
 }
 
 // Seitenstruktur für die linke Navigation. Hier steht, welche Tabs angezeigt
@@ -169,122 +115,85 @@ const THEME_CONFIG = {
 const DEFAULT_THEME = THEMES[0]
 
 const BskyClientAppLazy = lazy(() => import('bsky-client'))
+const MainOverviewView = lazy(() => import('./components/views/MainOverviewView'))
+const AboutView = lazy(() => import('./components/views/AboutView'))
+const DashboardView = lazy(() => import('./components/views/DashboardView'))
+const ThreadDashboardView = lazy(() => import('./components/views/ThreadDashboardView'))
+const SkeetForm = lazy(() => import('./components/SkeetForm'))
+const ThreadForm = lazy(() => import('./components/ThreadForm'))
+const ConfigPanel = lazy(() => import('./components/ConfigPanel'))
 
 const DEFAULT_VIEW = 'overview'
 
-function readViewFromLocation () {
-  if (typeof window === 'undefined') return DEFAULT_VIEW
-  try {
-    const params = new URLSearchParams(window.location.search)
-    const paramView = params.get('view')
-    if (paramView && VALID_VIEWS.has(paramView)) return paramView
-    const hash = window.location.hash?.replace('#', '') || ''
-    if (hash && VALID_VIEWS.has(hash)) return hash
-  } catch {}
-  return DEFAULT_VIEW
+function LoadingBlock ({ message }) {
+  return (
+    <div className='rounded-3xl border border-border bg-background p-6 text-sm text-foreground-muted'>
+      {message}
+    </div>
+  )
 }
 
 function App () {
   // --- Globale UI-Zustände -------------------------------------------------
-  const [activeView, setActiveView] = useState(readViewFromLocation)
   const { config: clientConfigPreset } = useClientConfig()
-  const [credsOkOverride, setCredsOkOverride] = useState(false)
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
-  const gatedNeedsCreds = needsCredentials && !credsOkOverride
-  useEffect(() => {
-    if (gatedNeedsCreds) {
-      setActiveView('config')
-    }
-  }, [gatedNeedsCreds])
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-    const syncUrl = () => {
-      try {
-        const url = new URL(window.location.href)
-        if (url.searchParams.get('view') === activeView) return
-        url.searchParams.set('view', activeView)
-        window.history.replaceState({}, '', url)
-      } catch {}
-    }
-    syncUrl()
-    return undefined
-  }, [activeView])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-    const handler = () => {
-      const next = readViewFromLocation()
-      setActiveView(prev => (prev === next ? prev : next))
-    }
-    window.addEventListener('popstate', handler)
-    window.addEventListener('hashchange', handler)
-    return () => {
-      window.removeEventListener('popstate', handler)
-      window.removeEventListener('hashchange', handler)
-    }
-  }, [])
-
-  // Allow internal navigation events without full reload
-  useEffect(() => {
-    const handler = (ev) => {
-      const view = ev?.detail?.view
-      const force = Boolean(ev?.detail?.force)
-      if (!view) return
-      if (!force && gatedNeedsCreds && view !== 'config') {
-        setActiveView('config')
-        return
-      }
-      if (force && view !== 'config') {
-        // Nach erfolgreichem Speichern der Zugangsdaten: Gate sofort öffnen
-        setCredsOkOverride(true)
-      }
-      setActiveView(view)
-    }
-    window.addEventListener('app:navigate', handler)
-    return () => window.removeEventListener('app:navigate', handler)
-  }, [gatedNeedsCreds])
-
-  // Allow UI to unlock immediately after saving credentials (without reload)
-  useEffect(() => {
-    const onCredsOk = () => setCredsOkOverride(true)
-    window.addEventListener('app:credentials-ok', onCredsOk)
-    return () => window.removeEventListener('app:credentials-ok', onCredsOk)
-  }, [])
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return DEFAULT_THEME
-    const stored = window.localStorage.getItem('theme')
-    if (stored && THEMES.includes(stored)) {
-      return stored
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : DEFAULT_THEME
+  const { activeView, gatedNeedsCreds, navigate } = useViewState({
+    defaultView: DEFAULT_VIEW,
+    validViews: VALID_VIEWS,
+    needsCredentials
   })
-  const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const stored = window.localStorage.getItem('theme')
-    return Boolean(stored && THEMES.includes(stored))
+  const {
+    currentThemeConfig,
+    nextThemeLabel,
+    ThemeIcon: HookThemeIcon,
+    toggleTheme
+  } = useThemeMode({
+    themes: THEMES,
+    themeConfig: THEME_CONFIG,
+    defaultTheme: DEFAULT_THEME
   })
+  const ThemeIcon = HookThemeIcon || SunIcon
   const [editingSkeet, setEditingSkeet] = useState(null)
+  const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
+  const plannedListScrollRef = useRef(null)
   const [activeDashboardTab, setActiveDashboardTab] = useState('planned')
-  const [exporting, setExporting] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [confirmDialog, setConfirmDialog] = useState({ open: false })
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [editingThreadId, setEditingThreadId] = useState(null)
-  const importInputRef = useRef(null)
   const toast = useToast()
+  const skeetViewsEnabled =
+    activeView === 'overview' ||
+    activeView === 'skeets' ||
+    activeView === 'skeets-overview'
+  const threadViewsEnabled =
+    activeView === 'overview' ||
+    activeView === 'threads' ||
+    activeView === 'threads-overview'
+  const refreshSkeetsNowRef = useRef(async () => {})
+  const refreshThreadsNowRef = useRef(async () => {})
+  const handleSkeetEvent = useCallback(async () => {
+    if (!skeetViewsEnabled) return
+    try {
+      await refreshSkeetsNowRef.current?.({ force: true })
+    } catch {
+      /* ignore */
+    }
+  }, [skeetViewsEnabled])
+  const handleThreadEvent = useCallback(async () => {
+    if (!threadViewsEnabled) return
+    try {
+      await refreshThreadsNowRef.current?.({ force: true })
+    } catch {
+      /* ignore */
+    }
+  }, [threadViewsEnabled])
 
   // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
   // Wichtig: Vor useSkeets/useThreads aufrufen, damit sseConnected verfügbar ist.
   // Echtzeit-Aktualisierung: sobald der Backend-SSE-Stream ein Ereignis meldet,
   // forcieren wir ein erneutes Laden der relevanten Datensätze.
   const { connected: sseConnected } = useSse({
-    onSkeetEvent: async () => {
-      try { await refreshSkeetsNow({ force: true }) } catch { /* ignore */ }
-    },
-    onThreadEvent: async () => {
-      try { await refreshThreadsNow({ force: true }) } catch { /* ignore */ }
-    },
+    onSkeetEvent: handleSkeetEvent,
+    onThreadEvent: handleThreadEvent
   })
 
   // Skeet-bezogene Hooks bündeln sämtliche Listen, Detail-Puffer und Aktionen.
@@ -303,12 +212,10 @@ function App () {
     reactionStats,
     replyErrors
   } = useSkeets({
-    enabled:
-      activeView === 'overview' ||
-      activeView === 'skeets' ||
-      activeView === 'skeets-overview',
+    enabled: skeetViewsEnabled,
     sseConnected
   })
+  refreshSkeetsNowRef.current = refreshSkeetsNow
 
   // Entsprechende Hook für Threads – analog zu useSkeets.
   const {
@@ -317,16 +224,57 @@ function App () {
     error: threadsError,
     refreshNow: refreshThreadsNow
   } = useThreads({
-    enabled:
-      activeView === 'overview' ||
-      activeView === 'threads' ||
-      activeView === 'threads-overview',
+    enabled: threadViewsEnabled,
     sseConnected
   })
+  refreshThreadsNowRef.current = refreshThreadsNow
   const { thread: editingThread, loading: loadingEditingThread } =
     useThreadDetail(editingThreadId, {
       autoLoad: Boolean(editingThreadId)
     })
+
+  const {
+    exporting,
+    importing,
+    handleExport,
+    handleImportClick,
+    handleImportFileChange,
+    importInputRef
+  } = useImportExport({
+    activeView,
+    refreshSkeetsNow,
+    refreshThreadsNow,
+    toast
+  })
+
+  const {
+    handleDelete: handleDeleteSkeet,
+    handleRetract: handleRetractSkeet,
+    handlePermanentDelete: handlePermanentDeleteSkeet,
+    handleRestore: handleRestoreSkeet
+  } = useSkeetActions({
+    toast,
+    refreshSkeetsNow,
+    setEditingSkeet,
+    navigate,
+    setActiveDashboardTab,
+    openConfirm,
+    platformLabels: PLATFORM_LABELS
+  })
+
+  const {
+    handleDeleteThread,
+    handleRetractThread,
+    handleDestroyThread,
+    handleRestoreThread
+  } = useThreadActions({
+    toast,
+    refreshThreadsNow,
+    setEditingThreadId,
+    navigate,
+    openConfirm,
+    platformLabels: PLATFORM_LABELS
+  })
 
   // Allow ThreadForm to suggest moving a single-segment thread into Skeet planner
   const [skeetDraftContent, setSkeetDraftContent] = useState('')
@@ -344,150 +292,32 @@ function App () {
   }, [plannedSkeets, publishedSkeets])
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    const root = document.documentElement
-    const resolvedTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME
-    const themeSettings = THEME_CONFIG[resolvedTheme]
-    root.classList.toggle('dark', resolvedTheme === 'dark')
-    root.dataset.theme = resolvedTheme
-    root.style.colorScheme = themeSettings?.colorScheme ?? 'light'
-    if (userHasExplicitTheme) {
-      window.localStorage.setItem('theme', resolvedTheme)
-    } else {
-      window.localStorage.removeItem('theme')
+    if (activeView !== 'skeets-overview') return
+    if (activeDashboardTab !== 'planned') return
+    const pending = plannedListScrollRef.current
+    if (!pending) return
+    const container = document.getElementById('app-scroll-container')
+    if (!container) return
+    const applyRestore = () => {
+      const { scrollTop = null, relativeOffset = null, skeetId = null } = pending || {}
+      if (relativeOffset != null && skeetId) {
+        const entry = document.getElementById(`skeet-${skeetId}`)
+        if (entry) {
+          const containerRect = container.getBoundingClientRect()
+          const entryRect = entry.getBoundingClientRect()
+          const delta = (entryRect.top - containerRect.top) - relativeOffset
+          container.scrollTop += delta
+          plannedListScrollRef.current = null
+          return
+        }
+      }
+      if (scrollTop != null) {
+        container.scrollTop = scrollTop
+      }
+      plannedListScrollRef.current = null
     }
-  }, [theme, userHasExplicitTheme])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const listener = event => {
-      if (!userHasExplicitTheme) {
-        setTheme(event.matches ? 'dark' : 'light')
-      }
-    }
-    media.addEventListener('change', listener)
-    return () => media.removeEventListener('change', listener)
-  }, [userHasExplicitTheme])
-
-  const currentTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME
-  const currentThemeConfig = THEME_CONFIG[currentTheme]
-  const nextTheme = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length]
-  const nextThemeLabel = THEME_CONFIG[nextTheme]?.label ?? 'Theme wechseln'
-  const ThemeIcon = currentThemeConfig?.icon ?? SunIcon
-
-  const handleToggleTheme = () => {
-    setUserHasExplicitTheme(true)
-    setTheme(current => {
-      const currentTheme = THEMES.includes(current) ? current : DEFAULT_THEME
-      const currentIndex = THEMES.indexOf(currentTheme)
-      const nextIndex = (currentIndex + 1) % THEMES.length
-      return THEMES[nextIndex]
-    })
-  }
-
-  const handleExport = async () => {
-    if (typeof window === 'undefined') return
-
-    const isThreadContext = activeView.startsWith('threads')
-    const endpoint = isThreadContext
-      ? '/api/threads/export'
-      : '/api/skeets/export'
-    const entityLabel = isThreadContext ? 'Threads' : 'Skeets'
-    const fallbackPrefix = isThreadContext ? 'threads' : 'skeets'
-
-    setExporting(true)
-    try {
-      const res = await fetch(endpoint)
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || `Fehler beim Export der ${entityLabel}.`)
-      }
-      const blob = await res.blob()
-      const disposition = res.headers.get('Content-Disposition') || ''
-      const match = disposition.match(/filename="?([^";]+)"?/i)
-      const fallback = `${fallbackPrefix}-export-${new Date()
-        .toISOString()
-        .replace(/[:.]/g, '-')}.json`
-      const filename = match ? match[1] : fallback
-      const saveResult = await saveBlobWithPicker(blob, filename)
-      toast.success({
-        title: `${entityLabel}-Export bereit`,
-        description: `Datei ${saveResult.filename} wurde gespeichert.`
-      })
-    } catch (error) {
-      if (error?.code === 'SAVE_ABORTED') {
-        toast.info({
-          title: 'Export abgebrochen',
-          description: 'Der Speichervorgang wurde abgebrochen.'
-        })
-      } else {
-        console.error(`Fehler beim Export der ${entityLabel}:`, error)
-        toast.error({
-          title: `${entityLabel}-Export fehlgeschlagen`,
-          description:
-            error?.message || `Fehler beim Export der ${entityLabel}.`
-        })
-      }
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleImportClick = () => {
-    importInputRef.current?.click()
-  }
-
-  const handleImportFileChange = async event => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setImporting(true)
-    try {
-      const text = await file.text()
-      let payload
-      try {
-        payload = JSON.parse(text)
-      } catch (error_) {
-        console.error('Ungültiges JSON beim Import der Skeets:', error_)
-        throw new Error('Die ausgewählte Datei enthält kein gültiges JSON.')
-      }
-      // Threads nutzen denselben Dialog, werden aber an ein eigenes Endpoint geschickt.
-      const threadContext = activeView.startsWith('threads')
-      const endpoint = threadContext
-        ? '/api/threads/import'
-        : '/api/skeets/import'
-      const entityLabel = threadContext ? 'Threads' : 'Skeets'
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || `Fehler beim Import der ${entityLabel}.`)
-      }
-      if (threadContext) {
-        await refreshThreadsNow()
-      } else {
-        await refreshSkeetsNow()
-      }
-      toast.success({
-        title: `${entityLabel}-Import abgeschlossen`,
-        description: `Alle ${entityLabel} wurden erfolgreich importiert.`
-      })
-    } catch (error) {
-      console.error('Fehler beim Import:', error)
-      toast.error({
-        title: 'Import fehlgeschlagen',
-        description: error.message || 'Fehler beim Import.'
-      })
-    } finally {
-      setImporting(false)
-      if (event.target) event.target.value = ''
-    }
-  }
-
+    requestAnimationFrame(applyRestore)
+  }, [activeView, activeDashboardTab, plannedSkeets])
   // --- Skeets: Übersichtskarten für Gruppen-Landing (verschoben aus Dashboard)
   const overviewStatsSkeets = useMemo(() => {
     const likes = publishedSkeets.reduce(
@@ -593,408 +423,57 @@ function App () {
   const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : ''
 
   const handleEdit = skeet => {
-    setEditingSkeet(skeet)
-    setActiveView('skeets-plan')
-  }
-
-  // Löschen geplanter Skeets inkl. Sicherheitsabfrage und Toast-Meldungen.
-  const handleDelete = async skeet => {
-    setConfirmDialog({
-      open: true,
-      title: 'Skeet löschen',
-      description: 'Soll dieser geplante Skeet wirklich gelöscht werden?',
-      confirmLabel: 'Löschen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/skeets/${skeet.id}`, {
-            method: 'DELETE'
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Löschen des Skeets.')
-          }
-          setEditingSkeet(current =>
-            current?.id === skeet.id ? null : current
-          )
-          await refreshSkeetsNow()
-          toast.success({
-            title: 'Skeet gelöscht',
-            description:
-              'Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.'
-          })
-        } catch (error) {
-          console.error('Fehler beim Löschen des Skeets:', error)
-          toast.error({
-            title: 'Löschen fehlgeschlagen',
-            description: error.message || 'Fehler beim Löschen des Skeets.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
-        }
-      }
-    })
-  }
-
-  const handleRetract = async skeet => {
-    if (!skeet?.id) return
-    setConfirmDialog({
-      open: true,
-      title: 'Veröffentlichung zurückziehen',
-      description:
-        'Soll dieser veröffentlichte Skeet von den Plattformen zurückgezogen werden?',
-      confirmLabel: 'Zurückziehen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/skeets/${skeet.id}/retract`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Entfernen des Skeets.')
-          }
-          const data = await res.json()
-          await refreshSkeetsNow()
-          const summary = data?.summary || {}
-          const successPlatforms = Object.entries(summary)
-            .filter(([, result]) => result?.ok)
-            .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
-          const failedPlatforms = Object.entries(summary)
-            .filter(([, result]) => result && result.ok === false)
-            .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
-          const parts = []
-          if (successPlatforms.length) {
-            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
-          }
-          if (failedPlatforms.length) {
-            parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
-          }
-          toast.success({
-            title: 'Skeet zurückgezogen',
-            description:
-              parts.join(' · ') ||
-              'Der Skeet wurde auf allen Plattformen zurückgezogen.'
-          })
-        } catch (error) {
-          console.error('Fehler beim Entfernen des Skeets:', error)
-          toast.error({
-            title: 'Zurückziehen fehlgeschlagen',
-            description: error.message || 'Fehler beim Zurückziehen des Skeets.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
-        }
-      }
-    })
-  }
-
-  const handleRestore = async skeet => {
     try {
-      const res = await fetch(`/api/skeets/${skeet.id}/restore`, {
-        method: 'POST'
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Fehler beim Reaktivieren des Skeets.')
-      }
-      const restored = await res.json().catch(() => null)
-      await refreshSkeetsNow({ force: true })
-      // Navigationslogik: Wenn noch Termin vorhanden, nur auf "Geplant" wechseln,
-      // sonst direkt zur Karte scrollen.
-      setActiveView('skeets-overview')
-      setActiveDashboardTab('planned')
-      const targetId = restored?.id || skeet.id
-      const hasSchedule = Boolean(restored?.scheduledAt)
-      if (!hasSchedule) {
-        setTimeout(() => {
-          try {
-            const el = document.getElementById(`skeet-${targetId}`)
-            if (el && typeof el.scrollIntoView === 'function') {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            }
-          } catch (e) {
-            console.error(
-              'Fehler beim Scrollen zum wiederhergestellten Skeet:',
-              e
-            )
-          }
-        }, 80)
-      }
-      toast.success({
-        title: 'Skeet reaktiviert',
-        description:
-          'Der Skeet wurde wiederhergestellt und erscheint erneut in der Skeet Übersicht.'
-      })
-    } catch (error) {
-      console.error('Fehler beim Reaktivieren des Skeets:', error)
-      toast.error({
-        title: 'Reaktivierung fehlgeschlagen',
-        description: error.message || 'Fehler beim Reaktivieren des Skeets.'
-      })
-    }
-  }
-
-  const handlePermanentDelete = async skeet => {
-    setConfirmDialog({
-      open: true,
-      title: 'Skeet endgültig löschen',
-      description: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
-      confirmLabel: 'Endgültig löschen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/skeets/${skeet.id}?permanent=1`, {
-            method: 'DELETE'
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(
-              data.error || 'Fehler beim endgültigen Löschen des Skeets.'
-            )
-          }
-          setEditingSkeet(current =>
-            current?.id === skeet.id ? null : current
-          )
-          await refreshSkeetsNow()
-          toast.success({
-            title: 'Skeet entfernt',
-            description: 'Der Skeet wurde dauerhaft gelöscht.'
-          })
-        } catch (error) {
-          console.error('Fehler beim endgültigen Löschen des Skeets:', error)
-          toast.error({
-            title: 'Endgültiges Löschen fehlgeschlagen',
-            description:
-              error.message || 'Fehler beim endgültigen Löschen des Skeets.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
+      const container = document.getElementById('app-scroll-container')
+      const payload = { scrollTop: container?.scrollTop ?? 0 }
+      if (container && skeet?.id) {
+        const entry = document.getElementById(`skeet-${skeet.id}`)
+        if (entry) {
+          const containerRect = container.getBoundingClientRect()
+          const entryRect = entry.getBoundingClientRect()
+          payload.relativeOffset = entryRect.top - containerRect.top
+          payload.skeetId = skeet.id
         }
       }
-    })
+      plannedListScrollRef.current = payload
+    } catch {
+      plannedListScrollRef.current = null
+    }
+    setEditingSkeet(skeet)
+    navigate('skeets-plan')
   }
 
   const handleEditThread = thread => {
     setEditingThreadId(thread?.id ?? null)
-    setActiveView('threads-plan')
+    navigate('threads-plan')
   }
 
-  const handleDeleteThread = async thread => {
-    if (!thread?.id) return
-    const label = thread.title || `Thread #${thread.id}`
-    setConfirmDialog({
-      open: true,
-      title: 'Thread löschen',
-      description: `Soll "${label}" wirklich gelöscht werden?`,
-      confirmLabel: 'Löschen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/threads/${thread.id}`, {
-            method: 'DELETE'
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Löschen des Threads.')
-          }
-
-          if (editingThreadId === thread.id) {
-            setEditingThreadId(null)
-          }
-
-          await refreshThreadsNow()
-
-          toast.success({
-            title: 'Thread gelöscht',
-            description: 'Der Thread wurde entfernt.'
-          })
-        } catch (error) {
-          console.error('Fehler beim Löschen des Threads:', error)
-          toast.error({
-            title: 'Löschen fehlgeschlagen',
-            description: error.message || 'Fehler beim Löschen des Threads.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
-        }
-      }
-    })
-  }
-
-  const handleRetractThread = async thread => {
-    if (!thread?.id) return
-    const label = thread.title || `Thread #${thread.id}`
-    setConfirmDialog({
-      open: true,
-      title: 'Veröffentlichung zurückziehen',
-      description: `Soll "${label}" auf allen Plattformen zurückgezogen werden?`,
-      confirmLabel: 'Zurückziehen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/threads/${thread.id}/retract`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Entfernen des Threads.')
-          }
-
-          const data = await res.json()
-          await refreshThreadsNow()
-
-          const summary = data?.summary || {}
-          const successPlatforms = Object.entries(summary)
-            .filter(([, result]) => result?.ok)
-            .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
-          const failedPlatforms = Object.entries(summary)
-            .filter(([, result]) => result && result.ok === false)
-            .map(([platformId]) => PLATFORM_LABELS[platformId] || platformId)
-          const parts = []
-          if (successPlatforms.length) {
-            parts.push(`Erfolgreich zurückgezogen: ${successPlatforms.join(', ')}`)
-          }
-          if (failedPlatforms.length) {
-            parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
-          }
-
-          toast.success({
-            title: 'Thread zurückgezogen',
-            description:
-              parts.join(' · ') ||
-              'Der Thread wurde auf allen Plattformen zurückgezogen.'
-          })
-        } catch (error) {
-          console.error('Fehler beim Entfernen des Threads:', error)
-          toast.error({
-            title: 'Zurückziehen fehlgeschlagen',
-            description: error.message || 'Fehler beim Zurückziehen des Threads.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
-        }
-      }
-    })
-  }
-
-  const handleRestoreThread = async thread => {
-    if (!thread?.id) return
-    try {
-      const res = await fetch(`/api/threads/${thread.id}/restore`, {
-        method: 'POST'
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(
-          data.error || 'Fehler beim Wiederherstellen des Threads.'
-        )
-      }
-      const restored = await res.json().catch(() => null)
-      await refreshThreadsNow({ force: true })
-      // Navigationslogik: Wenn noch Termin vorhanden, nur auf "Geplant" wechseln,
-      // sonst direkt zur Karte scrollen.
-      setActiveView('threads-overview')
-      const targetId = restored?.id || thread.id
-      const hasSchedule = Boolean(restored?.scheduledAt)
-      if (!hasSchedule) {
-        setTimeout(() => {
-          try {
-            const el = document.getElementById(`thread-${targetId}`)
-            if (el && typeof el.scrollIntoView === 'function') {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            }
-          } catch (e) {
-            console.error(
-              'Fehler beim Scrollen zum wiederhergestellten Thread:',
-              e
-            )
-          }
-        }, 80)
-      }
-      toast.success({
-        title: 'Thread reaktiviert',
-        description: 'Der Thread wurde wiederhergestellt.'
-      })
-    } catch (error) {
-      console.error('Fehler beim Wiederherstellen des Threads:', error)
-      toast.error({
-        title: 'Wiederherstellung fehlgeschlagen',
-        description:
-          error.message || 'Fehler beim Wiederherstellen des Threads.'
-      })
-    }
-  }
-
-  const handleDestroyThread = async thread => {
-    if (!thread?.id) return
-    const label = thread.title || `Thread #${thread.id}`
-    setConfirmDialog({
-      open: true,
-      title: 'Thread endgültig löschen',
-      description: `Soll "${label}" endgültig gelöscht werden? Dieser Vorgang kann nicht rückgängig gemacht werden.`,
-      confirmLabel: 'Endgültig löschen',
-      variant: 'destructive',
-      onConfirm: async () => {
-        try {
-          const res = await fetch(`/api/threads/${thread.id}?permanent=1`, {
-            method: 'DELETE'
-          })
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(
-              data.error || 'Fehler beim endgültigen Löschen des Threads.'
-            )
-          }
-
-          if (editingThreadId === thread.id) {
-            setEditingThreadId(null)
-          }
-
-          await refreshThreadsNow()
-
-          toast.success({
-            title: 'Thread entfernt',
-            description: 'Der Thread wurde dauerhaft gelöscht.'
-          })
-        } catch (error) {
-          console.error('Fehler beim endgültigen Löschen des Threads:', error)
-          toast.error({
-            title: 'Endgültiges Löschen fehlgeschlagen',
-            description:
-              error.message || 'Fehler beim endgültigen Löschen des Threads.'
-          })
-        } finally {
-          setConfirmDialog(c => ({ ...c, open: false }))
-        }
-      }
-    })
-  }
+  // Thread-spezifische Aktionen liefert useThreadActions
 
   const handleFormSaved = async () => {
+    const editedId = editingSkeet?.id ?? null
     setEditingSkeet(null)
     try { setSkeetDraftContent('') } catch (e) { console.error(e); }
     // Zuerst in die Übersicht wechseln, dann gezielt refreshen
-    setActiveView('skeets-overview')
+    navigate('skeets-overview')
     setActiveDashboardTab('planned')
+    if (editedId) {
+      setHighlightedSkeetId(editedId)
+    }
     await new Promise(r => setTimeout(r, 0))
     await refreshSkeetsNow({ force: true })
   }
 
   const handleThreadSaved = async () => {
     setEditingThreadId(null)
-    setActiveView('threads-overview')
+    navigate('threads-overview')
     await new Promise(r => setTimeout(r, 0))
     await refreshThreadsNow({ force: true })
   }
 
   const handleThreadCancel = () => {
     setEditingThreadId(null)
-    setActiveView('threads-overview')
+    navigate('threads-overview')
     toast.info({
       title: 'Bearbeitung abgebrochen',
       description: 'Der Thread wurde nicht verändert.'
@@ -1003,7 +482,7 @@ function App () {
 
   const handleCancelEdit = () => {
     setEditingSkeet(null)
-    setActiveView('skeets-overview')
+    navigate('skeets-overview')
     toast.info({
       title: 'Bearbeitung abgebrochen',
       description: 'Der Skeet wurde nicht verändert.'
@@ -1033,7 +512,7 @@ function App () {
       <Button
         variant='ghost'
         size='icon'
-        onClick={handleToggleTheme}
+        onClick={toggleTheme}
         aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
         title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
       >
@@ -1085,16 +564,22 @@ function App () {
     : NAV_ITEMS
 
   if (gatedNeedsCreds) {
-    content = <ConfigPanel />
+    content = (
+      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+        <ConfigPanel />
+      </Suspense>
+    )
   } else if (activeView === 'overview') {
     content = (
-      <MainOverviewView
-        threads={threads}
-        plannedSkeets={plannedSkeets}
-        publishedSkeets={publishedSkeets}
-        onOpenSkeetsOverview={() => setActiveView('skeets-overview')}
-        onOpenThreadsOverview={() => setActiveView('threads-overview')}
-      />
+      <Suspense fallback={<LoadingBlock message='Übersicht wird geladen…' />}>
+        <MainOverviewView
+          threads={threads}
+          plannedSkeets={plannedSkeets}
+          publishedSkeets={publishedSkeets}
+          onOpenSkeetsOverview={() => navigate('skeets-overview')}
+          onOpenThreadsOverview={() => navigate('threads-overview')}
+        />
+      </Suspense>
     )
   } else if (activeView === 'skeets') {
     content = (
@@ -1148,47 +633,57 @@ function App () {
     )
   } else if (activeView === 'skeets-overview') {
     content = (
-      <DashboardView
-        plannedSkeets={plannedSkeets}
-        publishedSkeets={publishedSkeets}
-        deletedSkeets={deletedSkeets}
-        onEditSkeet={handleEdit}
-        onDeleteSkeet={handleDelete}
-        onRetractSkeet={handleRetract}
-        onRestoreSkeet={handleRestore}
-        onPermanentDeleteSkeet={handlePermanentDelete}
-        onFetchReactions={fetchReactions}
-        onShowSkeetContent={showSkeetContent}
-        onShowRepliesContent={showRepliesContent}
-        activeCardTabs={activeCardTabs}
-        repliesBySkeet={repliesBySkeet}
-        replyErrors={replyErrors}
-        loadingReplies={loadingReplies}
-        loadingReactions={loadingReactions}
-        reactionStats={reactionStats}
-        formatTime={formatTime}
-        getRepeatDescription={getRepeatDescription}
-        platformLabels={PLATFORM_LABELS}
-        activeTab={activeDashboardTab}
-        onTabChange={setActiveDashboardTab}
-      />
+      <Suspense fallback={<LoadingBlock message='Skeet Aktivität wird geladen…' />}>
+        <DashboardView
+          plannedSkeets={plannedSkeets}
+          publishedSkeets={publishedSkeets}
+          deletedSkeets={deletedSkeets}
+          onEditSkeet={handleEdit}
+          onDeleteSkeet={handleDeleteSkeet}
+          onRetractSkeet={handleRetractSkeet}
+          onRestoreSkeet={handleRestoreSkeet}
+          onPermanentDeleteSkeet={handlePermanentDeleteSkeet}
+          onFetchReactions={fetchReactions}
+          onShowSkeetContent={showSkeetContent}
+          onShowRepliesContent={showRepliesContent}
+          activeCardTabs={activeCardTabs}
+          repliesBySkeet={repliesBySkeet}
+          replyErrors={replyErrors}
+          loadingReplies={loadingReplies}
+          loadingReactions={loadingReactions}
+          reactionStats={reactionStats}
+          formatTime={formatTime}
+          getRepeatDescription={getRepeatDescription}
+          platformLabels={PLATFORM_LABELS}
+          activeTab={activeDashboardTab}
+          onTabChange={setActiveDashboardTab}
+          highlightedSkeetId={highlightedSkeetId}
+          onHighlightConsumed={() => setHighlightedSkeetId(null)}
+        />
+      </Suspense>
     )
   } else if (activeView === 'threads-overview') {
     content = (
-      <ThreadDashboardView
-        threads={threads}
-        loading={threadsLoading}
-        error={threadsError}
-        onReload={refreshThreadsNow}
-        onEditThread={handleEditThread}
-        onDeleteThread={handleDeleteThread}
-        onRestoreThread={handleRestoreThread}
-        onDestroyThread={handleDestroyThread}
-        onRetractThread={handleRetractThread}
-      />
+      <Suspense fallback={<LoadingBlock message='Thread Aktivität wird geladen…' />}>
+        <ThreadDashboardView
+          threads={threads}
+          loading={threadsLoading}
+          error={threadsError}
+          onReload={refreshThreadsNow}
+          onEditThread={handleEditThread}
+          onDeleteThread={handleDeleteThread}
+          onRestoreThread={handleRestoreThread}
+          onDestroyThread={handleDestroyThread}
+          onRetractThread={handleRetractThread}
+        />
+      </Suspense>
     )
   } else if (activeView === 'config') {
-    content = <ConfigPanel />
+    content = (
+      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+        <ConfigPanel />
+      </Suspense>
+    )
   } else if (activeView === 'bsky-client') {
     content = (
       <Card padding='p-4'>
@@ -1200,52 +695,52 @@ function App () {
   } else if (activeView === 'about') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <AboutView />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Infoansicht wird geladen…</p>}>
+          <AboutView />
+        </Suspense>
       </Card>
     )
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <SkeetForm
-          onSkeetSaved={handleFormSaved}
-          editingSkeet={editingSkeet}
-          onCancelEdit={handleCancelEdit}
-          initialContent={editingSkeet ? undefined : skeetDraftContent}
-        />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Skeet-Formular wird geladen…</p>}>
+          <SkeetForm
+            onSkeetSaved={handleFormSaved}
+            editingSkeet={editingSkeet}
+            onCancelEdit={handleCancelEdit}
+            initialContent={editingSkeet ? undefined : skeetDraftContent}
+          />
+        </Suspense>
       </Card>
     )
   } else if (activeView === 'threads-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <ThreadForm
-          key={editingThreadId || 'new'}
-          initialThread={editingThreadId ? editingThread : null}
-          loading={Boolean(
-            editingThreadId && loadingEditingThread && !editingThread
-          )}
-          onThreadSaved={handleThreadSaved}
-          onCancel={editingThreadId ? handleThreadCancel : undefined}
-          onSuggestMoveToSkeets={(content) => {
-            try {
-              setEditingThreadId(null)
-            } catch (error) {
-              console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
-            }
-            setSkeetDraftContent(content || '')
-            setActiveView('skeets-plan')
-          }}
-        />
+        <Suspense fallback={<p className='text-sm text-foreground-muted'>Thread-Formular wird geladen…</p>}>
+          <ThreadForm
+            key={editingThreadId || 'new'}
+            initialThread={editingThreadId ? editingThread : null}
+            loading={Boolean(
+              editingThreadId && loadingEditingThread && !editingThread
+            )}
+            onThreadSaved={handleThreadSaved}
+            onCancel={editingThreadId ? handleThreadCancel : undefined}
+            onSuggestMoveToSkeets={(content) => {
+              try {
+                setEditingThreadId(null)
+              } catch (error) {
+                console.warn('Konnte Thread-Auswahl nicht zurücksetzen', error)
+              }
+              setSkeetDraftContent(content || '')
+              navigate('skeets-plan')
+            }}
+          />
+        </Suspense>
       </Card>
     )
   }
 
-  const safeSelectView = (viewId) => {
-    if (needsCredentials && viewId !== 'config') {
-      setActiveView('config')
-      return
-    }
-    setActiveView(viewId)
-  }
+  const safeSelectView = (viewId, options) => navigate(viewId, options)
 
   return (
     <ThemeProvider value={{
@@ -1270,11 +765,8 @@ function App () {
         confirmLabel={confirmDialog.confirmLabel}
         cancelLabel={confirmDialog.cancelLabel || 'Abbrechen'}
         variant={confirmDialog.variant || 'primary'}
-        onConfirm={
-          confirmDialog.onConfirm ||
-          (() => setConfirmDialog(c => ({ ...c, open: false })))
-        }
-        onCancel={() => setConfirmDialog(c => ({ ...c, open: false }))}
+        onConfirm={confirmDialog.onConfirm || closeConfirm}
+        onCancel={closeConfirm}
       />
     </AppLayout>
     </ThemeProvider>

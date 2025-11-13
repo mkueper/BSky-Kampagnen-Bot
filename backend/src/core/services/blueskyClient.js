@@ -15,6 +15,12 @@ const { AtpAgent } = require("@atproto/api");
 
 const agent = new AtpAgent({ service: serverUrl });
 let loginPromise = null;
+let refreshPromise = null;
+let refreshTimer = null;
+const DEFAULT_REFRESH_INTERVAL_MS = 60 * 1000; // 1 Minute
+const sessionRefreshInterval =
+  Number(process.env.BLUESKY_SESSION_REFRESH_INTERVAL_MS) ||
+  DEFAULT_REFRESH_INTERVAL_MS;
 
 const OFFICIAL_FEED_GENERATORS = {
   discover: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
@@ -25,7 +31,10 @@ const OFFICIAL_FEED_GENERATORS = {
 
 
 /**
- * Meldet den Agenten mit den hinterlegten App-Credentials an.
+ * Stellt sicher, dass der Agent eine gültige Session besitzt, indem er sich mit
+ * den in `.env` hinterlegten App-Credentials bei Bluesky anmeldet.
+ *
+ * @throws {Error} Wenn BLUESKY_IDENTIFIER oder BLUESKY_APP_PASSWORD fehlen bzw. der Login scheitert.
  */
 async function login() {
   if (!identifier) {
@@ -39,12 +48,17 @@ async function login() {
   try {
     await agent.login({ identifier, password: appPassword });
     log.info("Bluesky Login ok", { serverUrl, did: agent?.session?.did || null, identifier });
+    scheduleSessionRefresh();
   } catch (e) {
     log.error("Bluesky Login fehlgeschlagen", { error: e?.message || String(e) });
     throw e;
   }
 }
 
+/**
+ * Wartet (falls nötig) auf einen laufenden Login und sorgt dafür, dass alle
+ * API-Aufrufe nur mit gültiger Session ausgeführt werden.
+ */
 async function ensureLoggedIn() {
   if (agent?.session?.did) {
     return;
@@ -61,7 +75,64 @@ async function ensureLoggedIn() {
 }
 
 /**
- * Postet einen einfachen Text-Skeet und gibt die API-Antwort zurück.
+ * Plant in festen Abständen ein Session-Refresh ein. Dadurch bleiben Tokens
+ * auch bei langen Laufzeiten gültig, ohne dass alle Requests neu einloggen müssen.
+ */
+function scheduleSessionRefresh () {
+  if (!sessionRefreshInterval || sessionRefreshInterval <= 0) return;
+  if (refreshTimer) clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    try {
+      await refreshSession();
+    } catch (error) {
+      log.warn('Bluesky Session-Refresh fehlgeschlagen', { error: error?.message || String(error) });
+    } finally {
+      scheduleSessionRefresh();
+    }
+  }, sessionRefreshInterval);
+  if (typeof refreshTimer.unref === 'function') refreshTimer.unref();
+}
+
+/**
+ * Erzwingt ein sofortiges Refresh der Bluesky-Session. Fällt auf einen
+ * vollständigen Re-Login zurück, wenn das Refresh fehlschlägt.
+ */
+async function refreshSession () {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    if (!agent?.session?.did) {
+      await ensureLoggedIn();
+      return;
+    }
+    if (typeof agent.sessionManager?.refreshSession === 'function') {
+      await agent.sessionManager.refreshSession();
+      log.debug('Bluesky Session erneuert');
+      return;
+    }
+    // Fallback: Login erneut ausführen
+    await login();
+  })()
+    .catch(async (error) => {
+      log.warn('Bluesky Session konnte nicht erneuert werden, versuche Re-Login', { error: error?.message || String(error) });
+      // Reset Session, damit ensureLoggedIn einen frischen Login erzwingt
+      try {
+        await agent.logout();
+      } catch (logoutError) {
+        log.debug('Logout nach fehlgeschlagenem Refresh nicht möglich', { error: logoutError?.message || String(logoutError) });
+      }
+      await ensureLoggedIn();
+    })
+    .finally(() => {
+      refreshPromise = null;
+    });
+  return refreshPromise;
+}
+
+/**
+ * Veröffentlicht einen einfachen Text-Skeet im eingeloggten Account.
+ *
+ * @param {string} text Inhalt des Skeets.
+ * @returns {Promise<object|null>} Die API-Antwort (inkl. URI/CID) oder `null`, falls keine Daten vorliegen.
  */
 async function postSkeet(text) {
   await ensureLoggedIn();
@@ -81,7 +152,10 @@ async function postSkeet(text) {
 }
 
 /**
- * Holt Likes/Reposts zu einem Beitrag und aggregiert die Antwort.
+ * Ruft Likes und Reposts zu einem Post ab.
+ *
+ * @param {string} postUri at:// URI des Posts.
+ * @returns {Promise<{likes: Array, reposts: Array}>} Objekt mit Rohdaten der API.
  */
 async function getReactions(postUri) {
   await ensureLoggedIn();
@@ -97,7 +171,10 @@ async function getReactions(postUri) {
 }
 
 /**
- * Ruft den kompletten Thread (inkl. Replies) zu einem Post ab.
+ * Lädt einen vollständigen Post-Thread (inkl. Antworten).
+ *
+ * @param {string} postUri at:// URI des Root-Posts.
+ * @returns {Promise<object>} Struktur, die direkt an die UI weitergereicht werden kann.
  */
 async function getReplies(postUri) {
   await ensureLoggedIn();
@@ -109,17 +186,33 @@ async function getReplies(postUri) {
   return thread.data.thread;
 }
 
+/**
+ * Listet Benachrichtigungen des eingeloggten Accounts.
+ *
+ * @param {{limit?: number, cursor?: string}} [opts]
+ */
 async function getNotifications ({ limit = 30, cursor } = {}) {
   await ensureLoggedIn();
   const res = await agent.app.bsky.notification.listNotifications({ limit, cursor });
   return res?.data ?? null;
 }
 
+/**
+ * Markiert alle Benachrichtigungen als „gesehen“.
+ *
+ * @param {string} [seenAt] ISO-Timestamp, standardmäßig `now`.
+ */
 async function markNotificationsSeen (seenAt = new Date().toISOString()) {
   await ensureLoggedIn();
   await agent.app.bsky.notification.updateSeen({ seenAt });
 }
 
+/**
+ * Lädt Posts anhand ihrer at:// URIs in 25er-Chunks.
+ *
+ * @param {string[]} uris Liste von at:// URIs
+ * @returns {Promise<object[]>} Aggregierte Posts
+ */
 async function getPostsByUri (uris = []) {
   await ensureLoggedIn();
   const list = Array.isArray(uris) ? uris.filter(Boolean) : [];
@@ -148,7 +241,9 @@ module.exports = {
   getPostsByUri,
   FEED_GENERATORS: OFFICIAL_FEED_GENERATORS,
   /**
-   * Liefert die persönliche Timeline des eingeloggten Accounts
+   * Holt die persönliche Timeline des eingeloggten Accounts (Home-Feed).
+   *
+   * @param {{limit?: number, cursor?: string}} [opts]
    */
   async getTimeline({ limit = 30, cursor } = {}) {
     await ensureLoggedIn();
@@ -156,7 +251,10 @@ module.exports = {
     return res?.data ?? null;
   },
   /**
-   * Lädt einen offiziellen Feed-Generator (z. B. Discover/Mutuals)
+   * Lädt den Inhalt eines offiziellen Feed-Generators (Discover, Mutuals, …).
+   *
+   * @param {string} feedUri at:// URI des Generators
+   * @param {{limit?: number, cursor?: string}} opts
    */
   async getFeedGenerator(feedUri, { limit = 30, cursor } = {}) {
     if (!feedUri) throw new Error('feedUri erforderlich');
@@ -227,5 +325,66 @@ module.exports = {
       collection: 'app.bsky.feed.repost',
       rkey
     })
+  },
+  /**
+   * Durchsucht Bluesky-Posts (Tabs „Top“/„Latest“ im Client).
+   *
+   * @param {{q?: string, limit?: number, cursor?: string, sort?: 'top'|'latest'}} [opts]
+   */
+  async searchPosts({ q, limit = 25, cursor, sort } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.feed.searchPosts({
+      q,
+      limit,
+      cursor,
+      sort
+    });
+    return res?.data ?? { posts: [], cursor: null };
+  },
+  /**
+   * Durchsucht Bluesky-Handles/Accounts („People“-Tab).
+   *
+   * @param {{q?: string, limit?: number, cursor?: string}} [opts]
+   */
+  async searchProfiles({ q, limit = 25, cursor } = {}) {
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.actor.searchActors({
+      q,
+      limit,
+      cursor
+    });
+    return res?.data ?? { actors: [], cursor: null };
+  },
+  /**
+   * Holt ein Profil anhand DID/Handle.
+   *
+   * @param {string} actor Handle oder DID
+   */
+  async getProfile(actor) {
+    const normalized = String(actor || '').trim();
+    if (!normalized) {
+      throw new Error('actor erforderlich');
+    }
+    await ensureLoggedIn();
+    const res = await agent.app.bsky.actor.getProfile({ actor: normalized });
+    return res?.data ?? null;
+  },
+  /**
+   * Durchsucht Feed-Generatoren („Feeds“-Tab). Nutzt das neue API, fällt aber
+   * bei älteren SDKs auf einen generischen XRPC-Call zurück.
+   *
+   * @param {{q?: string, limit?: number, cursor?: string}} [opts]
+   */
+  async searchFeeds({ q, limit = 25, cursor } = {}) {
+    await ensureLoggedIn();
+    const params = { q, limit, cursor };
+    // Neuere Versionen von @atproto/api stellen searchFeedGenerators bereit.
+    if (typeof agent.app?.bsky?.feed?.searchFeedGenerators === 'function') {
+      const res = await agent.app.bsky.feed.searchFeedGenerators(params);
+      return res?.data ?? { feeds: [], cursor: null };
+    }
+    // Rückfall: direkte XRPC-Call
+    const res = await agent.call('app.bsky.feed.searchFeedGenerators', params);
+    return res?.data ?? { feeds: [], cursor: null };
   },
 };

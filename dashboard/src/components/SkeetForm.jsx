@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../hooks/useToast'
 import Button from './ui/Button'
 import MediaDialog from './MediaDialog'
@@ -6,6 +6,14 @@ import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import Modal from './ui/Modal'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+import LinkifiedText from './LinkifiedText'
+import LinkPreviewCard from './LinkPreviewCard'
+import { useLinkPreview } from '../hooks/useLinkPreview'
+import {
+  getDefaultDateParts,
+  getInputPartsFromUtc,
+  resolvePreferredTimeZone
+} from '../utils/zonedDate'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -54,39 +62,6 @@ function resolveMaxLength (selectedPlatforms) {
   return Math.min(...limits)
 }
 
-// Hilfsfunktion für Formatierung
-function getDefaultDateTime () {
-  const now = new Date()
-  now.setDate(now.getDate() + 1) // morgen
-  now.setHours(9, 0, 0, 0) // 9:00 Uhr
-  const offsetMs = now.getTimezoneOffset() * 60 * 1000
-  const localDate = new Date(now.getTime() - offsetMs)
-  return localDate.toISOString().slice(0, 16) // yyyy-MM-ddTHH:mm
-}
-
-function getDefaultDateParts () {
-  const defaultDateTime = getDefaultDateTime()
-  const [date, time] = defaultDateTime.split('T')
-  return { date, time }
-}
-
-function toLocalDateParts (value) {
-  if (!value) {
-    return null
-  }
-
-  const parsed = new Date(value)
-  if (isNaN(parsed)) {
-    return null
-  }
-
-  const offsetMs = parsed.getTimezoneOffset() * 60 * 1000
-  const local = new Date(parsed.getTime() - offsetMs)
-  const iso = local.toISOString().slice(0, 16)
-  const [date, time] = iso.split('T')
-  return { date, time }
-}
-
 /**
  * Formular zum Erstellen oder Bearbeiten eines Skeets.
  *
@@ -95,8 +70,18 @@ function toLocalDateParts (value) {
  * @param {Function} onCancelEdit   Wird beim Abbrechen aufgerufen (z. B. Tab-Wechsel).
  */
 function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }) {
-  const { date: defaultDate, time: defaultTime } = getDefaultDateParts()
-
+  const { config: clientConfig } = useClientConfig()
+  const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
+  const defaultDateParts = useMemo(
+    () => getDefaultDateParts(timeZone) ?? { date: '', time: '' },
+    [timeZone]
+  )
+  const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
+  const mastodonConfigured = mastodonStatus !== false
+  const defaultPlatformFallback = useMemo(
+    () => (mastodonStatus === true ? ['bluesky', 'mastodon'] : ['bluesky']),
+    [mastodonStatus]
+  )
   const [content, setContent] = useState('')
   const [repeatDaysOfWeek, setRepeatDaysOfWeek] = useState([]) // number[]: 0=So … 6=Sa
   const [targetPlatforms, setTargetPlatforms] = useState(() => {
@@ -114,14 +99,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             )
             if (allowed.length) return allowed
           }
-        }
       }
-    } catch (e){ console.log(e) }
-    // Fallback: beide Plattformen
-    return ['bluesky', 'mastodon']
+    }
+  } catch (e){ console.log(e) }
+    return defaultPlatformFallback
   })
-  const [scheduledDate, setScheduledDate] = useState(defaultDate)
-  const [scheduledTime, setScheduledTime] = useState(defaultTime)
+  const [scheduledDate, setScheduledDate] = useState(defaultDateParts.date)
+  const [scheduledTime, setScheduledTime] = useState(defaultDateParts.time)
   const [repeat, setRepeat] = useState('none')
   // Single weekly day is derived from repeatDaysOfWeek[0]
   const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(null)
@@ -129,9 +113,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const isEditing = Boolean(editingSkeet)
   const maxContentLength = resolveMaxLength(targetPlatforms)
   const toast = useToast()
-  const { config: clientConfig } = useClientConfig()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
-  const mastodonConfigured = Boolean(clientConfig?.platforms?.mastodonConfigured)
   const imagePolicy = clientConfig?.images || {
     maxCount: 4,
     maxBytes: 8 * 1024 * 1024,
@@ -155,6 +137,23 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const [infoContentOpen, setInfoContentOpen] = useState(false)
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
   const [sendingNow, setSendingNow] = useState(false)
+  const existingMediaCount = useMemo(() => {
+    if (!isEditing || !Array.isArray(editingSkeet?.media)) return 0
+    return editingSkeet.media.filter(m => !removedMedia[m.id]).length
+  }, [isEditing, editingSkeet, removedMedia])
+  const pendingMediaCount = pendingMedia.length
+  const previewBlocked = (existingMediaCount + pendingMediaCount) > 0
+  const previewDisabledReason = previewBlocked
+    ? 'Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.'
+    : ''
+  const {
+    previewUrl,
+    preview,
+    loading: previewLoading,
+    error: previewError
+  } = useLinkPreview(content, { enabled: !previewBlocked })
+  const initializedRef = useRef(false)
+  const prevEditingRef = useRef(Boolean(editingSkeet))
 
   useEffect(
     () => {
@@ -186,11 +185,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
   function resetToDefaults () {
     setContent((typeof initialContent === 'string' && initialContent.length) ? initialContent : '')
-    setTargetPlatforms(['bluesky'])
+    setTargetPlatforms(defaultPlatformFallback)
     setRepeat('none')
     setRepeatDayOfMonth(null)
     setPendingMedia([])
-    const defaults = getDefaultDateParts()
+    const defaults = getDefaultDateParts(timeZone) ?? { date: '', time: '' }
     setScheduledDate(defaults.date)
     setScheduledTime(defaults.time)
   }
@@ -203,7 +202,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         Array.isArray(editingSkeet.targetPlatforms) &&
           editingSkeet.targetPlatforms.length > 0
           ? editingSkeet.targetPlatforms
-          : ['bluesky']
+          : defaultPlatformFallback
       )
       setRepeat(editingSkeet.repeat ?? 'none')
       if (editingSkeet.repeat === 'weekly' && editingSkeet.repeatDayOfWeek != null) {
@@ -218,22 +217,43 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           : null
       )
 
+      prevEditingRef.current = true
+      initializedRef.current = true
+      return
+    }
+    if (!initializedRef.current || prevEditingRef.current) {
+      resetToDefaults()
+      initializedRef.current = true
+    }
+    prevEditingRef.current = false
+  }, [editingSkeet, timeZone])
+
+  useEffect(() => {
+    if (editingSkeet?.scheduledAt) {
       const parts =
-        toLocalDateParts(editingSkeet.scheduledAt) ?? getDefaultDateParts()
+        getInputPartsFromUtc(editingSkeet.scheduledAt, timeZone) ??
+        (getDefaultDateParts(timeZone) || { date: '', time: '' })
       setScheduledDate(parts.date)
       setScheduledTime(parts.time)
-      // TODO: Medienanzeige für bestehende Skeets (bearbeiten) kann optional ergänzt werden
-    } else {
-      resetToDefaults()
+    } else if (!editingSkeet) {
+      const defaults = getDefaultDateParts(timeZone) ?? { date: '', time: '' }
+      setScheduledDate(defaults.date)
+      setScheduledTime(defaults.time)
     }
-  }, [editingSkeet])
+  }, [editingSkeet, timeZone])
   
   // Mastodon deaktivieren, wenn keine Zugangsdaten vorhanden
   useEffect(() => {
-    if (!mastodonConfigured) {
+    if (mastodonStatus === false) {
       setTargetPlatforms(prev => prev.filter(p => p !== 'mastodon'))
     }
-  }, [mastodonConfigured])
+  }, [mastodonStatus])
+
+  useEffect(() => {
+    if (mastodonStatus === true && !isEditing) {
+      setTargetPlatforms(prev => (prev.includes('mastodon') ? prev : [...prev, 'mastodon']))
+    }
+  }, [mastodonStatus, isEditing])
 
   function togglePlatform (name) {
     if (name === 'mastodon' && !mastodonConfigured) return
@@ -593,9 +613,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               style={coupledHeight ? { height: `${coupledHeight}px` } : {}}
             >
               <div className='flex-1 overflow-auto pr-2'>
-                <p className='whitespace-pre-wrap break-words leading-relaxed text-foreground'>
-                  {content || '(kein Inhalt)'}
-                </p>
+                <LinkifiedText
+                  text={content}
+                  placeholder='(kein Inhalt)'
+                  className='whitespace-pre-wrap break-words leading-relaxed text-foreground'
+                />
                 {(() => {
                   const list = []
                   if (isEditing && Array.isArray(editingSkeet?.media)) {
@@ -633,6 +655,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                     </div>
                   )
                 })()}
+                <LinkPreviewCard
+                  preview={preview}
+                  url={previewUrl}
+                  loading={previewLoading}
+                  error={previewError}
+                  disabled={previewBlocked}
+                  disabledReason={previewDisabledReason}
+                />
               </div>
             </div>
             <div className='mt-2 text-sm text-foreground-muted'>

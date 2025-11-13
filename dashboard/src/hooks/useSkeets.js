@@ -184,8 +184,16 @@ export function useSkeets (options = {}) {
   }, [])
 
   useEffect(() => {
-    loadSkeets()
-  }, [loadSkeets])
+    if (!enabled) return undefined
+    let cancelled = false
+    ;(async () => {
+      if (cancelled) return
+      await loadSkeets()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, loadSkeets])
 
   // Booster: Wenn ein Termin in Kürze fällig ist, Polling kurzzeitig beschleunigen
   const nextDueSoonActiveMs = 2000 // 2s rund um fällige Termine
@@ -211,6 +219,7 @@ export function useSkeets (options = {}) {
 
   // Smart-Polling via createPollingController
   useEffect(() => {
+    if (!enabled) return undefined
     if (typeof window === 'undefined') return undefined
 
     const parseMs = (v, def) => {

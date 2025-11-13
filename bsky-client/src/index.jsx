@@ -1,3 +1,12 @@
-// Re-export a default embeddable app so the dashboard can mount it
-export { default } from './ClientApp.jsx'
+import ClientApp from './ClientApp.jsx'
+import { AppProvider, useAppDispatch, useAppState } from './context/AppContext.jsx'
 
+export default function BskyClientRoot (props) {
+  return (
+    <AppProvider>
+      <ClientApp {...props} />
+    </AppProvider>
+  )
+}
+
+export { ClientApp, AppProvider, useAppDispatch, useAppState }

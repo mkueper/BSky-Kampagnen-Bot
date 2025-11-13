@@ -17,17 +17,47 @@ function isBlockedHost (hostname) {
 
 function extractMeta (html) {
   const safe = String(html || '')
-  const get = (re) => {
-    const m = safe.match(re)
-    return m && m[1] ? m[1].trim() : ''
+  const metaTags = Array.from(safe.matchAll(/<meta\s+[^>]*>/gi)).map(match => match[0])
+  const attrRegex = /([a-zA-Z0-9:_-]+)\s*=\s*["']([^"']*)["']/gi
+  const parsed = metaTags.map(tag => {
+    const attrs = {}
+    String(tag).replace(attrRegex, (_, key, value) => {
+      attrs[key.toLowerCase()] = value.trim()
+      return ''
+    })
+    return attrs
+  })
+  const findMetaContent = (selectors = []) => {
+    for (const attrs of parsed) {
+      if (!attrs) continue
+      for (const selector of selectors) {
+        const attrName = selector.attr.toLowerCase()
+        const expected = selector.value.toLowerCase()
+        const actual = (attrs[attrName] || '').toLowerCase()
+        if (actual === expected) {
+          const content = attrs.content || attrs.value || ''
+          if (content) return content.trim()
+        }
+      }
+    }
+    return ''
   }
-  const title = get(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["'][^>]*>/i) ||
-                get(/<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["'][^>]*>/i) ||
-                get(/<title[^>]*>([^<]{1,200})<\/title>/i)
-  const description = get(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["'][^>]*>/i) ||
-                      get(/<meta\s+name=["']twitter:description["']\s+content=["']([^"']+)["'][^>]*>/i)
-  const image = get(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["'][^>]*>/i) ||
-                get(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["'][^>]*>/i)
+  const title =
+    findMetaContent([
+      { attr: 'property', value: 'og:title' },
+      { attr: 'name', value: 'twitter:title' }
+    ]) ||
+    (safe.match(/<title[^>]*>([\s\S]{1,200}?)<\/title>/i)?.[1] || '').trim()
+  const description =
+    findMetaContent([
+      { attr: 'property', value: 'og:description' },
+      { attr: 'name', value: 'twitter:description' }
+    ])
+  const image =
+    findMetaContent([
+      { attr: 'property', value: 'og:image' },
+      { attr: 'name', value: 'twitter:image' }
+    ])
   return { title, description, image }
 }
 
@@ -80,4 +110,3 @@ async function getExternalPreview (req, res) {
 }
 
 module.exports = { getExternalPreview }
-

@@ -1,25 +1,30 @@
 import 'module-alias/register'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const config = require('@config')
+const basePolling = config?.CLIENT_CONFIG?.polling
+
+const basePollingValues = {
+  threadActiveMs: basePolling?.threads?.activeMs,
+  threadIdleMs: basePolling?.threads?.idleMs,
+  threadHiddenMs: basePolling?.threads?.hiddenMs,
+  threadMinimalHidden: basePolling?.threads?.minimalHidden,
+  skeetActiveMs: basePolling?.skeets?.activeMs,
+  skeetIdleMs: basePolling?.skeets?.idleMs,
+  skeetHiddenMs: basePolling?.skeets?.hiddenMs,
+  skeetMinimalHidden: basePolling?.skeets?.minimalHidden,
+  backoffStartMs: basePolling?.backoffStartMs,
+  backoffMaxMs: basePolling?.backoffMaxMs,
+  jitterRatio: basePolling?.jitterRatio,
+  heartbeatMs: basePolling?.heartbeatMs,
+}
+
 // mock dependencies BEFORE importing the module under test
 vi.mock('@core/services/settingsService', () => {
   return {
     default: {},
     getClientPollingSettings: vi.fn(async () => ({
-      values: {
-        threadActiveMs: 30000,
-        threadIdleMs: 120000,
-        threadHiddenMs: 300000,
-        threadMinimalHidden: false,
-        skeetActiveMs: 30000,
-        skeetIdleMs: 120000,
-        skeetHiddenMs: 300000,
-        skeetMinimalHidden: false,
-        backoffStartMs: 10000,
-        backoffMaxMs: 300000,
-        jitterRatio: 0.2,
-        heartbeatMs: 2000,
-      }
+      values: { ...basePollingValues }
     }))
   }
 })
@@ -45,9 +50,9 @@ describe('getClientConfig', () => {
     }
     await getClientConfig(req, res)
     expect(payload).toBeTruthy()
-    expect(payload.polling.threads.activeMs).toBe(30000)
-    expect(payload.polling.skeets.hiddenMs).toBe(300000)
-    expect(payload.polling.jitterRatio).toBe(0.2)
+    expect(payload.polling.threads.activeMs).toBe(basePollingValues.threadActiveMs)
+    expect(payload.polling.skeets.hiddenMs).toBe(basePollingValues.skeetHiddenMs)
+    expect(payload.polling.jitterRatio).toBe(basePollingValues.jitterRatio)
     expect(payload.needsCredentials).toBe(true)
   })
 

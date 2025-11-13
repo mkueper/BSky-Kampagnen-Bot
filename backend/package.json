@@ -7,5 +7,9 @@
   "scripts": {
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run --config ../vitest.config.mjs"
+  },
+  "dependencies": {
+    "express-async-errors": "^3.1.1",
+    "helmet": "^7.1.0"
   }
 }

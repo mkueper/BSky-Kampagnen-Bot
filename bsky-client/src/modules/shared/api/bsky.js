@@ -90,6 +90,8 @@ export async function fetchNotifications({ cursor, markSeen } = {}) {
   return {
     items: Array.isArray(data?.notifications) ? data.notifications : [],
     cursor: data?.cursor || null,
+    unreadCount: Number(data?.unreadCount) || 0,
+    seenAt: data?.seenAt || null
   };
 }
 
@@ -136,7 +138,27 @@ export async function fetchReactions({ uri }) {
   return requestJson(`/api/bsky/reactions?${params.toString()}`);
 }
 
+export async function searchBsky({ query, type, cursor, limit } = {}) {
+  const params = createSearchParams();
+  if (query) params.set('q', query);
+  if (type) params.set('type', type);
+  if (cursor) params.set('cursor', cursor);
+  if (typeof limit === 'number') params.set('limit', String(limit));
+  const queryString = params.toString();
+  const data = await requestJson(`/api/bsky/search${queryString ? `?${queryString}` : ''}`);
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    cursor: data?.cursor || null,
+    type: data?.type || type || 'top'
+  };
+}
+
+export async function fetchProfile(actor) {
+  const normalized = String(actor || '').trim();
+  if (!normalized) throw new Error('actor erforderlich');
+  const params = createSearchParams({ actor: normalized });
+  const data = await requestJson(`/api/bsky/profile?${params.toString()}`);
+  return data?.profile || null;
+}
+
 export { requestJson };
-
-
-

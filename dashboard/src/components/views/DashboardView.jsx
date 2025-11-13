@@ -39,7 +39,9 @@ function DashboardView ({
   getRepeatDescription,
   platformLabels,
   activeTab,
-  onTabChange
+  onTabChange,
+  highlightedSkeetId = null,
+  onHighlightConsumed
 }) {
   const toast = useToast()
   const [publishedSortOrder, setPublishedSortOrder] = useState('desc')
@@ -75,6 +77,15 @@ function DashboardView ({
   }, [publishedSkeets, publishedSortOrder])
 
   const theme = useTheme()
+
+  useEffect(() => {
+    if (!highlightedSkeetId) return
+    if (activeTab !== 'planned') return
+    const timer = setTimeout(() => {
+      onHighlightConsumed?.()
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [highlightedSkeetId, activeTab, onHighlightConsumed])
   return (
     <div className='space-y-4'>
       
@@ -234,6 +245,7 @@ function DashboardView ({
               onEdit={onEditSkeet}
               onDelete={onDeleteSkeet}
               getRepeatDescription={getRepeatDescription}
+              highlightedId={highlightedSkeetId}
             />
           ) : activeTab === 'published' ? (
             <PublishedSkeetList

@@ -5,6 +5,7 @@ import { PlusIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientLayout ({
   activeSection,
+  notificationsUnread = 0,
   onSelectSection,
   onOpenCompose,
   headerContent,
@@ -104,6 +105,7 @@ export default function BskyClientLayout ({
       >
         <SidebarNav
           active={activeSection}
+          notificationsUnread={notificationsUnread}
           onSelect={handleSelect}
           onCompose={handleOpenCompose}
         />

@@ -18,6 +18,7 @@ const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,imag
   .filter(Boolean)
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
+const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 
 function toTimestamp (value) {
   if (!value) return 0
@@ -48,6 +49,7 @@ function mapThreadNode (node) {
     createdAt: record.createdAt || post.indexedAt || null,
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -83,6 +85,7 @@ function mapPostView (post) {
     createdAt: record.createdAt || post.indexedAt || null,
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -95,14 +98,44 @@ function mapPostView (post) {
   }
 }
 
-function mapNotificationEntry (entry, subjectMap) {
+function aggregateNotificationEntries (notifications = []) {
+  const grouped = []
+  const groupMap = new Map()
+  for (const entry of notifications) {
+    if (!entry || typeof entry !== 'object') continue
+    const reason = entry.reason || ''
+    const subjectUri = entry.reasonSubject || entry?.record?.subject?.uri || null
+    const canGroup = subjectUri && GROUPABLE_NOTIFICATION_REASONS.has(reason)
+    const key = canGroup ? `${reason}__${subjectUri}` : null
+    if (key && groupMap.has(key)) {
+      const bucket = groupMap.get(key)
+      bucket.additionalCount += 1
+      continue
+    }
+    const bucket = { entry, additionalCount: 0 }
+    grouped.push(bucket)
+    if (key) groupMap.set(key, bucket)
+  }
+  return grouped
+}
+
+function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) {
   if (!entry) return null
   const author = entry.author || {}
   const record = entry.record || {}
   const reasonSubject = entry.reasonSubject || null
-  const subject = reasonSubject && subjectMap instanceof Map
-    ? subjectMap.get(reasonSubject) || null
-    : null
+  let subject = null
+  if (subjectMap instanceof Map) {
+    if (reasonSubject) {
+      subject = subjectMap.get(reasonSubject) || null
+    }
+    if (!subject) {
+      const recordSubjectUri = record?.subject?.uri
+      if (typeof recordSubjectUri === 'string') {
+        subject = subjectMap.get(recordSubjectUri) || null
+      }
+    }
+  }
   return {
     uri: entry.uri || null,
     cid: entry.cid || null,
@@ -112,6 +145,7 @@ function mapNotificationEntry (entry, subjectMap) {
     isRead: Boolean(entry.isRead),
     author: {
       handle: author.handle || '',
+      did: author.did || '',
       displayName: author.displayName || author.handle || '',
       avatar: author.avatar || null
     },
@@ -122,7 +156,64 @@ function mapNotificationEntry (entry, subjectMap) {
       embed: record.embed || null
     },
     subject,
-    raw: entry
+    raw: entry,
+    additionalCount
+  }
+}
+
+function mapSearchPost (post) {
+  if (!post) return null
+  const author = post.author || {}
+  const record = post.record || {}
+  return {
+    uri: post.uri || null,
+    cid: post.cid || null,
+    text: record.text || '',
+    createdAt: record.createdAt || post.indexedAt || null,
+    author: {
+      handle: author.handle || '',
+      did: author.did || '',
+      displayName: author.displayName || author.handle || '',
+      avatar: author.avatar || null
+    },
+    stats: {
+      likeCount: post.likeCount ?? 0,
+      repostCount: post.repostCount ?? 0,
+      replyCount: post.replyCount ?? 0
+    },
+    raw: { post }
+  }
+}
+
+function mapSearchActor (actor) {
+  if (!actor) return null
+  return {
+    did: actor.did || null,
+    handle: actor.handle || '',
+    displayName: actor.displayName || actor.handle || '',
+    description: actor.description || '',
+    avatar: actor.avatar || null,
+    indexedAt: actor.indexedAt || actor.createdAt || null,
+    viewer: actor.viewer || null,
+    labels: actor.labels || []
+  }
+}
+
+function mapSearchFeed (feed) {
+  if (!feed) return null
+  const creator = feed.creator || {}
+  return {
+    uri: feed.uri || null,
+    cid: feed.cid || null,
+    displayName: feed.displayName || '',
+    description: feed.description || '',
+    likeCount: feed.likeCount ?? feed.likes ?? 0,
+    avatar: feed.avatar || null,
+    creator: {
+      handle: creator.handle || '',
+      displayName: creator.displayName || creator.handle || '',
+      avatar: creator.avatar || null
+    }
   }
 }
 
@@ -186,6 +277,35 @@ async function cleanupMediaFiles (files = [], contextLabel = 'post') {
   }))
 }
 
+function sanitizeExternalPreview (input) {
+  if (!input || typeof input !== 'object') return null
+  const rawUri = typeof input.uri === 'string' ? input.uri.trim() : ''
+  if (!rawUri) return null
+  let parsed
+  try {
+    parsed = new URL(rawUri)
+  } catch {
+    return null
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return null
+  const trimAndLimit = (value, max) => {
+    if (!value) return ''
+    return String(value).replace(/\s+/g, ' ').trim().slice(0, max)
+  }
+  const safe = {
+    uri: parsed.toString()
+  }
+  const title = trimAndLimit(input.title || '', 300)
+  if (title) safe.title = title
+  const description = trimAndLimit(input.description || '', 1000)
+  if (description) safe.description = description
+  const image = typeof input.image === 'string' ? input.image.trim() : ''
+  if (image) safe.image = image
+  const domain = trimAndLimit(input.domain || parsed.hostname.replace(/^www\./, ''), 120)
+  if (domain) safe.domain = domain
+  return safe
+}
+
 /**
  * GET /api/bsky/timeline?tab=discover|following&limit=..&cursor=..
  * Liefert je nach Tab entweder die persönliche Timeline oder einen offiziellen Feed-Generator.
@@ -247,9 +367,18 @@ async function getNotifications (req, res) {
     const notifications = Array.isArray(data?.notifications) ? data.notifications : []
     const subjectUris = Array.from(
       new Set(
-        notifications
-          .map((entry) => entry?.reasonSubject)
-          .filter((uri) => typeof uri === 'string' && uri.startsWith('at://'))
+        notifications.flatMap((entry) => {
+          const list = []
+          const reasonSubject = entry?.reasonSubject
+          if (typeof reasonSubject === 'string' && reasonSubject.startsWith('at://')) {
+            list.push(reasonSubject)
+          }
+          const recordSubjectUri = entry?.record?.subject?.uri
+          if (typeof recordSubjectUri === 'string' && recordSubjectUri.startsWith('at://')) {
+            list.push(recordSubjectUri)
+          }
+          return list
+        })
       )
     )
     let subjectMap = new Map()
@@ -260,8 +389,9 @@ async function getNotifications (req, res) {
         .filter((item) => item?.uri)
       subjectMap = new Map(mappedPosts.map((item) => [item.uri, item]))
     }
-    const items = notifications
-      .map((entry) => mapNotificationEntry(entry, subjectMap))
+    const aggregated = aggregateNotificationEntries(notifications)
+    const items = aggregated
+      .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
       .filter(Boolean)
     if (markSeen) {
       try {
@@ -315,6 +445,62 @@ async function getReactions(req, res) {
   }
 }
 
+async function search (req, res) {
+  try {
+    const type = String(req.query?.type || 'top').toLowerCase()
+    const q = String(req.query?.q || '').trim()
+    if (!q) return res.status(400).json({ error: 'q erforderlich' })
+    const limit = Math.min(Math.max(parseInt(req.query?.limit || '25', 10) || 25, 1), 50)
+    const cursor = req.query?.cursor || undefined
+
+    if (type === 'people') {
+      const data = await bsky.searchProfiles({ q, limit, cursor })
+      const items = Array.isArray(data?.actors) ? data.actors.map(mapSearchActor).filter(Boolean) : []
+      return res.json({ items, cursor: data?.cursor || null, type: 'people' })
+    }
+
+    if (type === 'feeds') {
+      const data = await bsky.searchFeeds({ q, limit, cursor })
+      const items = Array.isArray(data?.feeds) ? data.feeds.map(mapSearchFeed).filter(Boolean) : []
+      return res.json({ items, cursor: data?.cursor || null, type: 'feeds' })
+    }
+
+    const sort = type === 'latest' ? 'latest' : 'top'
+    const data = await bsky.searchPosts({ q, limit, cursor, sort })
+    const posts = Array.isArray(data?.posts) ? data.posts.map(mapSearchPost).filter(Boolean) : []
+    return res.json({ items: posts, cursor: data?.cursor || null, type: sort })
+  } catch (error) {
+    log.error('search failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Suche fehlgeschlagen.' })
+  }
+}
+
+async function getProfile (req, res) {
+  const actor = String(req.query?.actor || '').trim()
+  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  try {
+    const data = await bsky.getProfile(actor)
+    if (!data) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' })
+    const profile = {
+      did: data.did || null,
+      handle: data.handle || '',
+      displayName: data.displayName || data.handle || '',
+      avatar: data.avatar || null,
+      description: data.description || '',
+      followersCount: data.followersCount ?? 0,
+      followsCount: data.followsCount ?? 0,
+      postsCount: data.postsCount ?? 0,
+      viewer: data.viewer || null,
+      labels: data.labels || [],
+      associated: data.associated || null
+    }
+    return res.json({ profile })
+  } catch (error) {
+    log.error('getProfile failed', { error: error?.message || String(error), actor })
+    return res.status(500).json({ error: error?.message || 'Profil konnte nicht geladen werden.' })
+  }
+}
+
 async function postReply(req, res) {
   try {
     const text = String(req.body?.text || '').trim()
@@ -335,6 +521,8 @@ async function postReply(req, res) {
     const media = await collectMediaFromTemp(mediaInput, 'postReply')
 
     const payload = { content: text, reply: { root, parent } }
+    const externalPreview = sanitizeExternalPreview(req.body?.external)
+    if (externalPreview) payload.external = externalPreview
     if (media.length > 0) payload.media = media
 
     const mediaPaths = media.map((item) => item?.path).filter(Boolean)
@@ -373,6 +561,8 @@ async function postNow(req, res) {
 
     const payload = { content: text }
     if (media.length > 0) payload.media = media
+    const externalPreview = sanitizeExternalPreview(req.body?.external)
+    if (externalPreview) payload.external = externalPreview
     if (hasQuote) payload.quote = { uri: quoteUri, cid: quoteCid }
 
     const mediaPaths = media.map((item) => item?.path).filter(Boolean)
@@ -389,4 +579,4 @@ async function postNow(req, res) {
   }
 }
 
-module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow }
+module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search, getProfile }

@@ -8,35 +8,64 @@
  */
 
 try { require('module-alias/register'); } catch { /* Aliases optional at runtime */ }
+require('express-async-errors');
 const express = require("express");
+const helmet = require("helmet");
 const path = require("path");
 const fs = require("fs");
 const { login: loginBluesky } = require("@core/services/blueskyClient");
-const bskyController = require("@api/controllers/bskyController");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("@core/services/mastodonClient");
 const { startScheduler } = require("@core/services/scheduler");
-const settingsController = require("@api/controllers/settingsController");
-const skeetController = require("@api/controllers/skeetController");
-const threadController = require("@api/controllers/threadController");
-const importExportController = require("@api/controllers/importExportController");
-const engagementController = require("@api/controllers/engagementController");
-const configController = require("@api/controllers/configController");
-const tenorController = require("@api/controllers/tenorController");
-const bskyActionsController = require("@api/controllers/bskyActionsController");
-const maintenanceController = require("@api/controllers/maintenanceController");
-const mediaController = require("@api/controllers/mediaController");
-const uploadController = require("@api/controllers/uploadController");
-const credentialsController = require("@api/controllers/credentialsController");
-const heartbeatController = require("@api/controllers/heartbeatController");
-const previewController = require("@api/controllers/previewController");
 const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
 const { sequelize } = require("@data/models");
 const { createLogger } = require("@utils/logging");
-const { sseHandler } = require("@core/services/events");
 const appLog = createLogger('app');
 
+const LOGGED_BODY_LIMIT = Number(process.env.ERROR_BODY_LOG_LIMIT || 1024);
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+const parsedStaticAge = Number(process.env.STATIC_MAX_AGE_SECONDS);
+const STATIC_CACHE_MAX_AGE_SECONDS = Number.isFinite(parsedStaticAge) ? parsedStaticAge : ONE_YEAR_SECONDS;
+
+const summarizeBody = (payload) => {
+  if (payload == null) return undefined;
+  if (typeof payload === 'string') {
+    if (payload.length <= LOGGED_BODY_LIMIT) return payload;
+    return `${payload.slice(0, LOGGED_BODY_LIMIT)}... [truncated ${payload.length - LOGGED_BODY_LIMIT} chars]`;
+  }
+  if (Buffer.isBuffer(payload)) return `<Buffer length=${payload.length}>`;
+  if (Array.isArray(payload)) return `[array length=${payload.length}]`;
+  if (typeof payload === 'object') {
+    const summary = {};
+    for (const [key, value] of Object.entries(payload)) {
+      if (value == null) {
+        summary[key] = value;
+      } else if (typeof value === 'string') {
+        summary[key] = value.length <= LOGGED_BODY_LIMIT
+          ? value
+          : `${value.slice(0, LOGGED_BODY_LIMIT)}... [truncated]`;
+      } else if (Buffer.isBuffer(value)) {
+        summary[key] = `<Buffer length=${value.length}>`;
+      } else if (typeof value === 'object') {
+        summary[key] = Array.isArray(value) ? `[array length=${value.length}]` : '[object]';
+      } else {
+        summary[key] = value;
+      }
+    }
+    return summary;
+  }
+  return payload;
+};
+
 const app = express();
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "*"],
+    },
+  },
+}));
 const PORT = config.PORT;
 // Hinweis: Nach dem Umzug liegt das Dashboard außerhalb von __dirname.
 // Wir referenzieren es deshalb relativ zum Projekt-Root (process.cwd()).
@@ -55,86 +84,19 @@ try {
   const TEMP_DIR = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp');
   app.use('/temp', express.static(TEMP_DIR));
 } catch (e) { appLog.error("Fehler beim Bereitstellen des temporären Upload-Verzeichnisses", { error: e?.message || String(e) }); }
-app.use(express.static(DIST_DIR));
+app.use(express.static(DIST_DIR, {
+  maxAge: STATIC_CACHE_MAX_AGE_SECONDS * 1000,
+  immutable: true,
+  index: false
+}));
 // Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
 const JSON_LIMIT_MB = Number(process.env.JSON_BODY_LIMIT_MB || 25);
 app.use(express.json({ limit: `${JSON_LIMIT_MB}mb` }));
 app.use(express.urlencoded({ extended: true, limit: `${JSON_LIMIT_MB}mb` }));
 
 // API-Routen
-app.get("/api/skeets", skeetController.getSkeets);
-app.post("/api/skeets", skeetController.createSkeet);
-app.patch("/api/skeets/:id", skeetController.updateSkeet);
-app.delete("/api/skeets/:id", skeetController.deleteSkeet);
-app.post("/api/skeets/:id/retract", skeetController.retractSkeet);
-app.post("/api/skeets/:id/restore", skeetController.restoreSkeet);
-// Direktveröffentlichung (ohne Scheduler)
-app.post("/api/skeets/:id/publish-now", skeetController.publishNow);
-
-app.get("/api/threads/export", importExportController.exportThreads);
-app.get("/api/threads", threadController.listThreads);
-app.get("/api/threads/:id", threadController.getThread);
-app.post("/api/threads", threadController.createThread);
-app.patch("/api/threads/:id", threadController.updateThread);
-app.delete("/api/threads/:id", threadController.deleteThread);
-app.post("/api/threads/:id/retract", threadController.retractThread);
-app.post("/api/threads/:id/restore", threadController.restoreThread);
-// Direktveröffentlichung (ohne Scheduler)
-app.post("/api/threads/:id/publish-now", threadController.publishNow);
-app.post("/api/threads/:id/engagement/refresh", threadController.refreshEngagement);
-app.post("/api/threads/engagement/refresh-all", threadController.refreshAllEngagement);
-app.post("/api/threads/import", importExportController.importThreads);
-
-app.get("/api/skeets/export", importExportController.exportPlannedSkeets);
-app.post("/api/skeets/import", importExportController.importPlannedSkeets);
-
-// Tenor GIF proxy
-app.get("/api/tenor/featured", tenorController.featured);
-app.get("/api/tenor/search", tenorController.search);
-
-app.get("/api/reactions/:skeetId", engagementController.getReactions);
-app.get("/api/replies/:skeetId", engagementController.getReplies);
-app.post("/api/engagement/refresh-many", engagementController.refreshMany);
-app.get("/api/settings/scheduler", settingsController.getSchedulerSettings);
-app.put("/api/settings/scheduler", settingsController.updateSchedulerSettings);
-// Client-Polling-Konfiguration
-app.get("/api/settings/client-polling", settingsController.getClientPollingSettings);
-app.put("/api/settings/client-polling", settingsController.updateClientPollingSettings);
-app.get("/api/client-config", configController.getClientConfig);
-// Link-Preview für Composer
-app.get("/api/preview", previewController.getExternalPreview);
-// Bluesky Interaktionen
-app.post("/api/bsky/like", bskyActionsController.like);
-app.delete("/api/bsky/like", bskyActionsController.unlike);
-app.post("/api/bsky/repost", bskyActionsController.repost);
-app.delete("/api/bsky/repost", bskyActionsController.unrepost);
-// Bluesky utility
-app.get("/api/bsky/reactions", bskyController.getReactions);
-app.get("/api/bsky/thread", bskyController.getThread);
-app.get("/api/bsky/notifications", bskyController.getNotifications);
-app.post("/api/bsky/reply", bskyController.postReply);
-app.post("/api/bsky/post", bskyController.postNow);
-// Maintenance utilities (no auth yet – use behind trusted network)
-app.post("/api/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
-// Zugangsdaten (nur Admin-Nutzung; speichert in .env-Zieldatei)
-app.get("/api/config/credentials", credentialsController.getCredentials);
-app.put("/api/config/credentials", credentialsController.updateCredentials);
-// Client-Heartbeat (Präsenz)
-app.post("/api/heartbeat", heartbeatController.postHeartbeat);
-
-// Server-Sent Events (UI Push-Updates)
-app.get('/api/events', (req, res) => sseHandler(req, res));
-
-// Media (JSON upload: { filename, mime, data(base64), altText? })
-app.post("/api/threads/:id/segments/:sequence/media", mediaController.addMedia);
-app.patch("/api/media/:mediaId", mediaController.updateMedia);
-app.delete("/api/media/:mediaId", mediaController.deleteMedia);
-// Skeet media
-app.post("/api/skeets/:id/media", mediaController.addSkeetMedia);
-app.patch("/api/skeet-media/:mediaId", mediaController.updateSkeetMedia);
-app.delete("/api/skeet-media/:mediaId", mediaController.deleteSkeetMedia);
-// Temp uploads for thread draft media
-app.post("/api/uploads/temp", uploadController.uploadTemp);
+const apiRoutes = require('@api/routes');
+app.use('/api', apiRoutes);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {
@@ -162,6 +124,23 @@ app.use((req, res, next) => {
     res.set('Pragma', 'no-cache');
     res.sendFile(INDEX_HTML);
   });
+});
+
+// Zentrale Fehlerbehandlung
+app.use((err, req, res, next) => {
+  appLog.error('Unerwarteter API-Fehler', { 
+    error: err.message, 
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: summarizeBody(req.body)
+  });
+  
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  res.status(500).json({ error: 'Ein interner Serverfehler ist aufgetreten.' });
 });
 
 // Init-Pipeline: Logins, DB-Setup und Scheduler-Start.
@@ -243,5 +222,3 @@ app.use((req, res, next) => {
     appLog.error("Fehler beim Initialisieren des Servers", { error: err?.message || String(err) });
   }
 })();
-// Bluesky Client proxy endpoints
-app.get("/api/bsky/timeline", bskyController.getTimeline);

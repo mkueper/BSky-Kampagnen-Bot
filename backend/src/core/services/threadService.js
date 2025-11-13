@@ -1,4 +1,6 @@
 const { ValidationError } = require("sequelize");
+const config = require("@config");
+const { parseDatetimeLocal, DATETIME_LOCAL_REGEX } = require("@utils/timezone");
 const { sequelize, Thread, ThreadSkeet, SkeetReaction, ThreadSkeetMedia } = require("@data/models");
 const fs = require('fs');
 const path = require('path');
@@ -48,16 +50,12 @@ function parseOptionalDate(value) {
   if (value == null || value === "") {
     return null;
   }
-  // Treat HTML datetime-local (no timezone) as local time to avoid UTC shifts
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    const [datePart, timePart] = value.split('T');
-    const [y, m, d] = datePart.split('-').map((n) => Number(n));
-    const [hh, mm] = timePart.split(':').map((n) => Number(n));
-    const dt = new Date(y, (m - 1), d, hh, mm, 0, 0); // local time
-    if (Number.isNaN(dt.getTime())) {
+  if (typeof value === 'string' && DATETIME_LOCAL_REGEX.test(value)) {
+    try {
+      return parseDatetimeLocal(value, config.TIME_ZONE);
+    } catch {
       throw new ValidationError("scheduledAt ist kein gültiges Datum.");
     }
-    return dt;
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {

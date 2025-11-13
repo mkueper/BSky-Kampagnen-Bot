@@ -1,4 +1,5 @@
 import PlatformBadges from "./PlatformBadges";
+import ContentWithLinkPreview from "./ContentWithLinkPreview";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
@@ -24,14 +25,18 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
                   Gelöscht am <span className="font-medium text-foreground">{formatTime(skeet.deletedAt)}</span>
                 </p>
               ) : null}
-              <p className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words">{skeet.content}</p>
+              <ContentWithLinkPreview
+                content={skeet.content}
+                mediaCount={Array.isArray(skeet.media) ? skeet.media.length : 0}
+                className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words"
+              />
               {skeet.targetPlatforms?.length > 0 && (
                 <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
                   {skeet.targetPlatforms.join(" • ")}
                 </p>
               )}
             </div>
-            <div className="flex flex-shrink-0 items-center gap-2 self-end md:self-start">
+            <div className="flex w-full flex-wrap items-center gap-2 self-end md:w-auto md:self-start md:justify-end">
               <Button variant="primary" onClick={() => onRestore(skeet)}>Reaktivieren</Button>
               <Button variant="destructive" onClick={() => onPermanentDelete(skeet)}>Endgültig löschen</Button>
             </div>
