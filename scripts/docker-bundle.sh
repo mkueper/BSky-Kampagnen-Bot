@@ -25,6 +25,7 @@ PROJECT_CONTENT=(
   "backend"
   "config"
   "migrations"
+  "packages/media-pickers"
   "tsconfig.json"
   "tsconfig.build.json"
   "README.md"
@@ -41,6 +42,11 @@ mkdir -p "${APP_DIR}"
 
 echo "Bundele Backend-Basis in ${APP_DIR}" >&2
 tar -cf - "${PROJECT_CONTENT[@]}" | tar -xf - -C "${APP_DIR}"
+
+# medias-pickers: node_modules entfernen, da lokale Symlink-Struktur sonst unnötig groß ist
+if [[ -d "${APP_DIR}/packages/media-pickers/node_modules" ]]; then
+  rm -rf "${APP_DIR}/packages/media-pickers/node_modules"
+fi
 
 if [[ -d dashboard ]]; then
   echo "Füge Dashboard-Quellcode hinzu (ohne node_modules/dist)" >&2
