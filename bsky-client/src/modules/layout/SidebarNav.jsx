@@ -39,7 +39,7 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
           const isActive = active === item.id;
           const disabled = Boolean(item.disabled);
           const showBadge = item.id === 'notifications' && notificationsUnread > 0;
-          const badgeLabel = notificationsUnread > 99 ? '99+' : String(notificationsUnread);
+          const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread);
           const label = showBadge ? `${item.label} (${badgeLabel} neu)` : item.label;
           return (
             <button
