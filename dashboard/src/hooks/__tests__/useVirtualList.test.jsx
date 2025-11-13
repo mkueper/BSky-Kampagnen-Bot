@@ -1,3 +1,4 @@
+import { describe, it, beforeAll, afterEach, expect } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useVirtualList } from '../useVirtualList'
 
@@ -24,7 +25,7 @@ class ResizeObserverMock {
 
 describe('useVirtualList', () => {
   beforeAll(() => {
-    global.ResizeObserver = ResizeObserverMock
+    globalThis.ResizeObserver = ResizeObserverMock
   })
 
   afterEach(() => {
