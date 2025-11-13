@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
@@ -6,10 +6,24 @@ import { useComposer } from './hooks/useComposer'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Button, fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
-import { Timeline, ThreadView } from './modules/timeline/index.js'
-import { SearchView } from './modules/search/index.js'
-import { Notifications } from './modules/notifications/index.js'
-import { Modals } from './modules/layout/Modals.jsx'
+import { Timeline } from './modules/timeline/index.js'
+
+const SearchViewLazy = lazy(async () => {
+  const module = await import('./modules/search/index.js')
+  return { default: module.SearchView }
+})
+const NotificationsLazy = lazy(async () => {
+  const module = await import('./modules/notifications/index.js')
+  return { default: module.Notifications }
+})
+const ThreadViewLazy = lazy(() => import('./modules/timeline/ThreadView.jsx'))
+const ModalsLazy = lazy(() => import('./modules/layout/Modals.jsx'))
+
+const SectionFallback = ({ label = 'Bereich' }) => (
+  <div className='rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground-muted'>
+    {label} wird geladen…
+  </div>
+)
 
 export default function BskyClientApp () {
   const {
@@ -121,6 +135,19 @@ export default function BskyClientApp () {
 
   const topBlock = null
 
+  const threadPanel = threadState.active ? (
+    <Suspense fallback={<SectionFallback label='Thread' />}>
+      <ThreadViewLazy
+        state={threadState}
+        onReload={reloadThread}
+        onReply={openReplyComposer}
+        onQuote={openQuoteComposer}
+        onViewMedia={openMediaPreview}
+        onSelectPost={selectThreadFromItem}
+      />
+    </Suspense>
+  ) : null
+
   const homeContent = (
     <div className='space-y-6'>
       <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
@@ -139,37 +166,32 @@ export default function BskyClientApp () {
           }}
         />
       </div>
-      {threadState.active ? (
-        <ThreadView
-          state={threadState}
-          onReload={reloadThread}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onViewMedia={openMediaPreview}
-          onSelectPost={selectThreadFromItem}
-        />
-      ) : null}
+      {threadPanel}
     </div>
   )
 
   let secondaryContent = null
   if (section === 'search') secondaryContent = (
-    <SearchView
-      onSelectPost={selectThreadFromItem}
-      onReply={openReplyComposer}
-      onQuote={openQuoteComposer}
-      onViewMedia={openMediaPreview}
-    />
-  )
-  else if (section === 'notifications') {
-    secondaryContent = (
-      <Notifications
-        refreshKey={notificationsRefreshTick}
+    <Suspense fallback={<SectionFallback label='Suche' />}>
+      <SearchViewLazy
         onSelectPost={selectThreadFromItem}
         onReply={openReplyComposer}
         onQuote={openQuoteComposer}
-        onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+        onViewMedia={openMediaPreview}
       />
+    </Suspense>
+  )
+  else if (section === 'notifications') {
+    secondaryContent = (
+      <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
+        <NotificationsLazy
+          refreshKey={notificationsRefreshTick}
+          onSelectPost={selectThreadFromItem}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+        />
+      </Suspense>
     )
   }
   else if (section === 'chat') secondaryContent = <div className='text-sm text-muted-foreground'>Chat folgt</div>
@@ -229,7 +251,9 @@ export default function BskyClientApp () {
         </div>
         {section === 'home' ? null : secondaryContent}
       </BskyClientLayout>
-      <Modals />
+      <Suspense fallback={null}>
+        <ModalsLazy />
+      </Suspense>
     </>
   )
 }
