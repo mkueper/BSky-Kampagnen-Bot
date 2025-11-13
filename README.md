@@ -207,6 +207,7 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 - **Manuelle Checks:** `npm run start:dev` (Backend) + neues Build des Dashboards (`npm run build:frontend`).
 - **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
 - **Client-Tests:** `npm run test --workspace bsky-client` führt die Vitest-Suite (React Testing Library) für den integrierten Bluesky-Client aus; für den Watch-Modus steht `npm run test:watch --workspace bsky-client` zur Verfügung.
+- **Dashboard-Tests:** `npm run test --workspace dashboard` deckt die UI-spezifische Vitest-Suite (Hooks + Komponenten) ab, u. a. Virtualisierung der Skeet-/Thread-Listen sowie die neuen Lazy-Boundaries.
 - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
  - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
