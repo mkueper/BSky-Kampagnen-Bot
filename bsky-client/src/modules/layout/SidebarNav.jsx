@@ -60,11 +60,14 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
             >
               {Icon ? <Icon className="h-10 w-10 shrink-0" /> : null}
               <span className="hidden xl:inline truncate">{item.label}</span>
-              {showBadge ? (
-                <span className="absolute top-2 right-2 inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground shadow-sm xl:static xl:ml-2">
-                  {badgeLabel}
-                </span>
-              ) : null}
+              <span
+                className={`absolute top-2 right-2 xl:static xl:ml-1 xl:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
+                  showBadge ? 'opacity-100' : 'opacity-0'
+                }`}
+                aria-hidden={!showBadge}
+              >
+                {badgeLabel}
+              </span>
             </button>
           );
         })}
