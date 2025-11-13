@@ -10,14 +10,20 @@ import { Timeline } from './modules/timeline/index.js'
 
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
-  return { default: module.SearchView }
+  return { default: module.SearchView ?? module.default }
 })
 const NotificationsLazy = lazy(async () => {
   const module = await import('./modules/notifications/index.js')
-  return { default: module.Notifications }
+  return { default: module.Notifications ?? module.default }
 })
-const ThreadViewLazy = lazy(() => import('./modules/timeline/ThreadView.jsx'))
-const ModalsLazy = lazy(() => import('./modules/layout/Modals.jsx'))
+const ThreadViewLazy = lazy(async () => {
+  const module = await import('./modules/timeline/ThreadView.jsx')
+  return { default: module.default }
+})
+const ModalsLazy = lazy(async () => {
+  const module = await import('./modules/layout/Modals.jsx')
+  return { default: module.default }
+})
 
 const SectionFallback = ({ label = 'Bereich' }) => (
   <div className='rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground-muted'>
