@@ -10,7 +10,13 @@ COPY dashboard/package*.json ./dashboard/
 COPY bsky-client/package*.json ./bsky-client/
 
 # Installiere alle Workspaces (inkl. Root, falls benötigt)
-RUN npm ci --workspaces --include-workspace-root
+# Installiere nur die benötigten Workspaces (Backend wird für Shared Scripts/Config benötigt)
+RUN npm ci \
+  --workspace backend \
+  --workspace dashboard \
+  --workspace bsky-client \
+  --workspace packages/media-pickers \
+  --include-workspace-root
 
 # Quellcode kopieren (gefiltert durch .dockerignore)
 COPY . .
