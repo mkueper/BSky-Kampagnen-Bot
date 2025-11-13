@@ -25,5 +25,6 @@
 
 ### Backend
 - Validation-Helfer fuer `scheduledAt` verzichten auf ungenutzte Catch-Argumente und bleiben damit ESLint-konform.
+- Bluesky-Feed-Suche nutzt nun das offizielle `searchFeedGenerators`-API des `AtpAgent` (mit Fallback auf einen direkten XRPC-Call), womit „Cannot read properties of undefined (reading 'get')“ beim Tab „Feeds“ behoben ist.
 
 # (automatisch geleert nach Release)

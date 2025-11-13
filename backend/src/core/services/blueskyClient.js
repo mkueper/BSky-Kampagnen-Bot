@@ -311,10 +311,14 @@ module.exports = {
   },
   async searchFeeds({ q, limit = 25, cursor } = {}) {
     await ensureLoggedIn();
-    const res = await agent.rpc.get({
-      method: 'app.bsky.feed.searchFeedGenerators',
-      params: { q, limit, cursor }
-    });
+    const params = { q, limit, cursor };
+    // Neuere Versionen von @atproto/api stellen searchFeedGenerators bereit.
+    if (typeof agent.app?.bsky?.feed?.searchFeedGenerators === 'function') {
+      const res = await agent.app.bsky.feed.searchFeedGenerators(params);
+      return res?.data ?? { feeds: [], cursor: null };
+    }
+    // Rückfall: direkte XRPC-Call
+    const res = await agent.call('app.bsky.feed.searchFeedGenerators', params);
     return res?.data ?? { feeds: [], cursor: null };
   },
 };
