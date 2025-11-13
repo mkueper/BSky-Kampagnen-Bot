@@ -4,9 +4,10 @@ import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
 import { BskyClientLayout } from './modules/layout/index.js'
+import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Button, fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
-import { Timeline } from './modules/timeline/index.js'
+import { Timeline, ThreadView } from './modules/timeline/index.js'
 
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
@@ -16,15 +17,6 @@ const NotificationsLazy = lazy(async () => {
   const module = await import('./modules/notifications/index.js')
   return { default: module.Notifications ?? module.default }
 })
-const ThreadViewLazy = lazy(async () => {
-  const module = await import('./modules/timeline/ThreadView.jsx')
-  return { default: module.default }
-})
-const ModalsLazy = lazy(async () => {
-  const module = await import('./modules/layout/Modals.jsx')
-  return { default: module.default }
-})
-
 const SectionFallback = ({ label = 'Bereich' }) => (
   <div className='rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground-muted'>
     {label} wird geladen…
@@ -141,19 +133,6 @@ export default function BskyClientApp () {
 
   const topBlock = null
 
-  const threadPanel = threadState.active ? (
-    <Suspense fallback={<SectionFallback label='Thread' />}>
-      <ThreadViewLazy
-        state={threadState}
-        onReload={reloadThread}
-        onReply={openReplyComposer}
-        onQuote={openQuoteComposer}
-        onViewMedia={openMediaPreview}
-        onSelectPost={selectThreadFromItem}
-      />
-    </Suspense>
-  ) : null
-
   const homeContent = (
     <div className='space-y-6'>
       <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
@@ -172,7 +151,16 @@ export default function BskyClientApp () {
           }}
         />
       </div>
-      {threadPanel}
+      {threadState.active ? (
+        <ThreadView
+          state={threadState}
+          onReload={reloadThread}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onViewMedia={openMediaPreview}
+          onSelectPost={selectThreadFromItem}
+        />
+      ) : null}
     </div>
   )
 
@@ -257,9 +245,7 @@ export default function BskyClientApp () {
         </div>
         {section === 'home' ? null : secondaryContent}
       </BskyClientLayout>
-      <Suspense fallback={null}>
-        <ModalsLazy />
-      </Suspense>
+      <Modals />
     </>
   )
 }

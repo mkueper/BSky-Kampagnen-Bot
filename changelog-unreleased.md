@@ -23,7 +23,7 @@
 - Neue UI-Helfer (`useVirtualList`) synchronisieren Scroll-Container-Hoehen, so dass Floating-Toolbars samt „sichtbare aktualisieren“-Aktionen weiterhin korrekt funktionieren.
 - Skeet- und Thread-Formulare wählen automatisch Bluesky+Mastodon vor, sobald eine Mastodon-Verbindung aktiv ist; Highlight-Snapping im Dashboard entfällt zugunsten weicherer Übergänge.
 - Navigation und Mitteilungs-Header zeigen die Anzahl ungelesener Mitteilungen, inklusive periodischer Aktualisierung im Hintergrund.
-- Bsky-Client lädt Such-/Mitteilungs-/Thread-Ansichten sowie Modals nun per `React.lazy`, ergänzt um manuelle Rollup-Chunks für React/Radix – dadurch schrumpft das Initialbundle und sekundäre Bereiche werden erst bei Bedarf geladen.
+- Bsky-Client lädt Suche und Mitteilungen nun per `React.lazy` und trennt React/Radix in eigene Rollup-Chunks – dadurch schrumpft das Initialbundle und sekundäre Bereiche werden erst bei Bedarf geladen.
 
 ### Backend
 - Validation-Helfer fuer `scheduledAt` verzichten auf ungenutzte Catch-Argumente und bleiben damit ESLint-konform.
