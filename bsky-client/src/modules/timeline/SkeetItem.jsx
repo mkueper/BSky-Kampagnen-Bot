@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChatBubbleIcon, HeartIcon, HeartFilledIcon, Share2Icon, DotsHorizontalIcon, Link2Icon, CopyIcon, ExternalLinkIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons'
+import {
+  ChatBubbleIcon,
+  HeartIcon,
+  HeartFilledIcon,
+  Share2Icon,
+  DotsHorizontalIcon,
+  Link2Icon,
+  CopyIcon,
+  ExternalLinkIcon,
+  ExclamationTriangleIcon,
+  QuestionMarkCircledIcon,
+  SpeakerLoudIcon,
+  MixerVerticalIcon,
+  EyeClosedIcon,
+  PersonIcon,
+  CrossCircledIcon
+} from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger } from '../shared'
 
@@ -251,6 +267,51 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       document.removeEventListener('pointerdown', handler)
     }
   }, [optionsOpen])
+
+
+  const copyToClipboard = async (value, successMessage = 'Kopiert') => {
+    if (!value) return
+    const fallback = () => window.prompt('Zum Kopieren', value)
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+        setFeedbackMessage(successMessage)
+        window.setTimeout(() => setFeedbackMessage(''), 2400)
+      } else {
+        fallback()
+      }
+    } catch {
+      fallback()
+    }
+  }
+
+  const showPlaceholder = (label) => {
+    setFeedbackMessage(`${label} ist noch nicht verfügbar.`)
+    window.setTimeout(() => setFeedbackMessage(''), 2400)
+  }
+
+  const menuActions = useMemo(() => [
+    {
+      label: 'Uebersetzen (Google)',
+      icon: QuestionMarkCircledIcon,
+      action: () => {
+        const target = encodeURIComponent(text || '')
+        if (!target) { showPlaceholder('Uebersetzung'); return }
+        const lang = (navigator?.language || 'en').split('-')[0] || 'en'
+        const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    },
+    { label: 'Post-Text kopieren', icon: CopyIcon, action: () => copyToClipboard(String(text || ''), 'Text kopiert') },
+    { label: 'Link kopieren', icon: Link2Icon, action: () => copyToClipboard(shareUrl, 'Link kopiert') },
+    { label: 'Thread stummschalten', icon: SpeakerLoudIcon, action: () => showPlaceholder('Thread stummschalten') },
+    { label: 'Woerter/Tags stummschalten', icon: MixerVerticalIcon, action: () => showPlaceholder('Wort-Filter') },
+    { label: 'Post ausblenden', icon: EyeClosedIcon, action: () => showPlaceholder('Post ausblenden') },
+    { label: 'Account stummschalten', icon: PersonIcon, action: () => showPlaceholder('Account stummschalten') },
+    { label: 'Account blockieren', icon: CrossCircledIcon, action: () => showPlaceholder('Account blockieren') },
+    { label: 'In Bluesky öffnen', icon: ExternalLinkIcon, action: () => { if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer') } },
+    { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => showPlaceholder('Melden') }
+  ], [shareUrl, text])
 
   const body = (
     <>
@@ -565,27 +626,3 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     </Wrapper>
   )
 }
-  const copyToClipboard = async (value, successMessage = 'Kopiert') => {
-    if (!value) return
-    const fallback = () => {
-      window.prompt('Zum Kopieren', value)
-    }
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value)
-        setFeedbackMessage(successMessage)
-        window.setTimeout(() => setFeedbackMessage(''), 2400)
-      } else {
-        fallback()
-      }
-    } catch {
-      fallback()
-    }
-  }
-
-  const menuActions = [
-    { label: 'Post-Text kopieren', icon: CopyIcon, action: () => copyToClipboard(String(text || ''), 'Text kopiert') },
-    { label: 'Link kopieren', icon: Link2Icon, action: () => copyToClipboard(shareUrl, 'Link kopiert') },
-    { label: 'In Bluesky öffnen', icon: ExternalLinkIcon, action: () => { if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer') } },
-    { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => { window.alert('Melden ist noch nicht verfügbar.') } }
-  ]
