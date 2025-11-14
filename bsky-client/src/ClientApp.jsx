@@ -1,13 +1,23 @@
-import { useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
+import { useFeedPicker } from './hooks/useFeedPicker'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { Button, fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
+import NewPostsBanner from './modules/layout/NewPostsBanner.jsx'
+import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
+
+const STATIC_TIMELINE_TABS = [
+  { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
+  { id: 'following', label: 'Following', type: 'timeline', value: 'following', origin: 'official' },
+  { id: 'friends-popular', label: 'Popular with Friends', type: 'feed', value: 'friends-popular', feedUri: null, origin: 'official' },
+  { id: 'mutuals', label: 'Mutuals', type: 'feed', value: 'mutuals', feedUri: null, origin: 'official' },
+  { id: 'best-of-follows', label: 'Best of Follows', type: 'feed', value: 'best-of-follows', feedUri: null, origin: 'official' }
+]
 
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
@@ -27,16 +37,58 @@ export default function BskyClientApp () {
   const {
     section,
     timelineTab,
+    timelineSource,
     refreshTick,
     notificationsRefreshTick,
     timelineTopUri,
-    notificationsUnread
+    notificationsUnread,
+    timelineHasNew,
+    timelineLoading
   } = useAppState()
   const dispatch = useAppDispatch()
 
   const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
   const { openComposer, openReplyComposer, openQuoteComposer } = useComposer()
+  const {
+    feedPicker,
+    refreshFeeds: refreshFeedPicker,
+    openFeedManager
+  } = useFeedPicker()
+  const [feedMenuOpen, setFeedMenuOpen] = useState(false)
+
+  const timelineSourceFeedUri = timelineSource?.feedUri || null
+  const timelineSourceId = timelineSource?.id || timelineTab
+  const timelineQueryParams = useMemo(() => {
+    if (timelineSourceFeedUri && timelineSource?.origin === 'pinned') {
+      return { feedUri: timelineSourceFeedUri }
+    }
+    return { tab: timelineSourceId }
+  }, [timelineSourceFeedUri, timelineSourceId, timelineSource?.origin])
+
+  const officialTabs = STATIC_TIMELINE_TABS
+
+  const pinnedTabs = useMemo(() => {
+    return (feedPicker?.pinned || [])
+      .filter((entry) => entry.type === 'feed')
+      .map((entry) => ({
+        id: entry.id,
+        label: entry.displayName || entry.feedUri || 'Feed',
+        feedUri: entry.feedUri || entry.value,
+        value: entry.feedUri || entry.value,
+        type: 'feed',
+        pinned: true,
+        origin: 'pinned'
+      }))
+  }, [feedPicker?.pinned])
+
+  const timelineTabs = officialTabs
+
+  const toggleFeedMenu = useCallback(() => {
+    setFeedMenuOpen((prev) => !prev)
+  }, [])
+
+  const closeFeedMenu = useCallback(() => setFeedMenuOpen(false), [])
 
   const getScrollContainer = useCallback(
     () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
@@ -47,6 +99,10 @@ export default function BskyClientApp () {
   const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
 
   useEffect(() => {
+    refreshFeedPicker({ force: true })
+  }, [refreshFeedPicker])
+
+  useEffect(() => {
     if (section !== 'home') return undefined
     if (!timelineTopUri) return undefined
 
@@ -54,7 +110,7 @@ export default function BskyClientApp () {
 
     const check = async () => {
       try {
-        const { items } = await fetchTimelineApi({ tab: timelineTab, limit: 1 })
+        const { items } = await fetchTimelineApi({ ...timelineQueryParams, limit: 1 })
         const topUri = items?.[0]?.uri || ''
         if (!ignore && topUri && timelineTopUri && topUri !== timelineTopUri) {
           dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: true })
@@ -68,18 +124,27 @@ export default function BskyClientApp () {
       ignore = true
       window.clearInterval(id)
     }
-  }, [section, timelineTab, timelineTopUri, dispatch])
+  }, [section, timelineTopUri, timelineQueryParams, dispatch])
 
-  const handleTimelineTabSelect = useCallback((tabId) => {
+  const handleTimelineTabSelect = useCallback((tabInfo) => {
+    if (!tabInfo) return
+    const nextSource = tabInfo.feedUri && tabInfo.origin === 'pinned'
+      ? { id: tabInfo.id, kind: 'feed', label: tabInfo.label, feedUri: tabInfo.feedUri, origin: 'pinned' }
+      : { id: tabInfo.value || tabInfo.id, kind: tabInfo.type || 'official', label: tabInfo.label, feedUri: null, origin: tabInfo.origin || 'official' }
+    const sameSource =
+      timelineSource?.id === nextSource.id &&
+      (timelineSource?.feedUri || null) === (nextSource.feedUri || null)
+
     if (threadState.active) closeThread({ force: true })
-    if (timelineTab === tabId) {
+    if (sameSource) {
       refreshTimeline()
       return
     }
     dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
     dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: '' })
-    dispatch({ type: 'SET_TIMELINE_TAB', payload: tabId })
-  }, [threadState.active, closeThread, timelineTab, refreshTimeline, dispatch])
+    dispatch({ type: 'SET_TIMELINE_SOURCE', payload: nextSource })
+    closeFeedMenu()
+  }, [threadState.active, closeThread, timelineSource, refreshTimeline, dispatch, closeFeedMenu])
 
   const scrollTimelineToTop = useCallback(() => {
     const el = getScrollContainer()
@@ -87,9 +152,12 @@ export default function BskyClientApp () {
     try {
       el.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
+      if (el.scrollTop < 120) {
+        dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
+      }
       el.scrollTop = 0
     }
-  }, [getScrollContainer])
+  }, [getScrollContainer, dispatch])
 
   const headerContent = useMemo(() => {
     if (section === 'home') {
@@ -104,8 +172,13 @@ export default function BskyClientApp () {
       }
       return (
         <TimelineHeader
-          timelineTab={timelineTab}
+          timelineTab={timelineSource?.id || timelineTab}
+          tabs={timelineTabs}
           onSelectTab={handleTimelineTabSelect}
+          pinnedTabs={pinnedTabs}
+          feedMenuOpen={feedMenuOpen}
+          onToggleFeedMenu={toggleFeedMenu}
+          onCloseFeedMenu={closeFeedMenu}
         />
       )
     }
@@ -123,21 +196,36 @@ export default function BskyClientApp () {
     section,
     threadState.active,
     threadState.loading,
+    timelineSource,
     timelineTab,
+    timelineTabs,
     handleTimelineTabSelect,
     reloadThread,
     closeThread,
     refreshNotifications,
-    notificationsUnread
+    notificationsUnread,
+    openFeedManager,
+    refreshFeedPicker
   ])
 
   const topBlock = null
 
   const homeContent = (
     <div className='space-y-6'>
+      {timelineHasNew ? (
+        <NewPostsBanner
+          visible={timelineHasNew}
+          busy={timelineLoading}
+          onClick={() => {
+            scrollTimelineToTop()
+            refreshTimeline()
+          }}
+        />
+      ) : null}
       <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
         <Timeline
           tab={timelineTab}
+          source={timelineSource}
           refreshKey={refreshTick}
           onLoadingChange={(loading) => dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading })}
           isActive={section === 'home'}
@@ -221,6 +309,12 @@ export default function BskyClientApp () {
 
 
   const handleSelectSection = useCallback((id) => {
+    if (id === 'feeds') {
+      closeFeedMenu()
+      openFeedManager()
+      refreshFeedPicker({ force: true })
+      return
+    }
     if (id === 'notifications') {
       refreshNotifications()
     }
@@ -233,7 +327,7 @@ export default function BskyClientApp () {
     if (threadState.active) closeThread({ force: true })
     dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
     dispatch({ type: 'SET_SECTION', payload: id })
-  }, [closeThread, dispatch, refreshNotifications, refreshTimeline, section, threadState.active])
+  }, [closeFeedMenu, closeThread, dispatch, refreshNotifications, refreshTimeline, section, threadState.active])
 
   return (
     <>

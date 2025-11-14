@@ -4,10 +4,34 @@ import { createContext, useContext, useReducer } from 'react';
 const AppStateContext = createContext();
 const AppDispatchContext = createContext();
 
+const DEFAULT_TIMELINE_SOURCE = {
+  id: 'discover',
+  kind: 'official',
+  label: 'Discover',
+  feedUri: null,
+  origin: 'official'
+};
+
+const initialFeedPickerState = {
+  loading: false,
+  error: '',
+  pinned: [],
+  saved: [],
+  errors: [],
+  lastUpdatedAt: 0,
+  action: {
+    pinning: '',
+    unpinning: '',
+    savingOrder: false,
+    refreshing: false
+  }
+};
+
 const initialState = {
   section: 'home',
   composeOpen: false,
   timelineTab: 'discover',
+  timelineSource: DEFAULT_TIMELINE_SOURCE,
   replyTarget: null,
   quoteTarget: null,
   confirmDiscard: false,
@@ -17,6 +41,8 @@ const initialState = {
   timelineHasNew: false,
   timelineLoading: true,
   timelineReady: false,
+  feedPicker: initialFeedPickerState,
+  feedManagerOpen: false,
   mediaLightbox: { open: false, images: [], index: 0 },
   threadState: { active: false, loading: false, error: '', data: null, uri: null },
   notificationsUnread: 0,
@@ -30,6 +56,15 @@ function appReducer(state, action) {
       return { ...state, composeOpen: action.payload };
     case 'SET_TIMELINE_TAB':
       return { ...state, timelineTab: action.payload };
+    case 'SET_TIMELINE_SOURCE': {
+      const nextSource = action.payload || DEFAULT_TIMELINE_SOURCE;
+      const shouldUpdateTab = nextSource?.origin !== 'pinned';
+      return {
+        ...state,
+        timelineSource: nextSource,
+        timelineTab: shouldUpdateTab ? (nextSource?.id || state.timelineTab) : state.timelineTab
+      };
+    }
     case 'SET_REPLY_TARGET':
       return { ...state, replyTarget: action.payload };
     case 'SET_QUOTE_TARGET':
@@ -64,6 +99,21 @@ function appReducer(state, action) {
       return { ...state, threadState: action.payload };
     case 'SET_NOTIFICATIONS_UNREAD':
       return { ...state, notificationsUnread: action.payload };
+    case 'SET_FEED_PICKER_STATE': {
+      const payload = action.payload || {};
+      const { action: actionPatch, ...rest } = payload;
+      const nextFeedPicker = {
+        ...state.feedPicker,
+        ...rest,
+        action: {
+          ...state.feedPicker.action,
+          ...(actionPatch || {})
+        }
+      };
+      return { ...state, feedPicker: nextFeedPicker };
+    }
+    case 'SET_FEED_MANAGER_OPEN':
+      return { ...state, feedManagerOpen: Boolean(action.payload) };
     default:
       throw new Error(`Unknown action: ${action.type}`);
   }

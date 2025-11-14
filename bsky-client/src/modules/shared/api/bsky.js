@@ -68,9 +68,10 @@ async function requestJson(path, { method = 'GET', body, headers, retries = 1, .
   throw lastError;
 }
 
-export async function fetchTimeline({ tab, cursor, limit } = {}) {
+export async function fetchTimeline({ tab, feedUri, cursor, limit } = {}) {
   const params = createSearchParams();
-  if (tab) params.set('tab', tab);
+  if (feedUri) params.set('feedUri', feedUri);
+  else if (tab) params.set('tab', tab);
   if (cursor) params.set('cursor', cursor);
   if (typeof limit === 'number') params.set('limit', String(limit));
   const query = params.toString();
@@ -159,6 +160,45 @@ export async function fetchProfile(actor) {
   const params = createSearchParams({ actor: normalized });
   const data = await requestJson(`/api/bsky/profile?${params.toString()}`);
   return data?.profile || null;
+}
+
+export async function fetchFeeds () {
+  const data = await requestJson('/api/bsky/feeds');
+  return {
+    official: Array.isArray(data?.official) ? data.official : [],
+    pinned: Array.isArray(data?.pinned) ? data.pinned : [],
+    saved: Array.isArray(data?.saved) ? data.saved : [],
+    errors: Array.isArray(data?.errors) ? data.errors : [],
+  };
+}
+
+export async function pinFeed ({ feedUri }) {
+  if (!feedUri) throw new Error('feedUri erforderlich');
+  return requestJson('/api/bsky/feeds/pin', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: { feedUri }
+  });
+}
+
+export async function unpinFeed ({ feedUri }) {
+  if (!feedUri) throw new Error('feedUri erforderlich');
+  return requestJson('/api/bsky/feeds/pin', {
+    method: 'DELETE',
+    headers: JSON_HEADERS,
+    body: { feedUri }
+  });
+}
+
+export async function reorderPinnedFeeds ({ order }) {
+  if (!Array.isArray(order) || order.length === 0) {
+    throw new Error('order erforderlich');
+  }
+  return requestJson('/api/bsky/feeds/pin-order', {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: { order }
+  });
 }
 
 export { requestJson };
