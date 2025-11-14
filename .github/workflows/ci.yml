@@ -36,3 +36,5 @@ jobs:
       - name: Dashboard tests
         run: npm run test --workspace dashboard
 
+      - name: Bsky client tests
+        run: npm run test --workspace bsky-client
