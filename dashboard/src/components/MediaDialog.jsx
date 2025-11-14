@@ -38,7 +38,7 @@ export default function MediaDialog({
       setAlt(initialAlt || '');
       setError(null);
       setPreviewUrl(previewSrc || null);
-      setLoaded(false);
+      setLoaded(Boolean(previewSrc));
       // Kein Auto-Fokus erzwingen, um Scroll-Jumps zu vermeiden
     }
      
@@ -46,8 +46,8 @@ export default function MediaDialog({
 
   useEffect(() => {
     if (!file) {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+      setPreviewUrl(previewSrc || null);
+      setLoaded(Boolean(previewSrc));
       return () => {};
     }
     const url = URL.createObjectURL(file);
@@ -56,7 +56,7 @@ export default function MediaDialog({
     return () => {
       URL.revokeObjectURL(url);
     };
-  }, [file]);
+  }, [file, previewSrc]);
 
   const validate = (f) => {
     if (mode === 'upload') {
