@@ -58,12 +58,13 @@ const summarizeBody = (payload) => {
 };
 
 const app = express();
+const defaultCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
+defaultCsp["img-src"] = ["'self'", "data:", "blob:", "*"];
+const connectSrc = defaultCsp["connect-src"] || ["'self'"];
+defaultCsp["connect-src"] = Array.from(new Set([...connectSrc, "https://media.tenor.com", "https://cdn.jsdelivr.net"]));
 app.use(helmet({
   contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "img-src": ["'self'", "data:", "*"],
-    },
+    directives: defaultCsp,
   },
 }));
 const PORT = config.PORT;

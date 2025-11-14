@@ -989,34 +989,15 @@ function ThreadForm ({
           onClose={() => setGifPicker({ open: false, index: null })}
           classNames={DASHBOARD_GIF_PICKER_CLASSES}
           styles={DASHBOARD_GIF_PICKER_STYLES}
-          onPick={async ({ id, downloadUrl }) => {
+          onPick={async ({ downloadUrl }) => {
             try {
-              const resp = await fetch('/api/tenor/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  url: downloadUrl,
-                  filename: `tenor-${id || 'gif'}.gif`,
-                  mode: 'base64'
-                })
-              })
-              const info = await resp.json().catch(() => ({}))
-              if (!resp.ok || !info?.dataUrl) {
-                throw new Error(info?.error || 'GIF konnte nicht geladen werden.')
+              const resp = await fetch(downloadUrl)
+              const blob = await resp.blob()
+              if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+                setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
+                return
               }
-              const dataUrl = String(info.dataUrl)
-              const base64 = dataUrl.includes(',') ? dataUrl.split(',').pop() : dataUrl
-              if (!base64 || typeof globalThis.atob !== 'function') {
-                throw new Error('Browser unterstützt base64-Konvertierung nicht.')
-              }
-              const binary = globalThis.atob(base64)
-              const len = binary.length
-              const bytes = new Uint8Array(len)
-              for (let i = 0; i < len; i += 1) {
-                bytes[i] = binary.charCodeAt(i)
-              }
-              const blob = new Blob([bytes], { type: info.mime || 'image/gif' })
-              const file = new File([blob], info.filename || `tenor-${id || 'gif'}.gif`, { type: info.mime || 'image/gif' })
+              const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
               const idx = gifPicker.index
               if (typeof idx === 'number') {
                 await handleUploadMedia(idx, file, '')

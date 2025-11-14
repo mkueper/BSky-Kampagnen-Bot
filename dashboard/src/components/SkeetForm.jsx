@@ -184,7 +184,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   )
 
   const handleRemoveMedia = async (item) => {
-    if (item?.type === 'existing' && item.id) {
+    if (!item) return
+    if (item.type === 'existing' && item.id) {
       try {
         const res = await fetch(`/api/skeet-media/${item.id}`, { method: 'DELETE' })
         if (!res.ok) {
@@ -204,7 +205,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       }
       return
     }
-    if (item?.type === 'pending' && typeof item.pendingIndex === 'number') {
+    if (item.type === 'pending' && typeof item.pendingIndex === 'number') {
       setPendingMedia((arr) => arr.filter((_, idx) => idx !== item.pendingIndex))
     }
   }
@@ -1023,30 +1024,28 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           onClose={() => setGifPicker({ open: false })}
           classNames={DASHBOARD_GIF_PICKER_CLASSES}
           styles={DASHBOARD_GIF_PICKER_STYLES}
-          onPick={async ({ id, downloadUrl }) => {
+          onPick={async ({ downloadUrl }) => {
             try {
-              const res = await fetch('/api/tenor/download', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  url: downloadUrl,
-                  filename: `tenor-${id || 'gif'}.gif`,
-                  mode: 'base64'
-                })
-              })
-              const info = await res.json().catch(() => ({}))
-              if (!res.ok || !info?.dataUrl) {
-                throw new Error(info?.error || 'GIF konnte nicht geladen werden')
+              const res = await fetch(downloadUrl)
+              const blob = await res.blob()
+              if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
+                toast.error({ title: 'GIF zu groß', description: 'Bitte ein kleineres GIF wählen.' })
+                return
               }
-              setPendingMedia(arr => [
-                ...arr,
-                {
-                  filename: info.filename || `tenor-${id || 'gif'}.gif`,
-                  mime: info.mime || 'image/gif',
-                  data: info.dataUrl,
-                  altText: ''
-                }
-              ])
+              const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
+              const reader = new FileReader()
+              reader.onload = () => {
+                setPendingMedia(arr => [
+                  ...arr,
+                  {
+                    filename: file.name,
+                    mime: file.type,
+                    data: reader.result,
+                    altText: ''
+                  }
+                ])
+              }
+              reader.readAsDataURL(file)
             } catch (e) {
               toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
             } finally {
