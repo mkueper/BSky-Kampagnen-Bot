@@ -428,7 +428,9 @@ async function getThread(req, res) {
   try {
     const uri = String(req.query?.uri || '').trim()
     if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
-    const thread = await bsky.getReplies(uri)
+    const depth = Math.min(Math.max(parseInt(req.query?.depth || '', 10) || 40, 1), 100)
+    const parentHeight = Math.min(Math.max(parseInt(req.query?.parentHeight || '', 10) || 40, 1), 100)
+    const thread = await bsky.getReplies(uri, { depth, parentHeight })
     if (!thread || thread.$type !== THREAD_NODE_TYPE) {
       return res.status(404).json({ error: 'Thread nicht gefunden.' })
     }

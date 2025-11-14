@@ -183,12 +183,14 @@ async function getReactions(postUri) {
  * @param {string} postUri at:// URI des Root-Posts.
  * @returns {Promise<object>} Struktur, die direkt an die UI weitergereicht werden kann.
  */
-async function getReplies(postUri) {
+async function getReplies(postUri, options = {}) {
   await ensureLoggedIn();
-  const thread = await agent.app.bsky.feed.getPostThread({ uri: postUri });
+  const depth = Math.min(Math.max(Number(options.depth) || 30, 1), 100);
+  const parentHeight = Math.min(Math.max(Number(options.parentHeight) || 30, 1), 100);
+  const thread = await agent.app.bsky.feed.getPostThread({ uri: postUri, depth, parentHeight });
   try {
     const repliesLen = Array.isArray(thread?.data?.thread?.replies) ? thread.data.thread.replies.length : 0;
-    log.debug("Bluesky Thread geladen", { uri: postUri, repliesTopLevel: repliesLen });
+    log.debug("Bluesky Thread geladen", { uri: postUri, repliesTopLevel: repliesLen, depth, parentHeight });
   } catch (e) { log.error("Bluesky Thread laden fehlgeschlagen", { error: e?.message || String(e) }); }
   return thread.data.thread;
 }
