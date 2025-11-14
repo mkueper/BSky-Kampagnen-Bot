@@ -125,7 +125,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const [gifPicker, setGifPicker] = useState({ open: false })
   const [emojiPicker, setEmojiPicker] = useState({ open: false })
   const [editedMediaAlt, setEditedMediaAlt] = useState({})
-  const [removedMedia] = useState({})
+  const [removedMedia, setRemovedMedia] = useState({})
   const [altDialog, setAltDialog] = useState({ open: false, item: null })
   const textareaRef = useRef(null)
   const previewRef = useRef(null)
@@ -182,6 +182,32 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       /* optional: content */
     ]
   )
+
+  const handleRemoveMedia = async (item) => {
+    if (item?.type === 'existing' && item.id) {
+      try {
+        const res = await fetch(`/api/skeet-media/${item.id}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data?.error || 'Bild konnte nicht entfernt werden.')
+        }
+        setRemovedMedia((prev) => ({ ...prev, [item.id]: true }))
+        setEditedMediaAlt((prev) => {
+          if (!prev[item.id]) return prev
+          const clone = { ...prev }
+          delete clone[item.id]
+          return clone
+        })
+        toast.success({ title: 'Bild entfernt' })
+      } catch (error) {
+        toast.error({ title: 'Entfernen fehlgeschlagen', description: error?.message || 'Unbekannter Fehler' })
+      }
+      return
+    }
+    if (item?.type === 'pending' && typeof item.pendingIndex === 'number') {
+      setPendingMedia((arr) => arr.filter((_, idx) => idx !== item.pendingIndex))
+    }
+  }
 
   function resetToDefaults () {
     setContent((typeof initialContent === 'string' && initialContent.length) ? initialContent : '')
@@ -622,17 +648,24 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   const list = []
                   if (isEditing && Array.isArray(editingSkeet?.media)) {
                     editingSkeet.media.forEach(m => {
-                      if (!removedMedia[m.id] && m.previewUrl)
+                      if (!removedMedia[m.id] && m.previewUrl) {
                         list.push({
+                          type: 'existing',
+                          id: m.id,
                           src: m.previewUrl,
-                          alt: editedMediaAlt[m.id] ?? (m.altText || '')
+                          alt: editedMediaAlt[m.id] ?? (m.altText || ''),
+                          pendingIndex: null
                         })
+                      }
                     })
                   }
-                  pendingMedia.forEach(m =>
+                  pendingMedia.forEach((m, idx) =>
                     list.push({
+                      type: 'pending',
+                      id: null,
                       src: m.previewUrl || m.data,
-                      alt: m.altText || ''
+                      alt: m.altText || '',
+                      pendingIndex: idx
                     })
                   )
                   const items = list.slice(0, imagePolicy.maxCount || 4)
@@ -642,7 +675,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                     <div className='mt-2 grid grid-cols-2 gap-2'>
                       {items.map((it, idx) => (
                         <div
-                          key={idx}
+                          key={`${it.type}-${it.id ?? it.pendingIndex}-${idx}`}
                           className={`relative ${hClass} overflow-hidden rounded-xl border border-border bg-background-subtle`}
                         >
                           <img
@@ -650,6 +683,37 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                             alt={it.alt || `Bild ${idx + 1}`}
                             className='absolute inset-0 h-full w-full object-contain'
                           />
+                          <div className='pointer-events-none absolute left-1 top-1 z-10'>
+                            <span
+                              className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
+                              title={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setAltDialog({ open: true, item: it })
+                              }}
+                              role='button'
+                              tabIndex={0}
+                              aria-label={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                            >
+                              {it.alt ? 'ALT' : '+ ALT'}
+                            </span>
+                          </div>
+                          <div className='absolute right-1 top-1 z-10 flex gap-1'>
+                            <button
+                              type='button'
+                              className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80'
+                              title='Bild entfernen'
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleRemoveMedia(it)
+                              }}
+                              aria-label='Bild entfernen'
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
