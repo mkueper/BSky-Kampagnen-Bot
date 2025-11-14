@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { ChatBubbleIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
+import { useMemo, useState } from 'react'
+import { ChatBubbleIcon, HeartIcon, HeartFilledIcon, Share2Icon } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger } from '../shared'
 
@@ -117,11 +117,46 @@ function extractQuoteFromEmbed (item) {
   } catch { return null }
 }
 
+function extractReasonContext (item) {
+  try {
+    const reason = item?.raw?.reason || item?.reason || null
+    if (!reason || typeof reason !== 'object') return null
+    const type = String(reason?.$type || reason?.type || '').toLowerCase()
+    const actor = reason?.by || reason?.actor || {}
+    const actorLabel = actor.displayName || actor.handle || actor.did || 'Jemand'
+    if (type.includes('repost')) {
+      return `${actorLabel} hat repostet`
+    }
+    if (type.includes('like')) {
+      return `${actorLabel} gefällt das`
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function buildShareUrl (item) {
+  try {
+    const uri = item?.uri || ''
+    const author = item?.author || {}
+    const handle = author?.handle || author?.did || ''
+    if (!uri || !handle) return uri
+    const parts = uri.split('/')
+    const rkey = parts[parts.length - 1]
+    if (!rkey) return uri
+    return `https://bsky.app/profile/${handle}/post/${rkey}`
+  } catch {
+    return item?.uri || ''
+  }
+}
+
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
+  const contextLabel = useMemo(() => extractReasonContext(item), [item])
   const quotedAuthorLabel = quoted ? (quoted.author?.displayName || quoted.author?.handle || 'Unbekannt') : ''
   const quotedAuthorMissing = quoted ? !(quoted.author?.displayName || quoted.author?.handle) : false
   const quotedStatusMessage = quoted && quoted.status && quoted.status !== 'ok'
@@ -198,9 +233,14 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   }
 
   const actorIdentifier = author?.did || author?.handle || ''
+  const shareUrl = useMemo(() => buildShareUrl(item), [item])
+  const [shareStatus, setShareStatus] = useState('')
 
   const body = (
     <>
+      {contextLabel ? (
+        <p className='mb-2 text-xs font-semibold text-foreground-muted'>{contextLabel}</p>
+      ) : null}
       <header className='flex items-center gap-3'>
         <ProfilePreviewTrigger actor={actorIdentifier} fallback={author} className='inline-flex'>
           {author.avatar ? (
@@ -436,12 +476,44 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </button>
         <button
           type='button'
+          className='inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle'
+          onClick={(event) => {
+            event?.preventDefault()
+            event?.stopPropagation()
+            if (!shareUrl) return
+            try {
+              if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
+                navigator.clipboard.writeText(shareUrl)
+                  .then(() => {
+                    setShareStatus('Link kopiert')
+                    window.setTimeout(() => setShareStatus(''), 2400)
+                  })
+                  .catch(() => {
+                    window.prompt('Link kopieren', shareUrl)
+                  })
+              } else {
+                window.prompt('Link kopieren', shareUrl)
+              }
+            } catch {
+              window.prompt('Link kopieren', shareUrl)
+            }
+          }}
+          title='Link kopieren'
+        >
+          <Share2Icon className='h-4 w-4' />
+          Teilen
+        </button>
+        <button
+          type='button'
           className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
           onClick={refresh}
         >
           {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
         </button>
       </footer>
+      {shareStatus ? (
+        <p className='mt-2 text-xs text-emerald-600'>{shareStatus}</p>
+      ) : null}
       {actionError ? (
         <p className='mt-2 text-xs text-red-600'>{actionError}</p>
       ) : null}
