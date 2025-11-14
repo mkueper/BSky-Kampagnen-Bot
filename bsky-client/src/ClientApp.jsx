@@ -8,6 +8,7 @@ import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import NewPostsBanner from './modules/layout/NewPostsBanner.jsx'
+import { QuickComposer } from './modules/composer'
 import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 
@@ -212,6 +213,7 @@ export default function BskyClientApp () {
 
   const homeContent = (
     <div className='space-y-6'>
+      <QuickComposer onSent={() => refreshTimeline()} />
       {timelineHasNew ? (
         <NewPostsBanner
           visible={timelineHasNew}
