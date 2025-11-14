@@ -959,28 +959,30 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           onClose={() => setGifPicker({ open: false })}
           classNames={DASHBOARD_GIF_PICKER_CLASSES}
           styles={DASHBOARD_GIF_PICKER_STYLES}
-          onPick={async ({ downloadUrl }) => {
+          onPick={async ({ id, downloadUrl }) => {
             try {
-              const res = await fetch(downloadUrl)
-              const blob = await res.blob()
-              if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
-                toast.error({ title: 'GIF zu groß', description: 'Bitte ein kleineres GIF wählen.' })
-                return
+              const res = await fetch('/api/tenor/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  url: downloadUrl,
+                  filename: `tenor-${id || 'gif'}.gif`,
+                  mode: 'base64'
+                })
+              })
+              const info = await res.json().catch(() => ({}))
+              if (!res.ok || !info?.dataUrl) {
+                throw new Error(info?.error || 'GIF konnte nicht geladen werden')
               }
-              const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
-              const reader = new FileReader()
-              reader.onload = () => {
-                setPendingMedia(arr => [
-                  ...arr,
-                  {
-                    filename: file.name,
-                    mime: file.type,
-                    data: reader.result,
-                    altText: ''
-                  }
-                ])
-              }
-              reader.readAsDataURL(file)
+              setPendingMedia(arr => [
+                ...arr,
+                {
+                  filename: info.filename || `tenor-${id || 'gif'}.gif`,
+                  mime: info.mime || 'image/gif',
+                  data: info.dataUrl,
+                  altText: ''
+                }
+              ])
             } catch (e) {
               toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
             } finally {

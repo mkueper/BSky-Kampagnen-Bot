@@ -50,6 +50,11 @@ async function getClientConfig(req, res) {
       gifs: {
         tenorAvailable: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
       },
+      ui: {
+        quickComposer: {
+          enabled: config.CLIENT_CONFIG?.ui?.quickComposer?.enabled !== false
+        }
+      }
     });
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Client-Konfiguration.' });

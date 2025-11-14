@@ -24,6 +24,7 @@ router.use('/threads', threadRoutes);
 // Tenor GIF proxy
 router.get("/tenor/featured", tenorController.featured);
 router.get("/tenor/search", tenorController.search);
+router.post("/tenor/download", tenorController.download);
 
 // Engagement
 router.get("/reactions/:skeetId", engagementController.getReactions);

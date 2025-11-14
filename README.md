@@ -145,6 +145,7 @@ Changelog pflegen:
 | `ENGAGEMENT_IDLE_MIN_MS`   | Minimaler Abstand im Idle-Modus (keine Heartbeats)     | `1200000`|
 | `CLIENT_IDLE_THRESHOLD_MS` | Dauer ohne Heartbeat, bevor der Server „idle“ annimmt  | `1200000`|
 | `UPLOAD_MAX_BYTES`     | Upload-Limit für Medien (Skeets/Threads/Temp)             | `8388608` (8 MB) |
+| `UI_QUICK_COMPOSER_ENABLED` (`VITE_UI_QUICK_COMPOSER_ENABLED`) | Steuert, ob der QuickComposer im integrierten Bluesky-Client sichtbar ist | `true` |
 
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
@@ -197,6 +198,7 @@ Diese Endpunkte sind vor allem für die UI und Admin‑Tasks relevant.
 - `GET /api/reactions/:skeetId` – Reaktionen für einen veröffentlichten Skeet laden (on‑demand).
 - `GET /api/events` – Server-Sent Events für Live-Updates (skeet:/thread:-Events).
 - `GET /api/bsky/timeline` – Datenquelle für den integrierten Bluesky-Client.
+- `POST /api/tenor/download` – Lädt ein ausgewähltes Tenor-GIF serverseitig herunter und legt es als Temp-Medien-Datei ab.
 
 Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests verwendet werden.
 

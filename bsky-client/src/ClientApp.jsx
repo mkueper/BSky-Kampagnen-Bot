@@ -57,6 +57,7 @@ export default function BskyClientApp () {
     openFeedManager
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
+  const [clientConfig, setClientConfig] = useState(null)
 
   const timelineSourceFeedUri = timelineSource?.feedUri || null
   const timelineSourceId = timelineSource?.id || timelineTab
@@ -84,6 +85,7 @@ export default function BskyClientApp () {
   }, [feedPicker?.pinned])
 
   const timelineTabs = officialTabs
+  const quickComposerEnabled = clientConfig?.ui?.quickComposer?.enabled !== false
 
   const toggleFeedMenu = useCallback(() => {
     setFeedMenuOpen((prev) => !prev)
@@ -102,6 +104,24 @@ export default function BskyClientApp () {
   useEffect(() => {
     refreshFeedPicker({ force: true })
   }, [refreshFeedPicker])
+
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/client-config')
+        const data = await res.json().catch(() => ({}))
+        if (!ignore && res.ok) {
+          setClientConfig(data)
+        }
+      } catch {
+        if (!ignore) {
+          setClientConfig(null)
+        }
+      }
+    })()
+    return () => { ignore = true }
+  }, [])
 
   useEffect(() => {
     if (section !== 'home') return undefined
@@ -213,7 +233,9 @@ export default function BskyClientApp () {
 
   const homeContent = (
     <div className='space-y-6'>
-      <QuickComposer onSent={() => refreshTimeline()} />
+      {quickComposerEnabled ? (
+        <QuickComposer onSent={() => refreshTimeline()} />
+      ) : null}
       {timelineHasNew ? (
         <NewPostsBanner
           visible={timelineHasNew}

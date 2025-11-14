@@ -154,14 +154,24 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       if (pendingMedia.length >= MAX_MEDIA_COUNT) {
         throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
       }
-      const res = await fetch(downloadUrl)
-      if (!res.ok) throw new Error('GIF konnte nicht geladen werden')
-      const blob = await res.blob()
-      if (blob.size > MAX_GIF_BYTES) throw new Error('GIF ist zu groß (max. ~8 MB).')
-      const type = blob.type || 'image/gif'
-      const name = `tenor-${id || 'gif'}.gif`
-      const file = new File([blob], name, { type })
-      await uploadTempMedia(file, previewUrl)
+      const res = await fetch('/api/tenor/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: downloadUrl, filename: `tenor-${id || 'gif'}.gif` })
+      })
+      const info = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(info?.error || 'GIF konnte nicht geladen werden')
+      let added = false
+      setPendingMedia((arr) => {
+        if (arr.length >= MAX_MEDIA_COUNT) return arr
+        added = true
+        return [...arr, {
+          tempId: info.tempId,
+          previewUrl: previewUrl || info.previewUrl,
+          mime: info.mime || 'image/gif'
+        }]
+      })
+      if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     } catch (e) {
       setMessage(e?.message || 'GIF konnte nicht geladen werden')
     } finally {
