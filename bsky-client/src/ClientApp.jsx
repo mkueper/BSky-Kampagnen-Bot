@@ -220,22 +220,27 @@ export default function BskyClientApp () {
   }, [dispatch])
 
 
+  const handleSelectSection = useCallback((id) => {
+    if (id === 'notifications') {
+      refreshNotifications()
+    }
+    if (id === 'home') {
+      if (threadState.active) closeThread({ force: true })
+      else if (section === 'home') refreshTimeline()
+      dispatch({ type: 'SET_SECTION', payload: 'home' })
+      return
+    }
+    if (threadState.active) closeThread({ force: true })
+    dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
+    dispatch({ type: 'SET_SECTION', payload: id })
+  }, [closeThread, dispatch, refreshNotifications, refreshTimeline, section, threadState.active])
+
   return (
     <>
       <BskyClientLayout
         activeSection={section}
         notificationsUnread={notificationsUnread}
-        onSelectSection={(id) => {
-          if (id === 'home') {
-            if (threadState.active) closeThread({ force: true })
-            else if (section === 'home') refreshTimeline()
-            dispatch({ type: 'SET_SECTION', payload: 'home' })
-            return
-          }
-          if (threadState.active) closeThread({ force: true })
-          dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
-          dispatch({ type: 'SET_SECTION', payload: id })
-        }}
+        onSelectSection={handleSelectSection}
         onOpenCompose={openComposer}
         headerContent={headerContent}
         topBlock={topBlock}

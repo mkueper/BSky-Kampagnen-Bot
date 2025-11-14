@@ -80,7 +80,7 @@ find "${APP_DIR}" -type d -name 'node_modules' -prune -exec rm -rf '{}' +
 mkdir -p "${APP_DIR}/docker"
 cp docker/Dockerfile.backend "${APP_DIR}/docker/Dockerfile.backend"
 cp docker/Dockerfile.frontend "${APP_DIR}/docker/Dockerfile.frontend"
-cp docker/nginx-frontend.conf "${APP_DIR}/docker/nginx-frontend.conf"
+cp docker/nginx-frontend.conf.template "${APP_DIR}/docker/nginx-frontend.conf.template"
 
 if [[ ! -f docker-compose.yml ]]; then
   echo "Fehlende docker-compose.yml im Projektwurzelverzeichnis" >&2

@@ -11,6 +11,7 @@
     "main":  "electron/main.js",
     "scripts":  {
                     "test":  "vitest",
+                    "test:all":  "npm run test && npm run test --workspace backend && npm run test --workspace dashboard && npm run test --workspace bsky-client",
                     "test:ui":  "vitest --ui",
                     "dev":  "cross-env NODE_ENV=development nodemon backend/server.js",
                     "start":  "node backend/server.js",
@@ -52,6 +53,7 @@
                     "docker:build":  "docker compose build",
                     "docker:bundle":  "bash scripts/docker-bundle.sh",
                     "lint":  "eslint . --max-warnings=0",
+                    "lint:all":  "npm run lint && npm run lint --workspace backend && npm run lint --workspace dashboard && npm run lint --workspace bsky-client && npm run lint --workspace packages/media-pickers",
                     "lint:fix":  "eslint . --fix",
                     "switchenv:dev":  "node scripts/switch-env.js dev",
                     "switchenv:prod":  "node scripts/switch-env.js prod",
