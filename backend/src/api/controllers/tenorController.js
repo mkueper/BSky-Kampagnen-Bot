@@ -3,6 +3,7 @@
  * Proxies Tenor API requests through the backend so no browser key is exposed.
  */
 const { fetch } = require('undici')
+const { writeBufferToTemp } = require('@utils/tempUploads')
 
 function getApiKey() {
   const k = String(process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim()
@@ -60,5 +61,40 @@ async function search(req, res) {
   }
 }
 
-module.exports = { featured, search }
+async function download (req, res) {
+  try {
+    const { url, filename, mode } = req.body || {}
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'GIF-URL fehlt.' })
+    }
+    const response = await fetch(url)
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'GIF konnte nicht geladen werden.' })
+    }
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 8 * 1024 * 1024)
+    if (buffer.length > maxBytes) {
+      return res.status(413).json({ error: 'GIF ist zu groß.' })
+    }
+    const mime = response.headers.get('content-type') || 'image/gif'
+    const safeName = filename || 'tenor.gif'
 
+    if (mode === 'base64') {
+      const dataUrl = `data:${mime};base64,${buffer.toString('base64')}`
+      return res.status(200).json({
+        filename: safeName,
+        mime,
+        size: buffer.length,
+        dataUrl
+      })
+    }
+
+    const stored = writeBufferToTemp(buffer, { filename: safeName, mime })
+    return res.status(201).json(stored)
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'GIF-Download fehlgeschlagen.' })
+  }
+}
+
+module.exports = { featured, search, download }
