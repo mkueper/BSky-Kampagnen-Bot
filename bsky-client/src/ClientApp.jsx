@@ -205,10 +205,26 @@ export default function BskyClientApp () {
     }
     if (section === 'notifications') {
       return (
-        <div className='flex items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-sm text-foreground-muted'>
             Mitteilungen{notificationsUnread > 0 ? ` · ${notificationsUnread} neu` : ''}
           </p>
+          <div className='flex items-center gap-2'>
+            {['all', 'mentions'].map((tab) => (
+              <button
+                key={tab}
+                type='button'
+                onClick={() => setNotificationTab(tab)}
+                className={`rounded-full border px-3 py-1 text-sm ${
+                  notificationTab === tab
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border bg-background text-foreground hover:border-foreground/40'
+                }`}
+              >
+                {tab === 'all' ? 'Alle' : 'Erwähnungen'}
+              </button>
+            ))}
+          </div>
         </div>
       )
     }
@@ -223,10 +239,12 @@ export default function BskyClientApp () {
     handleTimelineTabSelect,
     reloadThread,
     closeThread,
-    refreshNotifications,
+    pinnedTabs,
+    feedMenuOpen,
+    toggleFeedMenu,
+    closeFeedMenu,
     notificationsUnread,
-    openFeedManager,
-    refreshFeedPicker
+    notificationTab
   ])
 
   const topBlock = null
@@ -276,6 +294,8 @@ export default function BskyClientApp () {
     </div>
   )
 
+  const [notificationTab, setNotificationTab] = useState('all')
+
   let secondaryContent = null
   if (section === 'search') secondaryContent = (
     <Suspense fallback={<SectionFallback label='Suche' />}>
@@ -296,6 +316,7 @@ export default function BskyClientApp () {
           onReply={openReplyComposer}
           onQuote={openQuoteComposer}
           onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+          activeTab={notificationTab}
         />
       </Suspense>
     )

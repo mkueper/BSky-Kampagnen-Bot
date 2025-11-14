@@ -518,7 +518,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all' }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -527,7 +527,6 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   const [retryTick, setRetryTick] = useState(0)
   const loadMoreTriggerRef = useRef(null)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [activeTab, setActiveTab] = useState('all')
   const syncUnread = useCallback((count) => {
     setUnreadCount(count)
     if (typeof onUnreadChange === 'function') {
@@ -629,7 +628,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
 
   const filteredItems = useMemo(() => {
     if (activeTab === 'mentions') {
-      const mentionReasons = new Set(['mention', 'reply', 'quote'])
+      const mentionReasons = new Set(['like', 'mention', 'reply', 'quote'])
       return items.filter((entry) => mentionReasons.has(entry?.reason))
     }
     return items
@@ -662,47 +661,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   }
 
   if (filteredItems.length === 0) {
-    return (
-      <div className='space-y-3'>
-        <div className='flex items-center gap-2'>
-          {['all', 'mentions'].map((tab) => (
-            <button
-              key={tab}
-              type='button'
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                activeTab === tab
-                  ? 'border-foreground bg-foreground text-background'
-                  : 'border-border bg-background text-foreground hover:border-foreground/40'
-              }`}
-            >
-              {tab === 'all' ? 'Alle' : 'Erwähnungen'}
-            </button>
-          ))}
-        </div>
-        <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
-      </div>
-    )
+    return <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
   }
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
-      <div className='flex flex-wrap items-center gap-2'>
-        {['all', 'mentions'].map((tab) => (
-          <button
-            key={tab}
-            type='button'
-            onClick={() => setActiveTab(tab)}
-            className={`rounded-full border px-3 py-1 text-sm ${
-              activeTab === tab
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-border bg-background text-foreground hover:border-foreground/40'
-            }`}
-          >
-            {tab === 'all' ? 'Alle' : 'Erwähnungen'}
-          </button>
-        ))}
-      </div>
       <ul className='space-y-3'>
         {filteredItems.map((item, idx) => (
           <li key={item.uri || item.cid || `${item.reason || 'notification'}-${item.reasonSubject || idx}-${idx}`}>
