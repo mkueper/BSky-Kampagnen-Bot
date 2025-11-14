@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { compressImage } from '../utils/image';
