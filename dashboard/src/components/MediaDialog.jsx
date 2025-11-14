@@ -32,32 +32,40 @@ export default function MediaDialog({
   const [loaded, setLoaded] = useState(false);
   const altRef = useRef(null);
   const compressJobRef = useRef(0);
+  const objectUrlRef = useRef(null);
+
+  const updatePreview = useCallback((blob) => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
+      setPreviewUrl(url);
+      setLoaded(false);
+    } else {
+      setPreviewUrl(previewSrc || null);
+      setLoaded(Boolean(previewSrc));
+    }
+  }, [previewSrc]);
 
   useEffect(() => {
     if (open) {
       setFile(null);
       setAlt(initialAlt || '');
       setError(null);
-      setPreviewUrl(previewSrc || null);
-      setLoaded(Boolean(previewSrc));
+      updatePreview(null);
       // Kein Auto-Fokus erzwingen, um Scroll-Jumps zu vermeiden
     }
-     
-  }, [open, initialAlt, previewSrc]);
+  }, [open, initialAlt, previewSrc, updatePreview]);
 
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(previewSrc || null);
-      setLoaded(Boolean(previewSrc));
-      return () => {};
+  useEffect(() => () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
     }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setLoaded(false);
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file, previewSrc]);
+  }, []);
 
   const validate = (f) => {
     if (mode === 'upload') {
@@ -98,6 +106,7 @@ export default function MediaDialog({
                   const jobId = compressJobRef.current + 1;
                   compressJobRef.current = jobId;
                   setFile(f);
+                  updatePreview(f);
                   // Pre-compress non-GIF images to improve acceptance on platforms
                   const isGif = (f.type || '').toLowerCase() === 'image/gif'
                   if (!isGif) {
@@ -108,13 +117,16 @@ export default function MediaDialog({
                     const name = String(f.name || 'image').replace(/\.[A-Za-z0-9]+$/, '') + (type.includes('webp') ? '.webp' : type.includes('jpeg') ? '.jpg' : '.png');
                     const wrapped = new File([blob], name, { type });
                     setFile(wrapped);
+                    updatePreview(wrapped);
                   } else {
                     if (compressJobRef.current !== jobId) return;
                     setFile(f);
+                    updatePreview(f);
                   }
                 } catch (err) {
                   setError(err?.message || 'Bild konnte nicht vorbereitet werden.');
                   setFile(null);
+                  updatePreview(null);
                 }
               }}
             />
@@ -148,8 +160,7 @@ export default function MediaDialog({
                     onClick={() => {
                       if (inputRef.current) inputRef.current.value = '';
                       setFile(null);
-                      setPreviewUrl(null);
-                      setLoaded(false);
+                      updatePreview(null);
                     }}
                     aria-label="Ausgewähltes Bild verwerfen"
                   >
