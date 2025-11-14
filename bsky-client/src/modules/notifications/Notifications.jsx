@@ -215,17 +215,38 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
     }
   }, [isRead, onMarkRead, item])
 
+  const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
+
+  const buildThreadTarget = useCallback((target) => {
+    if (target && target.uri) {
+      return target
+    }
+    const uri = target?.raw?.post?.uri || fallbackUri
+    if (!uri) return target || null
+    const rawPost = target?.raw?.post || {
+      uri,
+      cid: target?.cid || null,
+      author: target?.author || {},
+      record: { text: target?.text || '' }
+    }
+    return {
+      ...(target || {}),
+      uri,
+      raw: { post: { ...rawPost, uri } }
+    }
+  }, [fallbackUri])
+
   const handleSelectItem = useCallback((target) => {
     if (typeof onSelectItem !== 'function') return
     markAsRead()
-    onSelectItem(target)
-  }, [onSelectItem, markAsRead])
+    onSelectItem(buildThreadTarget(target))
+  }, [onSelectItem, markAsRead, buildThreadTarget])
 
   const handleSelectSubject = useCallback((target) => {
     if (typeof onSelectSubject !== 'function') return
     markAsRead()
-    onSelectSubject(target)
-  }, [onSelectSubject, markAsRead])
+    onSelectSubject(buildThreadTarget(target))
+  }, [onSelectSubject, markAsRead, buildThreadTarget])
 
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
