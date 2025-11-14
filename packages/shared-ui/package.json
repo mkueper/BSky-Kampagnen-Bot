@@ -1,0 +1,16 @@
+{
+  "name": "@bsky-kampagnen-bot/shared-ui",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./NewPostsBanner": "./src/components/NewPostsBanner.jsx"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "prop-types": "^15.8.1"
+  }
+}
