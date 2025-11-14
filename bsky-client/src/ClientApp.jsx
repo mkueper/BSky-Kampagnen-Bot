@@ -180,6 +180,8 @@ export default function BskyClientApp () {
     }
   }, [getScrollContainer, dispatch])
 
+  const [notificationTab, setNotificationTab] = useState('all')
+
   const headerContent = useMemo(() => {
     if (section === 'home') {
       if (threadState.active) {
@@ -293,8 +295,6 @@ export default function BskyClientApp () {
       ) : null}
     </div>
   )
-
-  const [notificationTab, setNotificationTab] = useState('all')
 
   let secondaryContent = null
   if (section === 'search') secondaryContent = (
