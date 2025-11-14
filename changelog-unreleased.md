@@ -1,5 +1,24 @@
 # Unreleased Notes
 
+## 2025-11-14
+
+### Client
+- Neuer `QuickComposer` erlaubt spontane Skeets direkt im Bluesky-Client; komplette Testsuite inklusive.
+- `NewPostsBanner` zeigt frische Timeline-Einträge und verbindet Banner-Klick mit schnellem Refresh.
+- Überarbeiteter Feed-Manager mit eigenem Picker-Hook (`useFeedPicker`) für Anheften/Verwalten von Bluesky-Feeds.
+- Notifications erhalten Tabs („Alle“/„Erwähnungen“) inklusive funktionierendem Thread-Open bei Like/Repost-Karten.
+- Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.
+- Dashboard-Skeet-Form: Alt-Texte lassen sich bearbeiten/löschen, GIF-Upload nutzt Tenor-Proxy; Vorschau- und Remove-Buttons analog zum Thread-Planer.
+
+### Backend
+- Thread-Endpunkt akzeptiert jetzt `depth`/`parentHeight` und ruft `app.bsky.feed.getPostThread` mit höheren Limits auf – tiefe Verzweigungen werden vollständig geliefert.
+- Tenor-Proxy bietet `/api/tenor/download` (Temp-Upload oder Base64) und wird in Dashboard/Client für GIFs genutzt.
+- Content-Security-Policy erlaubt `blob:`-Bilder sowie Verbindungen zu Tenor/CDN.jsdelivr, damit GIFs/Emojis ohne CSP-Fehler laden.
+
+### Docs
+- `docs/research/bluesky-client-gap-analysis.md` dokumentiert offene Punkte im Bluesky-Client.
+- `docs/research/bluesky-timeline-reference.md` fasst API-Referenzen und Beobachtungen zur Thread-/Timeline-Struktur zusammen.
+
 ## 2025-10-29
 
 ### Client
