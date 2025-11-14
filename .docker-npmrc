@@ -1,1 +1,2 @@
-workspaces=false
+; Container-Builds benötigen aktive Workspaces (Dashboard importiert bsky-client).
+; Wir lassen diese Datei bewusst bestehen, falls später weitere Container-Optionen nötig sind.

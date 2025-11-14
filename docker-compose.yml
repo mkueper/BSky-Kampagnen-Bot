@@ -35,6 +35,9 @@ services:
       dockerfile: docker/Dockerfile.frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
+    environment:
+      BACKEND_SERVICE_HOST: ${BACKEND_SERVICE_HOST:-backend}
+      BACKEND_SERVICE_PORT: ${BACKEND_INTERNAL_PORT:-3000}
     depends_on:
       backend:
         condition: service_healthy

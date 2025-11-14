@@ -227,9 +227,11 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
     onSelectSubject(target)
   }, [onSelectSubject, markAsRead])
 
+  const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
+
   return (
     <article
-      className={`rounded-2xl border border-border bg-background p-4 shadow-soft transition ${isRead ? '' : 'ring-1 ring-primary/40'} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
+      className={`rounded-2xl border p-4 shadow-soft transition ${unreadHighlight} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
       data-component='BskyNotificationCard'
       data-reason={reason}
       onClick={(event) => {
