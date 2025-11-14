@@ -28,6 +28,13 @@ const OFFICIAL_FEED_GENERATORS = {
   'friends-popular': 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends',
   'best-of-follows': 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/best-of-follows'
 };
+const TIMELINE_FOLLOWING_VALUE = 'following';
+
+function createStatusError (statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
 
 
 /**
@@ -176,12 +183,14 @@ async function getReactions(postUri) {
  * @param {string} postUri at:// URI des Root-Posts.
  * @returns {Promise<object>} Struktur, die direkt an die UI weitergereicht werden kann.
  */
-async function getReplies(postUri) {
+async function getReplies(postUri, options = {}) {
   await ensureLoggedIn();
-  const thread = await agent.app.bsky.feed.getPostThread({ uri: postUri });
+  const depth = Math.min(Math.max(Number(options.depth) || 30, 1), 100);
+  const parentHeight = Math.min(Math.max(Number(options.parentHeight) || 30, 1), 100);
+  const thread = await agent.app.bsky.feed.getPostThread({ uri: postUri, depth, parentHeight });
   try {
     const repliesLen = Array.isArray(thread?.data?.thread?.replies) ? thread.data.thread.replies.length : 0;
-    log.debug("Bluesky Thread geladen", { uri: postUri, repliesTopLevel: repliesLen });
+    log.debug("Bluesky Thread geladen", { uri: postUri, repliesTopLevel: repliesLen, depth, parentHeight });
   } catch (e) { log.error("Bluesky Thread laden fehlgeschlagen", { error: e?.message || String(e) }); }
   return thread.data.thread;
 }
@@ -231,6 +240,124 @@ async function getPostsByUri (uris = []) {
   return posts;
 }
 
+async function getPreferencesWrapper () {
+  await ensureLoggedIn();
+  if (typeof agent.getPreferences !== 'function') {
+    throw new Error('Bluesky SDK unterstützt getPreferences nicht.');
+  }
+  return agent.getPreferences();
+}
+
+async function getSavedFeedsPreferenceWrapper () {
+  const prefs = await getPreferencesWrapper();
+  return Array.isArray(prefs?.savedFeeds) ? prefs.savedFeeds : [];
+}
+
+async function getFeedGeneratorInfoWrapper (feedUri) {
+  const normalized = String(feedUri || '').trim();
+  if (!normalized) throw createStatusError(400, 'feedUri erforderlich');
+  await ensureLoggedIn();
+  const res = await agent.app.bsky.feed.getFeedGenerator({ feed: normalized });
+  return res?.data ?? null;
+}
+
+async function overwriteSavedFeedsWrapper (entries = []) {
+  await ensureLoggedIn();
+  if (typeof agent.overwriteSavedFeeds !== 'function') {
+    throw new Error('Bluesky SDK unterstützt overwriteSavedFeeds nicht.');
+  }
+  return agent.overwriteSavedFeeds(entries);
+}
+
+async function updateSavedFeedsWrapper (entries = []) {
+  await ensureLoggedIn();
+  if (typeof agent.updateSavedFeeds !== 'function') {
+    throw new Error('Bluesky SDK unterstützt updateSavedFeeds nicht.');
+  }
+  return agent.updateSavedFeeds(entries);
+}
+
+async function addSavedFeedsWrapper (entries = []) {
+  await ensureLoggedIn();
+  if (typeof agent.addSavedFeeds !== 'function') {
+    throw new Error('Bluesky SDK unterstützt addSavedFeeds nicht.');
+  }
+  return agent.addSavedFeeds(entries);
+}
+
+async function pinSavedFeed (feedUri, { type = 'feed' } = {}) {
+  const normalized = type === 'feed' ? String(feedUri || '').trim() : String(feedUri || '').trim();
+  if (type === 'feed' && !normalized) {
+    throw createStatusError(400, 'feedUri erforderlich');
+  }
+  let savedFeeds = await getSavedFeedsPreferenceWrapper();
+  const target = findSavedFeed(savedFeeds, type, normalized);
+  let changed = false;
+  if (!target) {
+    savedFeeds = await addSavedFeedsWrapper([{ type, value: normalized, pinned: true }]);
+    changed = true;
+  } else if (!target.pinned) {
+    savedFeeds = await updateSavedFeedsWrapper([{ ...target, pinned: true }]);
+    changed = true;
+  }
+  if (!changed) return savedFeeds;
+  return persistOrderedFeeds(savedFeeds);
+}
+
+async function unpinSavedFeed (feedUri) {
+  const normalized = String(feedUri || '').trim();
+  if (!normalized) {
+    throw createStatusError(400, 'feedUri erforderlich');
+  }
+  const savedFeeds = await getSavedFeedsPreferenceWrapper();
+  const target = findSavedFeed(savedFeeds, 'feed', normalized);
+  if (!target) {
+    throw createStatusError(404, 'Feed nicht gefunden.');
+  }
+  if (!target.pinned) return savedFeeds;
+  const updated = await updateSavedFeedsWrapper([{ ...target, pinned: false }]);
+  return persistOrderedFeeds(updated);
+}
+
+async function reorderPinnedFeeds (orderedIds = []) {
+  const savedFeeds = await getSavedFeedsPreferenceWrapper();
+  return persistOrderedFeeds(savedFeeds, orderedIds);
+}
+
+function findSavedFeed (savedFeeds = [], type, value) {
+  return savedFeeds.find((entry) => entry?.type === type && entry?.value === value) || null;
+}
+
+function persistOrderedFeeds (savedFeeds = [], pinnedOrder = []) {
+  const ordered = orderSavedFeeds(savedFeeds, pinnedOrder);
+  return overwriteSavedFeedsWrapper(ordered);
+}
+
+function orderSavedFeeds (savedFeeds = [], pinnedOrder = []) {
+  const list = Array.isArray(savedFeeds) ? savedFeeds.slice() : [];
+  const pinned = list.filter((entry) => entry?.pinned);
+  const others = list.filter((entry) => !entry?.pinned);
+  const pinnedMap = new Map();
+  pinned.forEach((entry) => {
+    if (entry?.id) pinnedMap.set(entry.id, entry);
+  });
+  const seen = new Set();
+  const orderedPinned = [];
+  const addPinned = (entry) => {
+    if (!entry || !entry.id || seen.has(entry.id)) return;
+    orderedPinned.push(entry);
+    seen.add(entry.id);
+  };
+  const following = pinned.find((entry) => entry.type === 'timeline' && entry.value === TIMELINE_FOLLOWING_VALUE);
+  addPinned(following);
+  pinnedOrder.forEach((id) => {
+    const entry = typeof id === 'string' ? pinnedMap.get(id) : undefined;
+    if (entry) addPinned(entry);
+  });
+  pinned.forEach((entry) => addPinned(entry));
+  return orderedPinned.concat(others);
+}
+
 module.exports = {
   login,
   postSkeet,
@@ -240,6 +367,15 @@ module.exports = {
   markNotificationsSeen,
   getPostsByUri,
   FEED_GENERATORS: OFFICIAL_FEED_GENERATORS,
+  getPreferences: getPreferencesWrapper,
+  getSavedFeedsPreference: getSavedFeedsPreferenceWrapper,
+  getFeedGeneratorInfo: getFeedGeneratorInfoWrapper,
+  overwriteSavedFeeds: overwriteSavedFeedsWrapper,
+  updateSavedFeeds: updateSavedFeedsWrapper,
+  addSavedFeeds: addSavedFeedsWrapper,
+  pinSavedFeed,
+  unpinSavedFeed,
+  reorderPinnedFeeds,
   /**
    * Holt die persönliche Timeline des eingeloggten Accounts (Home-Feed).
    *

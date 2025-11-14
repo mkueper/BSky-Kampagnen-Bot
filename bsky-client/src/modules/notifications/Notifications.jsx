@@ -215,17 +215,38 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
     }
   }, [isRead, onMarkRead, item])
 
+  const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
+
+  const buildThreadTarget = useCallback((target) => {
+    if (target && target.uri) {
+      return target
+    }
+    const uri = target?.raw?.post?.uri || fallbackUri
+    if (!uri) return target || null
+    const rawPost = target?.raw?.post || {
+      uri,
+      cid: target?.cid || null,
+      author: target?.author || {},
+      record: { text: target?.text || '' }
+    }
+    return {
+      ...(target || {}),
+      uri,
+      raw: { post: { ...rawPost, uri } }
+    }
+  }, [fallbackUri])
+
   const handleSelectItem = useCallback((target) => {
     if (typeof onSelectItem !== 'function') return
     markAsRead()
-    onSelectItem(target)
-  }, [onSelectItem, markAsRead])
+    onSelectItem(buildThreadTarget(target))
+  }, [onSelectItem, markAsRead, buildThreadTarget])
 
   const handleSelectSubject = useCallback((target) => {
     if (typeof onSelectSubject !== 'function') return
     markAsRead()
-    onSelectSubject(target)
-  }, [onSelectSubject, markAsRead])
+    onSelectSubject(buildThreadTarget(target))
+  }, [onSelectSubject, markAsRead, buildThreadTarget])
 
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
@@ -518,7 +539,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all' }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -626,6 +647,14 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     }
   }, [hasMore, loadMore])
 
+  const filteredItems = useMemo(() => {
+    if (activeTab === 'mentions') {
+      const mentionReasons = new Set(['like', 'mention', 'reply', 'quote'])
+      return items.filter((entry) => mentionReasons.has(entry?.reason))
+    }
+    return items
+  }, [activeTab, items])
+
   if (loading) {
     return (
       <div className='flex min-h-[240px] items-center justify-center' data-component='BskyNotifications' data-state='loading'>
@@ -651,14 +680,15 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
       </div>
     )
   }
-  if (items.length === 0) {
+
+  if (filteredItems.length === 0) {
     return <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
   }
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
-        {items.map((item, idx) => (
+        {filteredItems.map((item, idx) => (
           <li key={item.uri || item.cid || `${item.reason || 'notification'}-${item.reasonSubject || idx}-${idx}`}>
             <NotificationCard
               item={item}

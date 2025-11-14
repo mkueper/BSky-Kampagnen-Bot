@@ -2,13 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
-export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
+export default function Timeline ({ tab = 'discover', source = null, renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
+  const sourceFeedUri = source?.feedUri || null
+  const sourceTab = source?.id || tab
+  const timelineSource = useMemo(() => {
+    if (sourceFeedUri) return { feedUri: sourceFeedUri, tab: null }
+    return { feedUri: null, tab: sourceTab }
+  }, [sourceFeedUri, sourceTab])
 
   const variant = useMemo(() => {
     if (renderMode === 'flat' || renderMode === 'card') return renderMode
@@ -20,13 +26,15 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
   }, [renderMode])
 
   const fetchPage = useCallback(async ({ withCursor, limit } = {}) => {
-    const { items: nextItems, cursor: nextCursor } = await fetchTimelineApi({
-      tab,
+    const params = {
       cursor: withCursor,
-      limit,
-    })
+      limit
+    }
+    if (timelineSource.feedUri) params.feedUri = timelineSource.feedUri
+    else params.tab = timelineSource.tab
+    const { items: nextItems, cursor: nextCursor } = await fetchTimelineApi(params)
     return { nextItems, nextCursor }
-  }, [tab])
+  }, [timelineSource])
 
   // Initial load and tab change
   useEffect(() => {
@@ -50,7 +58,7 @@ export default function Timeline ({ tab = 'discover', renderMode, onReply, onQuo
     setCursor(null)
     load()
     return () => { ignore = true }
-  }, [tab, fetchPage, refreshKey])
+  }, [timelineSource, fetchPage, refreshKey])
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return

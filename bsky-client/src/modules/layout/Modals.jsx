@@ -1,14 +1,32 @@
+import { useEffect } from 'react';
 import { useAppState, useAppDispatch } from '../../context/AppContext';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
+import { useFeedPicker } from '../../hooks/useFeedPicker';
 import { Button, MediaLightbox } from '../shared';
 import { Composer, ComposeModal } from '../composer';
+import FeedManager from './FeedManager.jsx';
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { closeComposer, setQuoteTarget } = useComposer();
+  const {
+    feedPicker,
+    feedManagerOpen,
+    refreshFeeds,
+    pinFeed,
+    unpinFeed,
+    reorderPinnedFeeds,
+    closeFeedManager
+  } = useFeedPicker();
+
+  useEffect(() => {
+    if (feedManagerOpen) {
+      refreshFeeds({ force: true });
+    }
+  }, [feedManagerOpen, refreshFeeds]);
 
   return (
     <>
@@ -58,6 +76,20 @@ export function Modals() {
           index={mediaLightbox.index}
           onClose={closeMediaPreview}
           onNavigate={navigateMediaPreview}
+        />
+      ) : null}
+
+      {feedManagerOpen ? (
+        <FeedManager
+          open={feedManagerOpen}
+          loading={feedPicker.loading}
+          error={feedPicker.error}
+          feeds={feedPicker}
+          onClose={closeFeedManager}
+          onRefresh={() => refreshFeeds({ force: true })}
+          onPin={pinFeed}
+          onUnpin={unpinFeed}
+          onReorder={reorderPinnedFeeds}
         />
       ) : null}
     </>

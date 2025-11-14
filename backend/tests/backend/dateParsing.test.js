@@ -54,7 +54,7 @@ describe('buildSkeetAttributes', () => {
       targetPlatforms: ['bluesky']
     })
     expect(attrs.scheduledAt instanceof Date).toBe(true)
-    const expected = new Date(2030, 0, 2, 10, 0, 0, 0)
-    expect(attrs.scheduledAt.getTime()).toBe(expected.getTime())
+    const expected = new Date('2030-01-02T09:00:00.000Z')
+    expect(attrs.scheduledAt.toISOString()).toBe(expected.toISOString())
   })
 })

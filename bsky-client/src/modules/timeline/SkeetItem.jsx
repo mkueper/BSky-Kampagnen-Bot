@@ -1,5 +1,21 @@
-import { useMemo } from 'react'
-import { ChatBubbleIcon, HeartIcon, HeartFilledIcon } from '@radix-ui/react-icons'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ChatBubbleIcon,
+  HeartIcon,
+  HeartFilledIcon,
+  Share2Icon,
+  DotsHorizontalIcon,
+  Link2Icon,
+  CopyIcon,
+  ExternalLinkIcon,
+  ExclamationTriangleIcon,
+  QuestionMarkCircledIcon,
+  SpeakerLoudIcon,
+  MixerVerticalIcon,
+  EyeClosedIcon,
+  PersonIcon,
+  CrossCircledIcon
+} from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger } from '../shared'
 
@@ -117,11 +133,46 @@ function extractQuoteFromEmbed (item) {
   } catch { return null }
 }
 
+function extractReasonContext (item) {
+  try {
+    const reason = item?.raw?.reason || item?.reason || null
+    if (!reason || typeof reason !== 'object') return null
+    const type = String(reason?.$type || reason?.type || '').toLowerCase()
+    const actor = reason?.by || reason?.actor || {}
+    const actorLabel = actor.displayName || actor.handle || actor.did || 'Jemand'
+    if (type.includes('repost')) {
+      return `${actorLabel} hat repostet`
+    }
+    if (type.includes('like')) {
+      return `${actorLabel} gefällt das`
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function buildShareUrl (item) {
+  try {
+    const uri = item?.uri || ''
+    const author = item?.author || {}
+    const handle = author?.handle || author?.did || ''
+    if (!uri || !handle) return uri
+    const parts = uri.split('/')
+    const rkey = parts[parts.length - 1]
+    if (!rkey) return uri
+    return `https://bsky.app/profile/${handle}/post/${rkey}`
+  } catch {
+    return item?.uri || ''
+  }
+}
+
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
+  const contextLabel = useMemo(() => extractReasonContext(item), [item])
   const quotedAuthorLabel = quoted ? (quoted.author?.displayName || quoted.author?.handle || 'Unbekannt') : ''
   const quotedAuthorMissing = quoted ? !(quoted.author?.displayName || quoted.author?.handle) : false
   const quotedStatusMessage = quoted && quoted.status && quoted.status !== 'ok'
@@ -152,8 +203,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
   const Wrapper = variant === 'card' ? 'article' : 'div'
   const baseCls = variant === 'card'
-    ? 'rounded-2xl border border-border bg-background p-4 shadow-soft'
-    : 'px-1'
+    ? 'relative rounded-2xl border border-border bg-background p-4 shadow-soft'
+    : 'relative px-1'
   const handleSelect = (event) => {
     if (typeof onSelect !== 'function') return
     if (event) {
@@ -198,9 +249,75 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   }
 
   const actorIdentifier = author?.did || author?.handle || ''
+  const shareUrl = useMemo(() => buildShareUrl(item), [item])
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!optionsOpen) return undefined
+    const handler = (event) => {
+      if (!menuRef.current) return
+      if (!menuRef.current.contains(event.target)) {
+        setOptionsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
+  }, [optionsOpen])
+
+
+  const copyToClipboard = async (value, successMessage = 'Kopiert') => {
+    if (!value) return
+    const fallback = () => window.prompt('Zum Kopieren', value)
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+        setFeedbackMessage(successMessage)
+        window.setTimeout(() => setFeedbackMessage(''), 2400)
+      } else {
+        fallback()
+      }
+    } catch {
+      fallback()
+    }
+  }
+
+  const showPlaceholder = (label) => {
+    setFeedbackMessage(`${label} ist noch nicht verfügbar.`)
+    window.setTimeout(() => setFeedbackMessage(''), 2400)
+  }
+
+  const menuActions = useMemo(() => [
+    {
+      label: 'Uebersetzen (Google)',
+      icon: QuestionMarkCircledIcon,
+      action: () => {
+        const target = encodeURIComponent(text || '')
+        if (!target) { showPlaceholder('Uebersetzung'); return }
+        const lang = (navigator?.language || 'en').split('-')[0] || 'en'
+        const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    },
+    { label: 'Post-Text kopieren', icon: CopyIcon, action: () => copyToClipboard(String(text || ''), 'Text kopiert') },
+    { label: 'Link kopieren', icon: Link2Icon, action: () => copyToClipboard(shareUrl, 'Link kopiert') },
+    { label: 'Thread stummschalten', icon: SpeakerLoudIcon, action: () => showPlaceholder('Thread stummschalten') },
+    { label: 'Woerter/Tags stummschalten', icon: MixerVerticalIcon, action: () => showPlaceholder('Wort-Filter') },
+    { label: 'Post ausblenden', icon: EyeClosedIcon, action: () => showPlaceholder('Post ausblenden') },
+    { label: 'Account stummschalten', icon: PersonIcon, action: () => showPlaceholder('Account stummschalten') },
+    { label: 'Account blockieren', icon: CrossCircledIcon, action: () => showPlaceholder('Account blockieren') },
+    { label: 'In Bluesky öffnen', icon: ExternalLinkIcon, action: () => { if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer') } },
+    { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => showPlaceholder('Melden') }
+  ], [shareUrl, text])
 
   const body = (
     <>
+      {contextLabel ? (
+        <p className='mb-2 text-xs font-semibold text-foreground-muted'>{contextLabel}</p>
+      ) : null}
       <header className='flex items-center gap-3'>
         <ProfilePreviewTrigger actor={actorIdentifier} fallback={author} className='inline-flex'>
           {author.avatar ? (
@@ -220,12 +337,57 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
           </ProfilePreviewTrigger>
         </div>
-        {createdAt ? (
-          <time className='ml-auto whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
-            {new Date(createdAt).toLocaleString('de-DE')}
-          </time>
-        ) : null}
+        <div className='ml-auto flex items-center gap-1'>
+          {createdAt ? (
+            <time className='whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
+              {new Date(createdAt).toLocaleString('de-DE')}
+            </time>
+          ) : null}
+          <button
+            type='button'
+            className='ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+            aria-label='Mehr Optionen'
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setOptionsOpen((prev) => !prev)
+            }}
+          >
+            <DotsHorizontalIcon className='h-5 w-5' />
+          </button>
+        </div>
       </header>
+      {optionsOpen ? (
+        <div
+          ref={menuRef}
+          className='absolute right-4 top-12 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl'
+        >
+          <ul className='py-1 text-sm'>
+            {menuActions.map((entry) => {
+              const Icon = entry.icon
+              return (
+                <li key={entry.label}>
+                  <button
+                    type='button'
+                    className='flex w-full items-center gap-2 px-3 py-2 text-left text-foreground hover:bg-background-subtle'
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      setOptionsOpen(false)
+                      try {
+                        entry.action()
+                      } catch {}
+                    }}
+                  >
+                    {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
+                    <span>{entry.label}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
       <p className='mt-3 text-sm text-foreground'>
         <RichText text={text} className='whitespace-pre-wrap break-words' />
       </p>
@@ -436,12 +598,28 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </button>
         <button
           type='button'
+          className='inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle'
+          onClick={(event) => {
+            event?.preventDefault()
+            event?.stopPropagation()
+            copyToClipboard(shareUrl, 'Link kopiert')
+          }}
+          title='Link kopieren'
+        >
+          <Share2Icon className='h-4 w-4' />
+          Teilen
+        </button>
+        <button
+          type='button'
           className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
           onClick={refresh}
         >
           {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
         </button>
       </footer>
+      {feedbackMessage ? (
+        <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
+      ) : null}
       {actionError ? (
         <p className='mt-2 text-xs text-red-600'>{actionError}</p>
       ) : null}

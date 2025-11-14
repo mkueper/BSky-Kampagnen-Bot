@@ -11,6 +11,14 @@ const TIMELINE_TABS = {
   mutuals: { type: 'feed', feedUri: bsky.FEED_GENERATORS.mutuals },
   'best-of-follows': { type: 'feed', feedUri: bsky.FEED_GENERATORS['best-of-follows'] }
 }
+const OFFICIAL_FEEDS = [
+  { id: 'following', label: 'Following', type: 'timeline', value: 'following', feedUri: null },
+  { id: 'discover', label: 'Discover', type: 'feed', value: bsky.FEED_GENERATORS.discover, feedUri: bsky.FEED_GENERATORS.discover },
+  { id: 'friends-popular', label: 'Popular with Friends', type: 'feed', value: bsky.FEED_GENERATORS['friends-popular'], feedUri: bsky.FEED_GENERATORS['friends-popular'] },
+  { id: 'mutuals', label: 'Mutuals', type: 'feed', value: bsky.FEED_GENERATORS.mutuals, feedUri: bsky.FEED_GENERATORS.mutuals },
+  { id: 'best-of-follows', label: 'Best of Follows', type: 'feed', value: bsky.FEED_GENERATORS['best-of-follows'], feedUri: bsky.FEED_GENERATORS['best-of-follows'] }
+]
+const TIMELINE_LABELS = { following: 'Following' }
 
 const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,image/png,image/webp,image/gif')
   .split(',')
@@ -314,11 +322,14 @@ async function getTimeline(req, res) {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
     const cursor = req.query.cursor || undefined
+    const feedUri = typeof req.query.feedUri === 'string' ? req.query.feedUri.trim() : ''
     const requestedTab = String(req.query.tab || 'following').toLowerCase()
     const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
 
     let data = null
-    if (tabConfig.type === 'feed' && tabConfig.feedUri) {
+    if (feedUri) {
+      data = await bsky.getFeedGenerator(feedUri, { limit, cursor })
+    } else if (tabConfig.type === 'feed' && tabConfig.feedUri) {
       data = await bsky.getFeedGenerator(tabConfig.feedUri, { limit, cursor })
     } else {
       data = await bsky.getTimeline({ limit, cursor })
@@ -417,7 +428,9 @@ async function getThread(req, res) {
   try {
     const uri = String(req.query?.uri || '').trim()
     if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
-    const thread = await bsky.getReplies(uri)
+    const depth = Math.min(Math.max(parseInt(req.query?.depth || '', 10) || 40, 1), 100)
+    const parentHeight = Math.min(Math.max(parseInt(req.query?.parentHeight || '', 10) || 40, 1), 100)
+    const thread = await bsky.getReplies(uri, { depth, parentHeight })
     if (!thread || thread.$type !== THREAD_NODE_TYPE) {
       return res.status(404).json({ error: 'Thread nicht gefunden.' })
     }
@@ -579,4 +592,210 @@ async function postNow(req, res) {
   }
 }
 
-module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search, getProfile }
+async function getFeeds (req, res) {
+  try {
+    const savedFeeds = await bsky.getSavedFeedsPreference()
+    const lists = await buildFeedLists(savedFeeds)
+    res.json({
+      official: buildOfficialFeedList(),
+      pinned: lists.pinned,
+      saved: lists.saved,
+      errors: lists.errors
+    })
+  } catch (error) {
+    log.error('feeds failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Feeds konnten nicht geladen werden.' })
+  }
+}
+
+async function pinFeed (req, res) {
+  const feedUri = getFeedUriFromRequest(req)
+  if (!feedUri) return res.status(400).json({ error: 'feedUri erforderlich' })
+  try {
+    const savedFeeds = await bsky.pinSavedFeed(feedUri)
+    const lists = await buildFeedLists(savedFeeds)
+    res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
+  } catch (error) {
+    return handleFeedError(res, error, 'Feed konnte nicht angepinnt werden.', 'pinFeed failed')
+  }
+}
+
+async function unpinFeed (req, res) {
+  const feedUri = getFeedUriFromRequest(req)
+  if (!feedUri) return res.status(400).json({ error: 'feedUri erforderlich' })
+  try {
+    const savedFeeds = await bsky.unpinSavedFeed(feedUri)
+    const lists = await buildFeedLists(savedFeeds)
+    res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
+  } catch (error) {
+    return handleFeedError(res, error, 'Feed konnte nicht entfernt werden.', 'unpinFeed failed')
+  }
+}
+
+async function reorderPinnedFeeds (req, res) {
+  const orderInput = Array.isArray(req.body?.order) ? req.body.order : []
+  const order = orderInput
+    .map((id) => (typeof id === 'string' ? id.trim() : String(id || '').trim()))
+    .filter(Boolean)
+  if (!order.length) return res.status(400).json({ error: 'order erforderlich' })
+  try {
+    const savedFeeds = await bsky.reorderPinnedFeeds(order)
+    const lists = await buildFeedLists(savedFeeds)
+    res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
+  } catch (error) {
+    return handleFeedError(res, error, 'Reihenfolge konnte nicht gespeichert werden.', 'reorderPinnedFeeds failed')
+  }
+}
+
+async function buildFeedLists (savedFeeds = []) {
+  const metaCache = new Map()
+  const errors = []
+  const pinnedEntries = await hydrateSavedFeedList(savedFeeds.filter((entry) => entry?.pinned), metaCache, errors)
+  const savedEntries = await hydrateSavedFeedList(savedFeeds.filter((entry) => !entry?.pinned), metaCache, errors)
+  return {
+    pinned: pinnedEntries.filter(Boolean),
+    saved: savedEntries.filter(Boolean),
+    errors
+  }
+}
+
+function buildOfficialFeedList () {
+  return OFFICIAL_FEEDS.map((feed) => ({
+    id: feed.id,
+    label: feed.label,
+    type: feed.type,
+    feedUri: feed.feedUri,
+    value: feed.value,
+    origin: 'official'
+  }))
+}
+
+async function hydrateSavedFeedList (entries = [], metaCache, errors) {
+  return Promise.all(entries.map((entry) => hydrateSavedFeed(entry, metaCache, errors)))
+}
+
+async function hydrateSavedFeed (entry, metaCache, errors) {
+  if (!entry) return null
+  if (entry.type === 'timeline') {
+    const label = TIMELINE_LABELS[entry.value] || 'Timeline'
+    return {
+      id: entry.id,
+      type: entry.type,
+      value: entry.value,
+      feedUri: null,
+      pinned: Boolean(entry.pinned),
+      displayName: label,
+      description: '',
+      avatar: null,
+      creator: null,
+      likeCount: null,
+      isOnline: true,
+      isValid: true,
+      status: 'ok'
+    }
+  }
+  if (entry.type === 'feed') {
+    const meta = await loadFeedMetadata(entry.value, metaCache, errors)
+    return {
+      id: entry.id,
+      type: entry.type,
+      value: entry.value,
+      feedUri: entry.value || null,
+      pinned: Boolean(entry.pinned),
+      displayName: meta.displayName,
+      description: meta.description,
+      avatar: meta.avatar,
+      creator: meta.creator,
+      likeCount: meta.likeCount,
+      isOnline: meta.isOnline,
+      isValid: meta.isValid,
+      status: meta.status
+    }
+  }
+  return {
+    id: entry.id,
+    type: entry.type || 'unknown',
+    value: entry.value || '',
+    feedUri: entry.value || null,
+    pinned: Boolean(entry.pinned),
+    displayName: 'Unbekannter Feed',
+    description: '',
+    avatar: null,
+    creator: null,
+    likeCount: null,
+    isOnline: false,
+    isValid: false,
+    status: 'unknown'
+  }
+}
+
+async function loadFeedMetadata (feedUri, metaCache, errors) {
+  const cacheKey = feedUri || ''
+  if (cacheKey && metaCache.has(cacheKey)) {
+    return metaCache.get(cacheKey)
+  }
+  if (!feedUri) {
+    return {
+      displayName: 'Feed',
+      description: '',
+      avatar: null,
+      creator: null,
+      likeCount: null,
+      isOnline: false,
+      isValid: false,
+      status: 'unknown'
+    }
+  }
+  try {
+    const info = await bsky.getFeedGeneratorInfo(feedUri)
+    const view = info?.view || {}
+    const meta = {
+      displayName: view.displayName || view.name || 'Feed',
+      description: view.description || '',
+      avatar: view.avatar || null,
+      creator: view.creator
+        ? {
+            did: view.creator.did || '',
+            handle: view.creator.handle || '',
+            displayName: view.creator.displayName || view.creator.handle || ''
+          }
+        : null,
+      likeCount: view.likeCount ?? null,
+      isOnline: Boolean(info?.isOnline),
+      isValid: Boolean(info?.isValid),
+      status: 'ok'
+    }
+    metaCache.set(cacheKey, meta)
+    return meta
+  } catch (error) {
+    const fallback = {
+      displayName: 'Feed',
+      description: '',
+      avatar: null,
+      creator: null,
+      likeCount: null,
+      isOnline: false,
+      isValid: false,
+      status: 'error'
+    }
+    metaCache.set(cacheKey, fallback)
+    errors.push({ feedUri, message: error?.message || 'Feed konnte nicht geladen werden.' })
+    return fallback
+  }
+}
+
+function getFeedUriFromRequest (req) {
+  const bodyValue = typeof req.body?.feedUri === 'string' ? req.body.feedUri.trim() : ''
+  const queryValue = typeof req.query?.feedUri === 'string' ? req.query.feedUri.trim() : ''
+  return bodyValue || queryValue || ''
+}
+
+function handleFeedError (res, error, fallback, scope) {
+  const statusCode = error?.statusCode || 500
+  const logPayload = { error: error?.message || String(error) }
+  if (statusCode >= 500) log.error(scope, logPayload)
+  else log.warn(scope, logPayload)
+  return res.status(statusCode).json({ error: error?.message || fallback })
+}
+
+module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search, getProfile, getFeeds, pinFeed, unpinFeed, reorderPinnedFeeds }

@@ -24,6 +24,7 @@ router.use('/threads', threadRoutes);
 // Tenor GIF proxy
 router.get("/tenor/featured", tenorController.featured);
 router.get("/tenor/search", tenorController.search);
+router.post("/tenor/download", tenorController.download);
 
 // Engagement
 router.get("/reactions/:skeetId", engagementController.getReactions);
@@ -57,6 +58,10 @@ router.post("/bsky/reply", bskyController.postReply);
 router.post("/bsky/post", bskyController.postNow);
 router.get("/bsky/search", bskyController.search);
 router.get("/bsky/profile", bskyController.getProfile);
+router.get("/bsky/feeds", bskyController.getFeeds);
+router.post("/bsky/feeds/pin", bskyController.pinFeed);
+router.delete("/bsky/feeds/pin", bskyController.unpinFeed);
+router.patch("/bsky/feeds/pin-order", bskyController.reorderPinnedFeeds);
 
 // Maintenance
 router.post("/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
