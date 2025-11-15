@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import ScrollTopButton from "../ui/ScrollTopButton";
+import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 
 /**
  * High-level layout wrapper for the dashboard application.
