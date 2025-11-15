@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, RichText } from '../shared'
+import { Button, RichText, MediaDialog } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon } from '@radix-ui/react-icons'
 
@@ -15,12 +15,12 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
   const [pendingMedia, setPendingMedia] = useState([]) // [{ tempId, previewUrl, mime }]
-  const imageInputRef = useRef(null)
   const textareaRef = useRef(null)
   const emojiButtonRef = useRef(null)
   const cursorRef = useRef({ start: 0, end: 0 })
   const [gifPickerOpen, setGifPickerOpen] = useState(false)
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
   const [tenorAvailable, setTenorAvailable] = useState(false)
   const quoteInfo = useMemo(() => {
     if (!quote || !quote.uri || !quote.cid) return null
@@ -327,21 +327,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         </div>
       ) : null}
       <div className='flex items-center gap-2'>
-        <input
-          ref={imageInputRef}
-          type='file'
-          accept='image/*'
-          className='hidden'
-          onChange={(e) => {
-            const file = e.target.files && e.target.files[0]
-            handleLocalFile(file)
-            try { e.target.value = '' } catch {}
-          }}
-        />
         <Button
           type='button'
           variant='outline'
-          onClick={() => imageInputRef.current?.click()}
+          onClick={() => setMediaDialogOpen(true)}
           disabled={mediaDisabled}
           title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
         >
@@ -370,6 +359,15 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           <span className='text-base leading-none md:text-lg'>😊</span>
         </Button>
       </div>
+      <MediaDialog
+        open={mediaDialogOpen}
+        title='Bild hinzufügen'
+        onClose={() => setMediaDialogOpen(false)}
+        onConfirm={(file) => {
+          setMediaDialogOpen(false)
+          handleLocalFile(file)
+        }}
+      />
       {previewUrl ? (
         <div className='mt-2'>
           {preview?.image ? (

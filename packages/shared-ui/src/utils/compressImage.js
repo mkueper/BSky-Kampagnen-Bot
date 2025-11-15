@@ -1,4 +1,4 @@
-export async function compressImage(file, {
+export async function compressImage (file, {
   targetBytes = 900 * 1024,
   maxWidth = 2048,
   maxHeight = 2048,
@@ -51,4 +51,3 @@ export async function compressImage(file, {
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.35))
   return { blob: blob || file, type: 'image/jpeg' }
 }
-

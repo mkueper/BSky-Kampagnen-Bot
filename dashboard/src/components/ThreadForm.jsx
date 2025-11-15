@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
 import { useClientConfig } from '../hooks/useClientConfig'
-import MediaDialog from './MediaDialog'
-import Modal from './ui/Modal'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import {

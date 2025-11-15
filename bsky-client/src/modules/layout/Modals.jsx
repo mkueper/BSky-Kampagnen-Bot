@@ -3,7 +3,7 @@ import { useAppState, useAppDispatch } from '../../context/AppContext';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
-import { Button, MediaLightbox, Card } from '../shared';
+import { Button, MediaLightbox, Card, MediaDialog } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 

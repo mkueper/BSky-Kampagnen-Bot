@@ -1,5 +1,4 @@
-import { Button } from '@bsky-kampagnen-bot/shared-ui';
-import Modal from './Modal';
+import { Button, Modal } from '@bsky-kampagnen-bot/shared-ui';
 
 export default function ConfirmDialog({
   open,

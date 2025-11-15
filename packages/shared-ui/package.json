@@ -9,7 +9,9 @@
     ".": "./src/index.js",
     "./NewPostsBanner": "./src/components/NewPostsBanner.jsx",
     "./Button": "./src/components/Button.jsx",
-    "./Card": "./src/components/Card.jsx"
+    "./Card": "./src/components/Card.jsx",
+    "./Modal": "./src/components/Modal.jsx",
+    "./MediaDialog": "./src/components/MediaDialog.jsx"
   },
   "scripts": {
     "build": "npm run lint && npm run test",
