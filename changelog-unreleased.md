@@ -9,6 +9,7 @@
 - Shared UI erweitert um `Modal`, `MediaDialog`, `ToastProvider` & `ScrollTopButton`; sowohl Dashboard als auch Bsky-Client nutzen die zentralen Komponenten.
 - Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.
 - Composer im Bsky-Client verwendet den gemeinsamen Media-Dialog samt Alt-Text und Upload-Komprimierung.
+- Notifications behandeln unbekannte `app.bsky.notification.*`-Reasons als Systembenachrichtigungen, statt sie neutral darzustellen.
 - Überarbeiteter Feed-Manager mit eigenem Picker-Hook (`useFeedPicker`) für Anheften/Verwalten von Bluesky-Feeds.
 - Notifications erhalten Tabs („Alle“/„Erwähnungen“) inklusive funktionierendem Thread-Open bei Like/Repost-Karten.
 - Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.

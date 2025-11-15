@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 
+const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
+
 const REASON_COPY = {
   like: {
     label: 'Like',
@@ -68,6 +70,16 @@ REASON_COPY['repost-via-repost'] = {
 
 function isViaRepostReason (reason) {
   return reason === 'like-via-repost' || reason === 'repost-via-repost'
+}
+
+function formatAppBskyReason (reason) {
+  if (!reason || !reason.startsWith(APP_BSKY_REASON_PREFIX)) return null
+  const slug = reason.slice(APP_BSKY_REASON_PREFIX.length)
+  const readable = slug.replace(/[.#]/g, ' ').trim() || 'System'
+  return {
+    label: `System (${readable})`,
+    description: () => 'Systembenachrichtigung von Bluesky.'
+  }
 }
 
 function resolveSubjectType (subject) {
@@ -168,7 +180,7 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
   } = item || {}
 
   const subjectType = useMemo(() => resolveSubjectType(subject), [subject])
-  const reasonInfo = REASON_COPY[reason] || {
+  const reasonInfo = REASON_COPY[reason] || formatAppBskyReason(reason) || {
     label: 'Aktivität',
     description: () => 'hat eine Aktion ausgeführt.'
   }
