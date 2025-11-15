@@ -6,6 +6,9 @@
 - Neuer `QuickComposer` erlaubt spontane Skeets direkt im Bluesky-Client; komplette Testsuite inklusive.
 - `NewPostsBanner` zeigt frische Timeline-Einträge und verbindet Banner-Klick mit schnellem Refresh.
 - Gemeinsamer `Button` lebt jetzt im Paket `@bsky-kampagnen-bot/shared-ui` und ersetzt die duplizierten Varianten in Client & Dashboard.
+- Shared UI erweitert um `Modal`, `MediaDialog`, `ToastProvider` & `ScrollTopButton`; sowohl Dashboard als auch Bsky-Client nutzen die zentralen Komponenten.
+- Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.
+- Composer im Bsky-Client verwendet den gemeinsamen Media-Dialog samt Alt-Text und Upload-Komprimierung.
 - Überarbeiteter Feed-Manager mit eigenem Picker-Hook (`useFeedPicker`) für Anheften/Verwalten von Bluesky-Feeds.
 - Notifications erhalten Tabs („Alle“/„Erwähnungen“) inklusive funktionierendem Thread-Open bei Like/Repost-Karten.
 - Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.
@@ -19,6 +22,7 @@
 ### Docs
 - `docs/research/bluesky-client-gap-analysis.md` dokumentiert offene Punkte im Bluesky-Client.
 - `docs/research/bluesky-timeline-reference.md` fasst API-Referenzen und Beobachtungen zur Thread-/Timeline-Struktur zusammen.
+- `docs/ui.md` aktualisiert: UI-Bausteine verweisen auf Shared-UI-Komponenten.
 
 ## 2025-10-29
 
