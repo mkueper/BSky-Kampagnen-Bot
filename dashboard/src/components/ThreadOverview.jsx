@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
-import { Button } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '../hooks/useToast'
-import Card from './ui/Card'
 import { useVirtualList } from '../hooks/useVirtualList'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 
@@ -100,6 +99,31 @@ function ThreadOverview ({
   const [showReplies, setShowReplies] = useState({})
   const [loadingRefresh, setLoadingRefresh] = useState({})
   const toast = useToast()
+  const resolvedThreads = Array.isArray(threads) ? threads : []
+  const shouldVirtualize = resolvedThreads.length > 25
+  const scrollParentSelector = useCallback(() => {
+    if (typeof document === 'undefined') return null
+    return document.getElementById('app-scroll-container')
+  }, [])
+  const { isReady: virtualReady, virtualItems, totalSize, measureRef } = useVirtualList({
+    itemCount: resolvedThreads.length,
+    estimateSize: 520,
+    overscan: 6,
+    enabled: shouldVirtualize,
+    getScrollElement: scrollParentSelector
+  })
+  const getCombinedRef = useCallback(
+    (virtualIndex, threadId) => {
+      const measure = measureRef(virtualIndex)
+      const visibleRef =
+        typeof getItemRef === 'function' ? getItemRef(threadId) : null
+      return node => {
+        measure?.(node)
+        if (visibleRef) visibleRef(node)
+      }
+    },
+    [getItemRef, measureRef]
+  )
 
   const handleToggle = threadId => {
     setExpandedThreads(current => ({
@@ -153,32 +177,6 @@ function ThreadOverview ({
       </section>
     )
   }
-
-  const resolvedThreads = Array.isArray(threads) ? threads : []
-  const shouldVirtualize = resolvedThreads.length > 25
-  const scrollParentSelector = useCallback(() => {
-    if (typeof document === 'undefined') return null
-    return document.getElementById('app-scroll-container')
-  }, [])
-  const { isReady: virtualReady, virtualItems, totalSize, measureRef } = useVirtualList({
-    itemCount: resolvedThreads.length,
-    estimateSize: 520,
-    overscan: 6,
-    enabled: shouldVirtualize,
-    getScrollElement: scrollParentSelector
-  })
-  const getCombinedRef = useCallback(
-    (virtualIndex, threadId) => {
-      const measure = measureRef(virtualIndex)
-      const visibleRef =
-        typeof getItemRef === 'function' ? getItemRef(threadId) : null
-      return node => {
-        measure?.(node)
-        if (visibleRef) visibleRef(node)
-      }
-    },
-    [getItemRef, measureRef]
-  )
 
   const renderThreadCard = (thread, refOverride) => {
         const segments = Array.isArray(thread.segments) ? thread.segments : []

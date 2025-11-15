@@ -1,4 +1,4 @@
-export { Button } from '@bsky-kampagnen-bot/shared-ui';
+export { Button, Card } from '@bsky-kampagnen-bot/shared-ui';
 export { default as RichText } from './RichText.jsx';
 export { default as RepostMenuButton } from './RepostMenuButton.jsx';
 export { default as MediaLightbox } from './MediaLightbox.jsx';

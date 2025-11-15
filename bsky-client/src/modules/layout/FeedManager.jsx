@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { Button } from '../shared/index.js'
+import { Button, Card } from '../shared/index.js'
 
 function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
   const feedUri = feed.feedUri || feed.value
@@ -9,7 +9,7 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
   const unpinning = actionState?.unpinning === feedUri
   const disabled = Boolean(actionState?.savingOrder)
   return (
-    <article className='rounded-2xl border border-border bg-background-subtle p-4 text-sm shadow-soft'>
+    <Card background='subtle' padding='p-4' className='text-sm'>
       <div className='flex items-start justify-between gap-3'>
         <div>
           <p className='text-base font-semibold text-foreground'>{feed.displayName || 'Feed'}</p>
@@ -70,7 +70,7 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
         {feed.likeCount != null ? <span>{feed.likeCount} Likes</span> : null}
         {feed.status === 'error' ? <span className='text-amber-600'>Fehler beim Laden</span> : null}
       </div>
-    </article>
+    </Card>
   )
 }
 

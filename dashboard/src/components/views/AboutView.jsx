@@ -1,4 +1,4 @@
-import Card from "../ui/Card";
+import { Card } from "@bsky-kampagnen-bot/shared-ui";
 
 export default function AboutView() {
   const project = 'BSky Kampagnen Bot';

@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
 
 const profileCache = new Map()
@@ -96,13 +97,15 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
   }, [profile, loading, error])
 
   return (
-    <div
-      className='w-[320px] rounded-2xl border border-border bg-background p-4 shadow-2xl shadow-black/10'
+    <Card
+      as='div'
+      padding='p-4'
+      className='w-[320px] shadow-2xl shadow-black/10'
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {content}
-    </div>
+    </Card>
   )
 }
 

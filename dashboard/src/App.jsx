@@ -13,11 +13,10 @@ import {
   ViewHorizontalIcon,
   InfoCircledIcon
 } from '@radix-ui/react-icons'
-import { Button } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
-import Card from './components/ui/Card'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'

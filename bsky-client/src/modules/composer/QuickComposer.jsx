@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
-import { Button } from '../shared'
+import { Button, Card } from '../shared'
 import { useComposer } from '../../hooks/useComposer'
 
 export default function QuickComposer ({ onSent }) {
@@ -41,7 +41,7 @@ export default function QuickComposer ({ onSent }) {
   }
 
   return (
-    <article className='rounded-2xl border border-border bg-background p-4 shadow-soft' data-component='BskyQuickComposer'>
+    <Card padding='p-4' data-component='BskyQuickComposer'>
       <form onSubmit={handleSubmit} className='space-y-3'>
         <textarea
           value={text}
@@ -66,7 +66,7 @@ export default function QuickComposer ({ onSent }) {
           ) : null}
         </div>
       </form>
-    </article>
+    </Card>
   )
 }
 

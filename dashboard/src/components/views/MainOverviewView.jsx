@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import Card from "../ui/Card";
+import { Card } from "@bsky-kampagnen-bot/shared-ui";
 
 function formatDate(value) {
   if (!value) return null;

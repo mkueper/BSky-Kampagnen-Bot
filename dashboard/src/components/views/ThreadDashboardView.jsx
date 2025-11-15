@@ -115,7 +115,7 @@ function ThreadDashboardView ({
               </Tabs.List>
             </Tabs.Root>
             {activeTab === 'published' ? (
-              <div className='self-start flex items-center gap-2 rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted'>
+            <div className='self-start flex items-center gap-2 rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted md:hidden'>
                 <span className='sr-only'>
                   Sortierung veröffentlichter Threads
                 </span>
@@ -161,83 +161,85 @@ function ThreadDashboardView ({
                     />
                     <span className='text-xs'>Antworten</span>
                   </label>
+                <div className='hidden md:flex'>
                   <Button
                     variant='ghost'
                     size='icon'
                     aria-label='Alle sichtbaren aktualisieren'
                     title='Alle sichtbaren aktualisieren'
                     onClick={async () => {
-                      setBulkRefreshing(true)
-                      try {
-                        const ids = threads
-                          .filter(t => t.status === 'published')
-                          .map(t => t.id)
-                          .filter(id => visibleIds.includes(id))
-                        if (!ids.length) {
-                          toast.info({
-                            title: 'Keine sichtbaren Einträge',
-                            description:
-                              'Scrolle die Liste, um Einträge sichtbar zu machen.'
-                          })
-                        } else {
-                          const res = await fetch(
-                            '/api/engagement/refresh-many',
-                            {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                entity: 'thread',
-                                ids,
-                                includeReplies: Boolean(bulkIncludeReplies)
-                              })
-                            }
-                          )
-                          if (!res.ok) {
-                            const data = await res.json().catch(() => ({}))
-                            throw new Error(
-                              data.error ||
-                                'Fehler beim Aktualisieren der sichtbaren Threads.'
+                        setBulkRefreshing(true)
+                        try {
+                          const ids = threads
+                            .filter(t => t.status === 'published')
+                            .map(t => t.id)
+                            .filter(id => visibleIds.includes(id))
+                          if (!ids.length) {
+                            toast.info({
+                              title: 'Keine sichtbaren Einträge',
+                              description:
+                                'Scrolle die Liste, um Einträge sichtbar zu machen.'
+                            })
+                          } else {
+                            const res = await fetch(
+                              '/api/engagement/refresh-many',
+                              {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  entity: 'thread',
+                                  ids,
+                                  includeReplies: Boolean(bulkIncludeReplies)
+                                })
+                              }
                             )
+                            if (!res.ok) {
+                              const data = await res.json().catch(() => ({}))
+                              throw new Error(
+                                data.error ||
+                                  'Fehler beim Aktualisieren der sichtbaren Threads.'
+                              )
+                            }
+                            const data = await res.json().catch(() => null)
+                            const total = data?.total ?? ids.length
+                            const okCount = Array.isArray(data?.results)
+                              ? data.results.filter(r => r.ok).length
+                              : 0
+                            const failCount = Math.max(0, total - okCount)
+                            toast.success({
+                              title: 'Sichtbare aktualisiert',
+                              description: `Threads: ${okCount} aktualisiert${
+                                failCount ? ` · ${failCount} fehlgeschlagen` : ''
+                              }`
+                            })
+                            if (typeof onReload === 'function')
+                              onReload({ force: true })
                           }
-                          const data = await res.json().catch(() => null)
-                          const total = data?.total ?? ids.length
-                          const okCount = Array.isArray(data?.results)
-                            ? data.results.filter(r => r.ok).length
-                            : 0
-                          const failCount = Math.max(0, total - okCount)
-                          toast.success({
-                            title: 'Sichtbare aktualisiert',
-                            description: `Threads: ${okCount} aktualisiert${
-                              failCount ? ` · ${failCount} fehlgeschlagen` : ''
-                            }`
+                        } catch (error) {
+                          console.error(
+                            'Bulk-Refresh (sichtbar) fehlgeschlagen:',
+                            error
+                          )
+                          toast.error({
+                            title: 'Aktualisierung fehlgeschlagen',
+                            description:
+                              error?.message || 'Fehler beim Aktualisieren.'
                           })
-                          if (typeof onReload === 'function')
-                            onReload({ force: true })
+                        } finally {
+                          setBulkRefreshing(false)
                         }
-                      } catch (error) {
-                        console.error(
-                          'Bulk-Refresh (sichtbar) fehlgeschlagen:',
-                          error
+                      }}
+                      disabled={
+                        bulkRefreshing ||
+                        !threads.some(
+                          t =>
+                            t.status === 'published' && visibleIds.includes(t.id)
                         )
-                        toast.error({
-                          title: 'Aktualisierung fehlgeschlagen',
-                          description:
-                            error?.message || 'Fehler beim Aktualisieren.'
-                        })
-                      } finally {
-                        setBulkRefreshing(false)
                       }
-                    }}
-                    disabled={
-                      bulkRefreshing ||
-                      !threads.some(
-                        t =>
-                          t.status === 'published' && visibleIds.includes(t.id)
-                      )
-                    }
-                  >
-                    <ReloadIcon className='h-4 w-4' />
-                  </Button>
+                    >
+                      <ReloadIcon className='h-4 w-4' />
+                    </Button>
+                </div>
                 </div>
               </div>
             ) : null}
@@ -289,7 +291,7 @@ function ThreadDashboardView ({
       </section>
 
       {activeTab === 'published' ? (
-        <FloatingToolbar ariaLabel='Thread-Aktionen' variant='primary'>
+        <FloatingToolbar ariaLabel='Thread-Aktionen' variant='primary' className='hidden md:flex'>
           <Button
             variant='ghost'
             size='icon'

@@ -7,7 +7,7 @@ import { useFeedPicker } from './hooks/useFeedPicker'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { NewPostsBanner } from '@bsky-kampagnen-bot/shared-ui'
+import { NewPostsBanner, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { QuickComposer } from './modules/composer'
 import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
@@ -29,9 +29,9 @@ const NotificationsLazy = lazy(async () => {
   return { default: module.Notifications ?? module.default }
 })
 const SectionFallback = ({ label = 'Bereich' }) => (
-  <div className='rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground-muted'>
+  <Card background='subtle' padding='p-4' className='text-sm text-foreground-muted'>
     {label} wird geladen…
-  </div>
+  </Card>
 )
 
 export default function BskyClientApp () {

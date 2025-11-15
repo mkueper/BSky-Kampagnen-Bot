@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.js",
     "./NewPostsBanner": "./src/components/NewPostsBanner.jsx",
-    "./Button": "./src/components/Button.jsx"
+    "./Button": "./src/components/Button.jsx",
+    "./Card": "./src/components/Card.jsx"
   },
   "scripts": {
     "build": "npm run lint && npm run test",

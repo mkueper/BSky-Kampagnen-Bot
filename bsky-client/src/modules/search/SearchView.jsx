@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
-import { Button, searchBsky, RichText } from '../shared'
+import { Button, Card, searchBsky, RichText } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 
 const SEARCH_TABS = [
@@ -186,7 +186,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
       <ul className='space-y-3'>
         {items.map((person) => (
           <li key={person.did || person.handle}>
-            <article className='flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between'>
+            <Card padding='p-4' className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
               <div className='flex items-start gap-3'>
                 {person.avatar ? (
                   <img src={person.avatar} alt='' className='h-14 w-14 rounded-full border border-border object-cover' />
@@ -211,7 +211,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
               >
                 Profil ansehen
               </a>
-            </article>
+            </Card>
           </li>
         ))}
       </ul>
@@ -224,7 +224,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
       <ul className='space-y-3'>
         {items.map((feed) => (
           <li key={feed.uri || feed.cid}>
-            <article className='flex flex-col gap-3 rounded-2xl border border-border bg-background p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between'>
+            <Card padding='p-4' className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
               <div className='flex items-start gap-3'>
                 {feed.avatar ? (
                   <img src={feed.avatar} alt='' className='h-12 w-12 rounded-2xl border border-border object-cover' />
@@ -259,7 +259,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
                   </a>
                 )
               })()}
-            </article>
+            </Card>
           </li>
         ))}
       </ul>

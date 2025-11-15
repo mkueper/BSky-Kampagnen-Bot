@@ -1,8 +1,7 @@
 import { useCallback } from "react";
-import { Button } from "@bsky-kampagnen-bot/shared-ui";
+import { Button, Card } from "@bsky-kampagnen-bot/shared-ui";
 import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";
-import Card from "./ui/Card";
 import { useVirtualList } from "../hooks/useVirtualList";
 
 function PublishedSkeetList({
