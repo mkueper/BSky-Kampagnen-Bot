@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@bsky-kampagnen-bot/shared-ui';
 import Modal from './ui/Modal';
-import Button from './ui/Button';
 import { compressImage } from '../utils/image';
 
 function humanSize(bytes) {

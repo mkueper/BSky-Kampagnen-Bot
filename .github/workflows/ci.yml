@@ -38,3 +38,6 @@ jobs:
 
       - name: Bsky client tests
         run: npm run test --workspace bsky-client
+
+      - name: Shared UI tests
+        run: npm run test --workspace packages/shared-ui

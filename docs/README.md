@@ -37,6 +37,7 @@ Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`
 ## Nutzung des Dashboards
 
 - **[Frontend-Benutzerhandbuch](./frontend-user-guide.md)** – Schritt-für-Schritt-Anleitung für Redakteur:innen (Anmeldung, Skeets & Threads, Import/Export, Scheduler).
+- **[Scripts & Befehle](./scripts.md)** – Übersicht aller npm-Skripte und Workspaces im Monorepo.
 
 ---
 

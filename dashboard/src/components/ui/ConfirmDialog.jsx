@@ -1,4 +1,4 @@
-import Button from './Button';
+import { Button } from '@bsky-kampagnen-bot/shared-ui';
 import Modal from './Modal';
 
 export default function ConfirmDialog({
@@ -29,4 +29,3 @@ export default function ConfirmDialog({
     </Modal>
   );
 }
-

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '../hooks/useToast'
-import Button from './ui/Button'
 import MediaDialog from './MediaDialog'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'

@@ -111,7 +111,37 @@ export default tseslint.config(
     },
   }
   ,
-  // 7. Test files (Vitest globals)
+  // 7. Shared UI package (React / JSX)
+  {
+    files: ["packages/shared-ui/src/**/*.{js,jsx}"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    plugins: {
+      react: pluginReact,
+      "react-hooks": pluginReactHooks,
+    },
+    rules: {
+      ...pluginReact.configs.recommended.rules,
+      ...pluginReactHooks.configs.recommended.rules,
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off"
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  }
+  ,
+  // 8. Test files (Vitest globals)
   {
     files: [
       "backend/src/**/*.test.js",
