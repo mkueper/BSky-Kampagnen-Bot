@@ -10,7 +10,7 @@ import './styles/tailwind.css';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
-import { ToastProvider } from './components/ui/ToastProvider.jsx'
+import { ToastProvider } from '@bsky-kampagnen-bot/shared-ui'
 
 if (!document.documentElement.dataset.styleVariant) {
   document.documentElement.dataset.styleVariant = 'classic';

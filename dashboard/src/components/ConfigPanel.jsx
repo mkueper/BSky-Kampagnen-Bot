@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
-import { useToast } from '../hooks/useToast'
+import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 
 const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs']
 

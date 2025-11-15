@@ -21,12 +21,14 @@
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
-    "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1",
+    "@radix-ui/react-toast": "^1.2.15"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@radix-ui/react-toast": "^1.2.15",
     "jsdom": "^25.0.1",
     "vitest": "^3.2.4"
   }

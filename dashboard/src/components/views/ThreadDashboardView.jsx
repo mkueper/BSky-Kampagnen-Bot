@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from '../ui/ThemeContext'
-import { useToast } from '../../hooks/useToast'
+import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import * as Tabs from '@radix-ui/react-tabs'
 import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from '@radix-ui/react-icons'
 import ThreadOverview from '../ThreadOverview'

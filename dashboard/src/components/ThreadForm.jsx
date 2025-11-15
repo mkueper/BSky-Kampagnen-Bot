@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
-import { useToast } from '../hooks/useToast'
+import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'

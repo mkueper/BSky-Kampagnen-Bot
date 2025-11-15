@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
-import { useToast } from '../hooks/useToast'
+import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'

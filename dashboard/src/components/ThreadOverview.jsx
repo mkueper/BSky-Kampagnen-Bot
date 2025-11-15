@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
-import { useToast } from '../hooks/useToast'
+import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useVirtualList } from '../hooks/useVirtualList'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 

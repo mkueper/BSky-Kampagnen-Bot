@@ -4,11 +4,11 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 
 ## Bausteine
 
-- `Card` (`dashboard/src/components/ui/Card.jsx`)
+- `Card` (`@bsky-kampagnen-bot/shared-ui`)
   - Standardkarte mit Border, Shadow, optionalem Hover (`hover`-Prop)
   - Padding via Tailwind-Klasse (`padding`-Prop) steuerbar
 
-- `Button` (`dashboard/src/components/ui/Button.jsx`)
+- `Button` (`@bsky-kampagnen-bot/shared-ui`)
   - Varianten: `primary`, `secondary`, `neutral`, `warning`, `destructive`, `ghost`
   - Größen: `md`, `icon`; disabled-Zustand und Fokus sind vordefiniert
 
@@ -25,7 +25,7 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 - `FloatingToolbar` (`dashboard/src/components/ui/FloatingToolbar.jsx`)
   - Kontextbezogene Toolbar, die beim Scrollen eingeblendet wird. Nutzt Portals; Buttons bitte über die vorhandenen Varianten anlegen.
 
-- `ToastProvider` & `useToast` (`dashboard/src/components/ui/ToastProvider.jsx`, `hooks/useToast.js`)
+- `ToastProvider` & `useToast` (`@bsky-kampagnen-bot/shared-ui`)
   - Einheitliche Toasts (`success`, `error`, `info`). Bitte keine ad-hoc `alert()` verwenden.
 
 ## Patterns
