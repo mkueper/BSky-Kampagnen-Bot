@@ -17,7 +17,7 @@ import {
   CrossCircledIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger } from '../shared'
+import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, Card } from '../shared'
 
 function extractImagesFromEmbed (item) {
   try {
@@ -201,10 +201,11 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   })
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
-  const Wrapper = variant === 'card' ? 'article' : 'div'
-  const baseCls = variant === 'card'
-    ? 'relative rounded-2xl border border-border bg-background p-4 shadow-soft'
-    : 'relative px-1'
+  const Wrapper = variant === 'card' ? Card : 'div'
+  const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
+  const wrapperProps = variant === 'card'
+    ? { as: 'article', padding: 'p-4' }
+    : {}
   const handleSelect = (event) => {
     if (typeof onSelect !== 'function') return
     if (event) {
@@ -535,7 +536,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   )
 
   return (
-    <Wrapper className={baseCls} data-variant={variant} data-component='BskySkeetItem'>
+    <Wrapper className={wrapperClassName} data-variant={variant} data-component='BskySkeetItem' {...wrapperProps}>
       {typeof onSelect === 'function' ? (
         <div
           role='button'

@@ -3,7 +3,7 @@ import { useAppState, useAppDispatch } from '../../context/AppContext';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
-import { Button, MediaLightbox } from '../shared';
+import { Button, MediaLightbox, Card } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 
@@ -56,7 +56,7 @@ export function Modals() {
       {composeOpen && confirmDiscard ? (
         <div className='fixed inset-0 z-50 flex items-center justify-center'>
           <div className='absolute inset-0 bg-black/40 backdrop-blur-sm' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })} aria-hidden='true' />
-          <div className='relative z-50 w-[min(520px,92vw)] rounded-2xl border border-border bg-background p-5 shadow-card'>
+          <Card as='div' padding='p-5' className='relative z-50 w-[min(520px,92vw)] shadow-card'>
             <h4 className='text-lg font-semibold text-foreground'>Entwurf verwerfen</h4>
             <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen moechtest?</p>
             <div className='mt-4 flex items-center justify-end gap-2'>
@@ -66,7 +66,7 @@ export function Modals() {
                 closeComposer();
               }}>Verwerfen</Button>
             </div>
-          </div>
+          </Card>
         </div>
       ) : null}
 

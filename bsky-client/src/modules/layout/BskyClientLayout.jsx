@@ -76,8 +76,8 @@ export default function BskyClientLayout ({
 
   const asideClassName = [
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
-    'fixed inset-y-4 left-4 w-[min(280px,85vw)] md:inset-auto md:left-auto md:right-auto md:bottom-auto md:h-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
-    'md:sticky md:top-0 md:shrink-0 md:max-h-[calc(100vh-24px)]',
+    'fixed top-4 bottom-4 left-4 w-[min(280px,85vw)] md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
+    'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
     navVisible ? 'translate-x-0' : '-translate-x-[120%] md:translate-x-0'
   ].join(' ')
 
