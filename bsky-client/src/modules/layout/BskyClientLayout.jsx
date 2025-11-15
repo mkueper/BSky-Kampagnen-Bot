@@ -141,7 +141,7 @@ export default function BskyClientLayout ({
           <main className='space-y-8 pb-6 md:pb-8'>
             {children}
           </main>
-          <ScrollTopButton containerId='bsky-scroll-container' position='bottom-left' variant='elevated' />
+          <ScrollTopButton containerId='bsky-scroll-container' position='bottom-left' variant='primary' />
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (
             <button
