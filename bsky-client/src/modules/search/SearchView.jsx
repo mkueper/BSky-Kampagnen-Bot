@@ -315,7 +315,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
   return (
     <div className='space-y-6' data-component='BskySearchView'>
       <form
-        className='flex flex-col gap-3 rounded-3xl border border-border bg-background p-4 shadow-soft sm:flex-row sm:items-center'
+        className='flex flex-col gap-3 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-4'
         onSubmit={submitSearch}
       >
         <div className='flex flex-1 items-center gap-3 rounded-2xl border border-border bg-background-subtle px-3'>
