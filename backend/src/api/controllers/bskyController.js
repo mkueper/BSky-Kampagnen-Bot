@@ -29,6 +29,8 @@ const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 const PUSH_REQUEST_KEYS = ['serviceDid', 'token', 'platform', 'appId']
 
+const POST_RECORD_COLLECTION = 'app.bsky.feed.post'
+
 function toTimestamp (value) {
   if (!value) return 0
   const ms = Date.parse(value)
@@ -394,11 +396,11 @@ async function getNotifications (req, res) {
         notifications.flatMap((entry) => {
           const list = []
           const reasonSubject = entry?.reasonSubject
-          if (typeof reasonSubject === 'string' && reasonSubject.startsWith('at://')) {
+          if (isPostUri(reasonSubject)) {
             list.push(reasonSubject)
           }
           const recordSubjectUri = entry?.record?.subject?.uri
-          if (typeof recordSubjectUri === 'string' && recordSubjectUri.startsWith('at://')) {
+          if (isPostUri(recordSubjectUri)) {
             list.push(recordSubjectUri)
           }
           return list
@@ -804,7 +806,7 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
       likeCount: view.likeCount ?? null,
       isOnline: Boolean(info?.isOnline),
       isValid: Boolean(info?.isValid),
-      status: 'ok'
+      status: info?.isValid ? 'ok' : 'invalid'
     }
     metaCache.set(cacheKey, meta)
     return meta
@@ -817,10 +819,16 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
       likeCount: null,
       isOnline: false,
       isValid: false,
-      status: 'error'
+      status: error?.statusCode === 404 ? 'not-found' : 'error'
     }
     metaCache.set(cacheKey, fallback)
-    errors.push({ feedUri, message: error?.message || 'Feed konnte nicht geladen werden.' })
+    if (error?.statusCode !== 404) {
+      const reason = error?.message || 'Feed konnte nicht geladen werden.'
+      const alreadyPresent = errors.some(entry => entry?.feedUri === feedUri && entry?.message === reason)
+      if (!alreadyPresent) {
+        errors.push({ feedUri, message: reason })
+      }
+    }
     return fallback
   }
 }
@@ -854,4 +862,7 @@ module.exports = {
   pinFeed,
   unpinFeed,
   reorderPinnedFeeds
+}
+function isPostUri (value) {
+  return typeof value === 'string' && value.includes(`/${POST_RECORD_COLLECTION}/`)
 }

@@ -25,6 +25,7 @@ PROJECT_CONTENT=(
   "backend"
   "config"
   "migrations"
+  "packages/shared-ui"
   "packages/media-pickers"
   "tsconfig.json"
   "tsconfig.build.json"

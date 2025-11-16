@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY dashboard/package*.json ./dashboard/
 COPY bsky-client/package*.json ./bsky-client/
+COPY packages/shared-ui/package*.json ./packages/shared-ui/
 
 # Installiere alle Workspaces (inkl. Root, falls benötigt)
 # Installiere nur die benötigten Workspaces (Backend wird für Shared Scripts/Config benötigt)
@@ -15,6 +16,7 @@ RUN npm ci \
   --workspace backend \
   --workspace dashboard \
   --workspace bsky-client \
+  --workspace packages/shared-ui \
   --workspace packages/media-pickers \
   --include-workspace-root
 

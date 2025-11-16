@@ -215,7 +215,8 @@ function getOrCreateDirectTransport () {
     cachedDirectSignature = signature;
     return cachedDirectTransport;
   } catch (error) {
-    console.warn('[push] direkter Transport konnte nicht initialisiert werden:', error);
+    const logger = typeof globalThis !== 'undefined' ? globalThis.console : undefined;
+    logger?.warn?.('[push] direkter Transport konnte nicht initialisiert werden:', error);
     cachedDirectTransport = null;
     cachedDirectSignature = '';
     return null;

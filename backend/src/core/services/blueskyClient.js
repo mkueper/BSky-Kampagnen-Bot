@@ -37,6 +37,17 @@ function createStatusError (statusCode, message) {
   return error;
 }
 
+function normalizeXrpcError (error, fallbackMessage = 'Bluesky API Fehler') {
+  const status =
+    Number(error?.statusCode) ||
+    Number(error?.status) ||
+    Number(error?.response?.status);
+  if (Number.isFinite(status) && status > 0) {
+    throw createStatusError(status, error?.message || fallbackMessage);
+  }
+  throw error;
+}
+
 
 /**
  * Stellt sicher, dass der Agent eine gültige Session besitzt, indem er sich mit
@@ -320,8 +331,17 @@ async function getFeedGeneratorInfoWrapper (feedUri) {
   const normalized = String(feedUri || '').trim();
   if (!normalized) throw createStatusError(400, 'feedUri erforderlich');
   await ensureLoggedIn();
-  const res = await agent.app.bsky.feed.getFeedGenerator({ feed: normalized });
-  return res?.data ?? null;
+  try {
+    const res = await agent.app.bsky.feed.getFeedGenerator({ feed: normalized });
+    const data = res?.data ?? res ?? {};
+    return {
+      view: data.view || {},
+      isOnline: !data?.isOffline,
+      isValid: Boolean(data?.view),
+    };
+  } catch (error) {
+    normalizeXrpcError(error, 'Feed konnte nicht geladen werden.');
+  }
 }
 
 async function overwriteSavedFeedsWrapper (entries = []) {
