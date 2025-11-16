@@ -54,6 +54,8 @@ router.get("/bsky/timeline", bskyController.getTimeline);
 router.get("/bsky/reactions", bskyController.getReactions);
 router.get("/bsky/thread", bskyController.getThread);
 router.get("/bsky/notifications", bskyController.getNotifications);
+router.post("/bsky/notifications/register-push", bskyController.registerPushSubscription);
+router.post("/bsky/notifications/unregister-push", bskyController.unregisterPushSubscription);
 router.post("/bsky/reply", bskyController.postReply);
 router.post("/bsky/post", bskyController.postNow);
 router.get("/bsky/search", bskyController.search);

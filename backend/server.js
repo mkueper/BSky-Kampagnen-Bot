@@ -13,6 +13,7 @@ const express = require("express");
 const helmet = require("helmet");
 const path = require("path");
 const fs = require("fs");
+const cookieParser = require("cookie-parser");
 const { login: loginBluesky } = require("@core/services/blueskyClient");
 const { login: loginMastodon, hasCredentials: hasMastodonCredentials } = require("@core/services/mastodonClient");
 const { startScheduler } = require("@core/services/scheduler");
@@ -92,12 +93,16 @@ app.use(express.static(DIST_DIR, {
 }));
 // Erweitertes JSON-/URL‑encoded Body‑Limit (für Base64‑Uploads)
 const JSON_LIMIT_MB = Number(process.env.JSON_BODY_LIMIT_MB || 25);
+app.use(cookieParser());
 app.use(express.json({ limit: `${JSON_LIMIT_MB}mb` }));
 app.use(express.urlencoded({ extended: true, limit: `${JSON_LIMIT_MB}mb` }));
 
 // API-Routen
 const apiRoutes = require('@api/routes');
-app.use('/api', apiRoutes);
+const authRoutes = require('@api/routes/authRoutes');
+const requireAuth = require('@api/middleware/requireAuth');
+app.use('/api/auth', authRoutes);
+app.use('/api', requireAuth, apiRoutes);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {

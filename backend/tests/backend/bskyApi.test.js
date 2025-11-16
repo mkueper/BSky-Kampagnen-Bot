@@ -127,4 +127,55 @@ describe('bsky API', () => {
     expect(bsky.reorderPinnedFeeds).toHaveBeenCalledWith(['y'])
     expect(payload?.pinned).toHaveLength(2)
   })
+
+  it('POST /api/bsky/notifications/register-push ruft Service mit Payload auf', async () => {
+    const bsky = require('@core/services/blueskyClient')
+    const spy = vi.spyOn(bsky, 'registerPushSubscription').mockResolvedValue(true)
+    const ctrl = loadController()
+    let payload = null
+    const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
+    await ctrl.registerPushSubscription({
+      body: {
+        serviceDid: ' did:web:push.example ',
+        token: ' token123 ',
+        platform: 'WEB',
+        appId: 'client-app',
+        ageRestricted: false
+      }
+    }, res)
+    expect(spy).toHaveBeenCalledWith({
+      serviceDid: 'did:web:push.example',
+      token: 'token123',
+      platform: 'WEB',
+      appId: 'client-app',
+      ageRestricted: false
+    })
+    expect(payload?.success).toBe(true)
+  })
+
+  it('POST /api/bsky/notifications/unregister-push gibt Fehlercode weiter', async () => {
+    const bsky = require('@core/services/blueskyClient')
+    const err = new Error('invalid token')
+    err.statusCode = 422
+    vi.spyOn(bsky, 'unregisterPushSubscription').mockRejectedValue(err)
+    const ctrl = loadController()
+    let payload = null
+    const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
+    await ctrl.unregisterPushSubscription({
+      body: {
+        serviceDid: 'did:web:push',
+        token: 'abc',
+        platform: 'web',
+        appId: 'client-app'
+      }
+    }, res)
+    expect(bsky.unregisterPushSubscription).toHaveBeenCalledWith({
+      serviceDid: 'did:web:push',
+      token: 'abc',
+      platform: 'web',
+      appId: 'client-app'
+    })
+    expect(payload?.code).toBe(422)
+    expect(payload?.error).toMatch(/invalid token/i)
+  })
 })

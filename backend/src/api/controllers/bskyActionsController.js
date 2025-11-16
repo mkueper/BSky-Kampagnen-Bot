@@ -11,7 +11,9 @@ async function like(req, res) {
     let totals = null
     try {
       const r = await bsky.getReactions(uri)
-      totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length }
+      const likes = typeof r?.likesCount === 'number' ? r.likesCount : Array.isArray(r?.likes) ? r.likes.length : 0
+      const reposts = typeof r?.repostsCount === 'number' ? r.repostsCount : Array.isArray(r?.reposts) ? r.reposts.length : 0
+      totals = { likes, reposts }
     } catch (error) {
       log.warn('Reaktionen nach Like konnten nicht geladen werden', {
         uri,
@@ -46,7 +48,9 @@ async function repost(req, res) {
     let totals = null
     try {
       const r = await bsky.getReactions(uri)
-      totals = { likes: (r.likes || []).length, reposts: (r.reposts || []).length }
+      const likes = typeof r?.likesCount === 'number' ? r.likesCount : Array.isArray(r?.likes) ? r.likes.length : 0
+      const reposts = typeof r?.repostsCount === 'number' ? r.repostsCount : Array.isArray(r?.reposts) ? r.reposts.length : 0
+      totals = { likes, reposts }
     } catch (error) {
       log.warn('Reaktionen nach Repost konnten nicht geladen werden', {
         uri,
@@ -73,4 +77,3 @@ async function unrepost(req, res) {
 }
 
 module.exports = { like, unlike, repost, unrepost }
-

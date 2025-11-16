@@ -11,10 +11,13 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { ToastProvider } from '@bsky-kampagnen-bot/shared-ui'
+import { installFetchInterceptor } from './utils/installFetchInterceptor'
 
 if (!document.documentElement.dataset.styleVariant) {
   document.documentElement.dataset.styleVariant = 'classic';
 }
+
+installFetchInterceptor()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

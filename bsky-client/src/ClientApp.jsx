@@ -11,6 +11,7 @@ import { NewPostsBanner, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { QuickComposer } from './modules/composer'
 import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
+import { SettingsView } from './modules/settings/index.js'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -326,7 +327,7 @@ export default function BskyClientApp () {
   else if (section === 'lists') secondaryContent = <div className='text-sm text-muted-foreground'>Listen folgt</div>
   else if (section === 'saved') secondaryContent = <div className='text-sm text-muted-foreground'>Gespeichert folgt</div>
   else if (section === 'profile') secondaryContent = <div className='text-sm text-muted-foreground'>Profil folgt</div>
-  else if (section === 'settings') secondaryContent = <div className='text-sm text-muted-foreground'>Einstellungen folgt</div>
+else if (section === 'settings') secondaryContent = <SettingsView />
 
   useEffect(() => {
     dispatch({ type: 'SET_TIMELINE_READY', payload: false })

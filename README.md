@@ -146,10 +146,26 @@ Changelog pflegen:
 | `CLIENT_IDLE_THRESHOLD_MS` | Dauer ohne Heartbeat, bevor der Server „idle“ annimmt  | `1200000`|
 | `UPLOAD_MAX_BYTES`     | Upload-Limit für Medien (Skeets/Threads/Temp)             | `8388608` (8 MB) |
 | `UI_QUICK_COMPOSER_ENABLED` (`VITE_UI_QUICK_COMPOSER_ENABLED`) | Steuert, ob der QuickComposer im integrierten Bluesky-Client sichtbar ist | `true` |
+| `AUTH_USERNAME` | Benutzername für den Dashboard-Login | – |
+| `AUTH_PASSWORD_HASH` | Salt:Hash aus `npm run tools:hash-password` | – |
+| `AUTH_TOKEN_SECRET` | Zufälliger Schlüssel für die Signatur der Session-Cookies | – |
+| `AUTH_SESSION_TTL_HOURS` | Gültigkeit einer Session in Stunden (alternativ `*_SECONDS`) | `12` |
 
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
 Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
+
+### Dashboard-Login konfigurieren
+
+Der Zugriff auf `/api/*` und das Dashboard ist jetzt durch einen Admin-Login geschützt. Vorgehen:
+
+1. gewünschten Benutzernamen in `.env` als `AUTH_USERNAME` hinterlegen.
+2. Passwort-Hash erzeugen: `npm run tools:hash-password` (CLI fragt das Passwort ab und liefert einen `salt:hash`-String). Ergebnis als `AUTH_PASSWORD_HASH` eintragen.
+3. Einen zufälligen Schlüssel (mind. 32 Zeichen) als `AUTH_TOKEN_SECRET` setzen.
+4. Backend neu starten, danach erscheint der Login-Screen; Cookies werden httpOnly/SameSite=Lax gesetzt. Die Session-Laufzeit lässt sich via `AUTH_SESSION_TTL_HOURS` anpassen.
+
+Ohne konfigurierte Werte verweigert das Backend sämtliche API-Aufrufe und die UI erklärt, welche Schritte notwendig sind.
+
 
 ---
 

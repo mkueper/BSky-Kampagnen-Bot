@@ -14,7 +14,7 @@ export function useSse({ onSkeetEvent, onThreadEvent } = {}) {
     if (typeof window === 'undefined') return () => {}
     try {
       const base = import.meta.env.VITE_API_BASE || ''
-      const src = new EventSource(`${base}/api/events`, { withCredentials: false })
+      const src = new EventSource(`${base}/api/events`, { withCredentials: true })
       srcRef.current = src
 
       const safeParse = (e) => {

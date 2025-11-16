@@ -1,10 +1,10 @@
 {
   "name": "bsky-kampagnen-bot",
   "version": "1.1.1",
-  "description": "Bot um Kampagnen-Skeets an ausgew\u00e4hlten Tagen zu senden und die Reaktionen zu \u00fcberpr\u00fcfen.",
+  "description": "Bot um Kampagnen-Skeets an ausgewählten Tagen zu senden und die Reaktionen zu überprüfen.",
   "keywords": [],
   "license": "ISC",
-  "author": "Michael K\u00fcper & S.A.R.A.H (OpenAI ChatGPT-5)",
+  "author": "Michael Küper & S.A.R.A.H (OpenAI ChatGPT-5)",
   "type": "commonjs",
   "main": "electron/main.js",
   "scripts": {
@@ -61,13 +61,16 @@
     "changelog:note": "node scripts/changelog-note.js",
     "changelog:release": "node scripts/changelog-release.js",
     "changelog:lint": "node scripts/changelog-lint.js",
-    "tools:set-masto-segment": "node scripts/setMastoSegment.js"
+    "tools:set-masto-segment": "node scripts/setMastoSegment.js",
+    "tools:hash-password": "node scripts/hashPassword.js"
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "grapheme-splitter": "^1.0.4",
+    "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.2",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",

@@ -29,6 +29,7 @@ const OFFICIAL_FEED_GENERATORS = {
   'best-of-follows': 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/best-of-follows'
 };
 const TIMELINE_FOLLOWING_VALUE = 'following';
+const SUPPORTED_PUSH_PLATFORMS = new Set(['ios', 'android', 'web']);
 
 function createStatusError (statusCode, message) {
   const error = new Error(message);
@@ -159,22 +160,30 @@ async function postSkeet(text) {
 }
 
 /**
- * Ruft Likes und Reposts zu einem Post ab.
+ * Ruft Likes- und Repost-Zähler eines Posts ab (Single-Call via Thread-API).
  *
  * @param {string} postUri at:// URI des Posts.
- * @returns {Promise<{likes: Array, reposts: Array}>} Objekt mit Rohdaten der API.
+ * @returns {Promise<{likesCount: number, repostsCount: number}>}
  */
 async function getReactions(postUri) {
   await ensureLoggedIn();
-  const likes = await agent.app.bsky.feed.getLikes({ uri: postUri });
-  const reposts = await agent.app.bsky.feed.getRepostedBy({ uri: postUri });
-  const out = { likes: likes.data.likes, reposts: reposts.data.repostedBy };
-  try {
-    const likeCount = Array.isArray(out.likes) ? out.likes.length : 0;
-    const repostCount = Array.isArray(out.reposts) ? out.reposts.length : 0;
-    log.debug("Bluesky Reactions geladen", { uri: postUri, likes: likeCount, reposts: repostCount });
-  } catch (e) { log.error("Bluesky Reactions laden fehlgeschlagen", { error: e?.message || String(e) }); }
-  return out;
+  const thread = await agent.app.bsky.feed.getPostThread({
+    uri: postUri,
+    depth: 0,
+    parentHeight: 0,
+  });
+  const threadNode = thread?.data?.thread;
+  if (!threadNode || threadNode.$type === 'app.bsky.feed.defs#notFoundPost') {
+    throw new Error('Bluesky-Post nicht gefunden.');
+  }
+  const targetPost = threadNode?.post || threadNode;
+  const likeCount = Number(targetPost?.likeCount) || 0;
+  const repostCount = Number(targetPost?.repostCount) || 0;
+  log.debug('Bluesky Reactions geladen', { uri: postUri, likes: likeCount, reposts: repostCount });
+  return {
+    likesCount: likeCount,
+    repostsCount: repostCount,
+  };
 }
 
 /**
@@ -214,6 +223,60 @@ async function getNotifications ({ limit = 30, cursor } = {}) {
 async function markNotificationsSeen (seenAt = new Date().toISOString()) {
   await ensureLoggedIn();
   await agent.app.bsky.notification.updateSeen({ seenAt });
+}
+
+function normalizeBoolean (value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return undefined;
+    if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  }
+  return undefined;
+}
+
+function normalizePushPayload (payload = {}, { includeAgeRestricted = false } = {}) {
+  const serviceDid = String(payload?.serviceDid || '').trim();
+  if (!serviceDid) throw createStatusError(400, 'serviceDid erforderlich');
+  if (!serviceDid.startsWith('did:')) {
+    throw createStatusError(400, 'serviceDid muss mit "did:" beginnen.');
+  }
+  const token = String(payload?.token || '').trim();
+  if (!token) throw createStatusError(400, 'token erforderlich');
+  const appId = String(payload?.appId || '').trim();
+  if (!appId) throw createStatusError(400, 'appId erforderlich');
+  const platform = String(payload?.platform || '').trim().toLowerCase();
+  if (!SUPPORTED_PUSH_PLATFORMS.has(platform)) {
+    throw createStatusError(400, 'platform muss ios, android oder web sein.');
+  }
+  const normalized = { serviceDid, token, platform, appId };
+  if (includeAgeRestricted && payload?.ageRestricted !== undefined) {
+    const bool = normalizeBoolean(payload.ageRestricted);
+    if (bool !== undefined) normalized.ageRestricted = bool;
+  }
+  return normalized;
+}
+
+async function registerPushSubscription (payload = {}) {
+  await ensureLoggedIn();
+  if (typeof agent.app?.bsky?.notification?.registerPush !== 'function') {
+    throw new Error('Bluesky SDK unterstützt registerPush nicht.');
+  }
+  const normalized = normalizePushPayload(payload, { includeAgeRestricted: true });
+  const res = await agent.app.bsky.notification.registerPush(normalized);
+  return res?.success ?? true;
+}
+
+async function unregisterPushSubscription (payload = {}) {
+  await ensureLoggedIn();
+  if (typeof agent.app?.bsky?.notification?.unregisterPush !== 'function') {
+    throw new Error('Bluesky SDK unterstützt unregisterPush nicht.');
+  }
+  const normalized = normalizePushPayload(payload);
+  const res = await agent.app.bsky.notification.unregisterPush(normalized);
+  return res?.success ?? true;
 }
 
 /**
@@ -365,6 +428,8 @@ module.exports = {
   getReplies,
   getNotifications,
   markNotificationsSeen,
+  registerPushSubscription,
+  unregisterPushSubscription,
   getPostsByUri,
   FEED_GENERATORS: OFFICIAL_FEED_GENERATORS,
   getPreferences: getPreferencesWrapper,

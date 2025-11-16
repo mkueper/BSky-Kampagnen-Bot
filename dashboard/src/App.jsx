@@ -11,7 +11,8 @@ import {
   SunIcon,
   UploadIcon,
   ViewHorizontalIcon,
-  InfoCircledIcon
+  InfoCircledIcon,
+  ExitIcon
 } from '@radix-ui/react-icons'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import AppLayout from './components/layout/AppLayout'
@@ -32,6 +33,8 @@ import { useImportExport } from './hooks/useImportExport'
 import { useConfirmDialog } from './hooks/useConfirmDialog'
 import { useSkeetActions } from './hooks/useSkeetActions'
 import { useThreadActions } from './hooks/useThreadActions'
+import LoginView from './components/views/LoginView'
+import { useSession } from './hooks/useSession'
 
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
@@ -132,7 +135,7 @@ function LoadingBlock ({ message }) {
   )
 }
 
-function App () {
+function DashboardApp ({ session, onLogout }) {
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
@@ -159,6 +162,8 @@ function App () {
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [editingThreadId, setEditingThreadId] = useState(null)
   const toast = useToast()
+  const [logoutPending, setLogoutPending] = useState(false)
+  const sessionUsername = session?.username || 'Account'
   const skeetViewsEnabled =
     activeView === 'overview' ||
     activeView === 'skeets' ||
@@ -488,6 +493,21 @@ function App () {
     })
   }
 
+  const handleLogoutClick = useCallback(async () => {
+    if (typeof onLogout !== 'function') return
+    try {
+      setLogoutPending(true)
+      await onLogout()
+    } catch (error) {
+      toast.error({
+        title: 'Abmeldung fehlgeschlagen',
+        description: error?.message || 'Bitte erneut versuchen.'
+      })
+    } finally {
+      setLogoutPending(false)
+    }
+  }, [onLogout, toast])
+
   const headerCaption = HEADER_CAPTIONS[activeView] ?? ''
   const headerTitle =
     HEADER_TITLES[activeView] ??
@@ -550,10 +570,21 @@ function App () {
             type='file'
             accept='application/json'
             className='hidden'
-            onChange={handleImportFileChange}
-          />
+          onChange={handleImportFileChange}
+        />
         </>
       )}
+      <Button
+        variant='ghost'
+        size='icon'
+        onClick={handleLogoutClick}
+        disabled={logoutPending}
+        title={`Abmelden (${sessionUsername})`}
+        aria-label='Abmelden'
+      >
+        <ExitIcon className='h-4 w-4' />
+        <span className='sr-only'>Vom Dashboard abmelden</span>
+      </Button>
     </>
   )
 
@@ -770,6 +801,38 @@ function App () {
     </AppLayout>
     </ThemeProvider>
   )
+}
+
+function App () {
+  const { session, loading, error, refresh } = useSession()
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    } catch (err) {
+      console.error('Logout fehlgeschlagen', err)
+    } finally {
+      await refresh()
+    }
+  }, [refresh])
+
+  if (loading) {
+    return (
+      <div className='flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground'>
+        <LoadingBlock message='Sitzung wird geprüft…' />
+      </div>
+    )
+  }
+
+  if (!session?.configured) {
+    return <LoginView session={session} sessionError={error} refreshSession={refresh} />
+  }
+
+  if (!session?.authenticated) {
+    return <LoginView session={session} sessionError={error} refreshSession={refresh} />
+  }
+
+  return <DashboardApp session={session?.user} onLogout={handleLogout} />
 }
 
 export default App

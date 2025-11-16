@@ -27,6 +27,7 @@ const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,imag
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
+const PUSH_REQUEST_KEYS = ['serviceDid', 'token', 'platform', 'appId']
 
 function toTimestamp (value) {
   if (!value) return 0
@@ -125,6 +126,18 @@ function aggregateNotificationEntries (notifications = []) {
     if (key) groupMap.set(key, bucket)
   }
   return grouped
+}
+
+function sanitizePushRequestPayload (raw) {
+  const payload = {}
+  if (!raw || typeof raw !== 'object') return payload
+  for (const key of PUSH_REQUEST_KEYS) {
+    if (raw[key] === undefined) continue
+    const value = raw[key]
+    payload[key] = typeof value === 'string' ? value.trim() : value
+  }
+  if (raw.ageRestricted !== undefined) payload.ageRestricted = raw.ageRestricted
+  return payload
 }
 
 function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) {
@@ -449,12 +462,40 @@ async function getReactions(req, res) {
     const uri = String(req.query?.uri || req.body?.uri || '').trim()
     if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
     const r = await bsky.getReactions(uri)
-    const likes = Array.isArray(r?.likes) ? r.likes.length : 0
-    const reposts = Array.isArray(r?.reposts) ? r.reposts.length : 0
+    const likes = typeof r?.likesCount === 'number' ? r.likesCount : Array.isArray(r?.likes) ? r.likes.length : 0
+    const reposts = typeof r?.repostsCount === 'number' ? r.repostsCount : Array.isArray(r?.reposts) ? r.reposts.length : 0
     res.json({ likes, reposts })
   } catch (error) {
     log.error('reactions failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Reaktionen.' })
+  }
+}
+
+async function registerPushSubscription (req, res) {
+  try {
+    const payload = sanitizePushRequestPayload(req?.body)
+    await bsky.registerPushSubscription(payload)
+    res.json({ success: true })
+  } catch (error) {
+    const statusCode = typeof error?.statusCode === 'number'
+      ? error.statusCode
+      : (typeof error?.status === 'number' ? error.status : 500)
+    log.error('registerPushSubscription failed', { error: error?.message || String(error) })
+    res.status(statusCode).json({ error: error?.message || 'Fehler bei der Push-Registrierung.' })
+  }
+}
+
+async function unregisterPushSubscription (req, res) {
+  try {
+    const payload = sanitizePushRequestPayload(req?.body)
+    await bsky.unregisterPushSubscription(payload)
+    res.json({ success: true })
+  } catch (error) {
+    const statusCode = typeof error?.statusCode === 'number'
+      ? error.statusCode
+      : (typeof error?.status === 'number' ? error.status : 500)
+    log.error('unregisterPushSubscription failed', { error: error?.message || String(error) })
+    res.status(statusCode).json({ error: error?.message || 'Fehler beim Entfernen der Push-Registrierung.' })
   }
 }
 
@@ -798,4 +839,19 @@ function handleFeedError (res, error, fallback, scope) {
   return res.status(statusCode).json({ error: error?.message || fallback })
 }
 
-module.exports = { getTimeline, getNotifications, getThread, getReactions, postReply, postNow, search, getProfile, getFeeds, pinFeed, unpinFeed, reorderPinnedFeeds }
+module.exports = {
+  getTimeline,
+  getNotifications,
+  getThread,
+  getReactions,
+  registerPushSubscription,
+  unregisterPushSubscription,
+  postReply,
+  postNow,
+  search,
+  getProfile,
+  getFeeds,
+  pinFeed,
+  unpinFeed,
+  reorderPinnedFeeds
+}

@@ -37,6 +37,16 @@ function extractMastodonStatusId(uri) {
   }
 }
 
+function resolveReactionCount(payload, key) {
+  if (!payload || typeof payload !== 'object') return 0;
+  const countKey = `${key}Count`;
+  if (typeof payload[countKey] === 'number') {
+    return payload[countKey];
+  }
+  const list = payload[key];
+  return Array.isArray(list) ? list.length : 0;
+}
+
 function stripHtml(input) {
   if (typeof input !== "string") return "";
   const withoutTags = input.replace(/<[^>]*>/g, "");
@@ -176,8 +186,8 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
       try {
         if (platformId === "bluesky") {
           const r = await bskyGetReactions(uri);
-          likes = Array.isArray(r?.likes) ? r.likes.length : 0;
-          reposts = Array.isArray(r?.reposts) ? r.reposts.length : 0;
+          likes = resolveReactionCount(r, 'likes');
+          reposts = resolveReactionCount(r, 'reposts');
           if (includeReplies) {
             const tree = await bskyGetPostThread(uri);
             replies = extractBskyRepliesFromThread(tree);

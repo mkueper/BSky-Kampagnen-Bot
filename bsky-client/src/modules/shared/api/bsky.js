@@ -1,4 +1,6 @@
-﻿const JSON_HEADERS = { 'Content-Type': 'application/json' };
+﻿import { AtpAgent } from '@atproto/api'
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 const ensureFetch = () => {
   if (typeof globalThis.fetch === 'function') {
@@ -66,6 +68,197 @@ async function requestJson(path, { method = 'GET', body, headers, retries = 1, .
   }
 
   throw lastError;
+}
+
+const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined;
+const DEFAULT_BSKY_SERVICE = 'https://bsky.social';
+
+const noopPushTransport = {
+  async register () {
+    return { success: false, skipped: true, reason: 'push_transport_disabled' };
+  },
+  async unregister () {
+    return { success: false, skipped: true, reason: 'push_transport_disabled' };
+  }
+};
+
+const backendPushTransport = {
+  async register (payload) {
+    return requestJson('/api/bsky/notifications/register-push', {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: payload
+    });
+  },
+  async unregister (payload) {
+    return requestJson('/api/bsky/notifications/unregister-push', {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: payload
+    });
+  }
+};
+
+function isValidPushTransport (transport) {
+  if (!transport || typeof transport !== 'object') return false;
+  return typeof transport.register === 'function' && typeof transport.unregister === 'function';
+}
+
+let configuredPushTransport = null;
+let cachedDirectTransport = null;
+let cachedDirectSignature = '';
+
+export function configurePushTransport (transport) {
+  if (!transport) {
+    configuredPushTransport = null;
+    return;
+  }
+  if (!isValidPushTransport(transport)) {
+    throw new Error('push transport muss register/unregister bereitstellen');
+  }
+  configuredPushTransport = transport;
+}
+
+function getEnvPushTransportPreference () {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BSKY_PUSH_TRANSPORT) {
+      return String(import.meta.env.VITE_BSKY_PUSH_TRANSPORT || '').toLowerCase();
+    }
+  } catch {
+    /* noop */
+  }
+  return '';
+}
+
+function normalizeConfigEntry (value) {
+  if (typeof value === 'string') return value.trim();
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function resolveDirectPushConfig () {
+  const envConfig = (() => {
+    try {
+      if (typeof import.meta === 'undefined' || !import.meta.env) return null;
+      const service = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_SERVICE || DEFAULT_BSKY_SERVICE) || DEFAULT_BSKY_SERVICE;
+      const identifier = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_IDENTIFIER || '');
+      const appPassword = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_APP_PASSWORD || '');
+      if (identifier && appPassword) {
+        return { service, identifier, appPassword };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  })();
+  if (envConfig) return envConfig;
+  const globalConfig = GLOBAL_SCOPE && GLOBAL_SCOPE.__BSKY_DIRECT_PUSH_CONFIG__;
+  if (globalConfig && typeof globalConfig === 'object') {
+    const service = normalizeConfigEntry(globalConfig.service || DEFAULT_BSKY_SERVICE) || DEFAULT_BSKY_SERVICE;
+    const identifier = normalizeConfigEntry(globalConfig.identifier || '');
+    const appPassword = normalizeConfigEntry(globalConfig.appPassword || '');
+    if (identifier && appPassword) {
+      return { service, identifier, appPassword };
+    }
+  }
+  return null;
+}
+
+function createDirectSignature (config) {
+  if (!config) return '';
+  return `${config.service}::${config.identifier}`;
+}
+
+function createAtpAgentPushTransport ({ service = DEFAULT_BSKY_SERVICE, identifier, appPassword }) {
+  const normalizedService = normalizeConfigEntry(service) || DEFAULT_BSKY_SERVICE;
+  const normalizedIdentifier = normalizeConfigEntry(identifier);
+  const normalizedPassword = normalizeConfigEntry(appPassword);
+  if (!normalizedIdentifier || !normalizedPassword) {
+    throw new Error('identifier und appPassword sind für den direkten Push-Transport erforderlich');
+  }
+  const agent = new AtpAgent({ service: normalizedService });
+  let loginPromise = null;
+  const ensureLoggedIn = async () => {
+    if (agent?.session?.did) return;
+    if (!loginPromise) {
+      loginPromise = agent.login({ identifier: normalizedIdentifier, password: normalizedPassword })
+        .catch((error) => {
+          loginPromise = null;
+          throw error;
+        });
+    }
+    await loginPromise;
+  };
+  return {
+    async register (payload) {
+      await ensureLoggedIn();
+      const res = await agent.app.bsky.notification.registerPush(payload);
+      return { success: res?.success ?? true };
+    },
+    async unregister (payload) {
+      await ensureLoggedIn();
+      const res = await agent.app.bsky.notification.unregisterPush(payload);
+      return { success: res?.success ?? true };
+    }
+  };
+}
+
+function getOrCreateDirectTransport () {
+  const config = resolveDirectPushConfig();
+  if (!config) return null;
+  const signature = createDirectSignature(config);
+  if (cachedDirectTransport && cachedDirectSignature === signature) {
+    return cachedDirectTransport;
+  }
+  try {
+    cachedDirectTransport = createAtpAgentPushTransport(config);
+    cachedDirectSignature = signature;
+    return cachedDirectTransport;
+  } catch (error) {
+    console.warn('[push] direkter Transport konnte nicht initialisiert werden:', error);
+    cachedDirectTransport = null;
+    cachedDirectSignature = '';
+    return null;
+  }
+}
+
+function resolveEnvPreferredTransport () {
+  const preference = getEnvPushTransportPreference();
+  switch (preference) {
+    case 'noop':
+    case 'disabled':
+      return noopPushTransport;
+    case 'direct': {
+      const direct = getOrCreateDirectTransport();
+      if (direct) return direct;
+      return backendPushTransport;
+    }
+    case 'auto': {
+      const direct = getOrCreateDirectTransport();
+      if (direct) return direct;
+      return backendPushTransport;
+    }
+    case 'backend':
+    default:
+      return backendPushTransport;
+  }
+}
+
+function resolvePushTransport () {
+  if (configuredPushTransport) return configuredPushTransport;
+  const globalTransport = GLOBAL_SCOPE?.__BSKY_PUSH_TRANSPORT__;
+  if (isValidPushTransport(globalTransport)) return globalTransport;
+  return resolveEnvPreferredTransport();
+}
+
+export function getActivePushTransportName () {
+  const transport = resolvePushTransport();
+  if (transport === configuredPushTransport) return 'custom';
+  if (transport === cachedDirectTransport) return 'direct';
+  if (transport === noopPushTransport) return 'noop';
+  if (transport === backendPushTransport) return 'backend';
+  if (transport && GLOBAL_SCOPE?.__BSKY_PUSH_TRANSPORT__ === transport) return 'global';
+  return 'custom';
 }
 
 export async function fetchTimeline({ tab, feedUri, cursor, limit } = {}) {
@@ -201,4 +394,42 @@ export async function reorderPinnedFeeds ({ order }) {
   });
 }
 
-export { requestJson };
+function ensurePushPayload({ serviceDid, token, platform, appId }) {
+  const payload = {
+    serviceDid: typeof serviceDid === 'string' ? serviceDid.trim() : '',
+    token: typeof token === 'string' ? token.trim() : '',
+    platform: typeof platform === 'string' ? platform.trim() : '',
+    appId: typeof appId === 'string' ? appId.trim() : ''
+  };
+  if (!payload.serviceDid || !payload.token || !payload.platform || !payload.appId) {
+    throw new Error('serviceDid, token, platform und appId erforderlich');
+  }
+  return payload;
+}
+
+function parseBooleanFlag(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) return false;
+  }
+  return undefined;
+}
+
+export async function registerPushSubscription({ serviceDid, token, platform, appId, ageRestricted } = {}) {
+  const payload = ensurePushPayload({ serviceDid, token, platform, appId });
+  const flag = parseBooleanFlag(ageRestricted);
+  if (flag !== undefined) payload.ageRestricted = flag;
+  const transport = resolvePushTransport();
+  return transport.register(payload, { action: 'register' });
+}
+
+export async function unregisterPushSubscription({ serviceDid, token, platform, appId } = {}) {
+  const payload = ensurePushPayload({ serviceDid, token, platform, appId });
+  const transport = resolvePushTransport();
+  return transport.unregister(payload, { action: 'unregister' });
+}
+
+export { requestJson, createAtpAgentPushTransport };

@@ -1,5 +1,14 @@
 # Unreleased Notes
 
+## 2025-11-16
+
+### Backend
+- Bluesky-Reaktionszahlen holen wir jetzt direkt über einen `getPostThread`-Call (wie im offiziellen Client), damit Likes/Reposts sofort korrekt aktualisieren und keine Rate-Limits durch massives Paging mehr auftreten.
+- Alle Dashboard-/API-Routen (außer `/api/auth/*`) sind jetzt durch einen Admin-Login mit Scrypt-Hash + HttpOnly-Session-Cookie geschützt; `npm run tools:hash-password` hilft beim Generieren der Werte.
+
+### Docs
+- README & `.env.sample` beschreiben die neuen `AUTH_*` Variablen und das Hash-Tool für den Dashboard-Login.
+
 ## 2025-11-14
 
 ### Client
@@ -14,11 +23,15 @@
 - Notifications erhalten Tabs („Alle“/„Erwähnungen“) inklusive funktionierendem Thread-Open bei Like/Repost-Karten.
 - Media-Dialog zeigt gewählte Bilder sofort in der Vorschau und verhindert, dass Blob-URLs hängen bleiben.
 - Dashboard-Skeet-Form: Alt-Texte lassen sich bearbeiten/löschen, GIF-Upload nutzt Tenor-Proxy; Vorschau- und Remove-Buttons analog zum Thread-Planer.
+- Push-Registrierung in `bsky-client` erhält einen konfigurierbaren Transport (Backend-Proxy per Default, Override via `configurePushTransport` oder globalem `window.__BSKY_PUSH_TRANSPORT__`), damit der Client auch ohne Backend direkt gegen Bluesky registrieren kann.
+- Neuer „Einstellungen“-Bereich zeigt den aktiven Push-Transport an und erlaubt das manuelle Registrieren/Entfernen eines Tokens direkt aus der UI.
+- Direkter Bluesky-Push-Transport über `@atproto/api` kann via `VITE_BSKY_PUSH_TRANSPORT=direct|auto` + `VITE_BSKY_DIRECT_IDENTIFIER`/`VITE_BSKY_DIRECT_APP_PASSWORD` (oder globaler `__BSKY_DIRECT_PUSH_CONFIG__`) genutzt werden; Fallbacks decken Backend-Proxy bzw. Noop ab.
 
 ### Backend
 - Thread-Endpunkt akzeptiert jetzt `depth`/`parentHeight` und ruft `app.bsky.feed.getPostThread` mit höheren Limits auf – tiefe Verzweigungen werden vollständig geliefert.
 - Tenor-Proxy bietet `/api/tenor/download` (Temp-Upload oder Base64) und wird in Dashboard/Client für GIFs genutzt.
 - Content-Security-Policy erlaubt `blob:`-Bilder sowie Verbindungen zu Tenor/CDN.jsdelivr, damit GIFs/Emojis ohne CSP-Fehler laden.
+- Neue Endpunkte `/api/bsky/notifications/register-push` & `/unregister-push` validieren Service-DID, Token & Plattform und rufen die Bluesky-APIs `app.bsky.notification.registerPush` bzw. `unregisterPush` auf.
 
 ### Docs
 - `docs/research/bluesky-client-gap-analysis.md` dokumentiert offene Punkte im Bluesky-Client.
