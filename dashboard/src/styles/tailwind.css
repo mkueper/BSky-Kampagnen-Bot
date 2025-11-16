@@ -43,6 +43,26 @@
     --accent-foreground: 0 0% 100%;
   }
 
+  :root[data-theme="dim"] {
+    color-scheme: dark;
+    --border: 220 15% 35%;
+    --border-muted: 220 12% 28%;
+    --background: 220 18% 20%;
+    --background-subtle: 220 18% 24%;
+    --background-elevated: 220 18% 28%;
+    --background-inverted: 210 40% 98%;
+    --foreground: 210 30% 92%;
+    --foreground-muted: 215 12% 70%;
+    --foreground-subtle: 215 12% 62%;
+    --foreground-inverted: 222 20% 16%;
+    --primary: 200 55% 58%;
+    --primary-foreground: 210 40% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --accent: 188 68% 60%;
+    --accent-foreground: 0 0% 100%;
+  }
+
   :root[data-theme="midnight"] {
     color-scheme: dark;
     --border: 235 36% 40%;

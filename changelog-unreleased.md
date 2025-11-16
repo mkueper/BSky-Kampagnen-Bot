@@ -12,6 +12,7 @@
 ## 2025-11-14
 
 ### Client
+- Theme-Umschaltung bietet jetzt zusätzlich ein „Gedimmtes“ dunkles Theme (zwischen Dunkel und Mitternacht) für Nutzer, die weniger Kontrast wünschen.
 - Neuer `QuickComposer` erlaubt spontane Skeets direkt im Bluesky-Client; komplette Testsuite inklusive.
 - `NewPostsBanner` zeigt frische Timeline-Einträge und verbindet Banner-Klick mit schnellem Refresh.
 - Gemeinsamer `Button` lebt jetzt im Paket `@bsky-kampagnen-bot/shared-ui` und ersetzt die duplizierten Varianten in Client & Dashboard.

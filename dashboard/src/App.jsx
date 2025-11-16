@@ -108,9 +108,10 @@ const HEADER_TITLES = {
 }
 
 // Theme-Konfiguration – liefert Icon, Label und Farbschema für die Theme-Umschaltung.
-const THEMES = ['light', 'dark', 'midnight']
+const THEMES = ['light', 'dim', 'dark', 'midnight']
 const THEME_CONFIG = {
   light: { label: 'Helles Theme', colorScheme: 'light', icon: SunIcon },
+  dim: { label: 'Gedimmtes Theme', colorScheme: 'dark', icon: ShadowIcon },
   dark: { label: 'Dunkles Theme', colorScheme: 'dark', icon: MoonIcon },
   midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: ShadowIcon }
 }
