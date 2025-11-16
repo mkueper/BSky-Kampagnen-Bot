@@ -472,18 +472,18 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
         ) : (
           <div className='h-8 w-8 rounded-full border border-border bg-background' />
         )}
-        <div className='min-w-0'>
+        <div className='min-w-0 flex-1'>
           {profileUrl ? (
             <a
               href={profileUrl}
               target='_blank'
               rel='noopener noreferrer'
-              className='font-semibold text-foreground hover:text-primary transition truncate'
+              className='block truncate font-semibold text-foreground transition hover:text-primary'
             >
               {author.displayName || author.handle || 'Profil'}
             </a>
           ) : (
-            <p className='font-semibold text-foreground truncate'>{author.displayName || author.handle || 'Profil'}</p>
+            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || 'Profil'}</p>
           )}
           {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
         </div>
