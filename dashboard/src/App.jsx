@@ -571,7 +571,7 @@ function DashboardApp ({ session, onLogout }) {
             disabled={exporting}
             aria-label={exportButtonLabel}
             title={exportButtonLabel}
-            className='inline-flex w-full items-center justify-center gap-2 sm:w-auto'
+            className='inline-flex items-center justify-center gap-2'
           >
             <DownloadIcon className='h-4 w-4' />
             <span className='hidden sm:inline'>{exportButtonLabel}</span>
@@ -582,7 +582,7 @@ function DashboardApp ({ session, onLogout }) {
             disabled={importing}
             aria-label={importButtonLabel}
             title={importButtonLabel}
-            className='inline-flex w-full items-center justify-center gap-2 sm:w-auto'
+            className='inline-flex items-center justify-center gap-2'
           >
             <UploadIcon className='h-4 w-4' />
             <span className='hidden sm:inline'>{importButtonLabel}</span>
@@ -752,9 +752,9 @@ function DashboardApp ({ session, onLogout }) {
     )
   } else if (activeView === 'bsky-client') {
     content = (
-      <Card padding='p-4'>
+      <Card padding='p-2'>
         <Suspense fallback={<p className='p-6 text-sm text-foreground-muted'>Bluesky Client wird geladen…</p>}>
-          <BskyClientAppLazy />
+          <BskyClientAppLazy onNavigateDashboard={() => navigate('overview')} />
         </Suspense>
       </Card>
     )

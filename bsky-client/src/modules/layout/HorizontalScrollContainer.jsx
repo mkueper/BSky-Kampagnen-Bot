@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, forwardRef } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import './HorizontalScrollContainer.css';
 
 const SCROLL_STEP = 180;
 

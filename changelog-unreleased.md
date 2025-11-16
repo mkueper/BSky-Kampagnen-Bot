@@ -12,6 +12,9 @@
 ## 2025-11-14
 
 ### Client
+- Mobile Bottom-Navigation ist jetzt in eine freischwebende, abgerundete Leiste mit Safe-Area-Padding eingebettet; Floating-Compose und Scroll-Abstände passen sich automatisch an.
+- Timeline-Tabs blenden den nativen Scrollbalken aus, das horizontale Scrollen erfolgt ausschließlich über die Pfeil-Buttons.
+- Der ScrollTopButton sitzt auf Mobilgeräten dichter am linken Fensterrand und kollidiert nicht mehr mit dem Content.
 - Theme-Umschaltung bietet jetzt zusätzlich ein „Gedimmtes“ dunkles Theme (zwischen Dunkel und Mitternacht) für Nutzer, die weniger Kontrast wünschen.
 - Neuer `QuickComposer` erlaubt spontane Skeets direkt im Bluesky-Client; komplette Testsuite inklusive.
 - `NewPostsBanner` zeigt frische Timeline-Einträge und verbindet Banner-Klick mit schnellem Refresh.

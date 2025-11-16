@@ -45,15 +45,19 @@ export default function ScrollTopButton({
   }, [position, offset, safeArea]);
 
   const updateOffsets = useCallback(() => {
-    const el = document.getElementById(containerId);
+    const el = typeof document !== "undefined" ? document.getElementById(containerId) : null;
     if (!el) {
       setPos(stylePos);
       return;
     }
     const r = el.getBoundingClientRect();
+    const isMobileViewport =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 768px)").matches;
     const bottomPx = Math.max(offset, window.innerHeight - r.bottom + offset);
     const rightPx = Math.max(offset, window.innerWidth - r.right + offset);
-    const leftPx = Math.max(offset, r.left + offset);
+    const leftPx = isMobileViewport ? offset : Math.max(offset, r.left + offset);
     if (position === "bottom-left") setPos({ bottom: bottomPx, left: leftPx });
     else setPos({ bottom: bottomPx, right: rightPx });
   }, [containerId, offset, position, stylePos]);
