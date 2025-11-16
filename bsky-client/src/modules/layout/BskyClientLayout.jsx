@@ -165,7 +165,7 @@ export default function BskyClientLayout ({
             variant='primary'
             forceVisible={scrollTopForceVisible}
             onActivate={onScrollTopActivate}
-            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
+            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP : 16}
             horizontalOffset={isMobile ? 12 : 16}
           />
           {/* Floating Action Button: Neuer Skeet */}
