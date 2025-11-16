@@ -76,7 +76,7 @@ export default function BskyClientLayout ({
 
   const asideClassName = [
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
-    'fixed top-4 bottom-4 left-4 w-[min(280px,85vw)] md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
+    `fixed top-4 bottom-4 left-4 ${isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]'} md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]`,
     'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
     navVisible ? 'translate-x-0' : '-translate-x-[120%] md:translate-x-0'
   ].join(' ')
@@ -119,19 +119,16 @@ export default function BskyClientLayout ({
             className='sticky top-0 z-10 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
             data-component='BskyTimelineHeader'
           >
-            <div className='mb-2 flex justify-between md:hidden'>
+            <div className='mb-2 flex justify-start md:hidden'>
               <button
                 type='button'
-                className='inline-flex items-center rounded-2xl border border-border-muted bg-background-subtle/80 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle'
+                className='inline-flex items-center rounded-full border border-border-muted bg-background-subtle/80 p-2 text-foreground transition hover:bg-background-subtle'
                 onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('dashboard:open-nav'))
-                  }
+                  setNavVisible(true)
                 }}
-                aria-label='Dashboard Navigation öffnen'
+                aria-label='Navigation öffnen'
               >
-                <HamburgerMenuIcon className='mr-2 h-4 w-4' />
-                Menü
+                <HamburgerMenuIcon className='h-4 w-4' />
               </button>
             </div>
             {headerContent}

@@ -7,7 +7,7 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Starte Server mit Dashboard-Build",
+            "name": "Backend Server",
             "skipFiles": [
                 "<node_internals>/**"
             ],
@@ -16,7 +16,36 @@
             "runtimeArgs": [
                 "--preserve-symlinks"
             ],
-            "preLaunchTask": "build-dashboard"
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Dashboard Dev Server",
+            "runtimeExecutable": "npm",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "run",
+                "dev",
+                "--workspace",
+                "dashboard",
+                "--",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "5173"
+            ],
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Dev: Backend + Dashboard",
+            "configurations": [
+                "Backend Server",
+                "Dashboard Dev Server"
+            ],
+            "stopAll": true
         }
     ]
 }

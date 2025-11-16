@@ -126,27 +126,26 @@ export default function BskyClientApp () {
 
   useEffect(() => {
     if (section !== 'home') return undefined
-    if (!timelineTopUri) return undefined
 
-    let ignore = false
-
-    const check = async () => {
+    const controller = { id: null, latestTopUri: timelineTopUri }
+    const runCheck = async () => {
+      if (document.hidden) return
       try {
         const { items } = await fetchTimelineApi({ ...timelineQueryParams, limit: 1 })
         const topUri = items?.[0]?.uri || ''
-        if (!ignore && topUri && timelineTopUri && topUri !== timelineTopUri) {
+        if (topUri && controller.latestTopUri && topUri !== controller.latestTopUri) {
           dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: true })
         }
+        controller.latestTopUri = topUri || controller.latestTopUri
       } catch {}
     }
-    
-    check()
-    const id = window.setInterval(check, 45000)
+
+    runCheck()
+    controller.id = window.setInterval(runCheck, 60000)
     return () => {
-      ignore = true
-      window.clearInterval(id)
+      if (controller.id) window.clearInterval(controller.id)
     }
-  }, [section, timelineTopUri, timelineQueryParams, dispatch])
+  }, [section, dispatch, timelineQueryParams])
 
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
@@ -252,6 +251,19 @@ export default function BskyClientApp () {
 
   const topBlock = null
 
+  const handleTimelineLoadingChange = useCallback(
+    (loading) => dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading }),
+    [dispatch]
+  )
+
+  const handleTopItemChange = useCallback(
+    (item) => {
+      const nextUri = item?.uri || ''
+      dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
+    },
+    [dispatch]
+  )
+
   const homeContent = (
     <div className='space-y-6'>
       {quickComposerEnabled ? (
@@ -272,16 +284,13 @@ export default function BskyClientApp () {
           tab={timelineTab}
           source={timelineSource}
           refreshKey={refreshTick}
-          onLoadingChange={(loading) => dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading })}
+          onLoadingChange={handleTimelineLoadingChange}
           isActive={section === 'home'}
           onReply={openReplyComposer}
           onQuote={openQuoteComposer}
           onViewMedia={openMediaPreview}
           onSelectPost={selectThreadFromItem}
-          onTopItemChange={(item) => {
-            const nextUri = item?.uri || ''
-            dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
-          }}
+          onTopItemChange={handleTopItemChange}
         />
       </div>
       {threadState.active ? (
