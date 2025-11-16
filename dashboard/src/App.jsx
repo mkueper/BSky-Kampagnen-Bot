@@ -509,6 +509,7 @@ function DashboardApp ({ session, onLogout }) {
     }
   }, [onLogout, toast])
 
+  const isBskyClientView = activeView === 'bsky-client'
   const headerCaption = HEADER_CAPTIONS[activeView] ?? ''
   const headerTitle =
     HEADER_TITLES[activeView] ??
@@ -527,20 +528,40 @@ function DashboardApp ({ session, onLogout }) {
     ? 'Threads importieren'
     : 'Skeets importieren'
 
+  const desktopThemeButton = (
+    <Button
+      variant='ghost'
+      size='icon'
+      className='hidden sm:inline-flex'
+      onClick={toggleTheme}
+      aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+      title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+    >
+      <ThemeIcon className='h-4 w-4' />
+      <span className='sr-only'>
+        Aktuelles Theme: {currentThemeConfig?.label}
+      </span>
+    </Button>
+  )
+
+  const desktopLogoutButton = (
+    <Button
+      variant='ghost'
+      size='icon'
+      className='hidden sm:inline-flex'
+      onClick={handleLogoutClick}
+      disabled={logoutPending}
+      title={`Abmelden (${sessionUsername})`}
+      aria-label='Abmelden'
+    >
+      <ExitIcon className='h-4 w-4' />
+      <span className='sr-only'>Vom Dashboard abmelden</span>
+    </Button>
+  )
+
   const headerActions = (
     <>
-      <Button
-        variant='ghost'
-        size='icon'
-        onClick={toggleTheme}
-        aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-        title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-      >
-        <ThemeIcon className='h-4 w-4' />
-        <span className='sr-only'>
-          Aktuelles Theme: {currentThemeConfig?.label}
-        </span>
-      </Button>
+      {desktopThemeButton}
       {(activeView === 'skeets-overview' ||
         activeView === 'threads-overview') && (
         <>
@@ -550,7 +571,7 @@ function DashboardApp ({ session, onLogout }) {
             disabled={exporting}
             aria-label={exportButtonLabel}
             title={exportButtonLabel}
-            className='inline-flex items-center gap-2'
+            className='inline-flex w-full items-center justify-center gap-2 sm:w-auto'
           >
             <DownloadIcon className='h-4 w-4' />
             <span className='hidden sm:inline'>{exportButtonLabel}</span>
@@ -561,7 +582,7 @@ function DashboardApp ({ session, onLogout }) {
             disabled={importing}
             aria-label={importButtonLabel}
             title={importButtonLabel}
-            className='inline-flex items-center gap-2'
+            className='inline-flex w-full items-center justify-center gap-2 sm:w-auto'
           >
             <UploadIcon className='h-4 w-4' />
             <span className='hidden sm:inline'>{importButtonLabel}</span>
@@ -575,18 +596,32 @@ function DashboardApp ({ session, onLogout }) {
         />
         </>
       )}
+      {desktopLogoutButton}
+    </>
+  )
+
+  const mobileMenuExtras = (
+    <div className={`flex flex-col gap-3 ${isBskyClientView ? '' : 'md:hidden'}`}>
       <Button
-        variant='ghost'
-        size='icon'
+        type='button'
+        variant='outline'
+        className='flex w-full items-center justify-between text-sm font-semibold'
+        onClick={toggleTheme}
+        aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
+      >
+        <span>Theme wechseln</span>
+        <ThemeIcon className='h-4 w-4 shrink-0' />
+      </Button>
+      <Button
+        type='button'
+        variant='secondary'
+        className='w-full justify-center'
         onClick={handleLogoutClick}
         disabled={logoutPending}
-        title={`Abmelden (${sessionUsername})`}
-        aria-label='Abmelden'
       >
-        <ExitIcon className='h-4 w-4' />
-        <span className='sr-only'>Vom Dashboard abmelden</span>
+        Abmelden
       </Button>
-    </>
+    </div>
   )
 
   let content = null
@@ -786,6 +821,8 @@ function DashboardApp ({ session, onLogout }) {
       headerCaption={headerCaption}
       headerTitle={headerTitle}
       headerActions={headerActions}
+      headerHidden={isBskyClientView}
+      mobileMenuExtras={mobileMenuExtras}
       showScrollTop={activeView !== 'bsky-client'}
     >
       {content}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import SidebarNav from './SidebarNav'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon } from '@radix-ui/react-icons'
+import { HamburgerMenuIcon, PlusIcon } from '@radix-ui/react-icons'
 
 export default function BskyClientLayout ({
   activeSection,
@@ -116,16 +116,31 @@ export default function BskyClientLayout ({
       >
         {headerContent ? (
           <header
-            className='sticky top-0 z-10 rounded-2xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60'
+            className='sticky top-0 z-10 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
             data-component='BskyTimelineHeader'
           >
+            <div className='mb-2 flex justify-between md:hidden'>
+              <button
+                type='button'
+                className='inline-flex items-center rounded-2xl border border-border-muted bg-background-subtle/80 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-background-subtle'
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('dashboard:open-nav'))
+                  }
+                }}
+                aria-label='Dashboard Navigation öffnen'
+              >
+                <HamburgerMenuIcon className='mr-2 h-4 w-4' />
+                Menü
+              </button>
+            </div>
             {headerContent}
           </header>
         ) : null}
 
         {topBlock ? (
           <section
-            className='space-y-8 pb-8 pl-4 v-full md:pb-8'
+            className='space-y-8 pb-8 pl-3 pr-3 md:px-4'
             data-component='BskyTopBlock'
           >
             {topBlock}

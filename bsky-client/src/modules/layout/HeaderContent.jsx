@@ -68,7 +68,7 @@ export function TimelineHeader ({
               type='button'
               onClick={() => onSelectTab?.(tab)}
               aria-current={isActive ? 'page' : undefined}
-              className={`mr-2 rounded-2xl px-3 py-1 text-sm transition ${
+              className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transition ${
                 isActive
                   ? 'bg-background-subtle text-foreground shadow-soft'
                   : 'text-foreground-muted hover:text-foreground'

@@ -552,7 +552,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           {body}
         </div>
       ) : body}
-      <footer className='mt-3 flex items-center gap-5 text-sm text-foreground-muted'>
+      <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
         <button
           type='button'
           className='group inline-flex items-center gap-2 hover:text-foreground transition'
@@ -599,7 +599,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </button>
         <button
           type='button'
-          className='inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle'
+          className='inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle sm:w-auto'
           onClick={(event) => {
             event?.preventDefault()
             event?.stopPropagation()
@@ -612,7 +612,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </button>
         <button
           type='button'
-          className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
+          className={`w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle sm:ml-auto sm:w-auto ${refreshing ? 'opacity-60' : ''}`}
           onClick={refresh}
         >
           {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}

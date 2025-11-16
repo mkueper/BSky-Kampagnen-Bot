@@ -22,6 +22,8 @@ function AppLayout({
   headerActions,
   children,
   showScrollTop = true,
+  headerHidden = false,
+  mobileMenuExtras = null
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // Desktop: collapsed main navigation state (default visible)
@@ -92,6 +94,13 @@ function AppLayout({
     onSelectView(viewId);
     setMenuOpen(false);
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleOpenNav = () => setMenuOpen(true);
+    window.addEventListener('dashboard:open-nav', handleOpenNav);
+    return () => window.removeEventListener('dashboard:open-nav', handleOpenNav);
+  }, []);
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
@@ -200,6 +209,11 @@ function AppLayout({
                 );
               })}
             </nav>
+{mobileMenuExtras ? (
+  <div className="mt-6 border-t border-border pt-4 md:hidden">
+    {mobileMenuExtras}
+  </div>
+) : null}
           </div>
         </aside>
 
@@ -225,37 +239,39 @@ function AppLayout({
         ) : null}
 
         <div className={`ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden ${navCollapsed ? 'md:ml-0' : 'md:ml-8'}`}>
-           <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-5 py-4 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3 order-1 sm:order-none">
-                <button
-                  type="button"
-                  className="rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden"
-                  onClick={() => setMenuOpen(true)}
-                >
-                  <HamburgerMenuIcon className="h-5 w-5" />
-                  <span className="sr-only">Navigation öffnen</span>
-                </button>
-                <div className="min-w-0">
-                  {headerCaption ? (
-                    <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">{headerCaption}</p>
-                  ) : null}
-                  <h2 className="text-xl font-semibold md:text-2xl whitespace-nowrap truncate">{headerTitle || activeNavItemLabel}</h2>
+          {!headerHidden ? (
+            <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 order-1 sm:order-none">
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden"
+                    onClick={() => setMenuOpen(true)}
+                  >
+                    <HamburgerMenuIcon className="h-5 w-5" />
+                    <span className="sr-only">Navigation öffnen</span>
+                  </button>
+                  <div className="min-w-0">
+                    {headerCaption ? (
+                      <p className="text-[11px] uppercase tracking-[0.25em] text-foreground-subtle">{headerCaption}</p>
+                    ) : null}
+                    <h2 className="text-lg font-semibold whitespace-nowrap truncate sm:text-2xl">{headerTitle || activeNavItemLabel}</h2>
+                  </div>
+                </div>
+
+                <div className="order-2 sm:order-none w-full sm:w-auto flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                  {headerActions}
                 </div>
               </div>
-
-              {headerActions ? (
-                <div className="order-2 sm:order-none w-full sm:w-auto flex flex-nowrap items-center gap-2 overflow-x-auto">{headerActions}</div>
-              ) : null}
-            </div>
-          </header>
+            </header>
+          ) : null}
 
           <div
             id="app-scroll-container"
-            className={`flex-1 min-h-0 pr-1 pt-4 ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
+            className={`flex-1 min-h-0 pr-1 ${headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'} ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
             style={{ scrollbarGutter: 'stable' }}
           >
-             <main className="space-y-8 pb-6 md:pb-8">{children}</main>
+            <main className="space-y-8 pb-6 md:pb-8">{children}</main>
           </div>
           {showScrollTop ? <ScrollTopButton position="bottom-left" /> : null}
         </div>
