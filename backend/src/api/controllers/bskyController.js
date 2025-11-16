@@ -25,6 +25,11 @@ const ALLOWED_IMAGE_TYPES = (process.env.ALLOWED_IMAGE_TYPES || 'image/jpeg,imag
   .map((s) => s.trim())
   .filter(Boolean)
 
+const FEED_META_CACHE_TTL_MS = Number(process.env.BSKY_FEED_META_TTL_MS) || (5 * 60 * 1000)
+const FEED_META_ERROR_TTL_MS = Number(process.env.BSKY_FEED_META_ERROR_TTL_MS) || (60 * 1000)
+const FEED_META_BATCH_SIZE = Math.max(1, Number(process.env.BSKY_FEED_META_BATCH_SIZE) || 4)
+const feedMetaGlobalCache = new Map()
+
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 const PUSH_REQUEST_KEYS = ['serviceDid', 'token', 'platform', 'appId']
@@ -702,6 +707,32 @@ async function buildFeedLists (savedFeeds = []) {
   }
 }
 
+function readGlobalFeedMeta (cacheKey) {
+  if (!cacheKey) return null
+  const entry = feedMetaGlobalCache.get(cacheKey)
+  if (!entry) return null
+  if (entry.data) {
+    if (!entry.expiresAt || entry.expiresAt > Date.now()) {
+      return entry.data
+    }
+    feedMetaGlobalCache.delete(cacheKey)
+    return null
+  }
+  if (entry.promise) {
+    return entry.promise
+  }
+  feedMetaGlobalCache.delete(cacheKey)
+  return null
+}
+
+function storeGlobalFeedMeta (cacheKey, data, ttlMs) {
+  if (!cacheKey) return
+  feedMetaGlobalCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + Math.max(0, ttlMs)
+  })
+}
+
 function buildOfficialFeedList () {
   return OFFICIAL_FEEDS.map((feed) => ({
     id: feed.id,
@@ -714,7 +745,16 @@ function buildOfficialFeedList () {
 }
 
 async function hydrateSavedFeedList (entries = [], metaCache, errors) {
-  return Promise.all(entries.map((entry) => hydrateSavedFeed(entry, metaCache, errors)))
+  if (!Array.isArray(entries) || entries.length === 0) return []
+  const results = []
+  for (let i = 0; i < entries.length; i += FEED_META_BATCH_SIZE) {
+    const chunk = entries.slice(i, i + FEED_META_BATCH_SIZE)
+    // Verarbeite in kleinen Batches, um Bluesky nicht mit parallelen Requests zu überfluten
+    // (Rate-Limit-Schutz, spürbar wenn >10 Feeds gespeichert sind).
+    const chunkResults = await Promise.all(chunk.map((entry) => hydrateSavedFeed(entry, metaCache, errors)))
+    results.push(...chunkResults)
+  }
+  return results
 }
 
 async function hydrateSavedFeed (entry, metaCache, errors) {
@@ -777,6 +817,18 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
   if (cacheKey && metaCache.has(cacheKey)) {
     return metaCache.get(cacheKey)
   }
+  if (cacheKey) {
+    const globalEntry = readGlobalFeedMeta(cacheKey)
+    if (globalEntry) {
+      if (typeof globalEntry.then === 'function') {
+        const meta = await globalEntry
+        metaCache.set(cacheKey, meta)
+        return meta
+      }
+      metaCache.set(cacheKey, globalEntry)
+      return globalEntry
+    }
+  }
   if (!feedUri) {
     return {
       displayName: 'Feed',
@@ -789,7 +841,7 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
       status: 'unknown'
     }
   }
-  try {
+  const fetchPromise = (async () => {
     const info = await bsky.getFeedGeneratorInfo(feedUri)
     const view = info?.view || {}
     const meta = {
@@ -808,7 +860,17 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
       isValid: Boolean(info?.isValid),
       status: info?.isValid ? 'ok' : 'invalid'
     }
+    return meta
+  })()
+  if (cacheKey) {
+    feedMetaGlobalCache.set(cacheKey, { promise: fetchPromise })
+  }
+  try {
+    const meta = await fetchPromise
     metaCache.set(cacheKey, meta)
+    if (cacheKey) {
+      storeGlobalFeedMeta(cacheKey, meta, FEED_META_CACHE_TTL_MS)
+    }
     return meta
   } catch (error) {
     const fallback = {
@@ -822,6 +884,9 @@ async function loadFeedMetadata (feedUri, metaCache, errors) {
       status: error?.statusCode === 404 ? 'not-found' : 'error'
     }
     metaCache.set(cacheKey, fallback)
+    if (cacheKey) {
+      storeGlobalFeedMeta(cacheKey, fallback, FEED_META_ERROR_TTL_MS)
+    }
     if (error?.statusCode !== 404) {
       const reason = error?.message || 'Feed konnte nicht geladen werden.'
       const alreadyPresent = errors.some(entry => entry?.feedUri === feedUri && entry?.message === reason)

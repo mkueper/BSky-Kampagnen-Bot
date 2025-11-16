@@ -10,7 +10,9 @@ export default function BskyClientLayout ({
   onOpenCompose,
   headerContent,
   topBlock,
-  children
+  children,
+  scrollTopForceVisible = false,
+  onScrollTopActivate
 }) {
   const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     ? window.matchMedia('(max-width: 768px)').matches
@@ -116,7 +118,7 @@ export default function BskyClientLayout ({
       >
         {headerContent ? (
           <header
-            className='sticky top-0 z-10 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
+            className='sticky top-0 z-10 rounded-2xl border border-border bg-background-elevated/80 px-2 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
             data-component='BskyTimelineHeader'
           >
             <div className='mb-2 flex justify-start md:hidden'>
@@ -137,7 +139,7 @@ export default function BskyClientLayout ({
 
         {topBlock ? (
           <section
-            className='space-y-8 pb-8 pl-3 pr-3 md:px-4'
+            className='space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6'
             data-component='BskyTopBlock'
           >
             {topBlock}
@@ -146,14 +148,20 @@ export default function BskyClientLayout ({
 
         <div
           id='bsky-scroll-container'
-          className='flex-1 min-h-0 overflow-y-auto pr-1 pt-4'
+          className='flex-1 min-h-0 overflow-y-auto px-2 pt-3 sm:px-4 sm:pt-4'
           data-component='BskyScrollContainer'
           style={{ scrollbarGutter: 'stable' }}
         >
-          <main className='space-y-8 pb-6 md:pb-8'>
+          <main className='space-y-5 pb-6 sm:space-y-8 sm:pb-8'>
             {children}
           </main>
-          <ScrollTopButton containerId='bsky-scroll-container' position='bottom-left' variant='primary' />
+          <ScrollTopButton
+            containerId='bsky-scroll-container'
+            position='bottom-left'
+            variant='primary'
+            forceVisible={scrollTopForceVisible}
+            onActivate={onScrollTopActivate}
+          />
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (
             <button

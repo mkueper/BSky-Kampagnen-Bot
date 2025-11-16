@@ -7,7 +7,7 @@ import { useFeedPicker } from './hooks/useFeedPicker'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { NewPostsBanner, Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { QuickComposer } from './modules/composer'
 import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
@@ -44,8 +44,7 @@ export default function BskyClientApp () {
     notificationsRefreshTick,
     timelineTopUri,
     notificationsUnread,
-    timelineHasNew,
-    timelineLoading
+    timelineHasNew
   } = useAppState()
   const dispatch = useAppDispatch()
 
@@ -187,8 +186,6 @@ export default function BskyClientApp () {
       if (threadState.active) {
         return (
           <ThreadHeader
-            busy={threadState.loading}
-            onReload={reloadThread}
             onClose={() => closeThread({ force: true })}
           />
         )
@@ -268,16 +265,6 @@ export default function BskyClientApp () {
     <div className='space-y-6'>
       {quickComposerEnabled ? (
         <QuickComposer onSent={() => refreshTimeline()} />
-      ) : null}
-      {timelineHasNew ? (
-        <NewPostsBanner
-          visible={timelineHasNew}
-          busy={timelineLoading}
-          onClick={() => {
-            scrollTimelineToTop()
-            refreshTimeline()
-          }}
-        />
       ) : null}
       <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
         <Timeline
@@ -384,6 +371,16 @@ else if (section === 'settings') secondaryContent = <SettingsView />
     dispatch({ type: 'SET_SECTION', payload: id })
   }, [closeFeedMenu, closeThread, dispatch, refreshNotifications, refreshTimeline, section, threadState.active])
 
+  const scrollTopForceVisible = section === 'home' && timelineHasNew
+
+  const handleScrollTopActivate = useCallback(() => {
+    if (section !== 'home') return
+    if (timelineHasNew) {
+      scrollTimelineToTop()
+      refreshTimeline()
+    }
+  }, [section, timelineHasNew, scrollTimelineToTop, refreshTimeline])
+
   return (
     <>
       <BskyClientLayout
@@ -393,6 +390,8 @@ else if (section === 'settings') secondaryContent = <SettingsView />
         onOpenCompose={openComposer}
         headerContent={headerContent}
         topBlock={topBlock}
+        scrollTopForceVisible={scrollTopForceVisible}
+        onScrollTopActivate={handleScrollTopActivate}
       >
         <div style={{ display: section === 'home' ? 'block' : 'none' }} aria-hidden={section !== 'home'}>
           {homeContent}

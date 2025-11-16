@@ -1,34 +1,26 @@
 import React, { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
-import { ReloadIcon } from '@radix-ui/react-icons'
+import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { HorizontalScrollContainer } from './index.js'
 import { Button } from '../shared/index.js'
 
-export const ThreadHeader = React.memo(function ThreadHeader ({ busy, onReload, onClose }) {
+export const ThreadHeader = React.memo(function ThreadHeader ({ onClose }) {
   return (
     <div className='flex items-center justify-between gap-3' data-component='BskyThreadHeader'>
       <p className='text-sm text-foreground-muted truncate'>Thread-Ansicht</p>
-      <div className='flex items-center gap-2'>
-        <Button
-          type='button'
-          variant='outline'
-          size='pill'
-          onClick={onReload}
-          disabled={busy}
-          aria-label='Thread neu laden'
-        >
-          <ReloadIcon className={`h-4 w-4 shrink-0 transition ${busy ? 'animate-spin' : ''}`} />
-          <span className='hidden sm:inline pl-1'>Neu laden</span>
-        </Button>
-        <Button variant='secondary' size='pill' onClick={onClose}>Zurueck zur Timeline</Button>
-      </div>
+      <button
+        type='button'
+        className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+        onClick={onClose}
+        aria-label='Zurueck zur Timeline'
+      >
+        <ArrowLeftIcon className='h-4 w-4' />
+      </button>
     </div>
   )
 })
 
 ThreadHeader.propTypes = {
-  busy: PropTypes.bool,
-  onReload: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired
 }
 

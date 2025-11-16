@@ -186,11 +186,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     hasLiked,
     hasReposted,
     busy,
-    refreshing,
     error: actionError,
     toggleLike,
     toggleRepost,
-    refresh,
     clearError,
   } = useBskyEngagement({
     uri: item?.uri,
@@ -204,7 +202,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const Wrapper = variant === 'card' ? Card : 'div'
   const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
   const wrapperProps = variant === 'card'
-    ? { as: 'article', padding: 'p-4' }
+    ? { as: 'article', padding: 'p-3 sm:p-5' }
     : {}
   const handleSelect = (event) => {
     if (typeof onSelect !== 'function') return
@@ -599,23 +597,16 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </button>
         <button
           type='button'
-          className='inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle sm:w-auto'
+          className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle sm:ml-auto'
           onClick={(event) => {
             event?.preventDefault()
             event?.stopPropagation()
             copyToClipboard(shareUrl, 'Link kopiert')
           }}
           title='Link kopieren'
+          aria-label='Beitrag teilen'
         >
           <Share2Icon className='h-4 w-4' />
-          Teilen
-        </button>
-        <button
-          type='button'
-          className={`w-full inline-flex items-center justify-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle sm:ml-auto sm:w-auto ${refreshing ? 'opacity-60' : ''}`}
-          onClick={refresh}
-        >
-          {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
         </button>
       </footer>
       {feedbackMessage ? (

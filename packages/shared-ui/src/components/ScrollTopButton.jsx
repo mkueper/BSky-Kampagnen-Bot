@@ -28,9 +28,11 @@ export default function ScrollTopButton({
   ariaLabel = "Nach oben",
   className,
   variant = "primary",
+  forceVisible = false,
+  onActivate,
   children,
 }) {
-  const [visible, setVisible] = useState(false);
+  const [internalVisible, setInternalVisible] = useState(false);
   const [pos, setPos] = useState({ bottom: 16, right: 16 });
 
   const stylePos = useMemo(() => {
@@ -63,7 +65,7 @@ export default function ScrollTopButton({
 
     const handleScroll = () => {
       const y = container ? container.scrollTop : window.scrollY;
-      setVisible(y > threshold);
+      setInternalVisible(y > threshold);
     };
 
     handleScroll();
@@ -90,12 +92,20 @@ export default function ScrollTopButton({
     };
   }, [containerId, threshold, updateOffsets]);
 
-  if (!visible) return null;
+  const shouldShow = forceVisible || internalVisible;
+  if (!shouldShow) return null;
 
   const scrollToTop = () => {
     const container = document.getElementById(containerId);
     if (container) container.scrollTo({ top: 0, behavior: "smooth" });
     else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleClick = () => {
+    scrollToTop();
+    if (typeof onActivate === "function") {
+      onActivate();
+    }
   };
 
   const variants = {
@@ -106,7 +116,7 @@ export default function ScrollTopButton({
   return (
     <button
       type="button"
-      onClick={scrollToTop}
+      onClick={handleClick}
       className={cn(
         "fixed z-50 rounded-full border p-2 shadow-card focus:outline-none focus:ring-2",
         variant === "primary" ? "focus:ring-primary" : "focus:ring-foreground",
@@ -121,4 +131,3 @@ export default function ScrollTopButton({
     </button>
   );
 }
-

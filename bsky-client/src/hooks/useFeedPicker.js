@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useAppDispatch, useAppState } from '../context/AppContext'
 import {
   fetchFeeds,
@@ -18,7 +18,7 @@ function normalizeFeedLists (data = {}, fallback = {}) {
 export function useFeedPicker () {
   const { feedPicker, feedManagerOpen } = useAppState()
   const dispatch = useAppDispatch()
-  const lastUpdatedAt = feedPicker?.lastUpdatedAt || 0
+  const lastUpdatedRef = useRef(feedPicker?.lastUpdatedAt || 0)
   const pinnedFeeds = feedPicker?.pinned || []
   const savedFeeds = feedPicker?.saved || []
 
@@ -26,8 +26,12 @@ export function useFeedPicker () {
     dispatch({ type: 'SET_FEED_PICKER_STATE', payload: patch })
   }, [dispatch])
 
+  useEffect(() => {
+    lastUpdatedRef.current = feedPicker?.lastUpdatedAt || 0
+  }, [feedPicker?.lastUpdatedAt])
+
   const refreshFeeds = useCallback(async ({ force = false } = {}) => {
-    if (!force && lastUpdatedAt) return
+    if (!force && lastUpdatedRef.current) return
     updateState({ loading: true, error: '', action: { refreshing: true } })
     try {
       const data = await fetchFeeds()
@@ -47,7 +51,7 @@ export function useFeedPicker () {
         action: { refreshing: false }
       })
     }
-  }, [lastUpdatedAt, updateState])
+  }, [updateState])
 
   const pinFeed = useCallback(async (feedUri) => {
     if (!feedUri) return
