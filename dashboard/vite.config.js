@@ -22,9 +22,24 @@ export default defineConfig({
     include: ["emoji-mart", "@emoji-mart/data"],
   },
   server: {
+    host: '0.0.0.0',
     fs: {
       // allow serving files from one directory up (monorepo workspace)
       allow: [workspaceRoot],
+    },
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_BASE || 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: process.env.VITE_UPLOAD_BASE || 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/temp': {
+        target: process.env.VITE_UPLOAD_BASE || 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   test: {

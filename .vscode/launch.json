@@ -12,6 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/backend/server.js",
+            "args": ["--host", "0.0.0.0"],
             "runtimeArgs": [
                 "--preserve-symlinks"
             ],
