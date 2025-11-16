@@ -24,6 +24,7 @@ export default function ScrollTopButton({
   threshold = 400,
   position = "bottom-right",
   offset = 16,
+  horizontalOffset,
   safeArea = true,
   ariaLabel = "Nach oben",
   className,
@@ -34,15 +35,16 @@ export default function ScrollTopButton({
 }) {
   const [internalVisible, setInternalVisible] = useState(false);
   const [pos, setPos] = useState({ bottom: 16, right: 16 });
+  const sideOffset = typeof horizontalOffset === "number" ? horizontalOffset : offset;
 
   const stylePos = useMemo(() => {
     const bottomValue = safeArea
       ? `calc(${offset}px + env(safe-area-inset-bottom))`
       : `${offset}px`;
     return position === "bottom-left"
-      ? { bottom: bottomValue, left: `${offset}px` }
-      : { bottom: bottomValue, right: `${offset}px` };
-  }, [position, offset, safeArea]);
+      ? { bottom: bottomValue, left: `${sideOffset}px` }
+      : { bottom: bottomValue, right: `${sideOffset}px` };
+  }, [position, offset, safeArea, sideOffset]);
 
   const updateOffsets = useCallback(() => {
     const el = typeof document !== "undefined" ? document.getElementById(containerId) : null;
@@ -56,11 +58,15 @@ export default function ScrollTopButton({
       typeof window.matchMedia === "function" &&
       window.matchMedia("(max-width: 768px)").matches;
     const bottomPx = Math.max(offset, window.innerHeight - r.bottom + offset);
-    const rightPx = Math.max(offset, window.innerWidth - r.right + offset);
-    const leftPx = isMobileViewport ? offset : Math.max(offset, r.left + offset);
+    const rightPx = isMobileViewport
+      ? sideOffset
+      : Math.max(sideOffset, window.innerWidth - r.right + sideOffset);
+    const leftPx = isMobileViewport
+      ? sideOffset
+      : Math.max(sideOffset, r.left + sideOffset);
     if (position === "bottom-left") setPos({ bottom: bottomPx, left: leftPx });
     else setPos({ bottom: bottomPx, right: rightPx });
-  }, [containerId, offset, position, stylePos]);
+  }, [containerId, offset, position, sideOffset, stylePos]);
 
   useEffect(() => {
     if (typeof window === "undefined") return () => {};
