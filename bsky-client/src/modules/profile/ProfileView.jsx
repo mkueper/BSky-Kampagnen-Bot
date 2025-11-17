@@ -416,7 +416,7 @@ export default function ProfileView ({
   }, [me, profile])
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
-    { id: 'replies', label: 'Antworten', disabled: true },
+    { id: 'replies', label: 'Antworten', disabled: false },
     { id: 'likes', label: 'Likes', disabled: true }
   ]), [])
   const profileFeedActor = profile?.did || profile?.handle || actor || ''
@@ -481,13 +481,16 @@ export default function ProfileView ({
             )
           })}
         </div>
-        {activeTab !== 'posts' ? (
-          <p className='text-sm text-foreground-muted'>Weitere Tabs folgen in Kürze.</p>
+        {activeTab === 'likes' ? (
+          <p className='text-sm text-foreground-muted'>Likes werden bald verfügbar sein.</p>
         ) : null}
       </Card>
-      {activeTab === 'posts' ? (
+      {(activeTab === 'posts' || activeTab === 'replies') ? (
         <ProfilePosts
           actor={profileFeedActor}
+          filter={activeTab === 'posts' ? 'posts_no_replies' : 'posts_with_replies'}
+          onlyReplies={activeTab === 'replies'}
+          emptyMessage={activeTab === 'replies' ? 'Noch keine Antworten.' : 'Noch keine Beiträge.'}
           onSelectPost={onSelectPost}
           onReply={onReply}
           onQuote={onQuote}
@@ -498,13 +501,21 @@ export default function ProfileView ({
   )
 }
 
-function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
+function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false, emptyMessage = 'Noch keine Beiträge.', onSelectPost, onReply, onQuote, onViewMedia }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+
+  const normalizeItems = useCallback((list) => {
+    if (!onlyReplies) return list
+    return list.filter((entry) => {
+      const record = entry?.raw?.post?.record || entry?.raw?.record || {}
+      return Boolean(record?.reply && record.reply?.parent)
+    })
+  }, [onlyReplies])
 
   useEffect(() => {
     if (!actor) return
@@ -513,13 +524,13 @@ function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
       setLoading(true)
       setError('')
       try {
-        const { items: nextItems, cursor: nextCursor } = await fetchProfileFeed({
+        const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
           actor,
           limit: 20,
-          filter: 'posts_no_replies'
+          filter
         })
         if (!ignore) {
-          setItems(nextItems)
+          setItems(normalizeItems(nextItemsRaw))
           setCursor(nextCursor)
         }
       } catch (err) {
@@ -532,7 +543,7 @@ function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
     setCursor(null)
     load()
     return () => { ignore = true }
-  }, [actor, reloadKey])
+  }, [actor, filter, normalizeItems, reloadKey])
 
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
@@ -540,20 +551,20 @@ function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
     if (!actor || loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      const { items: nextItems, cursor: nextCursor } = await fetchProfileFeed({
+      const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
         actor,
         cursor,
         limit: 20,
-        filter: 'posts_no_replies'
+        filter
       })
-      setItems((prev) => prev.concat(nextItems))
+      setItems((prev) => prev.concat(normalizeItems(nextItemsRaw)))
       setCursor(nextCursor)
     } catch (err) {
       setError(err?.message || 'Weitere Beiträge konnten nicht geladen werden.')
     } finally {
       setLoadingMore(false)
     }
-  }, [actor, cursor, hasMore, loadingMore])
+  }, [actor, cursor, filter, hasMore, loadingMore, normalizeItems])
 
   if (!actor) {
     return (
@@ -586,7 +597,7 @@ function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
   }
 
   if (items.length === 0) {
-    return <p className='text-sm text-foreground-muted'>Noch keine Beiträge.</p>
+    return <p className='text-sm text-foreground-muted'>{emptyMessage}</p>
   }
 
   return (
