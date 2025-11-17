@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
+import { useAppDispatch } from '../../context/AppContext'
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 
@@ -170,6 +171,7 @@ function extractQuotedPost (subject) {
 }
 
 function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead }) {
+  const dispatch = useAppDispatch()
   const {
     author = {},
     reason = 'unknown',
@@ -190,7 +192,8 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
-  const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  const profileActor = author?.did || author?.handle || ''
+  const canOpenProfileViewer = Boolean(profileActor)
   const canOpenItem = typeof onSelectItem === 'function'
   const canOpenSubject = Boolean(subject && typeof onSelectSubject === 'function')
 
@@ -262,6 +265,18 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
 
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
+  const openProfileViewer = useCallback(() => {
+    if (!canOpenProfileViewer) return
+    markAsRead()
+    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, dispatch, markAsRead, profileActor])
+
+  const handleProfileClick = useCallback((event) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+    openProfileViewer()
+  }, [openProfileViewer])
+
   return (
     <Card
       as='article'
@@ -289,36 +304,44 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
     >
       <div className='flex items-start gap-3'>
         {author.avatar ? (
-          <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
+          canOpenProfileViewer ? (
+            <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+              <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
+            </button>
+          ) : (
+            <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
+          )
         ) : (
           <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
         )}
         <div className='min-w-0 flex-1 space-y-2'>
           <div className='flex items-center gap-2 min-w-0'>
             <div className='min-w-0 flex-1'>
-              {profileUrl ? (
-                <a
-                  href={profileUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='block truncate font-semibold text-foreground transition hover:text-primary'
+              {canOpenProfileViewer ? (
+                <button
+                  type='button'
+                  onClick={handleProfileClick}
+                  className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
                   title={authorLabel}
                 >
                   {authorLabel}
-                </a>
+                </button>
               ) : (
                 <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
               )}
               {author.handle ? (
-                <a
-                  href={profileUrl || '#'}
-                  target={profileUrl ? '_blank' : undefined}
-                  rel={profileUrl ? 'noopener noreferrer' : undefined}
-                  className='block truncate text-sm text-foreground-muted transition hover:text-primary'
-                  title={`@${author.handle}`}
-                >
-                  @{author.handle}
-                </a>
+                canOpenProfileViewer ? (
+                  <button
+                    type='button'
+                    onClick={handleProfileClick}
+                    className='block w-full truncate text-left text-sm text-foreground-muted transition hover:text-primary'
+                    title={`@${author.handle}`}
+                  >
+                    @{author.handle}
+                  </button>
+                ) : (
+                  <p className='truncate text-sm text-foreground-muted' title={`@${author.handle}`}>@{author.handle}</p>
+                )
               ) : null}
             </div>
             <span className='shrink-0 rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted'>
@@ -418,10 +441,12 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
 }
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted }) {
+  const dispatch = useAppDispatch()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
-  const profileUrl = author?.handle ? `https://bsky.app/profile/${author.handle}` : null
+  const profileActor = author?.did || author?.handle || ''
+  const canOpenProfileViewer = Boolean(profileActor)
   const showQuoted = isViaRepostReason(reason)
   const quoted = showQuoted ? extractQuotedPost(subject) : null
   const quotedAuthorLabel = quoted?.author
@@ -452,6 +477,13 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     })
   }, [canOpenQuoted, onSelectQuoted, quoted])
 
+  const openSubjectAuthor = useCallback((event) => {
+    if (!canOpenProfileViewer) return
+    event?.preventDefault()
+    event?.stopPropagation()
+    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, dispatch, profileActor])
+
   return (
     <div
       className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2 ${
@@ -468,20 +500,25 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     >
       <div className='flex items-center gap-3'>
         {author.avatar ? (
-          <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
+          canOpenProfileViewer
+            ? (
+              <button type='button' onClick={openSubjectAuthor} className='h-8 w-8 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+                <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
+              </button>
+              )
+            : <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
         ) : (
           <div className='h-8 w-8 rounded-full border border-border bg-background' />
         )}
         <div className='min-w-0 flex-1'>
-          {profileUrl ? (
-            <a
-              href={profileUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='block truncate font-semibold text-foreground transition hover:text-primary'
+          {canOpenProfileViewer ? (
+            <button
+              type='button'
+              onClick={openSubjectAuthor}
+              className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
             >
               {author.displayName || author.handle || 'Profil'}
-            </a>
+            </button>
           ) : (
             <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || 'Profil'}</p>
           )}
