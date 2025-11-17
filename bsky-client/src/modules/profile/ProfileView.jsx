@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { fetchProfile, fetchProfileFeed } from '../shared/api/bsky'
-import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
+import { Card, Button, ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 import SkeetItem from '../timeline/SkeetItem.jsx'
 import {
   ArrowLeftIcon,
@@ -16,6 +16,7 @@ import {
 } from '@radix-ui/react-icons'
 
 const numberFormatter = new Intl.NumberFormat('de-DE')
+const PROFILE_SCROLL_CONTAINER_ID = 'bsky-profile-scroll-container'
 
 function formatNumber (value) {
   const num = Number(value || 0)
@@ -455,6 +456,7 @@ export default function ProfileView ({
   return (
     <div
       ref={containerRef}
+      id={PROFILE_SCROLL_CONTAINER_ID}
       className='mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
     >
       <div className='relative z-10'>
@@ -491,23 +493,31 @@ export default function ProfileView ({
           filter={activeTab === 'posts' ? 'posts_no_replies' : 'posts_with_replies'}
           onlyReplies={activeTab === 'replies'}
           emptyMessage={activeTab === 'replies' ? 'Noch keine Antworten.' : 'Noch keine Beiträge.'}
+          scrollContainerRef={containerRef}
           onSelectPost={onSelectPost}
           onReply={onReply}
           onQuote={onQuote}
           onViewMedia={onViewMedia}
         />
       ) : null}
+      <ScrollTopButton
+        containerId={PROFILE_SCROLL_CONTAINER_ID}
+        position='bottom-left'
+        offset={20}
+        horizontalOffset={16}
+      />
     </div>
   )
 }
 
-function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false, emptyMessage = 'Noch keine Beiträge.', onSelectPost, onReply, onQuote, onViewMedia }) {
+function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false, emptyMessage = 'Noch keine Beiträge.', scrollContainerRef, onSelectPost, onReply, onQuote, onViewMedia }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const loadMoreTriggerRef = useRef(null)
 
   const normalizeItems = useCallback((list) => {
     if (!onlyReplies) return list
@@ -566,6 +576,27 @@ function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false
     }
   }, [actor, cursor, filter, hasMore, loadingMore, normalizeItems])
 
+  useEffect(() => {
+    if (!hasMore || !loadMoreTriggerRef.current) return
+    const root = scrollContainerRef?.current || (typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null)
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        loadMore()
+      }
+    }, {
+      root,
+      rootMargin: '200px 0px'
+    })
+    const target = loadMoreTriggerRef.current
+    observer.observe(target)
+    return () => {
+      observer.unobserve(target)
+    }
+  }, [hasMore, loadMore, scrollContainerRef])
+
   if (!actor) {
     return (
       <Card padding='p-4' className='text-sm text-foreground-muted'>
@@ -620,10 +651,11 @@ function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false
         <p className='text-sm text-destructive'>{error}</p>
       ) : null}
       {hasMore ? (
-        <div className='text-center'>
-          <Button variant='secondary' size='pill' disabled={loadingMore} onClick={loadMore}>
-            {loadingMore ? 'Lade…' : 'Mehr laden'}
-          </Button>
+        <div
+          ref={loadMoreTriggerRef}
+          className='py-4 text-center text-sm text-foreground-muted'
+        >
+          {loadingMore ? 'Lade…' : 'Weitere Einträge werden automatisch geladen…'}
         </div>
       ) : null}
     </div>
