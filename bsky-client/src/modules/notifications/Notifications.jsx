@@ -233,12 +233,10 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
   const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
 
   const buildThreadTarget = useCallback((target) => {
-    if (target && target.uri) {
-      return target
-    }
-    const uri = target?.raw?.post?.uri || fallbackUri
+    if (target?.uri) return target
+    const uri = target?.raw?.post?.uri || target?.record?.uri || target?.post?.uri || fallbackUri
     if (!uri) return target || null
-    const rawPost = target?.raw?.post || {
+    const rawPost = target?.raw?.post || target?.record || target?.post || {
       uri,
       cid: target?.cid || null,
       author: target?.author || {},
@@ -251,17 +249,21 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
     }
   }, [fallbackUri])
 
+  const threadTarget = useMemo(() => buildThreadTarget(subject || item), [buildThreadTarget, subject, item])
+
   const handleSelectItem = useCallback((target) => {
     if (typeof onSelectItem !== 'function') return
     markAsRead()
-    onSelectItem(buildThreadTarget(target))
-  }, [onSelectItem, markAsRead, buildThreadTarget])
+    onSelectItem(buildThreadTarget(target || threadTarget))
+  }, [onSelectItem, markAsRead, buildThreadTarget, threadTarget])
 
-  const handleSelectSubject = useCallback((target) => {
+  const handleSelectSubject = useCallback((targetArg) => {
     if (typeof onSelectSubject !== 'function') return
+    const finalTarget = targetArg || threadTarget
+    if (!finalTarget) return
     markAsRead()
-    onSelectSubject(buildThreadTarget(target))
-  }, [onSelectSubject, markAsRead, buildThreadTarget])
+    onSelectSubject(buildThreadTarget(finalTarget))
+  }, [onSelectSubject, markAsRead, buildThreadTarget, threadTarget])
 
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
@@ -287,8 +289,8 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
       data-reason={reason}
       onClick={(event) => {
         if (!canOpenItem) return
-        if (event.target?.closest?.('button, a')) return
-        handleSelectItem(subject || item)
+        if (event.target?.closest?.('button, a, svg, img')) return
+        handleSelectItem(threadTarget)
       }}
       onKeyDown={(event) => {
         if (!canOpenItem) return
@@ -366,7 +368,8 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
             <NotificationSubjectPreview
               subject={subject}
               reason={reason}
-              onSelect={canOpenSubject ? handleSelectSubject : undefined}
+              threadTarget={threadTarget}
+              onSelect={canOpenSubject && threadTarget ? (() => handleSelectSubject(threadTarget)) : undefined}
               onSelectQuoted={handleSelectSubject}
             />
           ) : null}
@@ -440,7 +443,7 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
   )
 }
 
-function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted }) {
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget }) {
   const dispatch = useAppDispatch()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
@@ -453,7 +456,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     ? (quoted.author.displayName || quoted.author.handle || 'Unbekannt')
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
-  const canOpenSubject = typeof onSelect === 'function'
+  const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget)
   const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
 
   const handleSelectSubject = useCallback((event) => {
@@ -708,11 +711,19 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
 
   const filteredItems = useMemo(() => {
     if (activeTab === 'mentions') {
-      const mentionReasons = new Set(['like', 'mention', 'reply', 'quote'])
+      const mentionReasons = new Set(['mention', 'reply', 'quote'])
       return items.filter((entry) => mentionReasons.has(entry?.reason))
     }
     return items
   }, [activeTab, items])
+
+  useEffect(() => {
+    if (activeTab !== 'mentions') return
+    if (loading || loadingMore) return
+    if (filteredItems.length > 0) return
+    if (!hasMore) return
+    loadMore()
+  }, [activeTab, filteredItems.length, hasMore, loadMore, loading, loadingMore])
 
   if (loading) {
     return (

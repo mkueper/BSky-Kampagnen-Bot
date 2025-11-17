@@ -3,6 +3,7 @@
 ## 2025-11-17
 
 ### Client
+- Profilansicht zeigt jetzt direkt im Tab „Beiträge“ den öffentlichen Feed eines Actors, inklusive Nachladen über den bekannten Skeet-Renderer.
 - Profilansicht überarbeitet: Banner + Avatar bilden jetzt ein zusammenhängendes Hero-Layout wie in der offiziellen Bluesky-App, inklusive neuer Aktionsleiste und Labels-Hinweis.
 - Eigene Profile öffnen sich ebenfalls in der Modalansicht; mobile Darstellung nutzt ein randloses Overlay ohne dunklen Rahmen.
 - Karten besitzen einen kompakteren Absatzabstand und der Profilhinweistext nutzt kleinere Typografie.
@@ -13,6 +14,7 @@
 ## 2025-11-16
 
 ### Backend
+- Neuer Endpoint `/api/bsky/profile/feed` liefert den Bluesky-Author-Feed (Posts/Replies) samt Cursor, damit der Client Profil-Beiträge anzeigen kann.
 - Bluesky-Reaktionszahlen holen wir jetzt direkt über einen `getPostThread`-Call (wie im offiziellen Client), damit Likes/Reposts sofort korrekt aktualisieren und keine Rate-Limits durch massives Paging mehr auftreten.
 - Alle Dashboard-/API-Routen (außer `/api/auth/*`) sind jetzt durch einen Admin-Login mit Scrypt-Hash + HttpOnly-Session-Cookie geschützt; `npm run tools:hash-password` hilft beim Generieren der Werte.
 

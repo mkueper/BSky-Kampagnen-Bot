@@ -32,6 +32,7 @@ const feedMetaGlobalCache = new Map()
 
 const THREAD_NODE_TYPE = 'app.bsky.feed.defs#threadViewPost'
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
+const AUTHOR_FEED_ALLOWED_FILTERS = new Set(['posts_with_replies', 'posts_no_replies', 'posts_with_media'])
 const PUSH_REQUEST_KEYS = ['serviceDid', 'token', 'platform', 'appId']
 
 const POST_RECORD_COLLECTION = 'app.bsky.feed.post'
@@ -563,6 +564,44 @@ async function getProfile (req, res) {
   }
 }
 
+async function getProfileFeed (req, res) {
+  const actor = String(req.query?.actor || '').trim()
+  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
+  const cursor = req.query.cursor || undefined
+  const rawFilter = typeof req.query.filter === 'string' ? req.query.filter.trim() : ''
+  const filter = AUTHOR_FEED_ALLOWED_FILTERS.has(rawFilter) ? rawFilter : undefined
+  try {
+    const data = await bsky.getAuthorFeed(actor, { limit, cursor, filter })
+    const feed = Array.isArray(data?.feed) ? data.feed : []
+    const items = feed.map(entry => {
+      const post = entry?.post || {}
+      const author = post?.author || {}
+      return {
+        uri: post?.uri || null,
+        cid: post?.cid || null,
+        text: post?.record?.text || '',
+        createdAt: post?.record?.createdAt || null,
+        author: {
+          handle: author?.handle || '',
+          displayName: author?.displayName || author?.handle || '',
+          avatar: author?.avatar || null
+        },
+        stats: {
+          likeCount: post?.likeCount ?? 0,
+          repostCount: post?.repostCount ?? 0,
+          replyCount: post?.replyCount ?? 0
+        },
+        raw: entry
+      }
+    })
+    return res.json({ items, cursor: data?.cursor || null })
+  } catch (error) {
+    log.error('getProfileFeed failed', { error: error?.message || String(error), actor })
+    return res.status(500).json({ error: error?.message || 'Beiträge konnten nicht geladen werden.' })
+  }
+}
+
 async function postReply(req, res) {
   try {
     const text = String(req.body?.text || '').trim()
@@ -924,6 +963,7 @@ module.exports = {
   postNow,
   search,
   getProfile,
+  getProfileFeed,
   getFeeds,
   pinFeed,
   unpinFeed,

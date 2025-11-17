@@ -472,6 +472,29 @@ module.exports = {
     return res?.data ?? null;
   },
   /**
+   * Lädt den öffentlichen Feed eines Actors (Profilansicht).
+   *
+   * @param {string} actor DID oder Handle
+   * @param {{limit?: number, cursor?: string, filter?: string}} [opts]
+   */
+  async getAuthorFeed(actor, { limit = 30, cursor, filter } = {}) {
+    const normalizedActor = typeof actor === 'string' ? actor.trim() : '';
+    if (!normalizedActor) {
+      throw new Error('actor erforderlich');
+    }
+    await ensureLoggedIn();
+    const params = {
+      actor: normalizedActor,
+      limit,
+      cursor
+    };
+    if (filter && typeof filter === 'string') {
+      params.filter = filter;
+    }
+    const res = await agent.app.bsky.feed.getAuthorFeed(params);
+    return res?.data ?? null;
+  },
+  /**
    * Lädt den Inhalt eines offiziellen Feed-Generators (Discover, Mutuals, …).
    *
    * @param {string} feedUri at:// URI des Generators

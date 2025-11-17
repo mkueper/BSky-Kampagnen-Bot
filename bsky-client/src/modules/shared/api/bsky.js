@@ -356,6 +356,20 @@ export async function fetchProfile(actor) {
   return data?.profile || null;
 }
 
+export async function fetchProfileFeed ({ actor, cursor, limit, filter } = {}) {
+  const normalized = typeof actor === 'string' ? actor.trim() : ''
+  if (!normalized) throw new Error('actor erforderlich')
+  const params = createSearchParams({ actor: normalized })
+  if (cursor) params.set('cursor', cursor)
+  if (typeof limit === 'number') params.set('limit', String(limit))
+  if (filter) params.set('filter', filter)
+  const data = await requestJson(`/api/bsky/profile/feed?${params.toString()}`)
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    cursor: data?.cursor || null
+  }
+}
+
 export async function fetchFeeds () {
   const data = await requestJson('/api/bsky/feeds');
   return {

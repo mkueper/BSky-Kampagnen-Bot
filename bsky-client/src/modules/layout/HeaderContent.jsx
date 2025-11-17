@@ -4,10 +4,9 @@ import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { HorizontalScrollContainer } from './index.js'
 import { Button } from '../shared/index.js'
 
-export const ThreadHeader = React.memo(function ThreadHeader ({ onClose }) {
+export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title = 'Thread-Ansicht' }) {
   return (
-    <div className='flex items-center justify-between gap-3' data-component='BskyThreadHeader'>
-      <p className='text-sm text-foreground-muted truncate'>Thread-Ansicht</p>
+    <div className='flex items-center gap-3' data-component='BskyThreadHeader'>
       <button
         type='button'
         className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
@@ -16,12 +15,14 @@ export const ThreadHeader = React.memo(function ThreadHeader ({ onClose }) {
       >
         <ArrowLeftIcon className='h-4 w-4' />
       </button>
+      <p className='truncate text-base font-semibold text-foreground'>{title}</p>
     </div>
   )
 })
 
 ThreadHeader.propTypes = {
-  onClose: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.string
 }
 
 ThreadHeader.displayName = 'ThreadHeader'

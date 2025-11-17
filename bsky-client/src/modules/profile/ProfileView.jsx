@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
-import { fetchProfile } from '../shared/api/bsky'
-import { Card } from '@bsky-kampagnen-bot/shared-ui'
+import { fetchProfile, fetchProfileFeed } from '../shared/api/bsky'
+import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
+import SkeetItem from '../timeline/SkeetItem.jsx'
 import {
   ArrowLeftIcon,
   ChatBubbleIcon,
@@ -347,13 +348,22 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
   )
 }
 
-export default function ProfileView ({ actor: actorOverride = null, onClose }) {
+export default function ProfileView ({
+  actor: actorOverride = null,
+  onClose,
+  onSelectPost,
+  onReply,
+  onQuote,
+  onViewMedia
+}) {
   const { profileActor, me } = useAppState()
   const dispatch = useAppDispatch()
   const actor = (actorOverride || profileActor || '').trim()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('posts')
+  const containerRef = useRef(null)
 
   const handleClose = useCallback(() => {
     if (typeof onClose === 'function') {
@@ -404,6 +414,19 @@ export default function ProfileView ({ actor: actorOverride = null, onClose }) {
     const profileHandle = typeof profile.handle === 'string' ? profile.handle.toLowerCase() : ''
     return Boolean(meHandle && profileHandle && meHandle === profileHandle)
   }, [me, profile])
+  const tabConfig = useMemo(() => ([
+    { id: 'posts', label: 'Beiträge', disabled: false },
+    { id: 'replies', label: 'Antworten', disabled: true },
+    { id: 'likes', label: 'Likes', disabled: true }
+  ]), [])
+  const profileFeedActor = profile?.did || profile?.handle || actor || ''
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (el) {
+      el.scrollTop = 0
+    }
+  }, [profileFeedActor])
 
   if (loading) {
     return (
@@ -430,23 +453,166 @@ export default function ProfileView ({ actor: actorOverride = null, onClose }) {
   }
 
   return (
-    <div className='mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'>
+    <div
+      ref={containerRef}
+      className='mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
+    >
       <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} />
       <Card padding='p-4 sm:p-6' compact className='space-y-4 border-border/80'>
         <div className='flex flex-wrap gap-2 text-sm font-semibold text-foreground'>
-          {['Beiträge', 'Antworten', 'Likes'].map((label) => (
-            <button
-              key={label}
-              type='button'
-              disabled
-              className='rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-70'
-            >
-              {label}
-            </button>
-          ))}
+          {tabConfig.map((tab) => {
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type='button'
+                disabled={tab.disabled}
+                onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  isActive
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border bg-background text-foreground hover:border-foreground/60'
+                } ${tab.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
-        <p className='text-sm text-foreground-muted'>Die Timeline dieses Profils wird in Kürze verfügbar sein.</p>
+        {activeTab !== 'posts' ? (
+          <p className='text-sm text-foreground-muted'>Weitere Tabs folgen in Kürze.</p>
+        ) : null}
       </Card>
+      {activeTab === 'posts' ? (
+        <ProfilePosts
+          actor={profileFeedActor}
+          onSelectPost={onSelectPost}
+          onReply={onReply}
+          onQuote={onQuote}
+          onViewMedia={onViewMedia}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function ProfilePosts ({ actor, onSelectPost, onReply, onQuote, onViewMedia }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [cursor, setCursor] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    if (!actor) return
+    let ignore = false
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const { items: nextItems, cursor: nextCursor } = await fetchProfileFeed({
+          actor,
+          limit: 20,
+          filter: 'posts_no_replies'
+        })
+        if (!ignore) {
+          setItems(nextItems)
+          setCursor(nextCursor)
+        }
+      } catch (err) {
+        if (!ignore) setError(err?.message || 'Beiträge konnten nicht geladen werden.')
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    setItems([])
+    setCursor(null)
+    load()
+    return () => { ignore = true }
+  }, [actor, reloadKey])
+
+  const hasMore = useMemo(() => Boolean(cursor), [cursor])
+
+  const loadMore = useCallback(async () => {
+    if (!actor || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const { items: nextItems, cursor: nextCursor } = await fetchProfileFeed({
+        actor,
+        cursor,
+        limit: 20,
+        filter: 'posts_no_replies'
+      })
+      setItems((prev) => prev.concat(nextItems))
+      setCursor(nextCursor)
+    } catch (err) {
+      setError(err?.message || 'Weitere Beiträge konnten nicht geladen werden.')
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [actor, cursor, hasMore, loadingMore])
+
+  if (!actor) {
+    return (
+      <Card padding='p-4' className='text-sm text-foreground-muted'>
+        Kein Profil ausgewählt.
+      </Card>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className='flex min-h-[200px] items-center justify-center'>
+        <div className='flex flex-col items-center gap-3' role='status' aria-live='polite'>
+          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
+          <span className='sr-only'>Beiträge werden geladen…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && items.length === 0) {
+    return (
+      <Card padding='p-4' className='space-y-3'>
+        <p className='text-sm text-destructive'>{error}</p>
+        <Button variant='secondary' size='pill' onClick={() => setReloadKey((v) => v + 1)}>
+          Erneut versuchen
+        </Button>
+      </Card>
+    )
+  }
+
+  if (items.length === 0) {
+    return <p className='text-sm text-foreground-muted'>Noch keine Beiträge.</p>
+  }
+
+  return (
+    <div className='space-y-4'>
+      <ul className='space-y-3'>
+        {items.map((item) => (
+          <li key={item.uri || item.cid}>
+            <SkeetItem
+              item={item}
+              variant='card'
+              onReply={onReply}
+              onQuote={onQuote}
+              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
+              onViewMedia={onViewMedia}
+            />
+          </li>
+        ))}
+      </ul>
+      {error ? (
+        <p className='text-sm text-destructive'>{error}</p>
+      ) : null}
+      {hasMore ? (
+        <div className='text-center'>
+          <Button variant='secondary' size='pill' disabled={loadingMore} onClick={loadMore}>
+            {loadingMore ? 'Lade…' : 'Mehr laden'}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

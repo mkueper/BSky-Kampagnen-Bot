@@ -177,7 +177,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (section === 'notifications') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-sm text-foreground-muted'>Mitteilungen</p>
+          <p className='text-base font-semibold text-foreground'>Mitteilungen</p>
           <div className='flex items-center gap-2'>
             {['all', 'mentions'].map((tab) => (
               <button
@@ -386,16 +386,30 @@ function MainContent (props) {
 
   if (section === 'notifications') {
     return (
-      <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
-        <NotificationsLazy
-          refreshKey={notificationsRefreshTick}
-          onSelectPost={selectThreadFromItem}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
-          activeTab={notificationTab}
-        />
-      </Suspense>
+      <div className='space-y-6'>
+        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+          <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
+            <NotificationsLazy
+              refreshKey={notificationsRefreshTick}
+              onSelectPost={selectThreadFromItem}
+              onReply={openReplyComposer}
+              onQuote={openQuoteComposer}
+              onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+              activeTab={notificationTab}
+            />
+          </Suspense>
+        </div>
+        {threadState.active ? (
+          <ThreadView
+            state={threadState}
+            onReload={reloadThread}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelectPost={selectThreadFromItem}
+          />
+        ) : null}
+      </div>
     )
   }
 
@@ -409,9 +423,26 @@ function MainContent (props) {
 
   if (section === 'profile') {
     return (
-      <Suspense fallback={<SectionFallback label='Profil' />}>
-        <ProfileViewLazy />
-      </Suspense>
+      <div className='space-y-6'>
+        <Suspense fallback={<SectionFallback label='Profil' />}>
+          <ProfileViewLazy
+            onSelectPost={selectThreadFromItem}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+          />
+        </Suspense>
+        {threadState.active ? (
+          <ThreadView
+            state={threadState}
+            onReload={reloadThread}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelectPost={selectThreadFromItem}
+          />
+        ) : null}
+      </div>
     )
   }
 
