@@ -364,7 +364,10 @@ export default function ProfileView ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
+  const [tabsStuck, setTabsStuck] = useState(false)
   const containerRef = useRef(null)
+  const tabsWrapperRef = useRef(null)
+  const tabsSentinelRef = useRef(null)
 
   const handleClose = useCallback(() => {
     if (typeof onClose === 'function') {
@@ -418,7 +421,8 @@ export default function ProfileView ({
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
     { id: 'replies', label: 'Antworten', disabled: false },
-    { id: 'likes', label: 'Likes', disabled: true }
+    { id: 'media', label: 'Medien', disabled: false },
+    { id: 'videos', label: 'Videos', disabled: true }
   ]), [])
   const profileFeedActor = profile?.did || profile?.handle || actor || ''
 
@@ -427,6 +431,21 @@ export default function ProfileView ({
     if (el) {
       el.scrollTop = 0
     }
+    setTabsStuck(false)
+  }, [profileFeedActor])
+
+  useEffect(() => {
+    const container = containerRef.current
+    const sentinel = tabsSentinelRef.current
+    if (!container || !sentinel) return undefined
+    const observer = new IntersectionObserver(([entry]) => {
+      setTabsStuck(entry ? !entry.isIntersecting : false)
+    }, {
+      root: container,
+      threshold: 1
+    })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
   }, [profileFeedActor])
 
   if (loading) {
@@ -462,37 +481,64 @@ export default function ProfileView ({
       <div className='relative z-10'>
         <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} />
       </div>
-      <Card padding='p-4 sm:p-6' compact className='relative z-0 space-y-4 border-border/80'>
-        <div className='flex flex-wrap gap-2 text-sm font-semibold text-foreground'>
-          {tabConfig.map((tab) => {
-            const isActive = activeTab === tab.id
-            return (
+      <div ref={tabsSentinelRef} aria-hidden='true' className='h-1 w-full' />
+      <div ref={tabsWrapperRef} className='sticky -top-4 z-20 -mt-4'>
+        <Card padding='p-3 sm:p-4' compact className='relative z-0 space-y-3 border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80'>
+          <div className='flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground'>
+            {tabsStuck ? (
               <button
-                key={tab.id}
                 type='button'
-                disabled={tab.disabled}
-                onClick={() => !tab.disabled && setActiveTab(tab.id)}
-                className={`rounded-full border px-3 py-1 text-sm transition ${
-                  isActive
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-border bg-background text-foreground hover:border-foreground/60'
-                } ${tab.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                onClick={handleClose}
+                className='inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-foreground/70'
+                aria-label='Zurück'
               >
-                {tab.label}
+                <ArrowLeftIcon className='h-4 w-4' />
               </button>
-            )
-          })}
-        </div>
-        {activeTab === 'likes' ? (
-          <p className='text-sm text-foreground-muted'>Likes werden bald verfügbar sein.</p>
-        ) : null}
-      </Card>
-      {(activeTab === 'posts' || activeTab === 'replies') ? (
+            ) : null}
+            <div className='flex flex-wrap gap-2'>
+              {tabConfig.map((tab) => {
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type='button'
+                    disabled={tab.disabled}
+                    onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                    className={`rounded-full border px-3 py-1 text-sm transition ${
+                      isActive
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border bg-background text-foreground hover:border-foreground/60'
+                    } ${tab.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {activeTab === 'videos' ? (
+            <p className='text-sm text-foreground-muted'>Videos werden bald verfügbar sein.</p>
+          ) : null}
+        </Card>
+      </div>
+      {(activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media') ? (
         <ProfilePosts
           actor={profileFeedActor}
-          filter={activeTab === 'posts' ? 'posts_no_replies' : 'posts_with_replies'}
+          filter={
+            activeTab === 'posts'
+              ? 'posts_no_replies'
+              : activeTab === 'replies'
+                ? 'posts_with_replies'
+                : 'posts_with_media'
+          }
           onlyReplies={activeTab === 'replies'}
-          emptyMessage={activeTab === 'replies' ? 'Noch keine Antworten.' : 'Noch keine Beiträge.'}
+          emptyMessage={
+            activeTab === 'replies'
+              ? 'Noch keine Antworten.'
+              : activeTab === 'media'
+                ? 'Noch keine Medien.'
+                : 'Noch keine Beiträge.'
+          }
           scrollContainerRef={containerRef}
           onSelectPost={onSelectPost}
           onReply={onReply}
@@ -634,18 +680,21 @@ function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false
   return (
     <div className='space-y-4'>
       <ul className='space-y-3'>
-        {items.map((item) => (
-          <li key={item.uri || item.cid}>
-            <SkeetItem
-              item={item}
-              variant='card'
-              onReply={onReply}
-              onQuote={onQuote}
-              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
-              onViewMedia={onViewMedia}
-            />
-          </li>
-        ))}
+        {items.map((item, idx) => {
+          const key = item.uri || item.cid || `${idx}-${item.record?.createdAt || ''}`
+          return (
+            <li key={key}>
+              <SkeetItem
+                item={item}
+                variant='card'
+                onReply={onReply}
+                onQuote={onQuote}
+                onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
+                onViewMedia={onViewMedia}
+              />
+            </li>
+          )
+        })}
       </ul>
       {error ? (
         <p className='text-sm text-destructive'>{error}</p>

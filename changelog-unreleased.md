@@ -5,6 +5,9 @@
 ### Client
 - Profilansicht zeigt jetzt direkt im Tab „Beiträge“ den öffentlichen Feed eines Actors, inklusive Nachladen über den bekannten Skeet-Renderer.
 - Tab „Antworten“ nutzt ebenfalls den Author-Feed und filtert ausschließlich Replies heraus.
+- Die Beitrags-/Antworten-Tabs bleiben beim Scrollen sticky sichtbar, sodass der Wechsel jederzeit möglich ist.
+- Neuer Tab „Medien“ zeigt ausschließlich Beiträge mit Anhängen (Bilder/Videos), während „Videos“ als Platzhalter ausgewiesen ist.
+- Wenn die Profil-Tabs sticky werden, erscheint ein kompakter Zurück-Button in der Leiste; ansonsten bleibt er wie zuvor im Hero-Bereich.
 - Profilansicht überarbeitet: Banner + Avatar bilden jetzt ein zusammenhängendes Hero-Layout wie in der offiziellen Bluesky-App, inklusive neuer Aktionsleiste und Labels-Hinweis.
 - Eigene Profile öffnen sich ebenfalls in der Modalansicht; mobile Darstellung nutzt ein randloses Overlay ohne dunklen Rahmen.
 - Karten besitzen einen kompakteren Absatzabstand und der Profilhinweistext nutzt kleinere Typografie.
