@@ -457,8 +457,10 @@ export default function ProfileView ({
       ref={containerRef}
       className='mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
     >
-      <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} />
-      <Card padding='p-4 sm:p-6' compact className='space-y-4 border-border/80'>
+      <div className='relative z-10'>
+        <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} />
+      </div>
+      <Card padding='p-4 sm:p-6' compact className='relative z-0 space-y-4 border-border/80'>
         <div className='flex flex-wrap gap-2 text-sm font-semibold text-foreground'>
           {tabConfig.map((tab) => {
             const isActive = activeTab === tab.id
