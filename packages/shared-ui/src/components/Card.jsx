@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import PropTypes from 'prop-types'
+import './card.css'
 
 const backgroundVariants = {
   default: 'bg-background',
@@ -20,6 +21,7 @@ const Card = forwardRef(function Card (
     background = 'default',
     padding = 'p-5',
     hover = false,
+    compact = false,
     className = '',
     children,
     ...rest
@@ -29,7 +31,8 @@ const Card = forwardRef(function Card (
   const resolvedBackground = backgroundVariants[background] ?? background ?? ''
   const resolvedHover = hover ? hoverClasses : ''
   const cardClassName = classNames(
-    'group rounded-2xl border border-border shadow-soft transition',
+    'card-root group rounded-2xl border border-border shadow-soft transition',
+    compact ? 'card-compact' : '',
     resolvedBackground,
     padding,
     resolvedHover,
@@ -50,6 +53,7 @@ Card.propTypes = {
   background: PropTypes.string,
   padding: PropTypes.string,
   hover: PropTypes.bool,
+  compact: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node
 }

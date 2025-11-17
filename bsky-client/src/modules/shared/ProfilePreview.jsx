@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
+import { useAppState } from '../../context/AppContext.jsx'
 
 const profileCache = new Map()
 const numberFormatter = new Intl.NumberFormat('de-DE')
@@ -115,7 +116,8 @@ export function ProfilePreviewTrigger ({
   children,
   className = '',
   as: Component = 'span',
-  style
+  style,
+  disablePreview = false
 }) {
   const triggerRef = useRef(null)
   const hoverTimeoutRef = useRef(null)
@@ -125,6 +127,20 @@ export function ProfilePreviewTrigger ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const portalContainer = usePortalContainer()
+  const { profileViewer } = useAppState()
+  const [supportsHover, setSupportsHover] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const handler = (event) => setSupportsHover(event.matches)
+    handler(mq)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -175,8 +191,10 @@ export function ProfilePreviewTrigger ({
     }
   }, [actor])
 
+  const previewEnabled = supportsHover && !disablePreview && !profileViewer?.open
+
   const openWithDelay = useCallback(() => {
-    if (!actor) return
+    if (!actor || !previewEnabled) return
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
     hoverTimeoutRef.current = setTimeout(() => {
       updatePosition()
@@ -207,17 +225,16 @@ export function ProfilePreviewTrigger ({
     const doc = getDocument()
     if (!doc) return
     const handleScroll = () => setOpen(false)
+    const handlePointerDown = () => setOpen(false)
     doc.addEventListener('scroll', handleScroll, true)
     doc.addEventListener('resize', handleScroll, true)
+    doc.addEventListener('pointerdown', handlePointerDown, true)
     return () => {
       doc.removeEventListener('scroll', handleScroll, true)
       doc.removeEventListener('resize', handleScroll, true)
+      doc.removeEventListener('pointerdown', handlePointerDown, true)
     }
   }, [open])
-
-  if (!actor) {
-    return children
-  }
 
   const combinedClassName = ['relative', className].filter(Boolean).join(' ')
 

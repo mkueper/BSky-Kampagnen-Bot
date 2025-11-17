@@ -17,6 +17,7 @@ import {
   CrossCircledIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
+import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, Card } from '../shared'
 
 function extractImagesFromEmbed (item) {
@@ -180,6 +181,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     : ''
   const quoteClickable = !quotedStatusMessage && quoted?.uri && typeof onSelect === 'function'
   const { config } = useCardConfig()
+  const dispatch = useAppDispatch()
   const {
     likeCount,
     repostCount,
@@ -312,29 +314,47 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => showPlaceholder('Melden') }
   ], [shareUrl, text])
 
+  const handleProfileClick = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!actorIdentifier) return
+    dispatch({
+      type: 'OPEN_PROFILE_VIEWER',
+      actor: actorIdentifier,
+      anchor: item?.uri || null
+    })
+  }
+
   const body = (
     <>
       {contextLabel ? (
         <p className='mb-2 text-xs font-semibold text-foreground-muted'>{contextLabel}</p>
       ) : null}
       <header className='flex items-center gap-3'>
-        <ProfilePreviewTrigger actor={actorIdentifier} fallback={author} className='inline-flex'>
-          {author.avatar ? (
-            <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
-          ) : (
-            <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
-          )}
-        </ProfilePreviewTrigger>
-        <div className='min-w-0 flex-1'>
-          <ProfilePreviewTrigger
-            actor={actorIdentifier}
-            fallback={author}
-            as='span'
-            className='inline-flex max-w-full flex-col min-w-0'
-          >
-            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</p>
-            <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
+        <button type='button' onClick={handleProfileClick} className='inline-flex rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'>
+          <ProfilePreviewTrigger actor={actorIdentifier} fallback={author}>
+            {author.avatar ? (
+              <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
+            ) : (
+              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+            )}
           </ProfilePreviewTrigger>
+        </button>
+        <div className='min-w-0 flex-1'>
+          <button
+            type='button'
+            onClick={handleProfileClick}
+            className='inline-flex max-w-full flex-col min-w-0 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+          >
+            <ProfilePreviewTrigger
+              actor={actorIdentifier}
+              fallback={author}
+              as='span'
+            >
+              <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</p>
+              <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
+            </ProfilePreviewTrigger>
+          </button>
         </div>
         <div className='ml-auto flex items-center gap-1'>
           {createdAt ? (
@@ -388,7 +408,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </div>
       ) : null}
       <p className='mt-3 text-sm text-foreground'>
-        <RichText text={text} className='whitespace-pre-wrap break-words' />
+        <RichText text={text} facets={item?.raw?.post?.record?.facets} className='whitespace-pre-wrap break-words' />
       </p>
 
       {quoted ? (
@@ -431,7 +451,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 ) : null}
                 {quoted.text ? (
                   <div className='mt-2 text-sm text-foreground'>
-                    <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                    <RichText text={quoted.text} facets={quoted?.raw?.record?.facets} className='whitespace-pre-wrap break-words text-sm text-foreground' />
                   </div>
                 ) : null}
               </div>

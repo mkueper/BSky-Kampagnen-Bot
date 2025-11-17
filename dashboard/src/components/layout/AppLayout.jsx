@@ -104,7 +104,7 @@ function AppLayout({
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className="mx-auto flex h-full w-full max-w-[1400px] px-3 py-6 sm:px-6 lg:px-10">
+      <div className="mx-auto flex h-full w-full max-w-[1400px] px-2 py-2 sm:px-20 lg:px-10">
         <aside
           className={`fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200 md:static ${
             navCollapsed ? 'md:hidden' : 'md:block md:translate-x-0'
@@ -268,7 +268,7 @@ function AppLayout({
 
           <div
             id="app-scroll-container"
-            className={`flex-1 min-h-0 pr-1 ${headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'} ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
+            className={`flex-1 min-h-0 max-h-full pr-1 ${headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'} ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
             style={{ scrollbarGutter: 'stable' }}
           >
             <main className="space-y-8 pb-6 md:pb-8">{children}</main>

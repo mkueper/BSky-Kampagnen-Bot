@@ -102,8 +102,16 @@ export default function BskyClientLayout ({
     '--bottom-nav-safe-area': 'env(safe-area-inset-bottom, 0px)',
     '--bottom-nav-gap': `${MOBILE_NAV_GAP}px`
   }
-  const mobileNavReservedSpace = `var(--bottom-nav-height, ${MOBILE_NAV_HEIGHT}px) + var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px)`
-  const bottomPaddingValue = isMobile ? `calc(${mobileNavReservedSpace} + 16px)` : undefined
+  const mobileNavReservedSpace = `calc(var(--bottom-nav-height, ${MOBILE_NAV_HEIGHT}px) + var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
+  const bottomPaddingValue = isMobile ? '16px' : undefined
+  const isProfileSection = activeSection === 'profile'
+  const scrollContainerClassName = [
+    'flex-1 min-h-0',
+    isProfileSection ? 'overflow-y-auto p-[2px] sm:p-2' : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
+  ].join(' ')
+  const mainClassName = isProfileSection
+    ? 'flex h-full w-full min-h-0 justify-center'
+    : `space-y-5 ${isMobile ? '' : 'pb-6 sm:pb-8'} sm:space-y-8`
 
   return (
     <div
@@ -149,23 +157,27 @@ export default function BskyClientLayout ({
 
         <div
           id='bsky-scroll-container'
-          className='flex-1 min-h-0 overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
+          className={scrollContainerClassName}
           data-component='BskyScrollContainer'
           style={{ scrollbarGutter: 'stable', paddingBottom: bottomPaddingValue }}
         >
-          <main
-            className={`space-y-5 ${isMobile ? '' : 'pb-6 sm:pb-8'} sm:space-y-8`}
-            style={isMobile ? { paddingBottom: bottomPaddingValue } : undefined}
-          >
+          <main className={mainClassName}>
             {children}
           </main>
+          {isMobile ? (
+            <div
+              aria-hidden='true'
+              className='pointer-events-none'
+              style={{ height: mobileNavReservedSpace }}
+            />
+          ) : null}
           <ScrollTopButton
             containerId='bsky-scroll-container'
             position='bottom-left'
             variant='primary'
             forceVisible={scrollTopForceVisible}
             onActivate={onScrollTopActivate}
-            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP : 16}
+            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
             horizontalOffset={isMobile ? 12 : 16}
           />
           {/* Floating Action Button: Neuer Skeet */}
@@ -174,7 +186,7 @@ export default function BskyClientLayout ({
               type='button'
               onClick={handleOpenCompose}
               className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-              style={isMobile ? { bottom: `calc(${mobileNavReservedSpace})` } : { bottom: '20px' }}
+              style={isMobile ? { bottom: mobileNavReservedSpace } : { bottom: '20px' }}
               aria-label='Neuer Skeet'
               title='Neuen Skeet posten'
             >

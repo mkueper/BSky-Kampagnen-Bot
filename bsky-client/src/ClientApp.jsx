@@ -4,14 +4,15 @@ import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
+import { useClientConfig } from './hooks/useClientConfig'
+import { useTimelineAutoRefresh } from './hooks/useTimelineAutoRefresh'
+import { useNotificationPolling } from './hooks/useNotificationPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { QuickComposer } from './modules/composer'
-import { fetchTimeline as fetchTimelineApi, fetchNotifications as fetchNotificationsApi } from './modules/shared/index.js'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
-import { SettingsView } from './modules/settings/index.js'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -29,13 +30,21 @@ const NotificationsLazy = lazy(async () => {
   const module = await import('./modules/notifications/index.js')
   return { default: module.Notifications ?? module.default }
 })
+const SettingsViewLazy = lazy(async () => {
+  const module = await import('./modules/settings/index.js')
+  return { default: module.SettingsView ?? module.default }
+})
+const ProfileViewLazy = lazy(async () => {
+  const module = await import('./modules/profile/ProfileView')
+  return { default: module.ProfileView ?? module.default }
+})
 const SectionFallback = ({ label = 'Bereich' }) => (
   <Card background='subtle' padding='p-4' className='text-sm text-foreground-muted'>
     {label} wird geladen…
   </Card>
 )
 
-export default function BskyClientApp () {
+export default function BskyClientApp ({ onNavigateDashboard }) {
   const {
     section,
     timelineTab,
@@ -44,7 +53,8 @@ export default function BskyClientApp () {
     notificationsRefreshTick,
     timelineTopUri,
     notificationsUnread,
-    timelineHasNew
+    timelineHasNew,
+    me
   } = useAppState()
   const dispatch = useAppDispatch()
 
@@ -57,7 +67,7 @@ export default function BskyClientApp () {
     openFeedManager
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
-  const [clientConfig, setClientConfig] = useState(null)
+  const { clientConfig } = useClientConfig()
 
   const timelineSourceFeedUri = timelineSource?.feedUri || null
   const timelineSourceId = timelineSource?.id || timelineTab
@@ -67,6 +77,9 @@ export default function BskyClientApp () {
     }
     return { tab: timelineSourceId }
   }, [timelineSourceFeedUri, timelineSourceId, timelineSource?.origin])
+
+  useTimelineAutoRefresh(section, timelineTopUri, timelineQueryParams, dispatch)
+  useNotificationPolling(dispatch)
 
   const officialTabs = STATIC_TIMELINE_TABS
 
@@ -104,47 +117,6 @@ export default function BskyClientApp () {
   useEffect(() => {
     refreshFeedPicker({ force: true })
   }, [refreshFeedPicker])
-
-  useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/client-config')
-        const data = await res.json().catch(() => ({}))
-        if (!ignore && res.ok) {
-          setClientConfig(data)
-        }
-      } catch {
-        if (!ignore) {
-          setClientConfig(null)
-        }
-      }
-    })()
-    return () => { ignore = true }
-  }, [])
-
-  useEffect(() => {
-    if (section !== 'home') return undefined
-
-    const controller = { id: null, latestTopUri: timelineTopUri }
-    const runCheck = async () => {
-      if (document.hidden) return
-      try {
-        const { items } = await fetchTimelineApi({ ...timelineQueryParams, limit: 1 })
-        const topUri = items?.[0]?.uri || ''
-        if (topUri && controller.latestTopUri && topUri !== controller.latestTopUri) {
-          dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: true })
-        }
-        controller.latestTopUri = topUri || controller.latestTopUri
-      } catch {}
-    }
-
-    runCheck()
-    controller.id = window.setInterval(runCheck, 60000)
-    return () => {
-      if (controller.id) window.clearInterval(controller.id)
-    }
-  }, [section, dispatch, timelineQueryParams])
 
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
@@ -205,9 +177,7 @@ export default function BskyClientApp () {
     if (section === 'notifications') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-sm text-foreground-muted'>
-            Mitteilungen{notificationsUnread > 0 ? ` · ${notificationsUnread} neu` : ''}
-          </p>
+          <p className='text-sm text-foreground-muted'>Mitteilungen</p>
           <div className='flex items-center gap-2'>
             {['all', 'mentions'].map((tab) => (
               <button
@@ -261,96 +231,17 @@ export default function BskyClientApp () {
     [dispatch]
   )
 
-  const homeContent = (
-    <div className='space-y-6'>
-      {quickComposerEnabled ? (
-        <QuickComposer onSent={() => refreshTimeline()} />
-      ) : null}
-      <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-        <Timeline
-          tab={timelineTab}
-          source={timelineSource}
-          refreshKey={refreshTick}
-          onLoadingChange={handleTimelineLoadingChange}
-          isActive={section === 'home'}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onViewMedia={openMediaPreview}
-          onSelectPost={selectThreadFromItem}
-          onTopItemChange={handleTopItemChange}
-        />
-      </div>
-      {threadState.active ? (
-        <ThreadView
-          state={threadState}
-          onReload={reloadThread}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onViewMedia={openMediaPreview}
-          onSelectPost={selectThreadFromItem}
-        />
-      ) : null}
-    </div>
-  )
-
-  let secondaryContent = null
-  if (section === 'search') secondaryContent = (
-    <Suspense fallback={<SectionFallback label='Suche' />}>
-      <SearchViewLazy
-        onSelectPost={selectThreadFromItem}
-        onReply={openReplyComposer}
-        onQuote={openQuoteComposer}
-        onViewMedia={openMediaPreview}
-      />
-    </Suspense>
-  )
-  else if (section === 'notifications') {
-    secondaryContent = (
-      <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
-        <NotificationsLazy
-          refreshKey={notificationsRefreshTick}
-          onSelectPost={selectThreadFromItem}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
-          activeTab={notificationTab}
-        />
-      </Suspense>
-    )
-  }
-  else if (section === 'chat') secondaryContent = <div className='text-sm text-muted-foreground'>Chat folgt</div>
-  else if (section === 'feeds') secondaryContent = <div className='text-sm text-muted-foreground'>Feeds folgt</div>
-  else if (section === 'lists') secondaryContent = <div className='text-sm text-muted-foreground'>Listen folgt</div>
-  else if (section === 'saved') secondaryContent = <div className='text-sm text-muted-foreground'>Gespeichert folgt</div>
-  else if (section === 'profile') secondaryContent = <div className='text-sm text-muted-foreground'>Profil folgt</div>
-else if (section === 'settings') secondaryContent = <SettingsView />
-
   useEffect(() => {
     dispatch({ type: 'SET_TIMELINE_READY', payload: false })
   }, [timelineTab, dispatch])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-    let ignore = false
-    let timer = null
-    const checkUnread = async () => {
-      try {
-        const { unreadCount } = await fetchNotificationsApi({ limit: 1 })
-        if (!ignore) {
-          dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: unreadCount })
-        }
-      } catch {}
+  const handleSelectSection = useCallback((id, actor = null) => {
+    if (id === 'dashboard') {
+      if (typeof onNavigateDashboard === 'function') {
+        onNavigateDashboard()
+      }
+      return
     }
-    checkUnread()
-    timer = window.setInterval(checkUnread, 60000)
-    return () => {
-      ignore = true
-      if (timer) window.clearInterval(timer)
-    }
-  }, [dispatch])
-
-
-  const handleSelectSection = useCallback((id) => {
     if (id === 'feeds') {
       closeFeedMenu()
       openFeedManager()
@@ -366,10 +257,17 @@ else if (section === 'settings') secondaryContent = <SettingsView />
       dispatch({ type: 'SET_SECTION', payload: 'home' })
       return
     }
+    if (id === 'profile') {
+      const targetActor = actor || me?.did || me?.handle || null
+      if (targetActor) {
+        dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: targetActor })
+        return
+      }
+    }
     if (threadState.active) closeThread({ force: true })
     dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
-    dispatch({ type: 'SET_SECTION', payload: id })
-  }, [closeFeedMenu, closeThread, dispatch, refreshNotifications, refreshTimeline, section, threadState.active])
+    dispatch({ type: 'SET_SECTION', payload: id, actor })
+  }, [closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshNotifications, refreshTimeline, section, threadState.active, me])
 
   const scrollTopForceVisible = section === 'home' && timelineHasNew
 
@@ -393,12 +291,140 @@ else if (section === 'settings') secondaryContent = <SettingsView />
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
       >
-        <div style={{ display: section === 'home' ? 'block' : 'none' }} aria-hidden={section !== 'home'}>
-          {homeContent}
-        </div>
-        {section === 'home' ? null : secondaryContent}
+        <MainContent
+          section={section}
+          quickComposerEnabled={quickComposerEnabled}
+          refreshTimeline={refreshTimeline}
+          threadState={threadState}
+          timelineTab={timelineTab}
+          timelineSource={timelineSource}
+          refreshTick={refreshTick}
+          handleTimelineLoadingChange={handleTimelineLoadingChange}
+          openReplyComposer={openReplyComposer}
+          openQuoteComposer={openQuoteComposer}
+          openMediaPreview={openMediaPreview}
+          selectThreadFromItem={selectThreadFromItem}
+          handleTopItemChange={handleTopItemChange}
+          reloadThread={reloadThread}
+          notificationsRefreshTick={notificationsRefreshTick}
+          dispatch={dispatch}
+          notificationTab={notificationTab}
+        />
       </BskyClientLayout>
       <Modals />
     </>
   )
+}
+
+function MainContent (props) {
+  const {
+    section,
+    quickComposerEnabled,
+    refreshTimeline,
+    threadState,
+    timelineTab,
+    timelineSource,
+    refreshTick,
+    handleTimelineLoadingChange,
+    openReplyComposer,
+    openQuoteComposer,
+    openMediaPreview,
+    selectThreadFromItem,
+    handleTopItemChange,
+    reloadThread,
+    notificationsRefreshTick,
+    dispatch,
+    notificationTab
+  } = props
+
+  if (section === 'home') {
+    return (
+      <div className='space-y-6'>
+        {quickComposerEnabled ? (
+          <QuickComposer onSent={() => refreshTimeline()} />
+        ) : null}
+        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+          <Timeline
+            tab={timelineTab}
+            source={timelineSource}
+            refreshKey={refreshTick}
+            onLoadingChange={handleTimelineLoadingChange}
+            isActive={section === 'home'}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelectPost={selectThreadFromItem}
+            onTopItemChange={handleTopItemChange}
+          />
+        </div>
+        {threadState.active ? (
+          <ThreadView
+            state={threadState}
+            onReload={reloadThread}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelectPost={selectThreadFromItem}
+          />
+        ) : null}
+      </div>
+    )
+  }
+
+  if (section === 'search') {
+    return (
+      <Suspense fallback={<SectionFallback label='Suche' />}>
+        <SearchViewLazy
+          onSelectPost={selectThreadFromItem}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onViewMedia={openMediaPreview}
+        />
+      </Suspense>
+    )
+  }
+
+  if (section === 'notifications') {
+    return (
+      <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
+        <NotificationsLazy
+          refreshKey={notificationsRefreshTick}
+          onSelectPost={selectThreadFromItem}
+          onReply={openReplyComposer}
+          onQuote={openQuoteComposer}
+          onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+          activeTab={notificationTab}
+        />
+      </Suspense>
+    )
+  }
+
+  if (section === 'settings') {
+    return (
+      <Suspense fallback={<SectionFallback label='Einstellungen' />}>
+        <SettingsViewLazy />
+      </Suspense>
+    )
+  }
+
+  if (section === 'profile') {
+    return (
+      <Suspense fallback={<SectionFallback label='Profil' />}>
+        <ProfileViewLazy />
+      </Suspense>
+    )
+  }
+
+  const placeholderText = {
+    chat: 'Chat folgt',
+    feeds: 'Feeds folgt',
+    lists: 'Listen folgt',
+    saved: 'Gespeichert folgt'
+  }[section]
+
+  if (placeholderText) {
+    return <div className='text-sm text-muted-foreground'>{placeholderText}</div>
+  }
+
+  return null
 }

@@ -1,5 +1,5 @@
 // This file defines the AppContext for the BskyClient application.
-import { createContext, useContext, useReducer } from 'react';
+import { createContext, useContext, useReducer, useEffect } from 'react';
 
 const AppStateContext = createContext();
 const AppDispatchContext = createContext();
@@ -27,8 +27,17 @@ const initialFeedPickerState = {
   }
 };
 
+const defaultProfileViewerState = {
+  open: false,
+  actor: null,
+  originSection: null,
+  anchor: null
+}
+
 const initialState = {
   section: 'home',
+  profileActor: null,
+  me: null,
   composeOpen: false,
   timelineTab: 'discover',
   timelineSource: DEFAULT_TIMELINE_SOURCE,
@@ -46,12 +55,20 @@ const initialState = {
   mediaLightbox: { open: false, images: [], index: 0 },
   threadState: { active: false, loading: false, error: '', data: null, uri: null },
   notificationsUnread: 0,
+  profileViewer: { ...defaultProfileViewerState }
 };
 
 function appReducer(state, action) {
   switch (action.type) {
     case 'SET_SECTION':
-      return { ...state, section: action.payload };
+      return {
+        ...state,
+        section: action.payload,
+        profileActor: action.payload === 'profile' ? (action.actor || null) : state.profileActor,
+        profileViewer: { ...defaultProfileViewerState }
+      };
+    case 'SET_ME':
+      return { ...state, me: action.payload };
     case 'SET_COMPOSE_OPEN':
       return { ...state, composeOpen: action.payload };
     case 'SET_TIMELINE_TAB':
@@ -114,6 +131,21 @@ function appReducer(state, action) {
     }
     case 'SET_FEED_MANAGER_OPEN':
       return { ...state, feedManagerOpen: Boolean(action.payload) };
+    case 'OPEN_PROFILE_VIEWER': {
+      const actor = String(action.actor || '').trim() || null
+      const anchor = action.anchor || null
+      return {
+        ...state,
+        profileViewer: {
+          open: Boolean(actor),
+          actor,
+          originSection: state.section,
+          anchor
+        }
+      }
+    }
+    case 'CLOSE_PROFILE_VIEWER':
+      return { ...state, profileViewer: { ...defaultProfileViewerState } }
     default:
       throw new Error(`Unknown action: ${action.type}`);
   }
@@ -121,6 +153,25 @@ function appReducer(state, action) {
 
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    let ignore = false
+    const fetchMe = async () => {
+      try {
+        const res = await fetch('/api/me', { credentials: 'same-origin' })
+        if (!res.ok) return
+        const body = await res.json().catch(() => null)
+        const me = body?.profile || body || null
+        if (!ignore && me) {
+          dispatch({ type: 'SET_ME', payload: me })
+        }
+      } catch (err) {
+        console.error('Failed to fetch session', err)
+      }
+    }
+    fetchMe()
+    return () => { ignore = true }
+  }, [])
 
   return (
     <AppStateContext.Provider value={state}>

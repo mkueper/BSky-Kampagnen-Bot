@@ -16,6 +16,7 @@ const uploadController = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
 const heartbeatController = require("@api/controllers/heartbeatController");
 const previewController = require("@api/controllers/previewController");
+const meController = require("@api/controllers/meController");
 const { sseHandler } = require("@core/services/events");
 
 router.use('/skeets', skeetRoutes);
@@ -39,6 +40,9 @@ router.put("/settings/client-polling", settingsController.updateClientPollingSet
 
 // Client config
 router.get("/client-config", configController.getClientConfig);
+
+// Aktuelles Profil des konfigurierten Accounts
+router.get("/me", meController.getMe);
 
 // Link preview
 router.get("/preview", previewController.getExternalPreview);

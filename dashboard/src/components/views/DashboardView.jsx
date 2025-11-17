@@ -91,7 +91,7 @@ function DashboardView ({
       
 
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
-        <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between'>
+        <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 sm:flex-row sm:items-center sm:justify-between'>
           <div>
             <h3 className='text-lg font-semibold'>Skeet Aktivität</h3>
             <p className='text-sm text-foreground-muted'>
@@ -99,7 +99,7 @@ function DashboardView ({
               &amp; Reaktionen.
             </p>
           </div>
-          <div className='flex flex-col gap-3 text-sm font-medium md:flex-row md:items-center md:gap-3'>
+          <div className='flex flex-col gap-3 text-sm font-medium sm:flex-row sm:items-center sm:gap-4'>
             <Tabs.Root
               value={activeTab}
               onValueChange={onTabChange}

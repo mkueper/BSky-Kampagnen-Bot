@@ -8,10 +8,11 @@ import {
   BookmarkIcon,
   PersonIcon,
   GearIcon,
+  ViewHorizontalIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
 
-const NAV = [
+export const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: HomeIcon },
   { id: 'search', label: 'Suchen', icon: MagnifyingGlassIcon },
   { id: 'notifications', label: 'Mitteilungen', icon: BellIcon },
@@ -21,6 +22,7 @@ const NAV = [
   { id: 'saved', label: 'Gespeichert', icon: BookmarkIcon },
   { id: 'profile', label: 'Profil', icon: PersonIcon },
   { id: 'settings', label: 'Einstellungen', icon: GearIcon },
+  { id: 'dashboard', label: 'Dashboard', icon: ViewHorizontalIcon },
 ];
 
 export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0 }) {
@@ -34,7 +36,7 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
         className="min-h-0 flex flex-1 flex-col space-y-1 overflow-y-auto pr-1"
         style={{ scrollbarGutter: 'stable' }}
       >
-        {NAV.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
           const disabled = Boolean(item.disabled);

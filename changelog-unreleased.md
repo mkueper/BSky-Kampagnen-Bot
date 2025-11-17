@@ -1,5 +1,15 @@
 # Unreleased Notes
 
+## 2025-11-17
+
+### Client
+- Profilansicht überarbeitet: Banner + Avatar bilden jetzt ein zusammenhängendes Hero-Layout wie in der offiziellen Bluesky-App, inklusive neuer Aktionsleiste und Labels-Hinweis.
+- Eigene Profile öffnen sich ebenfalls in der Modalansicht; mobile Darstellung nutzt ein randloses Overlay ohne dunklen Rahmen.
+- Karten besitzen einen kompakteren Absatzabstand und der Profilhinweistext nutzt kleinere Typografie.
+
+### UI / Shared
+- `Card`-Komponente erhielt ein optionales `compact`-Preset plus neue Styles für reduzierte Leerzeilen.
+
 ## 2025-11-16
 
 ### Backend

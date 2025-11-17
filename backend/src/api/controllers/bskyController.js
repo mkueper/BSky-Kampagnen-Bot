@@ -547,6 +547,7 @@ async function getProfile (req, res) {
       handle: data.handle || '',
       displayName: data.displayName || data.handle || '',
       avatar: data.avatar || null,
+      banner: data.banner || null,
       description: data.description || '',
       followersCount: data.followersCount ?? 0,
       followsCount: data.followsCount ?? 0,

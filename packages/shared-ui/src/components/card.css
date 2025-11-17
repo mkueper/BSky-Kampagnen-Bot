@@ -1,0 +1,8 @@
+.card-root.card-compact :where(p) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.card-root.card-compact :where(p + p) {
+  margin-top: 0.2em;
+}
