@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 import { useAppDispatch } from '../../context/AppContext'
@@ -170,7 +170,20 @@ function extractQuotedPost (subject) {
   }
 }
 
-function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead }) {
+function NotificationCardSkeleton () {
+  return (
+    <Card padding='p-4' className='space-y-3'>
+      <div className='flex items-start gap-3'>
+        <div className='h-12 w-12 shrink-0 animate-pulse rounded-full bg-background-subtle' />
+        <div className='min-w-0 flex-1 space-y-2'>
+          <div className='h-5 w-3/4 animate-pulse rounded bg-background-subtle' />
+          <div className='h-4 w-full animate-pulse rounded bg-background-subtle' />
+        </div>
+      </div>
+    </Card>
+  )
+}
+const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead }) {
   const dispatch = useAppDispatch()
   const {
     author = {},
@@ -441,7 +454,7 @@ function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuo
       ) : null}
     </Card>
   )
-}
+})
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget }) {
   const dispatch = useAppDispatch()
@@ -727,16 +740,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
 
   if (loading) {
     return (
-      <div className='flex min-h-[240px] items-center justify-center' data-component='BskyNotifications' data-state='loading'>
-        <div
-          className='flex flex-col items-center gap-3'
-          role='status'
-          aria-live='polite'
-          aria-label='Mitteilungen werden geladen…'
-        >
-          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
-          <span className='sr-only'>Mitteilungen werden geladen…</span>
-        </div>
+      <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
+        <NotificationCardSkeleton />
+        <NotificationCardSkeleton />
+        <NotificationCardSkeleton />
+        <NotificationCardSkeleton />
       </div>
     )
   }
