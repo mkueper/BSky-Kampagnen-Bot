@@ -185,6 +185,13 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       )
     }
     if (section === 'notifications') {
+      if (threadState.active) {
+        return (
+          <ThreadHeader
+            onClose={() => closeThread({ force: true })}
+          />
+        )
+      }
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-base font-semibold text-foreground'>Mitteilungen</p>
@@ -222,6 +229,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     feedMenuOpen,
     toggleFeedMenu,
     closeFeedMenu,
+    closeThread,
     notificationsUnread,
     notificationTab
   ])

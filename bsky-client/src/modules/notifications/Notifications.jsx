@@ -5,6 +5,7 @@ import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppDispatch } from '../../context/AppContext'
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
+const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
 const REASON_COPY = {
   like: {
@@ -82,6 +83,10 @@ function formatAppBskyReason (reason) {
     label: `System (${readable})`,
     description: () => 'Systembenachrichtigung von Bluesky.'
   }
+}
+
+function isPostUri (value) {
+  return typeof value === 'string' && value.includes(POST_RECORD_SEGMENT)
 }
 
 function resolveSubjectType (subject) {
@@ -195,8 +200,6 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
   const isReply = reason === 'reply'
   const profileActor = author?.did || author?.handle || ''
   const canOpenProfileViewer = Boolean(profileActor)
-  const canOpenItem = typeof onSelectItem === 'function'
-  const canOpenSubject = Boolean(subject && typeof onSelectSubject === 'function')
 
   const {
     likeCount,
@@ -251,20 +254,26 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
   }, [fallbackUri])
 
   const threadTarget = useMemo(() => buildThreadTarget(subject || item), [buildThreadTarget, subject, item])
+  const resolvedThreadTarget = useMemo(() => {
+    if (!threadTarget || !isPostUri(threadTarget?.uri)) return null
+    return threadTarget
+  }, [threadTarget])
+  const canOpenItem = Boolean(resolvedThreadTarget && typeof onSelectItem === 'function')
+  const canOpenSubject = Boolean(resolvedThreadTarget && subject && typeof onSelectSubject === 'function')
 
   const handleSelectItem = useCallback((target) => {
-    if (typeof onSelectItem !== 'function') return
+    if (!resolvedThreadTarget || typeof onSelectItem !== 'function') return
     markAsRead()
-    onSelectItem(buildThreadTarget(target || threadTarget))
-  }, [onSelectItem, markAsRead, buildThreadTarget, threadTarget])
+    const finalTarget = (target && isPostUri(target?.uri)) ? target : resolvedThreadTarget
+    onSelectItem(buildThreadTarget(finalTarget))
+  }, [onSelectItem, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
   const handleSelectSubject = useCallback((targetArg) => {
-    if (typeof onSelectSubject !== 'function') return
-    const finalTarget = targetArg || threadTarget
-    if (!finalTarget) return
+    if (!resolvedThreadTarget || typeof onSelectSubject !== 'function') return
+    const finalTarget = (targetArg && isPostUri(targetArg?.uri)) ? targetArg : resolvedThreadTarget
     markAsRead()
     onSelectSubject(buildThreadTarget(finalTarget))
-  }, [onSelectSubject, markAsRead, buildThreadTarget, threadTarget])
+  }, [onSelectSubject, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
@@ -291,14 +300,14 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
       onClick={(event) => {
         if (!canOpenItem) return
         if (event.target?.closest?.('button, a, svg, img')) return
-        handleSelectItem(threadTarget)
+        handleSelectItem(resolvedThreadTarget)
       }}
       onKeyDown={(event) => {
         if (!canOpenItem) return
         if (event.target?.closest?.('button, a')) return
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          handleSelectItem(subject || item)
+          handleSelectItem(resolvedThreadTarget)
         }
       }}
       role={canOpenItem ? 'button' : undefined}
@@ -361,7 +370,7 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
             {reasonDescription}
           </p>
           {recordText ? (
-            <p className='rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+            <p className={`rounded-2xl border px-3 py-2 text-sm text-foreground ${isReply ? 'border-primary/40 bg-primary/5 shadow-[0_8px_25px_-18px_rgba(14,165,233,0.6)]' : 'border-border bg-background-subtle'}`}>
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
@@ -369,8 +378,8 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
             <NotificationSubjectPreview
               subject={subject}
               reason={reason}
-              threadTarget={threadTarget}
-              onSelect={canOpenSubject && threadTarget ? (() => handleSelectSubject(threadTarget)) : undefined}
+              threadTarget={resolvedThreadTarget}
+              onSelect={canOpenSubject && resolvedThreadTarget ? (() => handleSelectSubject(resolvedThreadTarget)) : undefined}
               onSelectQuoted={handleSelectSubject}
             />
           ) : null}

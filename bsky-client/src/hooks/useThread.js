@@ -81,8 +81,10 @@ export function useThread() {
 
   const selectThreadFromItem = useCallback((item) => {
     const uri = item?.uri || item?.raw?.post?.uri;
-    if (uri) loadThread(uri, { rememberScroll: !threadState.active });
-  }, [loadThread, threadState.active]);
+    if (!uri) return;
+    if (threadState.uri && threadState.uri === uri) return;
+    loadThread(uri, { rememberScroll: !threadState.active });
+  }, [loadThread, threadState.active, threadState.uri]);
 
   const reloadThread = useCallback(() => {
     if (threadState.uri) loadThread(threadState.uri);

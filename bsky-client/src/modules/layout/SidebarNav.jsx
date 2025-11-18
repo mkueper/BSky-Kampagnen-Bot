@@ -25,7 +25,8 @@ export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: ViewHorizontalIcon },
 ];
 
-export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0 }) {
+export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null }) {
+  const ThemeToggleIcon = themeToggle?.Icon || null;
   return (
     <nav
       className="flex h-full w-full flex-col items-start gap-2"
@@ -73,6 +74,23 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
             </button>
           );
         })}
+        {themeToggle ? (
+          <div className="pt-2 w-full">
+            <button
+              type="button"
+              onClick={themeToggle.onToggle}
+              className="inline-flex h-14 w-14 xl:h-auto xl:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle text-sm text-foreground transition hover:bg-background"
+              aria-label={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
+              title={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
+            >
+              {ThemeToggleIcon ? <ThemeToggleIcon className="h-5 w-5" /> : null}
+              <span className="hidden xl:inline truncate">Theme</span>
+              <span className="hidden xl:inline text-xs text-foreground-muted">
+                {themeToggle.label}
+              </span>
+            </button>
+          </div>
+        ) : null}
         <div className="pt-2">
           <button
             type="button"

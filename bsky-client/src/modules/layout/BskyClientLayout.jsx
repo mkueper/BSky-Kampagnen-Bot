@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useState } from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon } from '@radix-ui/react-icons'
+import { PlusIcon, SunIcon, MoonIcon, ShadowIcon, Half2Icon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
+import { useThemeMode } from '../../hooks/useThemeMode'
 
 const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'dashboard']
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
+const THEME_SEQUENCE = ['light', 'dim', 'dark', 'midnight']
+const THEME_CONFIG = {
+  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon },
+  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon },
+  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon },
+  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: Half2Icon }
+}
 
 const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   ? window.matchMedia('(max-width: 768px)').matches
   : false)
 
-function MobileNavBar ({ activeSection, notificationsUnread, onSelect }) {
+function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeToggle = null }) {
   const items = NAV_ITEMS.filter((item) => MOBILE_NAV_IDS.includes(item.id))
+  const ThemeToggleIcon = themeToggle?.Icon || null
   return (
     <nav
       className='pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4'
@@ -49,6 +58,16 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect }) {
             </button>
           )
         })}
+        {themeToggle ? (
+          <button
+            type='button'
+            onClick={themeToggle.onToggle}
+            aria-label={`Theme wechseln – ${themeToggle.nextLabel}`}
+            className='relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary'
+          >
+            {ThemeToggleIcon ? <ThemeToggleIcon className='h-5 w-5' /> : null}
+          </button>
+        ) : null}
       </div>
     </nav>
   )
@@ -67,6 +86,23 @@ export default function BskyClientLayout ({
 }) {
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
+  const {
+    currentThemeConfig,
+    nextThemeLabel,
+    ThemeIcon: ActiveThemeIcon,
+    toggleTheme: toggleThemeMode
+  } = useThemeMode({
+    themes: THEME_SEQUENCE,
+    themeConfig: THEME_CONFIG,
+    defaultTheme: 'dark'
+  })
+  const ThemeIcon = ActiveThemeIcon || SunIcon
+  const themeToggleProps = {
+    label: currentThemeConfig?.label || 'Theme',
+    nextLabel: nextThemeLabel,
+    onToggle: toggleThemeMode,
+    Icon: ThemeIcon
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
@@ -145,6 +181,7 @@ export default function BskyClientLayout ({
             notificationsUnread={notificationsUnread}
             onSelect={handleSelect}
             onCompose={handleOpenCompose}
+            themeToggle={themeToggleProps}
           />
         </aside>
       ) : null}
@@ -215,6 +252,7 @@ export default function BskyClientLayout ({
             activeSection={activeSection}
             notificationsUnread={notificationsUnread}
             onSelect={handleSelect}
+            themeToggle={themeToggleProps}
           />
         ) : null}
       </section>
