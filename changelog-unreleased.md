@@ -4,6 +4,7 @@
 
 ### Client
 - Notifications erhalten eine Test-Suite für Render-/Filterlogik und wichtige Interaktionen (Mark-as-read, Reply/Quote, Profilviewer, Media-Lightbox, Systemhinweise); `NotificationCard` wird dafür separat exportiert.
+- Medienvorschau und Lightbox des Bluesky-Clients unterstützen jetzt auch eingebettete Videos in Mitteilungen, inklusive Poster-Preview und Steuerung direkt im Overlay.
 - Profilansicht überarbeitet: Caching für Beiträge/Antworten/Medien-Tabs verhindert unnötiges Neuladen.
 - Skeleton-Loader für Profil-Header und Beitragsliste verbessern die wahrgenommene Ladezeit.
 - Fehlerbehandlung in der Profilansicht um einen „Erneut versuchen“-Button erweitert.

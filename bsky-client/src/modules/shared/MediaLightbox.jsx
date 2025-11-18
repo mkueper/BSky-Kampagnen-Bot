@@ -1,8 +1,18 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
+
+function isVideo (item) {
+  if (!item) return false
+  if (item?.type === 'video') return true
+  if (typeof item?.src === 'string') {
+    return /\.m3u8($|\?)/i.test(item.src) || /\.mp4($|\?)/i.test(item.src) || /\.webm($|\?)/i.test(item.src)
+  }
+  return false
+}
 
 export default function MediaLightbox ({ images = [], index = 0, onClose, onNavigate }) {
   const current = images[index] || null
+  const videoActive = useMemo(() => isVideo(current), [current])
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -32,16 +42,31 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
         onClick={onClose}
       />
       <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-background/10 p-4 shadow-2xl backdrop-blur-sm'>
-        <img
-          src={current.src}
-          alt={current.alt || ''}
-          className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
-          loading='lazy'
-          onClick={(event) => {
-            event.stopPropagation()
-            onClose?.()
-          }}
-        />
+        {videoActive ? (
+          <video
+            src={current.src}
+            poster={current.poster || current.thumb || ''}
+            controls
+            autoPlay
+            playsInline
+            loop
+            className='max-h-[80vh] max-w-[80vw] rounded-xl bg-black object-contain'
+            onClick={(event) => {
+              event.stopPropagation()
+            }}
+          />
+        ) : (
+          <img
+            src={current.src}
+            alt={current.alt || ''}
+            className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
+            loading='lazy'
+            onClick={(event) => {
+              event.stopPropagation()
+              onClose?.()
+            }}
+          />
+        )}
         {current.alt ? (
           <p className='mt-3 text-center text-sm text-white/80'>{current.alt}</p>
         ) : null}

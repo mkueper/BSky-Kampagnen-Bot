@@ -242,7 +242,39 @@ describe('NotificationCard interactions', () => {
     expect(handleViewMedia).toHaveBeenCalledTimes(1)
     const [images, initialIndex] = handleViewMedia.mock.calls[0]
     expect(initialIndex).toBe(0)
-    expect(images[0]).toEqual(expect.objectContaining({ src: 'https://example.com/full.jpg' }))
+    expect(images[0]).toEqual(expect.objectContaining({ src: 'https://example.com/full.jpg', type: 'image' }))
+  })
+
+  it('öffnet die Medien-Lightbox über die Video-Vorschau', async () => {
+    const user = userEvent.setup()
+    const subjectWithVideo = {
+      createdAt: ISO_DATE,
+      author: { displayName: 'Video Subject', handle: 'video-subject' },
+      text: 'Video body',
+      raw: {
+        post: {
+          uri: 'at://did:subject/app.bsky.feed.post/video-1',
+          record: { text: 'Video body' },
+          embed: {
+            $type: 'app.bsky.embed.video#view',
+            playlist: 'https://example.com/video.m3u8',
+            thumbnail: 'https://example.com/video-thumb.jpg',
+            alt: 'Video description'
+          }
+        }
+      }
+    }
+    const item = createNotification({ id: 'media-video', subject: subjectWithVideo })
+    const handleViewMedia = vi.fn()
+
+    render(<NotificationCard item={item} onViewMedia={handleViewMedia} />)
+
+    await user.click(screen.getByRole('button', { name: 'Video öffnen' }))
+
+    expect(handleViewMedia).toHaveBeenCalledTimes(1)
+    const [mediaItems, initialIndex] = handleViewMedia.mock.calls[0]
+    expect(initialIndex).toBe(0)
+    expect(mediaItems[0]).toEqual(expect.objectContaining({ src: 'https://example.com/video.m3u8', type: 'video' }))
   })
 
   it('zeigt System-Hinweise für app.bsky.notification Gründe an', () => {

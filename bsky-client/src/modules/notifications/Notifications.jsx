@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icons'
+import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppDispatch } from '../../context/AppContext'
@@ -102,33 +102,77 @@ function resolveSubjectType (subject) {
 function extractSubjectPreview (subject) {
   const record = subject?.raw?.post?.record || subject?.record || null
   const embed = subject?.raw?.post?.embed || record?.embed || null
-  const images = []
-  if (embed?.images && Array.isArray(embed.images)) {
-    images.push(...embed.images)
-  } else if (embed?.media?.images && Array.isArray(embed.media.images)) {
-    images.push(...embed.media.images)
+  const imageSources = []
+  const tryCollectImages = (source) => {
+    if (source?.images && Array.isArray(source.images)) {
+      imageSources.push(...source.images)
+    }
   }
-  const normalizedImages = images
+  tryCollectImages(embed)
+  tryCollectImages(embed?.media)
+
+  const videoCandidates = []
+  const tryCollectVideo = (candidate) => {
+    if (!candidate || typeof candidate !== 'object') return
+    const type = String(candidate.$type || '').toLowerCase()
+    if (type.includes('app.bsky.embed.video')) {
+      videoCandidates.push(candidate)
+    } else if (candidate.video && typeof candidate.video === 'object') {
+      videoCandidates.push(candidate.video)
+    }
+  }
+  tryCollectVideo(embed)
+  tryCollectVideo(embed?.media)
+  if (Array.isArray(embed?.videos)) {
+    videoCandidates.push(...embed.videos)
+  }
+  if (Array.isArray(embed?.media?.videos)) {
+    videoCandidates.push(...embed.media.videos)
+  }
+
+  const normalizedImages = imageSources
     .map(img => {
       const src = img?.fullsize || img?.thumb || ''
       if (!src) return null
       return {
+        type: 'image',
         src,
         thumb: img?.thumb || img?.fullsize || src,
         alt: img?.alt || ''
       }
     })
     .filter(Boolean)
+
+  const normalizedVideos = videoCandidates
+    .map(video => {
+      const src = typeof video?.playlist === 'string' && video.playlist
+        ? video.playlist
+        : (video?.src || '')
+      if (!src) return null
+      return {
+        type: 'video',
+        src,
+        thumb: video?.thumbnail || '',
+        poster: video?.thumbnail || '',
+        alt: video?.alt || '',
+        aspectRatio: video?.aspectRatio || null
+      }
+    })
+    .filter(Boolean)
+
+  const mediaItems = [...normalizedImages, ...normalizedVideos]
   const firstImage = normalizedImages[0] || null
+  const firstVideo = normalizedVideos[0] || null
   const external = embed?.external || embed?.media?.external || null
+
   return {
-    image: firstImage
-      ? {
-          src: firstImage.src,
-          alt: firstImage.alt || ''
-        }
-      : null,
+    image: firstImage || null,
+    imageIndex: firstImage ? mediaItems.indexOf(firstImage) : -1,
+    video: firstVideo || null,
+    videoIndex: firstVideo ? mediaItems.indexOf(firstVideo) : -1,
     images: normalizedImages,
+    videos: normalizedVideos,
+    media: mediaItems,
     external: external
       ? {
           uri: external.uri,
@@ -459,6 +503,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   const { config } = useCardConfig()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
+  const previewMedia = preview?.media || []
   const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
   const profileActor = author?.did || author?.handle || ''
   const canOpenProfileViewer = Boolean(profileActor)
@@ -499,13 +544,14 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
   }, [canOpenProfileViewer, dispatch, profileActor])
 
-  const handlePreviewImageClick = useCallback((event) => {
+  const handlePreviewMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
-    if (!Array.isArray(preview?.images) || preview.images.length === 0) return
+    if (!Array.isArray(previewMedia) || previewMedia.length === 0) return
     event?.preventDefault()
     event?.stopPropagation()
-    onViewMedia(preview.images, 0)
-  }, [onViewMedia, preview?.images])
+    const safeIndex = Math.max(0, Math.min(mediaIndex, previewMedia.length - 1))
+    onViewMedia(previewMedia, safeIndex)
+  }, [onViewMedia, previewMedia])
 
   return (
     <div
@@ -556,10 +602,10 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       {preview.image ? (
         <button
           type='button'
-          onClick={handlePreviewImageClick}
+          onClick={(event) => handlePreviewMediaClick(event, preview.imageIndex ?? 0)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
-              handlePreviewImageClick(event)
+              handlePreviewMediaClick(event, preview.imageIndex ?? 0)
             }
           }}
           className='block w-full overflow-hidden rounded-xl border border-border bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
@@ -577,6 +623,47 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             }}
             loading='lazy'
           />
+        </button>
+      ) : null}
+      {!preview.image && preview.video ? (
+        <button
+          type='button'
+          onClick={(event) => handlePreviewMediaClick(event, preview.videoIndex ?? 0)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              handlePreviewMediaClick(event, preview.videoIndex ?? 0)
+            }
+          }}
+          className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+          aria-label='Video öffnen'
+          title='Video öffnen'
+        >
+          {preview.video.poster ? (
+            <img
+              src={preview.video.poster}
+              alt={preview.video.alt || ''}
+              className='w-full rounded-xl object-cover opacity-80'
+              style={{
+                maxHeight: config?.singleMax ?? 256,
+                width: '100%',
+                height: 'auto',
+                backgroundColor: 'var(--background-subtle, #000)'
+              }}
+              loading='lazy'
+            />
+          ) : (
+            <div
+              className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white'
+              style={{ maxHeight: config?.singleMax ?? 256 }}
+            >
+              <span className='text-sm uppercase tracking-wide'>Video</span>
+            </div>
+          )}
+          <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+            <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
+              <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
+            </span>
+          </span>
         </button>
       ) : null}
       {preview.external ? (
