@@ -16,6 +16,7 @@
 - Mitteilungen heben Antworten deutlich hervor, bringen ihre Medien-Previews in die Lightbox und ignorieren unverlinkte Follow-Karten beim Thread-Öffnen; Likes/Reskeets/Quotes bleiben nutzbar.
 - Blaues „Threadviewer“-Overlay zeigt in den Mitteilungen denselben Header wie in der Timeline – inklusive sauberem Escape selbst bei Fehlermeldungen.
 - Theme-Umschaltung sitzt jetzt direkt in der Sidebar bzw. im mobilen Bottom-Nav und schaltet zwischen Hell → Gedimmt → Dunkel → Mitternacht.
+- Card-Config-Defaults auf 256px / 128px reduziert und in den Mitteilungen wiederverwendet, damit Bildhöhen in Timeline & Notifications identisch laufen.
 
 ## 2025-11-17
 
