@@ -761,8 +761,9 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   useEffect(() => {
     if (activeTab !== 'mentions') return
     if (loading || loadingMore) return
-    if (filteredItems.length > 0) return
     if (!hasMore) return
+    const MIN_BUFFER = 8
+    if (filteredItems.length >= MIN_BUFFER) return
     loadMore()
   }, [activeTab, filteredItems.length, hasMore, loadMore, loading, loadingMore])
 
@@ -795,7 +796,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
         {filteredItems.map((item, idx) => (
-          <li key={item.uri || item.cid || `${item.reason || 'notification'}-${item.reasonSubject || idx}-${idx}`}>
+          <li key={`${item.uri || item.cid || item.reasonSubject || 'notification'}-${idx}`}>
             <NotificationCard
               item={item}
               onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
