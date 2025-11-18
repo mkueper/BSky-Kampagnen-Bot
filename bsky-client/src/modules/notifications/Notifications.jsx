@@ -189,7 +189,7 @@ function extractQuotedPost (subject) {
   }
 }
 
-const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
+export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
   const {
     author = {},

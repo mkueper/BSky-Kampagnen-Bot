@@ -3,6 +3,7 @@
 ## 2025-11-18
 
 ### Client
+- Notifications erhalten eine Test-Suite für Render-/Filterlogik und wichtige Interaktionen (Mark-as-read, Reply/Quote, Profilviewer, Media-Lightbox, Systemhinweise); `NotificationCard` wird dafür separat exportiert.
 - Profilansicht überarbeitet: Caching für Beiträge/Antworten/Medien-Tabs verhindert unnötiges Neuladen.
 - Skeleton-Loader für Profil-Header und Beitragsliste verbessern die wahrgenommene Ladezeit.
 - Fehlerbehandlung in der Profilansicht um einen „Erneut versuchen“-Button erweitert.
