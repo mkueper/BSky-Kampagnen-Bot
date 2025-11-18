@@ -637,10 +637,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   className='w-full rounded-xl object-cover opacity-80'
                   style={{
                     ...(config?.mode === 'fixed'
-                      ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
-                      : { maxHeight: (config?.singleMax ?? 360) }),
-                    width: '100%',
-                    height: 'auto',
+                      ? { height: (config?.singleMax ?? 360), width: (config?.singleMax ?? 360) }
+                      : { maxHeight: (config?.singleMax ?? 360), width: '100%' }),
                     backgroundColor: 'var(--background-subtle, #000)'
                   }}
                   loading='lazy'
@@ -650,8 +648,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white'
                   style={{
                     ...(config?.mode === 'fixed'
-                      ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
-                      : { maxHeight: (config?.singleMax ?? 360) })
+                      ? { height: (config?.singleMax ?? 360), width: (config?.singleMax ?? 360) }
+                      : { maxHeight: (config?.singleMax ?? 360), width: '100%' })
                   }}
                 >
                   <span className='text-sm uppercase tracking-wide'>Video</span>

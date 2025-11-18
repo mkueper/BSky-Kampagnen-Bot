@@ -1,5 +1,5 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
 function isVideo (item) {
@@ -19,6 +19,8 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     return /\.m3u8($|\?)/i.test(current.src)
   }, [current?.src, videoActive])
   const videoRef = useRef(null)
+  const mediaContainerRef = useRef(null)
+  const [mediaWidth, setMediaWidth] = useState(0)
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -71,43 +73,62 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
 
   if (!current) return null
 
+  useEffect(() => {
+    if (!mediaContainerRef.current || typeof ResizeObserver !== 'function') return undefined
+    const observer = new ResizeObserver((entries) => {
+      const [{ contentRect }] = entries
+      setMediaWidth(contentRect?.width || 0)
+    })
+    observer.observe(mediaContainerRef.current)
+    return () => {
+      observer.disconnect()
+    }
+  }, [current])
+
   return (
-    <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4' data-component='BskyMediaLightbox'>
+    <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 pointer-events-none' data-component='BskyMediaLightbox'>
       <button
         type='button'
         className='absolute inset-0 h-full w-full cursor-zoom-out'
         aria-label='Schließen'
         onClick={onClose}
       />
-      <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-background/10 p-4 shadow-2xl backdrop-blur-sm'>
-        {videoActive ? (
-          <video
-            ref={videoRef}
-            src={!isHlsSource ? current.src : undefined}
-            poster={current.poster || current.thumb || ''}
-            controls
-            autoPlay
-            playsInline
-            loop
-            className='max-h-[80vh] max-w-[80vw] rounded-xl bg-black object-contain'
-            onClick={(event) => {
-              event.stopPropagation()
-            }}
-          />
-        ) : (
-          <img
-            src={current.src}
-            alt={current.alt || ''}
-            className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
-            loading='lazy'
-            onClick={(event) => {
-              event.stopPropagation()
-              onClose?.()
-            }}
-          />
-        )}
+      <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-black/40 p-4 shadow-2xl backdrop-blur-sm pointer-events-auto'>
+        <div ref={mediaContainerRef} className='flex w-full justify-center'>
+          {videoActive ? (
+            <video
+              ref={videoRef}
+              src={!isHlsSource ? current.src : undefined}
+              poster={current.poster || current.thumb || ''}
+              controls
+              autoPlay
+              playsInline
+              loop
+              className='max-h-[80vh] max-w-[80vw] rounded-xl bg-black object-contain'
+              onClick={(event) => {
+                event.stopPropagation()
+              }}
+            />
+          ) : (
+            <img
+              src={current.src}
+              alt={current.alt || ''}
+              className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
+              loading='lazy'
+              onClick={(event) => {
+                event.stopPropagation()
+                onClose?.()
+              }}
+            />
+          )}
+        </div>
         {current.alt ? (
-          <p className='mt-3 text-center text-sm text-white/80'>{current.alt}</p>
+          <p
+            className='mt-3 text-center text-sm text-white/80 break-words mx-auto'
+            style={{ maxWidth: mediaWidth ? `${mediaWidth}px` : '80vw' }}
+          >
+            {current.alt}
+          </p>
         ) : null}
         <button
           type='button'

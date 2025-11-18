@@ -644,9 +644,9 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
               alt={preview.video.alt || ''}
               className='w-full rounded-xl object-cover opacity-80'
               style={{
-                maxHeight: config?.singleMax ?? 256,
-                width: '100%',
-                height: 'auto',
+                ...(config?.mode === 'fixed'
+                  ? { height: config?.singleMax ?? 256, width: config?.singleMax ?? 256 }
+                  : { maxHeight: config?.singleMax ?? 256, width: '100%' }),
                 backgroundColor: 'var(--background-subtle, #000)'
               }}
               loading='lazy'
