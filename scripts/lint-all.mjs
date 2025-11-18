@@ -8,11 +8,13 @@ const COLORS = {
   reset: '\x1b[0m'
 }
 
-const TEST_TASKS = [
-  { name: 'root', args: ['npm', ['run', 'test']] },
-  { name: 'dashboard', args: ['npm', ['run', 'test', '--workspace', 'dashboard']] },
-  { name: 'bsky-client', args: ['npm', ['run', 'test', '--workspace', 'bsky-client']] },
-  { name: 'packages/shared-ui', args: ['npm', ['run', 'test', '--workspace', 'packages/shared-ui']] }
+const LINT_TASKS = [
+  { name: 'root', args: ['npm', ['run', 'lint']] },
+  { name: 'backend', args: ['npm', ['run', 'lint', '--workspace', 'backend']] },
+  { name: 'dashboard', args: ['npm', ['run', 'lint', '--workspace', 'dashboard']] },
+  { name: 'bsky-client', args: ['npm', ['run', 'lint', '--workspace', 'bsky-client']] },
+  { name: 'packages/media-pickers', args: ['npm', ['run', 'lint', '--workspace', 'packages/media-pickers']] },
+  { name: 'packages/shared-ui', args: ['npm', ['run', 'lint', '--workspace', 'packages/shared-ui']] }
 ]
 
 const results = []
@@ -30,7 +32,7 @@ async function runTask ({ name, args }) {
 }
 
 async function main () {
-  for (const task of TEST_TASKS) {
+  for (const task of LINT_TASKS) {
     const { success, code } = await runTask(task)
     if (!success) {
       summarize()
@@ -45,7 +47,7 @@ function summarize () {
   const passed = results.filter(r => r.success).length
   const failed = total - passed
 
-  console.log('\n================ Test Summary ================')
+  console.log('\n================ Lint Summary ================')
   const summaryLine = `Workspaces: ${total}, passed: ${colorText(passed, COLORS.green)}, failed: ${colorText(failed, failed > 0 ? COLORS.red : COLORS.green)}`
   console.log(summaryLine)
   for (const entry of results) {

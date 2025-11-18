@@ -13,7 +13,7 @@
     "test:all": "node scripts/test-all.mjs",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
-    "lint:all": "npm run lint && npm run lint --workspace backend && npm run lint --workspace dashboard && npm run lint --workspace bsky-client && npm run lint --workspace packages/media-pickers && npm run lint --workspace packages/shared-ui",
+    "lint:all": "node scripts/lint-all.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "ci:verify": "bash scripts/verify-locks.sh",
     "dev": "cross-env NODE_ENV=development nodemon backend/server.js",
