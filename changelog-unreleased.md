@@ -1,5 +1,13 @@
 # Unreleased Notes
 
+## 2025-11-18
+
+### Client
+- Profilansicht überarbeitet: Caching für Beiträge/Antworten/Medien-Tabs verhindert unnötiges Neuladen.
+- Skeleton-Loader für Profil-Header und Beitragsliste verbessern die wahrgenommene Ladezeit.
+- Fehlerbehandlung in der Profilansicht um einen „Erneut versuchen“-Button erweitert.
+- Die `ProfilePosts`-Komponente wurde in eine eigene Datei ausgelagert, um die Code-Struktur zu verbessern.
+
 ## 2025-11-17
 
 ### Client
