@@ -14,7 +14,8 @@ import {
   MixerVerticalIcon,
   EyeClosedIcon,
   PersonIcon,
-  CrossCircledIcon
+  CrossCircledIcon,
+  TriangleRightIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch } from '../../context/AppContext.jsx'
@@ -22,30 +23,84 @@ import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, C
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
 
-function extractImagesFromEmbed (item) {
+function extractMediaFromEmbed (item) {
   try {
     const post = item?.raw?.post || {}
-    const e = post?.embed || {}
-    /**
-     * Possible shapes:
-     * - { $type: 'app.bsky.embed.images#view', images: [{ thumb, fullsize, alt }] }
-     * - { $type: 'app.bsky.embed.recordWithMedia#view', media: { $type: 'app.bsky.embed.images#view', images: [...] } }
-     */
-    const t1 = e?.$type
-    const t2 = e?.media?.$type
-    const isImg1 = typeof t1 === 'string' && t1.startsWith('app.bsky.embed.images')
-    const isImg2 = typeof t2 === 'string' && t2.startsWith('app.bsky.embed.images')
-    const imgView = isImg1 ? e : (isImg2 ? e.media : null)
-    const images = Array.isArray(imgView?.images) ? imgView.images : []
-    return images
-      .map(img => ({
-        src: img?.fullsize || img?.thumb || '',
-        thumb: img?.thumb || img?.fullsize || '',
-        alt: img?.alt || ''
-      }))
-      .filter(im => im.src)
+    const embed = post?.embed || {}
+    const imageSources = []
+    const videoSources = []
+
+    const collectImages = (candidate) => {
+      if (!candidate || typeof candidate !== 'object') return
+      const type = String(candidate.$type || '').toLowerCase()
+      if (type.startsWith('app.bsky.embed.images') && Array.isArray(candidate.images)) {
+        imageSources.push(...candidate.images)
+      } else if (Array.isArray(candidate?.images)) {
+        imageSources.push(...candidate.images)
+      }
+    }
+
+    const collectVideos = (candidate) => {
+      if (!candidate || typeof candidate !== 'object') return
+      const type = String(candidate.$type || '').toLowerCase()
+      if (type.includes('app.bsky.embed.video')) {
+        videoSources.push(candidate)
+      } else if (candidate.video && typeof candidate.video === 'object') {
+        videoSources.push(candidate.video)
+      }
+      if (Array.isArray(candidate?.videos)) {
+        videoSources.push(...candidate.videos)
+      }
+    }
+
+    collectImages(embed)
+    collectImages(embed?.media)
+    collectVideos(embed)
+    collectVideos(embed?.media)
+
+    const imageItems = imageSources
+      .map(img => {
+        const src = img?.fullsize || img?.thumb || ''
+        if (!src) return null
+        return {
+          type: 'image',
+          src,
+          thumb: img?.thumb || img?.fullsize || src,
+          alt: img?.alt || ''
+        }
+      })
+      .filter(Boolean)
       .slice(0, 4)
-  } catch { return [] }
+
+    const videoItems = videoSources
+      .map(video => {
+        const src = typeof video?.playlist === 'string' && video.playlist
+          ? video.playlist
+          : (video?.src || '')
+        if (!src) return null
+        return {
+          type: 'video',
+          src,
+          thumb: video?.thumbnail || '',
+          poster: video?.thumbnail || '',
+          alt: video?.alt || '',
+          aspectRatio: video?.aspectRatio || null
+        }
+      })
+      .filter(Boolean)
+
+    const mediaItems = [...imageItems, ...videoItems].map((entry, idx) => ({
+      ...entry,
+      mediaIndex: idx
+    }))
+    return {
+      media: mediaItems,
+      images: mediaItems.filter(entry => entry.type === 'image'),
+      videos: mediaItems.filter(entry => entry.type === 'video')
+    }
+  } catch {
+    return { media: [], images: [], videos: [] }
+  }
 }
 
 function extractExternalFromEmbed (item) {
@@ -172,7 +227,10 @@ function buildShareUrl (item) {
 
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
-  const images = useMemo(() => extractImagesFromEmbed(item), [item])
+  const media = useMemo(() => extractMediaFromEmbed(item), [item])
+  const mediaItems = media.media
+  const images = media.images
+  const videos = media.videos
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
   const gifPreview = useMemo(() => {
     if (!external) return null
@@ -241,9 +299,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       event.preventDefault()
       event.stopPropagation()
     }
-    if (typeof onViewMedia === 'function' && images.length > 0) {
-      const safeIndex = Math.max(0, Math.min(index, images.length - 1))
-      onViewMedia(images, safeIndex)
+    if (typeof onViewMedia === 'function' && mediaItems.length > 0) {
+      const safeIndex = Math.max(0, Math.min(index, mediaItems.length - 1))
+      onViewMedia(mediaItems, safeIndex)
     }
   }
 
@@ -500,8 +558,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               role='button'
               tabIndex={0}
               className='group block cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
-              onClick={(event) => handleMediaPreview(event, 0)}
-              onKeyDown={(event) => handleMediaKeyDown(event, 0)}
+              onClick={(event) => handleMediaPreview(event, images[0].mediaIndex ?? 0)}
+              onKeyDown={(event) => handleMediaKeyDown(event, images[0].mediaIndex ?? 0)}
               aria-label='Bild vergrößert anzeigen'
             >
               <img
@@ -530,8 +588,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   role='button'
                   tabIndex={0}
                   className='cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
-                  onClick={(event) => handleMediaPreview(event, idx)}
-                  onKeyDown={(event) => handleMediaKeyDown(event, idx)}
+                  onClick={(event) => handleMediaPreview(event, im.mediaIndex ?? idx)}
+                  onKeyDown={(event) => handleMediaKeyDown(event, im.mediaIndex ?? idx)}
                   aria-label='Bild vergrößert anzeigen'
                 >
                   <img
@@ -556,7 +614,60 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </div>
       ) : null}
 
-      {external && images.length === 0 ? (
+      {videos.length > 0 ? (
+        <div className='mt-3 space-y-2' data-component='BskySkeetVideos'>
+          {videos.map((video) => (
+            <button
+              key={video.mediaIndex ?? video.src}
+              type='button'
+              className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              onClick={(event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  handleMediaPreview(event, video.mediaIndex ?? 0)
+                }
+              }}
+              title='Video öffnen'
+              aria-label='Video öffnen'
+            >
+              {video.poster ? (
+                <img
+                  src={video.poster}
+                  alt={video.alt || ''}
+                  className='w-full rounded-xl object-cover opacity-80'
+                  style={{
+                    ...(config?.mode === 'fixed'
+                      ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
+                      : { maxHeight: (config?.singleMax ?? 360) }),
+                    width: '100%',
+                    height: 'auto',
+                    backgroundColor: 'var(--background-subtle, #000)'
+                  }}
+                  loading='lazy'
+                />
+              ) : (
+                <div
+                  className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white'
+                  style={{
+                    ...(config?.mode === 'fixed'
+                      ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
+                      : { maxHeight: (config?.singleMax ?? 360) })
+                  }}
+                >
+                  <span className='text-sm uppercase tracking-wide'>Video</span>
+                </div>
+              )}
+              <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
+                  <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {external && mediaItems.length === 0 ? (
         gifPreview && typeof onViewMedia === 'function'
           ? (
             <div

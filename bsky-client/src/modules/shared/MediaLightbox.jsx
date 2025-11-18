@@ -1,5 +1,6 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import Hls from 'hls.js'
 
 function isVideo (item) {
   if (!item) return false
@@ -13,6 +14,11 @@ function isVideo (item) {
 export default function MediaLightbox ({ images = [], index = 0, onClose, onNavigate }) {
   const current = images[index] || null
   const videoActive = useMemo(() => isVideo(current), [current])
+  const isHlsSource = useMemo(() => {
+    if (!videoActive || typeof current?.src !== 'string') return false
+    return /\.m3u8($|\?)/i.test(current.src)
+  }, [current?.src, videoActive])
+  const videoRef = useRef(null)
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -31,6 +37,38 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose, onNavigate])
 
+  useEffect(() => {
+    if (!videoActive || !current?.src || !videoRef.current) return undefined
+    const videoEl = videoRef.current
+    if (!isHlsSource) {
+      if (videoEl.src !== current.src) {
+        videoEl.src = current.src
+        videoEl.load?.()
+      }
+      return undefined
+    }
+    const canPlayNative = typeof videoEl.canPlayType === 'function'
+      ? videoEl.canPlayType('application/vnd.apple.mpegurl')
+      : ''
+    if (canPlayNative === 'probably' || canPlayNative === 'maybe') {
+      if (videoEl.src !== current.src) {
+        videoEl.src = current.src
+        videoEl.load?.()
+      }
+      return undefined
+    }
+    if (!Hls.isSupported()) {
+      console.warn('HLS wird nicht unterstützt und kann nicht abgespielt werden.')
+      return undefined
+    }
+    const hls = new Hls()
+    hls.loadSource(current.src)
+    hls.attachMedia(videoEl)
+    return () => {
+      hls.destroy()
+    }
+  }, [current?.src, isHlsSource, videoActive])
+
   if (!current) return null
 
   return (
@@ -44,7 +82,8 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-background/10 p-4 shadow-2xl backdrop-blur-sm'>
         {videoActive ? (
           <video
-            src={current.src}
+            ref={videoRef}
+            src={!isHlsSource ? current.src : undefined}
             poster={current.poster || current.thumb || ''}
             controls
             autoPlay
