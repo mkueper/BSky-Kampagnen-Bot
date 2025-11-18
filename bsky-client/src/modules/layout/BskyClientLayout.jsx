@@ -10,10 +10,10 @@ const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
 const THEME_SEQUENCE = ['light', 'dim', 'dark', 'midnight']
 const THEME_CONFIG = {
-  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon },
-  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon },
-  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon },
-  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: Half2Icon }
+  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon, colors: { background: 'hsl(240 10% 99%)', foreground: 'hsl(240 10% 3.9%)' } },
+  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon, colors: { background: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 96.1%)' } },
+  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon, colors: { background: 'hsl(240 5.9% 10%)', foreground: 'hsl(240 5% 96.1%)' } },
+  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: Half2Icon, colors: { background: 'hsl(240 10% 3.9%)', foreground: 'hsl(240 5% 96.1%)' } }
 }
 
 const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -89,6 +89,7 @@ export default function BskyClientLayout ({
   const {
     currentThemeConfig,
     nextThemeLabel,
+    nextThemeConfig,
     ThemeIcon: ActiveThemeIcon,
     toggleTheme: toggleThemeMode
   } = useThemeMode({
@@ -100,6 +101,7 @@ export default function BskyClientLayout ({
   const themeToggleProps = {
     label: currentThemeConfig?.label || 'Theme',
     nextLabel: nextThemeLabel,
+    nextConfig: nextThemeConfig,
     onToggle: toggleThemeMode,
     Icon: ThemeIcon
   }
