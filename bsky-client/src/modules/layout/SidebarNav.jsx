@@ -27,13 +27,6 @@ export const NAV_ITEMS = [
 
 export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null }) {
   const ThemeToggleIcon = themeToggle?.Icon || null;
-  const nextThemeStyle = {
-    '--next-theme-bg': themeToggle?.nextConfig?.colors?.background || 'transparent',
-    '--next-theme-fg': themeToggle?.nextConfig?.colors?.foreground || 'currentColor',
-  };
-  const nextThemeClassName = themeToggle?.nextConfig?.colors
-    ? 'bg-[--next-theme-bg] text-[--next-theme-fg] border-transparent'
-    : 'border-border bg-background-subtle';
   return (
     <nav
       className="flex h-full w-full flex-col items-start gap-2"
@@ -91,8 +84,7 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
             <button
               type="button"
               onClick={themeToggle.onToggle}
-              style={nextThemeStyle} // CSS-Variablen für Farben setzen
-              className={`inline-flex h-12 w-12 xl:h-auto xl:w-full items-center justify-center gap-2 rounded-2xl border text-sm transition hover:opacity-90 xl:px-4 xl:py-3 ${nextThemeClassName}`} // Dynamische Klassen für BG/Text/Border
+              className="inline-flex h-12 w-12 xl:h-auto xl:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle xl:px-4 xl:py-3 text-sm text-foreground transition hover:bg-background"
               aria-label={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
               title={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
             >
@@ -101,6 +93,16 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
               <span className="hidden xl:inline text-xs text-foreground-muted">
                 {themeToggle.label}
               </span>
+              {themeToggle?.nextConfig?.colors && (
+                <span
+                  className="hidden xl:inline-block h-4 w-4 rounded-full ml-auto"
+                  style={{
+                    backgroundColor: themeToggle.nextConfig.colors.background,
+                    border: `2px solid ${themeToggle.nextConfig.colors.background}`
+                  }}
+                  aria-hidden="true"
+                />
+              )}
             </button>
           </div>
         ) : null}
