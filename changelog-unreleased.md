@@ -9,6 +9,10 @@
 - Die `ProfilePosts`-Komponente wurde in eine eigene Datei ausgelagert, um die Code-Struktur zu verbessern.
 - Lade-Flickern beim Öffnen eines Profils behoben, indem der Suspense-Fallback nun ebenfalls einen Skeleton-Loader (`ProfileMetaSkeleton`) verwendet.
 - Die Profil-Vorschau (`ProfileCard`) zeigt beim Laden nun einen Skeleton-Platzhalter anstelle eines einfachen Textes.
+- Profilvorschau-Badges zeigen „Folgt dir“ nur noch bei korrekt gemeldeter Gegenbeziehung (`viewer.followedBy`), nicht mehr beim eigenen Follow.
+- Infinite Scroll der Profil-Feeds stoppt nach Fehlern und bietet einen manuellen „Erneut versuchen“-Button direkt unter der Liste.
+- Der Profil-Viewer nutzt einen synchron importierten Skeleton-Fallback, damit das Modal sofort einen Platzhalter rendert, während `ProfileView` lädt.
+- Eingebettete Tenor-/GIF-Links werden wie native Medien geöffnet und landen im integrierten Media-Lightbox statt im neuen Browser-Tab.
 
 ## 2025-11-17
 

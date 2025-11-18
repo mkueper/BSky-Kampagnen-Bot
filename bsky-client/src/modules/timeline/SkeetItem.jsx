@@ -20,6 +20,8 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, Card } from '../shared'
 
+const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
+
 function extractImagesFromEmbed (item) {
   try {
     const post = item?.raw?.post || {}
@@ -172,6 +174,24 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const images = useMemo(() => extractImagesFromEmbed(item), [item])
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
+  const gifPreview = useMemo(() => {
+    if (!external) return null
+    const domain = (external.domain || '').toLowerCase()
+    const isTenor = domain.includes('tenor')
+    const thumbGif = looksLikeGifUrl(external.thumb)
+    const uriGif = looksLikeGifUrl(external.uri)
+    if (!isTenor && !thumbGif && !uriGif) return null
+    const src = thumbGif ? external.thumb : (uriGif ? external.uri : external.thumb)
+    if (!src) return null
+    return {
+      src,
+      thumb: external.thumb || src,
+      alt: external.title ? `GIF: ${external.title}` : 'GIF',
+      title: external.title || '',
+      domain: external.domain,
+      originalUrl: external.uri
+    }
+  }, [external])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
   const contextLabel = useMemo(() => extractReasonContext(item), [item])
   const quotedAuthorLabel = quoted ? (quoted.author?.displayName || quoted.author?.handle || 'Unbekannt') : ''
@@ -225,6 +245,19 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       const safeIndex = Math.max(0, Math.min(index, images.length - 1))
       onViewMedia(images, safeIndex)
     }
+  }
+
+  const handleExternalMediaPreview = (event) => {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    if (!gifPreview || typeof onViewMedia !== 'function') return
+    onViewMedia([{
+      src: gifPreview.src,
+      thumb: gifPreview.thumb,
+      alt: gifPreview.alt
+    }], 0)
   }
 
   const handleMediaKeyDown = (event, index = 0) => {
@@ -524,31 +557,81 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       ) : null}
 
       {external && images.length === 0 ? (
-        <a
-          href={external.uri}
-          target='_blank'
-          rel='noopener noreferrer nofollow'
-          className='mt-3 block rounded-xl border border-border bg-background-subtle hover:bg-background-subtle/80 transition'
-          data-component='BskyExternalCard'
-        >
-          <div className='flex gap-3 p-3 items-start'>
-            {external.thumb ? (
-              <img
-                src={external.thumb}
-                alt=''
-                className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover'
-                loading='lazy'
-              />
-            ) : null}
-            <div className='min-w-0'>
-              <p className='truncate text-sm font-semibold text-foreground'>{external.title}</p>
-              {external.description ? (
-                <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+        gifPreview && typeof onViewMedia === 'function'
+          ? (
+            <div
+              className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 focus-within:outline focus-within:outline-2 focus-within:outline-primary/70'
+            >
+              <button
+                type='button'
+                className='flex w-full gap-3 text-left'
+                onClick={handleExternalMediaPreview}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    handleExternalMediaPreview(event)
+                  }
+                }}
+              >
+                {gifPreview.thumb ? (
+                  <div className='relative h-20 w-28 shrink-0'>
+                    <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>GIF</span>
+                    <img
+                      src={gifPreview.thumb}
+                      alt=''
+                      className='h-full w-full rounded-lg border border-border object-cover'
+                      loading='lazy'
+                    />
+                  </div>
+                ) : null}
+                <div className='min-w-0'>
+                  <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                  {external.description ? (
+                    <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                  ) : null}
+                  <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                  <p className='mt-2 text-xs font-semibold text-primary'>Klicken zum Anzeigen</p>
+                </div>
+              </button>
+              {gifPreview.originalUrl ? (
+                <a
+                  href={gifPreview.originalUrl}
+                  target='_blank'
+                  rel='noopener noreferrer nofollow'
+                  className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Original öffnen
+                </a>
               ) : null}
-              <p className='mt-1 text-xs text-foreground-subtle'>{external.domain}</p>
             </div>
-          </div>
-        </a>
+            )
+          : (
+            <a
+              href={external.uri}
+              target='_blank'
+              rel='noopener noreferrer nofollow'
+              className='mt-3 block rounded-xl border border-border bg-background-subtle hover:bg-background-subtle/80 transition'
+              data-component='BskyExternalCard'
+            >
+              <div className='flex items-start gap-3 p-3'>
+                {external.thumb ? (
+                  <img
+                    src={external.thumb}
+                    alt=''
+                    className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover'
+                    loading='lazy'
+                  />
+                ) : null}
+                <div className='min-w-0'>
+                  <p className='truncate text-sm font-semibold text-foreground'>{external.title}</p>
+                  {external.description ? (
+                    <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                  ) : null}
+                  <p className='mt-1 text-xs text-foreground-subtle'>{external.domain}</p>
+                </div>
+              </div>
+            </a>
+            )
       ) : null}
     </>
   )

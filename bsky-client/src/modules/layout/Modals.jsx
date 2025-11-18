@@ -15,7 +15,7 @@ const ProfileViewLazy = lazy(async () => {
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, profileViewer } = useAppState();
-  const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
+  const { mediaLightbox, openMediaPreview, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { closeComposer, setQuoteTarget } = useComposer();
   const {
@@ -116,6 +116,7 @@ export function Modals() {
                 <ProfileViewLazy
                   actor={profileViewer.actor}
                   onClose={() => dispatch({ type: 'CLOSE_PROFILE_VIEWER' })}
+                  onViewMedia={openMediaPreview}
                 />
               </Suspense>
             </div>
