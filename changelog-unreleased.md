@@ -7,6 +7,8 @@
 - Skeleton-Loader für Profil-Header und Beitragsliste verbessern die wahrgenommene Ladezeit.
 - Fehlerbehandlung in der Profilansicht um einen „Erneut versuchen“-Button erweitert.
 - Die `ProfilePosts`-Komponente wurde in eine eigene Datei ausgelagert, um die Code-Struktur zu verbessern.
+- Lade-Flickern beim Öffnen eines Profils behoben, indem der Suspense-Fallback nun ebenfalls einen Skeleton-Loader (`ProfileMetaSkeleton`) verwendet.
+- Die Profil-Vorschau (`ProfileCard`) zeigt beim Laden nun einen Skeleton-Platzhalter anstelle eines einfachen Textes.
 
 ## 2025-11-17
 

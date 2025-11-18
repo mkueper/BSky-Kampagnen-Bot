@@ -11,6 +11,7 @@ const ProfileViewLazy = lazy(async () => {
   const module = await import('../profile/ProfileView');
   return { default: module.ProfileView ?? module.default };
 });
+const ProfileMetaSkeletonLazy = lazy(() => import('../profile/ProfileMetaSkeleton.jsx'));
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, profileViewer } = useAppState();
@@ -107,7 +108,11 @@ export function Modals() {
           />
           <div className='relative z-50 flex h-full w-full items-center justify-center p-0 sm:p-4'>
             <div className='mx-auto flex h-full w-full max-w-2xl overflow-hidden rounded-none bg-background shadow-2xl sm:rounded-2xl'>
-              <Suspense fallback={<Card padding='p-5'>Profil wird geladen...</Card>}>
+              <Suspense fallback={
+                <div className='flex h-full w-full items-center justify-center p-4'>
+                  <ProfileMetaSkeletonLazy />
+                </div>
+              }>
                 <ProfileViewLazy
                   actor={profileViewer.actor}
                   onClose={() => dispatch({ type: 'CLOSE_PROFILE_VIEWER' })}

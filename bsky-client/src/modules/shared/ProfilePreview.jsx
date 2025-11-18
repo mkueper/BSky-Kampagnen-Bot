@@ -37,10 +37,28 @@ function usePortalContainer () {
   return container
 }
 
+function ProfileCardSkeleton () {
+  return (
+    <div className='w-[320px]'>
+      <div className='flex items-start gap-3'>
+        <div className='h-12 w-12 shrink-0 animate-pulse rounded-full bg-background-subtle' />
+        <div className='min-w-0 flex-1 space-y-1 pt-1'>
+          <div className='h-5 w-3/4 animate-pulse rounded bg-background-subtle' />
+          <div className='h-4 w-1/2 animate-pulse rounded bg-background-subtle' />
+        </div>
+      </div>
+      <div className='mt-4 flex gap-4'>
+        <div className='h-5 w-24 animate-pulse rounded bg-background-subtle' />
+        <div className='h-5 w-20 animate-pulse rounded bg-background-subtle' />
+      </div>
+    </div>
+  )
+}
+
 function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
   const content = useMemo(() => {
     if (loading) {
-      return <p className='text-sm text-foreground-muted'>Profil wird geladen…</p>
+      return <ProfileCardSkeleton />
     }
     if (error) {
       return <p className='text-sm text-destructive'>{error}</p>
