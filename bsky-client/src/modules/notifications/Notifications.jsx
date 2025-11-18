@@ -3,6 +3,7 @@ import { ChatBubbleIcon, HeartFilledIcon, HeartIcon } from '@radix-ui/react-icon
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppDispatch } from '../../context/AppContext'
+import { useCardConfig } from '../../context/CardConfigContext.jsx'
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
@@ -339,48 +340,29 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
           <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
         )}
         <div className='min-w-0 flex-1 space-y-2'>
-          <div className='flex items-center gap-2 min-w-0'>
-            <div className='min-w-0 flex-1'>
-              {canOpenProfileViewer ? (
-                <button
-                  type='button'
-                  onClick={handleProfileClick}
-                  className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
-                  title={authorLabel}
-                >
-                  {authorLabel}
-                </button>
-              ) : (
-                <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
-              )}
-              {author.handle ? (
-                canOpenProfileViewer ? (
-                  <button
-                    type='button'
-                    onClick={handleProfileClick}
-                    className='block w-full truncate text-left text-sm text-foreground-muted transition hover:text-primary'
-                    title={`@${author.handle}`}
-                  >
-                    @{author.handle}
-                  </button>
-                ) : (
-                  <p className='truncate text-sm text-foreground-muted' title={`@${author.handle}`}>@{author.handle}</p>
-                )
-              ) : null}
-            </div>
-            <span className='shrink-0 rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted'>
+          <div className='flex flex-wrap items-center gap-2 min-w-0'>
+            {canOpenProfileViewer ? (
+              <button
+                type='button'
+                onClick={handleProfileClick}
+                className='truncate text-left font-semibold text-foreground transition hover:text-primary'
+                title={authorLabel}
+              >
+                {authorLabel}
+              </button>
+            ) : (
+              <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
+            )}
+            <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted'>
               {reasonInfo.label}
             </span>
           </div>
           {authorFallbackHint ? (
             <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
           ) : null}
-          <p className='text-sm text-foreground break-words'>
-            <span className='inline-flex max-w-full truncate align-baseline font-semibold'>
-              {author.displayName || author.handle || 'Jemand'}
-            </span>{' '}
-            {reasonDescription}
-          </p>
+          {reasonDescription ? (
+            <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
+          ) : null}
           {recordText ? (
             <p
               className={`rounded-2xl border px-3 py-2 text-sm ${
@@ -474,6 +456,7 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
   const dispatch = useAppDispatch()
+  const { config } = useCardConfig()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
@@ -579,9 +562,21 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
               handlePreviewImageClick(event)
             }
           }}
-          className='block w-full overflow-hidden rounded-xl border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+          className='block w-full overflow-hidden rounded-xl border border-border bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
         >
-          <img src={preview.image.src} alt={preview.image.alt || ''} className='w-full object-cover max-h-48' loading='lazy' />
+          <img
+            src={preview.image.src}
+            alt={preview.image.alt || ''}
+            className='w-full rounded-xl'
+            style={{
+              maxHeight: config?.singleMax ?? 256,
+              width: '100%',
+              height: 'auto',
+              objectFit: 'contain',
+              backgroundColor: 'var(--background-subtle, #f6f6f6)'
+            }}
+            loading='lazy'
+          />
         </button>
       ) : null}
       {preview.external ? (
