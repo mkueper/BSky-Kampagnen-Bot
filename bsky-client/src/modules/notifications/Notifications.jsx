@@ -107,15 +107,27 @@ function extractSubjectPreview (subject) {
   } else if (embed?.media?.images && Array.isArray(embed.media.images)) {
     images.push(...embed.media.images)
   }
-  const firstImage = images.find(img => img?.thumb || img?.fullsize) || null
+  const normalizedImages = images
+    .map(img => {
+      const src = img?.fullsize || img?.thumb || ''
+      if (!src) return null
+      return {
+        src,
+        thumb: img?.thumb || img?.fullsize || src,
+        alt: img?.alt || ''
+      }
+    })
+    .filter(Boolean)
+  const firstImage = normalizedImages[0] || null
   const external = embed?.external || embed?.media?.external || null
   return {
     image: firstImage
       ? {
-          src: firstImage.fullsize || firstImage.thumb,
+          src: firstImage.src,
           alt: firstImage.alt || ''
         }
       : null,
+    images: normalizedImages,
     external: external
       ? {
           uri: external.uri,
@@ -176,7 +188,7 @@ function extractQuotedPost (subject) {
   }
 }
 
-const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead }) {
+const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
   const {
     author = {},
@@ -370,7 +382,13 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
             {reasonDescription}
           </p>
           {recordText ? (
-            <p className={`rounded-2xl border px-3 py-2 text-sm text-foreground ${isReply ? 'border-primary/40 bg-primary/5 shadow-[0_8px_25px_-18px_rgba(14,165,233,0.6)]' : 'border-border bg-background-subtle'}`}>
+            <p
+              className={`rounded-2xl border px-3 py-2 text-sm ${
+                isReply
+                  ? 'border-primary/60 bg-primary/20 text-foreground shadow-[0_18px_45px_-18px_rgba(14,165,233,0.9)]'
+                  : 'border-border bg-background-subtle text-foreground'
+              }`}
+            >
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
@@ -381,6 +399,7 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
               threadTarget={resolvedThreadTarget}
               onSelect={canOpenSubject && resolvedThreadTarget ? (() => handleSelectSubject(resolvedThreadTarget)) : undefined}
               onSelectQuoted={handleSelectSubject}
+              onViewMedia={onViewMedia}
             />
           ) : null}
           {timestamp ? (
@@ -453,7 +472,7 @@ const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, o
   )
 })
 
-function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget }) {
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
   const dispatch = useAppDispatch()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
@@ -496,6 +515,14 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     event?.stopPropagation()
     dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
   }, [canOpenProfileViewer, dispatch, profileActor])
+
+  const handlePreviewImageClick = useCallback((event) => {
+    if (typeof onViewMedia !== 'function') return
+    if (!Array.isArray(preview?.images) || preview.images.length === 0) return
+    event?.preventDefault()
+    event?.stopPropagation()
+    onViewMedia(preview.images, 0)
+  }, [onViewMedia, preview?.images])
 
   return (
     <div
@@ -544,9 +571,18 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
         </div>
       ) : null}
       {preview.image ? (
-        <div className='overflow-hidden rounded-xl border border-border'>
+        <button
+          type='button'
+          onClick={handlePreviewImageClick}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              handlePreviewImageClick(event)
+            }
+          }}
+          className='block w-full overflow-hidden rounded-xl border border-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+        >
           <img src={preview.image.src} alt={preview.image.alt || ''} className='w-full object-cover max-h-48' loading='lazy' />
-        </div>
+        </button>
       ) : null}
       {preview.external ? (
         <a
@@ -611,7 +647,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all' }) {
+export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all', onViewMedia }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -772,6 +808,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
               onReply={onReply}
               onQuote={onQuote}
               onMarkRead={handleMarkRead}
+              onViewMedia={onViewMedia}
             />
           </li>
         ))}

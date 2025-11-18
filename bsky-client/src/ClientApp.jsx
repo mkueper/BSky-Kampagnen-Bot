@@ -414,6 +414,7 @@ function MainContent (props) {
               onQuote={openQuoteComposer}
               onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
               activeTab={notificationTab}
+              onViewMedia={openMediaPreview}
             />
           </Suspense>
         </div>

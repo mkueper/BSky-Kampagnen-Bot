@@ -13,6 +13,9 @@
 - Infinite Scroll der Profil-Feeds stoppt nach Fehlern und bietet einen manuellen „Erneut versuchen“-Button direkt unter der Liste.
 - Der Profil-Viewer nutzt einen synchron importierten Skeleton-Fallback, damit das Modal sofort einen Platzhalter rendert, während `ProfileView` lädt.
 - Eingebettete Tenor-/GIF-Links werden wie native Medien geöffnet und landen im integrierten Media-Lightbox statt im neuen Browser-Tab.
+- Mitteilungen heben Antworten deutlich hervor, bringen ihre Medien-Previews in die Lightbox und ignorieren unverlinkte Follow-Karten beim Thread-Öffnen; Likes/Reskeets/Quotes bleiben nutzbar.
+- Blaues „Threadviewer“-Overlay zeigt in den Mitteilungen denselben Header wie in der Timeline – inklusive sauberem Escape selbst bei Fehlermeldungen.
+- Theme-Umschaltung sitzt jetzt direkt in der Sidebar bzw. im mobilen Bottom-Nav und schaltet zwischen Hell → Gedimmt → Dunkel → Mitternacht.
 
 ## 2025-11-17
 

@@ -218,7 +218,6 @@ export default function BskyClientLayout ({
           </main>
           {isMobile ? (
             <div
-              aria-hidden='true'
               className='pointer-events-none'
               style={{ height: mobileNavReservedSpace }}
             />
