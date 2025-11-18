@@ -13,6 +13,7 @@ import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { QuickComposer } from './modules/composer'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
+import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -42,6 +43,15 @@ const SectionFallback = ({ label = 'Bereich' }) => (
   <Card background='subtle' padding='p-4' className='text-sm text-foreground-muted'>
     {label} wird geladen…
   </Card>
+)
+
+const NotificationsFallback = () => (
+  <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
+    <NotificationCardSkeleton />
+    <NotificationCardSkeleton />
+    <NotificationCardSkeleton />
+    <NotificationCardSkeleton />
+  </div>
 )
 
 export default function BskyClientApp ({ onNavigateDashboard }) {
@@ -388,7 +398,7 @@ function MainContent (props) {
     return (
       <div className='space-y-6'>
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Suspense fallback={<SectionFallback label='Mitteilungen' />}>
+          <Suspense fallback={<NotificationsFallback />}>
             <NotificationsLazy
               refreshKey={notificationsRefreshTick}
               onSelectPost={selectThreadFromItem}

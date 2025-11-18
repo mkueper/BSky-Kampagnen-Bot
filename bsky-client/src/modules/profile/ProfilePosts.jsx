@@ -2,18 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { fetchProfileFeed } from '../shared/api/bsky'
 import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
 import SkeetItem from '../timeline/SkeetItem.jsx'
-
-function SkeetItemSkeleton () {
-  return (
-    <Card padding='p-4' className='space-y-3'>
-      <div className='flex items-center gap-3'>
-        <div className='h-12 w-12 shrink-0 animate-pulse rounded-full bg-background-subtle' />
-        <div className='h-5 w-40 animate-pulse rounded bg-background-subtle' />
-      </div>
-      <div className='ml-15 space-y-2'><div className='h-4 w-full animate-pulse rounded bg-background-subtle' /><div className='h-4 w-3/4 animate-pulse rounded bg-background-subtle' /></div>
-    </Card>
-  )
-}
+import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
 
 export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, scrollContainerRef, onSelectPost, onReply, onQuote, onViewMedia }) {
   const [loadingMore, setLoadingMore] = useState(false)

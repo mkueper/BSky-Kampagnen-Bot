@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
+import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
 
 export default function Timeline ({ tab = 'discover', source = null, renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
@@ -105,20 +106,12 @@ export default function Timeline ({ tab = 'discover', source = null, renderMode,
 
   if (loading) {
     return (
-      <div
-        className='flex min-h-[320px] items-center justify-center'
-        data-component='BskyTimeline'
-        data-state='loading'
-      >
-        <div
-          className='flex flex-col items-center gap-3'
-          role='status'
-          aria-live='polite'
-          aria-label='Lade Timeline…'
-        >
-          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
-          <span className='sr-only'>Lade Timeline…</span>
-        </div>
+      <div className='space-y-3' data-component='BskyTimeline' data-state='loading' role='status' aria-live='polite'>
+        <ul className='space-y-3'>
+          <li><SkeetItemSkeleton /></li>
+          <li><SkeetItemSkeleton /></li>
+          <li><SkeetItemSkeleton /></li>
+        </ul>
       </div>
     )
   }

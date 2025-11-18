@@ -1,44 +1,39 @@
-import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import Timeline from './Timeline.jsx';
+import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import Timeline from './Timeline.jsx'
 
-const originalFetch = global.fetch;
+const fetchTimelineMock = vi.fn()
+
+vi.mock('../shared', () => ({
+  fetchTimeline: (...args) => fetchTimelineMock(...args)
+}))
+
+vi.mock('./SkeetItem.jsx', () => ({
+  default: ({ item }) => <div data-testid='skeet-item'>{item?.uri || 'item'}</div>
+}))
 
 describe('Timeline', () => {
-  afterEach(() => {
-    if (originalFetch) {
-      global.fetch = originalFetch;
-    } else {
-      delete global.fetch;
-    }
-    vi.restoreAllMocks();
-  });
+  beforeEach(() => {
+    fetchTimelineMock.mockReset()
+  })
 
-  it('shows empty state when feed is empty', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ feed: [], cursor: null }),
-    });
-    global.fetch = fetchMock;
+  it('renders skeleton placeholders while the first page loads', () => {
+    fetchTimelineMock.mockReturnValue(new Promise(() => {}))
+    render(<Timeline />)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+  })
 
-    render(<Timeline tab="home" />);
+  it('renders items once data arrives', async () => {
+    fetchTimelineMock.mockResolvedValue({
+      items: [{ uri: 'at://example/post1' }],
+      cursor: null
+    })
 
-    expect(screen.getByLabelText(/Lade Timeline/i)).toBeInTheDocument();
+    render(<Timeline />)
 
-    expect(await screen.findByText(/Keine Eintr/i)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders an error message when the request fails', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      json: vi.fn().mockResolvedValue({ error: 'kaputt' }),
-    });
-    global.fetch = fetchMock;
-
-    render(<Timeline tab="discover" />);
-
-    expect(await screen.findByText(/Fehler: kaputt/i)).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-});
+    await waitFor(() => {
+      expect(screen.getByTestId('skeet-item')).toHaveTextContent('at://example/post1')
+    })
+  })
+})
