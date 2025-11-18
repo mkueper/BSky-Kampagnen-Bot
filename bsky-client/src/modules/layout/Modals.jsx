@@ -106,7 +106,7 @@ export function Modals() {
             aria-hidden='true'
           />
           <div className='relative z-50 flex h-full w-full items-center justify-center p-0 sm:p-4'>
-            <div className='mx-auto flex h-full w-full max-w-5xl overflow-hidden rounded-none bg-background shadow-2xl sm:rounded-2xl'>
+            <div className='mx-auto flex h-full w-full max-w-2xl overflow-hidden rounded-none bg-background shadow-2xl sm:rounded-2xl'>
               <Suspense fallback={<Card padding='p-5'>Profil wird geladen...</Card>}>
                 <ProfileViewLazy
                   actor={profileViewer.actor}

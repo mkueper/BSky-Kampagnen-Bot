@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@atproto/api": "^0.15.27",
+    "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { fetchProfile, fetchProfileFeed } from '../shared/api/bsky'
 import { Card, Button, ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
+import ProfilePosts from './ProfilePosts.jsx'
 import SkeetItem from '../timeline/SkeetItem.jsx'
 import {
   ArrowLeftIcon,
@@ -25,7 +26,7 @@ function formatNumber (value) {
 }
 
 // This is a simplified view. We can reuse/enhance the ProfileCard from ProfilePreview later.
-function ProfileMeta ({ profile, onBack, isOwnProfile = false }) {
+function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false }) {
   const relationBadges = useMemo(() => {
     const next = []
     if (profile.viewer?.followedBy) next.push({ label: 'Folgt dir', tone: 'primary' })
@@ -52,20 +53,11 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false }) {
   const copyProfileLink = useCallback(async () => {
     if (!baseProfileUrl) return
     try {
-      if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(baseProfileUrl)
-      } else if (typeof document !== 'undefined') {
-        const textarea = document.createElement('textarea')
-        textarea.value = baseProfileUrl
-        textarea.style.position = 'fixed'
-        textarea.style.opacity = '0'
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-      }
+      // Die Clipboard-API ist mittlerweile gut unterstützt.
+      // Der Button wird ohnehin deaktiviert, wenn die URL nicht verfügbar ist.
+      await navigator.clipboard.writeText(baseProfileUrl)
     } catch (error) {
-      console.error('Profil-Link konnte nicht kopiert werden', error)
+      console.error('Profil-Link konnte nicht in die Zwischenablage kopiert werden:', error)
     }
   }, [baseProfileUrl])
 
@@ -89,13 +81,13 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false }) {
           ? <img src={profile.banner} alt='' className='absolute inset-0 h-full w-full object-cover' />
           : <div className='absolute inset-0 bg-gradient-to-r from-background via-background-subtle to-background' />}
         <div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/60' aria-hidden='true' />
-        {typeof onBack === 'function'
+      {typeof onBack === 'function' && !tabsStuck
           ? (
             <div className='absolute left-3 top-3 z-10 sm:left-4 sm:top-4'>
               <button
                 type='button'
                 onClick={onBack}
-                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-lg backdrop-blur-sm transition hover:border-foreground/70'
+              className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-lg backdrop-blur-sm transition hover:border-foreground/70'
                 aria-label='Zurück'
               >
                 <ArrowLeftIcon className='h-5 w-5' />
@@ -231,27 +223,57 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false }) {
   )
 }
 
+function ProfileMetaSkeleton () {
+  return (
+    <Card padding='p-0' compact className='overflow-hidden border-border/80 bg-background-elevated shadow-card'>
+      <div className='relative h-36 w-full bg-background-subtle sm:h-44'>
+        <div className='absolute inset-0 bg-gradient-to-r from-background via-background-subtle to-background' />
+        <div className='absolute -bottom-12 left-4 sm:-bottom-14 sm:left-6'>
+          <div className='h-24 w-24 animate-pulse rounded-full border-4 border-background bg-background-subtle shadow-xl sm:h-28 sm:w-28' />
+        </div>
+      </div>
+      <div className='px-4 pb-6 pt-16 sm:px-6 sm:pt-20'>
+        <div className='flex flex-col gap-5'>
+          <div className='flex min-w-0 flex-col gap-1'>
+            <div className='h-8 w-3/4 animate-pulse rounded bg-background-subtle' />
+            <div className='mt-2 h-5 w-1/2 animate-pulse rounded bg-background-subtle' />
+          </div>
+          <div className='space-y-2'>
+            <div className='h-4 w-full animate-pulse rounded bg-background-subtle' />
+            <div className='h-4 w-5/6 animate-pulse rounded bg-background-subtle' />
+          </div>
+          <div className='flex flex-wrap gap-x-6 gap-y-3'>
+            <div className='h-6 w-20 animate-pulse rounded bg-background-subtle' />
+            <div className='h-6 w-20 animate-pulse rounded bg-background-subtle' />
+            <div className='h-6 w-20 animate-pulse rounded bg-background-subtle' />
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassName = '', menuItems: customMenuItems }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef(null)
 
   useEffect(() => {
-    if (!open) return undefined
-    const handlePointer = (event) => {
-      if (!containerRef.current?.contains(event.target)) {
+    const handleInteraction = (event) => {
+      // Menü bei Klick ausserhalb oder Escape-Taste schliessen
+      if (
+        (event.type === 'pointerdown' && containerRef.current && !containerRef.current.contains(event.target)) ||
+        (event.type === 'keydown' && event.key === 'Escape')
+      ) {
         setOpen(false)
       }
     }
-    const handleKey = (event) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointer)
-    document.addEventListener('keydown', handleKey)
+    document.addEventListener('pointerdown', handleInteraction)
+    document.addEventListener('keydown', handleInteraction)
     return () => {
-      document.removeEventListener('pointerdown', handlePointer)
-      document.removeEventListener('keydown', handleKey)
+      document.removeEventListener('pointerdown', handleInteraction)
+      document.removeEventListener('keydown', handleInteraction)
     }
-  }, [open])
+  }, [])
 
   const defaultMenuItems = useMemo(() => ([
     { label: 'Link zum Profil kopieren', icon: Link2Icon, disabled: true },
@@ -364,6 +386,11 @@ export default function ProfileView ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
+  const [feeds, setFeeds] = useState({
+    posts: { items: [], cursor: null, error: '', status: 'idle' },
+    replies: { items: [], cursor: null, error: '', status: 'idle' },
+    media: { items: [], cursor: null, error: '', status: 'idle' }
+  })
   const [tabsStuck, setTabsStuck] = useState(false)
   const containerRef = useRef(null)
   const tabsWrapperRef = useRef(null)
@@ -377,18 +404,26 @@ export default function ProfileView ({
     }
   }, [dispatch, onClose])
 
+  // Haupt-Effekt zum Laden des Profils. Wird nur durch den `actor` getriggert.
   useEffect(() => {
     if (!actor) {
       setError('Kein Profil zum Anzeigen ausgewählt.')
       setLoading(false)
       return
     }
-
     let ignore = false
     const loadProfile = async () => {
+      // Setze alles zurück, wenn ein neues Profil geladen wird
       setLoading(true)
       setError('')
       setProfile(null)
+      setFeeds({
+        posts: { items: [], cursor: null, error: '', status: 'idle' },
+        replies: { items: [], cursor: null, error: '', status: 'idle' },
+        media: { items: [], cursor: null, error: '', status: 'idle' }
+      })
+      setActiveTab('posts')
+
       try {
         const data = await fetchProfile(actor)
         if (!ignore) {
@@ -409,14 +444,56 @@ export default function ProfileView ({
     return () => { ignore = true }
   }, [actor])
 
+  // Effekt zum Laden der Feed-Daten für den aktiven Tab
+  useEffect(() => {
+    if (!profile || activeTab === 'videos') return
+
+    const currentFeed = feeds[activeTab]
+    // Nicht neu laden, wenn bereits geladen oder am Laden
+    if (currentFeed.status === 'success' || currentFeed.status === 'loading') {
+      return
+    }
+
+    let ignore = false
+    const loadFeed = async () => {
+      setFeeds(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], status: 'loading', error: '' } }))
+      try {
+        const filterMap = {
+          posts: 'posts_no_replies',
+          replies: 'posts_with_replies',
+          media: 'posts_with_media'
+        }
+        const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
+          actor: profile.did,
+          limit: 20,
+          filter: filterMap[activeTab]
+        })
+
+        if (!ignore) {
+          const normalized = activeTab === 'replies'
+            ? nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
+            : nextItemsRaw
+
+          setFeeds(prev => ({
+            ...prev,
+            [activeTab]: { items: normalized, cursor: nextCursor, status: 'success', error: '' }
+          }))
+        }
+      } catch (err) {
+        if (!ignore) {
+          const message = err.message || 'Beiträge konnten nicht geladen werden.'
+          setFeeds(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], status: 'error', error: message } }))
+        }
+      }
+    }
+
+    loadFeed()
+    return () => { ignore = true }
+  }, [profile, activeTab])
+
   const isOwnProfile = useMemo(() => {
     if (!profile || !me) return false
-    const meDid = typeof me.did === 'string' ? me.did.toLowerCase() : ''
-    const profileDid = typeof profile.did === 'string' ? profile.did.toLowerCase() : ''
-    if (meDid && profileDid) return meDid === profileDid
-    const meHandle = typeof me.handle === 'string' ? me.handle.toLowerCase() : ''
-    const profileHandle = typeof profile.handle === 'string' ? profile.handle.toLowerCase() : ''
-    return Boolean(meHandle && profileHandle && meHandle === profileHandle)
+    return me.did === profile.did
   }, [me, profile])
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
@@ -424,7 +501,6 @@ export default function ProfileView ({
     { id: 'media', label: 'Medien', disabled: false },
     { id: 'videos', label: 'Videos', disabled: true }
   ]), [])
-  const profileFeedActor = profile?.did || profile?.handle || actor || ''
 
   useEffect(() => {
     const el = containerRef.current
@@ -432,7 +508,7 @@ export default function ProfileView ({
       el.scrollTop = 0
     }
     setTabsStuck(false)
-  }, [profileFeedActor])
+  }, [actor])
 
   useEffect(() => {
     const container = containerRef.current
@@ -446,19 +522,19 @@ export default function ProfileView ({
     })
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [profileFeedActor])
+  }, [actor])
 
   if (loading) {
     return (
-      <div className='mx-auto flex h-full w-full max-w-5xl items-center justify-center p-4'>
-        <Card padding='p-4' compact><p>Profil wird geladen...</p></Card>
+      <div className='mx-auto flex h-full w-full max-w-2xl items-center justify-center p-4'>
+        <ProfileMetaSkeleton />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className='mx-auto flex h-full w-full max-w-5xl items-center justify-center p-4'>
+      <div className='mx-auto flex h-full w-full max-w-2xl items-center justify-center p-4'>
         <Card padding='p-4' compact background='destructive-subtle'><p className='text-destructive'>{error}</p></Card>
       </div>
     )
@@ -466,7 +542,7 @@ export default function ProfileView ({
 
   if (!profile) {
     return (
-      <div className='mx-auto flex h-full w-full max-w-5xl items-center justify-center p-4'>
+      <div className='mx-auto flex h-full w-full max-w-2xl items-center justify-center p-4'>
         <Card padding='p-4' compact><p>Profil nicht gefunden.</p></Card>
       </div>
     )
@@ -476,16 +552,16 @@ export default function ProfileView ({
     <div
       ref={containerRef}
       id={PROFILE_SCROLL_CONTAINER_ID}
-      className='mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
+      className='mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
     >
       <div className='relative z-10'>
-        <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} />
+        <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} tabsStuck={tabsStuck} />
       </div>
       <div ref={tabsSentinelRef} aria-hidden='true' className='h-1 w-full' />
       <div ref={tabsWrapperRef} className='sticky -top-4 z-20 -mt-4'>
         <Card padding='p-3 sm:p-4' compact className='relative z-0 space-y-3 border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80'>
           <div className='flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground'>
-            {tabsStuck ? (
+            {
               <button
                 type='button'
                 onClick={handleClose}
@@ -494,7 +570,7 @@ export default function ProfileView ({
               >
                 <ArrowLeftIcon className='h-4 w-4' />
               </button>
-            ) : null}
+            }
             <div className='flex flex-wrap gap-2'>
               {tabConfig.map((tab) => {
                 const isActive = activeTab === tab.id
@@ -523,22 +599,10 @@ export default function ProfileView ({
       </div>
       {(activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media') ? (
         <ProfilePosts
-          actor={profileFeedActor}
-          filter={
-            activeTab === 'posts'
-              ? 'posts_no_replies'
-              : activeTab === 'replies'
-                ? 'posts_with_replies'
-                : 'posts_with_media'
-          }
-          onlyReplies={activeTab === 'replies'}
-          emptyMessage={
-            activeTab === 'replies'
-              ? 'Noch keine Antworten.'
-              : activeTab === 'media'
-                ? 'Noch keine Medien.'
-                : 'Noch keine Beiträge.'
-          }
+          actor={profile.did}
+          activeTab={activeTab}
+          feedData={feeds[activeTab]}
+          setFeeds={setFeeds}
           scrollContainerRef={containerRef}
           onSelectPost={onSelectPost}
           onReply={onReply}
@@ -552,161 +616,6 @@ export default function ProfileView ({
         offset={20}
         horizontalOffset={16}
       />
-    </div>
-  )
-}
-
-function ProfilePosts ({ actor, filter = 'posts_no_replies', onlyReplies = false, emptyMessage = 'Noch keine Beiträge.', scrollContainerRef, onSelectPost, onReply, onQuote, onViewMedia }) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [cursor, setCursor] = useState(null)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
-  const loadMoreTriggerRef = useRef(null)
-
-  const normalizeItems = useCallback((list) => {
-    if (!onlyReplies) return list
-    return list.filter((entry) => {
-      const record = entry?.raw?.post?.record || entry?.raw?.record || {}
-      return Boolean(record?.reply && record.reply?.parent)
-    })
-  }, [onlyReplies])
-
-  useEffect(() => {
-    if (!actor) return
-    let ignore = false
-    const load = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
-          actor,
-          limit: 20,
-          filter
-        })
-        if (!ignore) {
-          setItems(normalizeItems(nextItemsRaw))
-          setCursor(nextCursor)
-        }
-      } catch (err) {
-        if (!ignore) setError(err?.message || 'Beiträge konnten nicht geladen werden.')
-      } finally {
-        if (!ignore) setLoading(false)
-      }
-    }
-    setItems([])
-    setCursor(null)
-    load()
-    return () => { ignore = true }
-  }, [actor, filter, normalizeItems, reloadKey])
-
-  const hasMore = useMemo(() => Boolean(cursor), [cursor])
-
-  const loadMore = useCallback(async () => {
-    if (!actor || loadingMore || !hasMore) return
-    setLoadingMore(true)
-    try {
-      const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
-        actor,
-        cursor,
-        limit: 20,
-        filter
-      })
-      setItems((prev) => prev.concat(normalizeItems(nextItemsRaw)))
-      setCursor(nextCursor)
-    } catch (err) {
-      setError(err?.message || 'Weitere Beiträge konnten nicht geladen werden.')
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [actor, cursor, filter, hasMore, loadingMore, normalizeItems])
-
-  useEffect(() => {
-    if (!hasMore || !loadMoreTriggerRef.current) return
-    const root = scrollContainerRef?.current || (typeof document !== 'undefined'
-      ? document.getElementById('bsky-scroll-container')
-      : null)
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (entry?.isIntersecting) {
-        loadMore()
-      }
-    }, {
-      root,
-      rootMargin: '200px 0px'
-    })
-    const target = loadMoreTriggerRef.current
-    observer.observe(target)
-    return () => {
-      observer.unobserve(target)
-    }
-  }, [hasMore, loadMore, scrollContainerRef])
-
-  if (!actor) {
-    return (
-      <Card padding='p-4' className='text-sm text-foreground-muted'>
-        Kein Profil ausgewählt.
-      </Card>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className='flex min-h-[200px] items-center justify-center'>
-        <div className='flex flex-col items-center gap-3' role='status' aria-live='polite'>
-          <div className='h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary' />
-          <span className='sr-only'>Beiträge werden geladen…</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (error && items.length === 0) {
-    return (
-      <Card padding='p-4' className='space-y-3'>
-        <p className='text-sm text-destructive'>{error}</p>
-        <Button variant='secondary' size='pill' onClick={() => setReloadKey((v) => v + 1)}>
-          Erneut versuchen
-        </Button>
-      </Card>
-    )
-  }
-
-  if (items.length === 0) {
-    return <p className='text-sm text-foreground-muted'>{emptyMessage}</p>
-  }
-
-  return (
-    <div className='space-y-4'>
-      <ul className='space-y-3'>
-        {items.map((item, idx) => {
-          const key = item.uri || item.cid || `${idx}-${item.record?.createdAt || ''}`
-          return (
-            <li key={key}>
-              <SkeetItem
-                item={item}
-                variant='card'
-                onReply={onReply}
-                onQuote={onQuote}
-                onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
-                onViewMedia={onViewMedia}
-              />
-            </li>
-          )
-        })}
-      </ul>
-      {error ? (
-        <p className='text-sm text-destructive'>{error}</p>
-      ) : null}
-      {hasMore ? (
-        <div
-          ref={loadMoreTriggerRef}
-          className='py-4 text-center text-sm text-foreground-muted'
-        >
-          {loadingMore ? 'Lade…' : 'Weitere Einträge werden automatisch geladen…'}
-        </div>
-      ) : null}
     </div>
   )
 }

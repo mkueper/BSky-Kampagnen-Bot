@@ -2,10 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 import { PlusIcon } from '@radix-ui/react-icons'
+import clsx from 'clsx'
 
 const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'dashboard']
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
+
+const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(max-width: 768px)').matches
+  : false)
 
 function MobileNavBar ({ activeSection, notificationsUnread, onSelect }) {
   const items = NAV_ITEMS.filter((item) => MOBILE_NAV_IDS.includes(item.id))
@@ -60,19 +65,20 @@ export default function BskyClientLayout ({
   scrollTopForceVisible = false,
   onScrollTopActivate
 }) {
-  const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    ? window.matchMedia('(max-width: 768px)').matches
-    : false)
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+
     const mq = window.matchMedia('(max-width: 768px)')
+
     const handleChange = (event) => {
-      setIsMobile(event.matches)
-      setNavVisible(event.matches ? false : true)
+      const isNowMobile = event.matches
+      setIsMobile(isNowMobile)
+      setNavVisible(!isNowMobile)
     }
+
     handleChange(mq)
     mq.addEventListener('change', handleChange)
     return () => mq.removeEventListener('change', handleChange)
@@ -90,12 +96,17 @@ export default function BskyClientLayout ({
     }
   }, [onOpenCompose])
 
-  const asideClassName = [
+  const asideClassName = clsx(
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
-    `fixed top-4 bottom-4 left-4 ${isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]'} md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]`,
+    'fixed top-4 bottom-4 left-4',
+    isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]',
     'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
-    navVisible ? 'translate-x-0' : '-translate-x-[120%] md:translate-x-0'
-  ].join(' ')
+    'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
+    {
+      'translate-x-0': navVisible,
+      '-translate-x-[120%] md:translate-x-0': !navVisible
+    }
+  )
 
   const layoutStyle = {
     '--bottom-nav-height': `${MOBILE_NAV_HEIGHT}px`,
@@ -105,13 +116,17 @@ export default function BskyClientLayout ({
   const mobileNavReservedSpace = `calc(var(--bottom-nav-height, ${MOBILE_NAV_HEIGHT}px) + var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
   const bottomPaddingValue = isMobile ? '16px' : undefined
   const isProfileSection = activeSection === 'profile'
-  const scrollContainerClassName = [
+  const scrollContainerClassName = clsx(
     'flex-1 min-h-0',
-    isProfileSection ? 'overflow-y-auto p-[2px] sm:p-2' : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
-  ].join(' ')
-  const mainClassName = isProfileSection
-    ? 'flex h-full w-full min-h-0 justify-center'
-    : `space-y-5 ${isMobile ? '' : 'pb-6 sm:pb-8'} sm:space-y-8`
+    isProfileSection
+      ? 'overflow-y-auto p-[2px] sm:p-2'
+      : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
+  )
+  const mainClassName = clsx({
+    'flex h-full w-full min-h-0 justify-center': isProfileSection,
+    'space-y-5 sm:space-y-8': !isProfileSection,
+    'pb-6 sm:pb-8': !isProfileSection && !isMobile
+  })
 
   return (
     <div
