@@ -6,12 +6,12 @@ import { useFeedPicker } from '../../hooks/useFeedPicker';
 import { Button, MediaLightbox, Card } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
+import ProfileMetaSkeleton from '../profile/ProfileMetaSkeleton.jsx';
 
 const ProfileViewLazy = lazy(async () => {
   const module = await import('../profile/ProfileView');
   return { default: module.ProfileView ?? module.default };
 });
-const ProfileMetaSkeletonLazy = lazy(() => import('../profile/ProfileMetaSkeleton.jsx'));
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, profileViewer } = useAppState();
@@ -110,7 +110,7 @@ export function Modals() {
             <div className='mx-auto flex h-full w-full max-w-2xl overflow-hidden rounded-none bg-background shadow-2xl sm:rounded-2xl'>
               <Suspense fallback={
                 <div className='flex h-full w-full items-center justify-center p-4'>
-                  <ProfileMetaSkeletonLazy />
+                  <ProfileMetaSkeleton />
                 </div>
               }>
                 <ProfileViewLazy

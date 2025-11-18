@@ -82,7 +82,7 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           <div className='min-w-0'>
             <p className='truncate text-base font-semibold text-foreground'>{profile.displayName || profile.handle}</p>
             <p className='truncate text-sm text-foreground-muted'>@{profile.handle}</p>
-            {profile.viewer?.following ? (
+            {profile.viewer?.followedBy ? (
               <span className='mt-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
                 Folgt dir
               </span>

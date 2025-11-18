@@ -25,6 +25,13 @@ export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, sc
   const loadMore = useCallback(async () => {
     if (!actor || loadingMore || !hasMore) return
     setLoadingMore(true)
+    setFeeds(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab],
+        error: ''
+      }
+    }))
     try {
       const filterMap = {
         posts: 'posts_no_replies',
@@ -46,7 +53,8 @@ export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, sc
         [activeTab]: {
           ...prev[activeTab],
           items: prev[activeTab].items.concat(normalized),
-          cursor: nextCursor
+          cursor: nextCursor,
+          error: ''
         }
       }))
     } catch (err) {
@@ -63,8 +71,14 @@ export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, sc
     }
   }, [actor, cursor, hasMore, loadingMore, activeTab, setFeeds])
 
+  const handleRetryLoadMore = useCallback(() => {
+    if (loadingMore) return
+    loadMore()
+  }, [loadMore, loadingMore])
+
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return
+    if (error && items.length > 0) return
     const root = scrollContainerRef?.current || (typeof document !== 'undefined'
       ? document.getElementById('bsky-scroll-container')
       : null)
@@ -82,7 +96,7 @@ export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, sc
     return () => {
       observer.unobserve(target)
     }
-  }, [hasMore, loadMore, scrollContainerRef])
+  }, [hasMore, loadMore, scrollContainerRef, error, items.length])
 
   if (!actor) {
     return (
@@ -148,8 +162,18 @@ export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, sc
           )
         })}
       </ul>
-      {error ? (
-        <p className='text-sm text-destructive'>{error}</p>
+      {error && items.length > 0 ? (
+        <div className='space-y-2 rounded-xl border border-border/70 bg-background-subtle p-3'>
+          <p className='text-sm text-destructive'>{error}</p>
+          <Button
+            variant='secondary'
+            size='pill'
+            disabled={loadingMore}
+            onClick={handleRetryLoadMore}
+          >
+            Erneut versuchen
+          </Button>
+        </div>
       ) : null}
       {hasMore ? (
         <div
