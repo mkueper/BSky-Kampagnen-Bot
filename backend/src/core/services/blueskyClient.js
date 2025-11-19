@@ -333,10 +333,10 @@ async function getPostsByUri (uris = [], { includeCounts = false } = {}) {
 
 async function getPreferencesWrapper () {
   await ensureLoggedIn();
-  if (typeof agent.getPreferences !== 'function') {
-    throw new Error('Bluesky SDK unterstützt getPreferences nicht.');
+  if (typeof agent.app?.bsky?.actor?.getPreferences !== 'function') {
+    throw new Error('Bluesky SDK unterstützt getPreferences nicht oder die Version ist veraltet.');
   }
-  return agent.getPreferences();
+  return agent.app.bsky.actor.getPreferences();
 }
 
 async function getSavedFeedsPreferenceWrapper () {

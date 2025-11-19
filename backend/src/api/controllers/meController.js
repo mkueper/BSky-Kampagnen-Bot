@@ -15,9 +15,9 @@ async function getMe(req, res, next) {
       }
     };
 
-    await bskyController.getProfile(mockReq, res, next);
+    await bskyController.getProfile(mockReq, res);
   } catch (error) {
-    next(error);
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden des eigenen Profils.' });
   }
 }
 
