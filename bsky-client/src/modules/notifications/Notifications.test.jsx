@@ -277,6 +277,41 @@ describe('NotificationCard interactions', () => {
     expect(mediaItems[0]).toEqual(expect.objectContaining({ src: 'https://example.com/video.m3u8', type: 'video' }))
   })
 
+  it('öffnet die Medien-Lightbox für Medien in einer Antwort', async () => {
+    const user = userEvent.setup()
+    const replyWithImage = {
+      ...createNotification({ id: 'reply-media-1', reason: 'reply', author: { did: 'did:author:123' } }),
+      record: {
+        text: 'Antwort mit Bild',
+        embed: {
+          images: [
+            {
+              alt: 'Reply Alt',
+              image: {
+                $type: 'blob',
+                ref: { $link: 'bafkrei-test-cid' }
+              }
+            }
+          ]
+        }
+      }
+    }
+    const handleViewMedia = vi.fn()
+
+    render(
+      <NotificationCard
+        item={replyWithImage}
+        onViewMedia={handleViewMedia}
+      />
+    )
+
+    await user.click(screen.getByAltText('Reply Alt'))
+
+    expect(handleViewMedia).toHaveBeenCalledTimes(1)
+    const [images, initialIndex] = handleViewMedia.mock.calls[0]
+    expect(images[0]).toEqual(expect.objectContaining({ src: 'https://cdn.bsky.app/img/feed_fullsize/plain/did:author:123/bafkrei-test-cid@jpeg' }))
+  })
+
   it('zeigt System-Hinweise für app.bsky.notification Gründe an', () => {
     const item = createNotification({ id: 'system-1', reason: 'app.bsky.notification.moderation#alert' })
     render(<NotificationCard item={item} />)

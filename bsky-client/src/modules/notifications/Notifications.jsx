@@ -197,6 +197,59 @@ function extractSubjectPreview (subject) {
   }
 }
 
+function buildBlobUrl (did, cid, format = 'feed_fullsize') {
+  if (!did || !cid) return ''
+  return `https://cdn.bsky.app/img/${format}/plain/${did}/${cid}@jpeg`
+}
+
+function extractReplyMedia ({ record, authorDid }) {
+  const embed = record?.embed || null
+  if (!embed) return { media: [], images: [], videos: [] }
+
+  const imageSources = []
+  if (embed.images && Array.isArray(embed.images)) {
+    imageSources.push(...embed.images)
+  }
+
+  const videoCandidates = []
+  const type = String(embed.$type || '').toLowerCase()
+  if (type.includes('app.bsky.embed.video')) {
+    videoCandidates.push(embed)
+  } else if (embed.video && typeof embed.video === 'object') {
+    videoCandidates.push(embed.video)
+  }
+
+  const normalizedImages = imageSources
+    .map(img => {
+      const imageBlob = img?.image
+      if (!imageBlob || imageBlob?.$type !== 'blob') return null
+      const cid = imageBlob.ref?.$link
+      if (!cid) return null
+      const src = buildBlobUrl(authorDid, cid, 'feed_fullsize')
+      if (!src) return null
+      return { type: 'image', src, thumb: buildBlobUrl(authorDid, cid, 'feed_thumb'), alt: img?.alt || '' }
+    })
+    .filter(Boolean)
+
+  const normalizedVideos = videoCandidates
+    .map(video => {
+      const src = typeof video?.playlist === 'string' && video.playlist
+        ? video.playlist
+        : (video?.src || '')
+      if (!src) return null
+      return { type: 'video', src, thumb: video?.thumbnail || '', poster: video?.thumbnail || '', alt: video?.alt || '', aspectRatio: video?.aspectRatio || null }
+    })
+    .filter(Boolean)
+
+  const mediaItems = [...normalizedImages, ...normalizedVideos].map((item, idx) => ({ ...item, mediaIndex: idx }))
+
+  return {
+    media: mediaItems,
+    images: normalizedImages,
+    videos: normalizedVideos
+  }
+}
+
 function extractQuotedPost (subject) {
   const embed = subject?.raw?.post?.embed || subject?.record?.embed || null
   const embedType = embed?.$type || ''
@@ -270,6 +323,12 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
   const profileActor = author?.did || author?.handle || ''
+
+  const replyMedia = useMemo(() => {
+    if (!isReply) return null
+    return extractReplyMedia({ record, authorDid: author.did })
+  }, [isReply, record])
+
   const canOpenProfileViewer = Boolean(profileActor)
 
   const {
@@ -425,7 +484,15 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
-          {subject ? (
+          {isReply && replyMedia?.media?.length > 0 ? (
+            <div className='rounded-2xl border border-border bg-background-subtle p-2'>
+              <ReplyMediaPreview
+                media={replyMedia.media}
+                onViewMedia={onViewMedia}
+              />
+            </div>
+          ) : null}
+          {!isReply && subject ? (
             <NotificationSubjectPreview
               subject={subject}
               reason={reason}
@@ -734,6 +801,90 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       ) : null}
     </div>
   )
+}
+
+function ReplyMediaPreview ({ media = [], onViewMedia }) {
+  const { config } = useCardConfig()
+  const handleMediaClick = useCallback((event, mediaIndex = 0) => {
+    if (typeof onViewMedia !== 'function') return
+    if (!Array.isArray(media) || media.length === 0) return
+    event?.preventDefault()
+    event?.stopPropagation()
+    const safeIndex = Math.max(0, Math.min(mediaIndex, media.length - 1))
+    onViewMedia(media, safeIndex)
+  }, [onViewMedia, media])
+
+  if (!media || media.length === 0) return null
+
+  const firstImage = media.find(m => m.type === 'image')
+  const firstVideo = media.find(m => m.type === 'video')
+
+  if (firstImage) {
+    const imageIndex = media.indexOf(firstImage)
+    return (
+      <button
+        type='button'
+        onClick={(event) => handleMediaClick(event, imageIndex)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            handleMediaClick(event, imageIndex)
+          }
+        }}
+        className='block w-full overflow-hidden rounded-xl bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+      >
+        <img
+          src={firstImage.src}
+          alt={firstImage.alt || ''}
+          className='w-full rounded-xl'
+          style={{
+            maxHeight: config?.singleMax ?? 256,
+            width: '100%',
+            height: 'auto',
+            objectFit: 'contain',
+            backgroundColor: 'var(--background-subtle, #f6f6f6)'
+          }}
+          loading='lazy'
+        />
+      </button>
+    )
+  }
+
+  if (firstVideo) {
+    const videoIndex = media.indexOf(firstVideo)
+    return (
+      <button
+        type='button'
+        onClick={(event) => handleMediaClick(event, videoIndex)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            handleMediaClick(event, videoIndex)
+          }
+        }}
+        className='relative block w-full overflow-hidden rounded-xl bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+        aria-label='Video öffnen'
+        title='Video öffnen'
+      >
+        {firstVideo.poster ? (
+          <img
+            src={firstVideo.poster}
+            alt={firstVideo.alt || ''}
+            className='w-full rounded-xl object-cover opacity-80'
+            style={{ maxHeight: config?.singleMax ?? 256, width: '100%' }}
+            loading='lazy'
+          />
+        ) : (
+          <div className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white' style={{ maxHeight: config?.singleMax ?? 256 }}>
+            <span className='text-sm uppercase tracking-wide'>Video</span>
+          </div>
+        )}
+        <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+          <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'><TriangleRightIcon className='h-6 w-6 translate-x-[1px]' /></span>
+        </span>
+      </button>
+    )
+  }
+
+  return null
 }
 
 export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all', onViewMedia }) {

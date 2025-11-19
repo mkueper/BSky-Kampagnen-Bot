@@ -8,6 +8,8 @@
 
 ### Client
 - Der `useBskyEngagement`-Hook wurde angepasst, um die vereinheitlichten `likesCount`- und `repostsCount`-Werte vom Backend korrekt zu verarbeiten und darzustellen.
+- **Feature:** Medien (Bilder/Videos) in Antwort-Benachrichtigungen werden nun direkt in der Mitteilungsansicht als Vorschau angezeigt und können in der Lightbox geöffnet werden.
+- **Bugfix:** Medien in Antwort-Benachrichtigungen werden nun korrekt extrahiert und zusammen mit dem Antworttext in einem einheitlichen Container angezeigt. Dies behebt ein Problem, bei dem Medien aufgrund einer falschen Datenextraktion und URL-Generierung nicht sichtbar waren.
 
 ## 2025-11-18
 

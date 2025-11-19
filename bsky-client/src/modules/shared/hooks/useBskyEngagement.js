@@ -121,6 +121,7 @@ export function useBskyEngagement({
 
   useEffect(() => {
     if (fetchOnMount) {
+      
        console.log('useBskyEngagement: Fetching on mount for', uri);
       refresh();
     }
