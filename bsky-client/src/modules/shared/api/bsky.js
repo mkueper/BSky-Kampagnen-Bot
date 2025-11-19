@@ -290,6 +290,23 @@ export async function fetchNotifications({ cursor, markSeen } = {}) {
   };
 }
 
+export async function fetchUnreadNotificationsCount () {
+  try {
+    const data = await requestJson('/api/bsky/notifications/unread-count')
+    return {
+      unreadCount: Number(data?.unreadCount) || 0
+    }
+  } catch (error) {
+    if (error?.status === 404) {
+      const fallback = await fetchNotifications()
+      return {
+        unreadCount: Number(fallback?.unreadCount) || 0
+      }
+    }
+    throw error
+  }
+}
+
 export async function fetchThread(uri) {
   const params = createSearchParams();
   params.set('uri', uri);

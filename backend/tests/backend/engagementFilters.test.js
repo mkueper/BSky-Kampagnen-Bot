@@ -26,7 +26,7 @@ describe('engagement filters (mastodon skip without ids)', () => {
     vi.spyOn(models.SkeetReaction, 'bulkCreate').mockResolvedValue([])
     // Bluesky client stubs
     const bsky = require('@core/services/blueskyClient')
-    vi.spyOn(bsky, 'getReactions').mockResolvedValue({ likes: [], reposts: [] })
+    vi.spyOn(bsky, 'getReactions').mockResolvedValue({ likesCount: 0, repostsCount: 0 })
     vi.spyOn(bsky, 'getReplies').mockResolvedValue([])
     // Mastodon client: ensure not called
     const masto = require('@core/services/mastodonClient')
@@ -42,4 +42,3 @@ describe('engagement filters (mastodon skip without ids)', () => {
     expect(ctxSpy).not.toHaveBeenCalled()
   })
 })
-

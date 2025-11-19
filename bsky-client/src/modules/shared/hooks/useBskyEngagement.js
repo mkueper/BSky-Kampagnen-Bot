@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   fetchReactions,
   likePost,
@@ -18,6 +18,7 @@ export function useBskyEngagement({
   initialLikes = 0,
   initialReposts = 0,
   viewer = {},
+  fetchOnMount = false,
 } = {}) {
   const [likeUri, setLikeUri] = useState(viewer?.like || null);
   const [repostUri, setRepostUri] = useState(viewer?.repost || null);
@@ -106,8 +107,8 @@ export function useBskyEngagement({
       const targetUri = String(uri || '').trim();
       if (!targetUri) throw new Error('Ungueltiger Beitrag.');
       const data = await fetchReactions({ uri: targetUri });
-      if (data?.likes != null) setLikeCount(toNumber(data.likes));
-      if (data?.reposts != null) setRepostCount(toNumber(data.reposts));
+      if (data?.likesCount != null) setLikeCount(toNumber(data.likesCount));
+      if (data?.repostsCount != null) setRepostCount(toNumber(data.repostsCount));
       setError('');
     } catch (err) {
       setError(err?.message || 'Aktualisieren fehlgeschlagen');
@@ -118,6 +119,12 @@ export function useBskyEngagement({
 
   const clearError = useCallback(() => setError(''), []);
 
+  useEffect(() => {
+    if (fetchOnMount) {
+      // console.log('useBskyEngagement: Fetching on mount for', uri);
+      refresh();
+    }
+  }, [fetchOnMount, uri]);
   return {
     likeUri,
     repostUri,
@@ -134,4 +141,3 @@ export function useBskyEngagement({
     clearError,
   };
 }
-

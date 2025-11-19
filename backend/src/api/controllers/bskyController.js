@@ -445,6 +445,17 @@ async function getNotifications (req, res) {
   }
 }
 
+async function getNotificationsUnreadCount (req, res) {
+  try {
+    const data = await bsky.getNotifications({ limit: 1 })
+    const unreadCount = Number(data?.unreadCount) || 0
+    res.json({ unreadCount })
+  } catch (error) {
+    log.error('notifications unread count failed', { error: error?.message || String(error) })
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden des Mitteilungsstatus.' })
+  }
+}
+
 async function getThread(req, res) {
   try {
     const uri = String(req.query?.uri || '').trim()
@@ -470,9 +481,9 @@ async function getReactions(req, res) {
     const uri = String(req.query?.uri || req.body?.uri || '').trim()
     if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
     const r = await bsky.getReactions(uri)
-    const likes = typeof r?.likesCount === 'number' ? r.likesCount : Array.isArray(r?.likes) ? r.likes.length : 0
-    const reposts = typeof r?.repostsCount === 'number' ? r.repostsCount : Array.isArray(r?.reposts) ? r.reposts.length : 0
-    res.json({ likes, reposts })
+    const likesCount = typeof r?.likesCount === 'number' ? r.likesCount : 0
+    const repostsCount = typeof r?.repostsCount === 'number' ? r.repostsCount : 0
+    res.json({ likesCount, repostsCount })
   } catch (error) {
     log.error('reactions failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Reaktionen.' })
@@ -955,6 +966,7 @@ function handleFeedError (res, error, fallback, scope) {
 module.exports = {
   getTimeline,
   getNotifications,
+  getNotificationsUnreadCount,
   getThread,
   getReactions,
   registerPushSubscription,

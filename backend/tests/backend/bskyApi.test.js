@@ -12,14 +12,14 @@ describe('bsky API', () => {
 
   it('GET /api/bsky/reactions counts likes/reposts', async () => {
     const bsky = require('@core/services/blueskyClient')
-    vi.spyOn(bsky, 'getReactions').mockResolvedValue({ likes: [1,2], reposts: [1] })
+    vi.spyOn(bsky, 'getReactions').mockResolvedValue({ likesCount: 2, repostsCount: 1 })
     const req = { query: { uri: 'at://post' } }
     let payload = null
     const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
     const ctrl = loadController()
     await ctrl.getReactions(req, res)
-    expect(payload?.likes).toBe(2)
-    expect(payload?.reposts).toBe(1)
+    expect(payload?.likesCount).toBe(2)
+    expect(payload?.repostsCount).toBe(1)
   })
 
   it('POST /api/bsky/reply validates input', async () => {

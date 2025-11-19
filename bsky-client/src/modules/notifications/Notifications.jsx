@@ -8,6 +8,20 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
+const MENTION_REASONS = new Set(['mention', 'reply', 'quote'])
+
+function getNotificationId (entry) {
+  if (!entry) return ''
+  return (
+    entry.uri ||
+    entry.cid ||
+    entry.reasonSubject ||
+    entry.indexedAt ||
+    ''
+  )
+}
+
+
 const REASON_COPY = {
   like: {
     label: 'Like',
@@ -281,10 +295,6 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
 
-  const authorDisplayName = author.displayName || author.handle || ''
-  const authorLabel = authorDisplayName || 'Unbekannt'
-  const authorFallbackHint = authorDisplayName ? '' : 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.'
-
   const markAsRead = useCallback(() => {
     if (!isRead && typeof onMarkRead === 'function') {
       onMarkRead(item)
@@ -332,6 +342,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     onSelectSubject(buildThreadTarget(finalTarget))
   }, [onSelectSubject, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
+  const authorDisplayName = author.displayName || author.handle || ''
+  const authorLabel = authorDisplayName || 'Unbekannt'
+  const authorFallbackHint = authorDisplayName ? '' : 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.'
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
   const openProfileViewer = useCallback(() => {
@@ -408,13 +421,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
             <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
           ) : null}
           {recordText ? (
-            <p
-              className={`rounded-2xl border px-3 py-2 text-sm ${
-                isReply
-                  ? 'border-primary/60 bg-primary/20 text-foreground shadow-[0_18px_45px_-18px_rgba(14,165,233,0.9)]'
-                  : 'border-border bg-background-subtle text-foreground'
-              }`}
-            >
+            <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
               <RichText text={recordText} className='whitespace-pre-wrap break-words' />
             </p>
           ) : null}
@@ -423,7 +430,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               subject={subject}
               reason={reason}
               threadTarget={resolvedThreadTarget}
-              onSelect={canOpenSubject && resolvedThreadTarget ? (() => handleSelectSubject(resolvedThreadTarget)) : undefined}
+              onSelect={canOpenSubject ? handleSelectSubject : undefined}
               onSelectQuoted={handleSelectSubject}
               onViewMedia={onViewMedia}
             />
@@ -440,13 +447,13 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
               title='Antworten'
-          onClick={() => {
-            if (typeof onReply === 'function') {
-              clearError()
-              onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
-            }
-          }}
-        >
+              onClick={() => {
+                if (typeof onReply === 'function') {
+                  clearError()
+                  onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
+                }
+              }}
+            >
               <ChatBubbleIcon className='h-5 w-5' />
               <span>Antworten</span>
             </button>
@@ -513,7 +520,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     ? (quoted.author.displayName || quoted.author.handle || 'Unbekannt')
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
-  const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget)
+  const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget || subject)
   const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
 
   const handleSelectSubject = useCallback((event) => {
@@ -521,8 +528,8 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     if (event?.target?.closest?.('a, button')) return
     event.preventDefault()
     event.stopPropagation()
-    onSelect(subject)
-  }, [canOpenSubject, onSelect, subject])
+    onSelect(threadTarget || subject)
+  }, [canOpenSubject, onSelect, subject, threadTarget])
 
   const handleSelectQuoted = useCallback((event) => {
     if (!canOpenQuoted) return
@@ -798,16 +805,20 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead) return
-    const targetId = notification.uri || notification.cid || notification.indexedAt
+
+    const targetId = getNotificationId(notification)
+    if (!targetId) return
+
     setItems(prev =>
       prev.map(entry => {
-        const entryId = entry?.uri || entry?.cid || entry?.indexedAt
+        const entryId = getNotificationId(entry)
         if (entryId === targetId) {
           return entry.isRead ? entry : { ...entry, isRead: true }
         }
         return entry
       })
     )
+
     setUnreadCount(current => {
       if (current <= 0) return 0
       const next = current - 1
@@ -831,16 +842,16 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
       rootMargin: '200px 0px 200px 0px'
     })
     const target = loadMoreTriggerRef.current
-    observer.observe(target)
+    if (target) observer.observe(target)
     return () => {
-      observer.unobserve(target)
+      if (target) observer.unobserve(target)
+      observer.disconnect()
     }
   }, [hasMore, loadMore])
 
   const filteredItems = useMemo(() => {
     if (activeTab === 'mentions') {
-      const mentionReasons = new Set(['mention', 'reply', 'quote'])
-      return items.filter((entry) => mentionReasons.has(entry?.reason))
+      return items.filter((entry) => MENTION_REASONS.has(entry?.reason))
     }
     return items
   }, [activeTab, items])
@@ -882,19 +893,22 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
-        {filteredItems.map((item, idx) => (
-          <li key={`${item.uri || item.cid || item.reasonSubject || 'notification'}-${idx}`}>
-            <NotificationCard
-              item={item}
-              onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
-              onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
-              onReply={onReply}
-              onQuote={onQuote}
-              onMarkRead={handleMarkRead}
-              onViewMedia={onViewMedia}
-            />
-          </li>
-        ))}
+        {filteredItems.map((item, idx) => {
+          const itemId = getNotificationId(item)
+          return (
+            <li key={itemId || `notification-${idx}`}>
+              <NotificationCard
+                item={item}
+                onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
+                onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
+                onReply={onReply}
+                onQuote={onQuote}
+                onMarkRead={handleMarkRead}
+                onViewMedia={onViewMedia}
+              />
+            </li>
+          )
+        })}
       </ul>
       {hasMore ? (
         <div

@@ -296,22 +296,39 @@ async function unregisterPushSubscription (payload = {}) {
  * @param {string[]} uris Liste von at:// URIs
  * @returns {Promise<object[]>} Aggregierte Posts
  */
-async function getPostsByUri (uris = []) {
+async function getPostsByUri (uris = [], { includeCounts = false } = {}) {
   await ensureLoggedIn();
   const list = Array.isArray(uris) ? uris.filter(Boolean) : [];
   if (!list.length) return [];
   const chunkSize = 25;
   const posts = [];
+  const promises = [];
   for (let i = 0; i < list.length; i += chunkSize) {
     const chunk = list.slice(i, i + chunkSize);
-    try {
-      const res = await agent.app.bsky.feed.getPosts({ uris: chunk });
-      if (Array.isArray(res?.data?.posts)) posts.push(...res.data.posts);
-    } catch (error) {
-      log.warn('getPosts chunk failed', { error: error?.message || String(error), size: chunk.length });
-    }
+    promises.push(
+      (async () => {
+        try {
+          const res = await agent.app.bsky.feed.getPosts({ uris: chunk });
+          if (Array.isArray(res?.data?.posts)) {
+            if (includeCounts) {
+              for (const post of res.data.posts) {
+                const counts = await getReactions(post.uri).catch(() => ({ likesCount: post.likeCount || 0, repostsCount: post.repostCount || 0 }));
+                post.likeCount = counts.likesCount;
+                post.repostCount = counts.repostsCount;
+              }
+            }
+            posts.push(...res.data.posts);
+          }
+        } catch (error) {
+          log.warn('getPosts chunk failed', { error: error?.message || String(error), size: chunk.length });
+        }
+      })()
+    );
   }
-  return posts;
+  await Promise.all(promises);
+  // Sortiere die Ergebnisse in der ursprünglichen Reihenfolge der URIs
+  const uriMap = new Map(posts.map(p => [p.uri, p]));
+  return list.map(uri => uriMap.get(uri)).filter(Boolean);
 }
 
 async function getPreferencesWrapper () {

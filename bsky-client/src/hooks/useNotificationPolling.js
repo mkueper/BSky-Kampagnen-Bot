@@ -1,14 +1,16 @@
 import { useEffect } from 'react'
 import useSWR from 'swr'
-import { fetcher } from '../lib/fetcher'
+import { fetchUnreadNotificationsCount } from '../modules/shared'
+
+const UNREAD_COUNT_SWR_KEY = 'bsky:notifications-unread-count'
 
 export function useNotificationPolling (dispatch) {
-  const { data } = useSWR('/api/bsky/notifications', fetcher, {
+  const { data } = useSWR(UNREAD_COUNT_SWR_KEY, fetchUnreadNotificationsCount, {
     refreshInterval: 60000
   })
 
   useEffect(() => {
-    if (data?.unreadCount !== undefined) {
+    if (typeof data?.unreadCount === 'number') {
       dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: data.unreadCount })
     }
   }, [data, dispatch])

@@ -69,16 +69,6 @@ function normalizeTargetList(skeet) {
   return { platformResults, platformSet };
 }
 
-function resolveReactionCount(payload, key) {
-  if (!payload || typeof payload !== 'object') return 0;
-  const countKey = `${key}Count`;
-  if (typeof payload[countKey] === 'number') {
-    return payload[countKey];
-  }
-  const list = payload[key];
-  return Array.isArray(list) ? list.length : 0;
-}
-
 function decodeHtmlEntities(value) {
   if (typeof value !== 'string') {
     return '';
@@ -163,8 +153,8 @@ async function collectReactions(skeetId) {
   if (blueskySent && blueskyUri) {
     try {
       const reactions = await getBlueskyReactions(blueskyUri);
-      const likes = resolveReactionCount(reactions, 'likes');
-      const reposts = resolveReactionCount(reactions, 'reposts');
+      const likes = reactions.likesCount;
+      const reposts = reactions.repostsCount;
       perPlatform.bluesky = { likes, reposts };
       totalLikes += likes;
       totalReposts += reposts;

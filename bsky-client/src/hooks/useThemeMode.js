@@ -20,7 +20,8 @@ export function useThemeMode({
     if (stored && themeList.includes(stored)) return stored
 
     // eslint-disable-next-line no-undef
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
+    //const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
     // Fallback auf 'dark' nur, wenn es auch existiert
     if (prefersDark && themeList.includes('dark')) return 'dark'
 

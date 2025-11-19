@@ -1,5 +1,14 @@
 # Unreleased Notes
 
+## 2025-11-19
+
+### Backend
+- **Bugfix:** Ein Fehler wurde behoben, bei dem die Zählung von Likes/Reposts inkonsistent war. In der gesamten Anwendung wird nun einheitlich die Struktur `{ likesCount: number, repostsCount: number }` verwendet, anstatt eines Mix aus Zählern und Arrays. Dies korrigiert einen fehlschlagenden Test in `bskyApi.test.js` und stabilisiert die Datenverarbeitung in `engagementService` und `threadEngagementService`.
+- **Refactoring:** Der `bskyController` wurde korrigiert, um die korrekten Zähler für Reaktionen in der API-Antwort zurückzugeben.
+
+### Client
+- Der `useBskyEngagement`-Hook wurde angepasst, um die vereinheitlichten `likesCount`- und `repostsCount`-Werte vom Backend korrekt zu verarbeiten und darzustellen.
+
 ## 2025-11-18
 
 ### Client
