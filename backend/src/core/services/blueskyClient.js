@@ -190,10 +190,14 @@ async function getReactions(postUri) {
   const targetPost = threadNode?.post || threadNode;
   const likeCount = Number(targetPost?.likeCount) || 0;
   const repostCount = Number(targetPost?.repostCount) || 0;
-  log.debug('Bluesky Reactions geladen', { uri: postUri, likes: likeCount, reposts: repostCount });
+  const replyCount = Number(targetPost?.replyCount) || 0;
+  const viewer = targetPost?.viewer || {};
+  log.debug('Bluesky Reactions geladen', { uri: postUri, likes: likeCount, reposts: repostCount, replies: replyCount });
   return {
-    likesCount: likeCount,
-    repostsCount: repostCount,
+    likeCount,
+    repostCount,
+    replyCount,
+    viewer
   };
 }
 
@@ -529,23 +533,23 @@ module.exports = {
    * @param {string} cid CID des Posts
    * @returns {Promise<string>} URI des Like-Records
    */
-  async likePost(uri, cid) {
+  async likePost (uri, cid) {
     await ensureLoggedIn();
-    const res = await agent.com.atproto.repo.createRecord({
+    await agent.com.atproto.repo.createRecord({
       repo: agent.session.did,
       collection: 'app.bsky.feed.like',
       record: {
         subject: { uri, cid },
         createdAt: new Date().toISOString(),
       }
-    })
-    return res?.uri || res?.data?.uri || null;
+    });
+    return getReactions(uri);
   },
   /**
    * Entfernt ein Like-Record.
    * @param {string} likeUri at:// URI des Like-Records
    */
-  async unlikePost(likeUri) {
+  async unlikePost (likeUri, postUri) {
     await ensureLoggedIn();
     const parts = String(likeUri || '').split('/');
     const rkey = parts[parts.length - 1];
@@ -553,7 +557,9 @@ module.exports = {
       repo: agent.session.did,
       collection: 'app.bsky.feed.like',
       rkey
-    })
+    });
+    if (postUri) return getReactions(postUri);
+    return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: {} };
   },
   /**
    * Erstellt einen Repost-Record für den angegebenen Post.
@@ -561,23 +567,23 @@ module.exports = {
    * @param {string} cid CID des Posts
    * @returns {Promise<string>} URI des Repost-Records
    */
-  async repostPost(uri, cid) {
+  async repostPost (uri, cid) {
     await ensureLoggedIn();
-    const res = await agent.com.atproto.repo.createRecord({
+    await agent.com.atproto.repo.createRecord({
       repo: agent.session.did,
       collection: 'app.bsky.feed.repost',
       record: {
         subject: { uri, cid },
         createdAt: new Date().toISOString(),
       }
-    })
-    return res?.uri || res?.data?.uri || null;
+    });
+    return getReactions(uri);
   },
   /**
    * Entfernt einen Repost-Record.
    * @param {string} repostUri at:// URI des Repost-Records
    */
-  async unrepostPost(repostUri) {
+  async unrepostPost (repostUri, postUri) {
     await ensureLoggedIn();
     const parts = String(repostUri || '').split('/');
     const rkey = parts[parts.length - 1];
@@ -585,7 +591,9 @@ module.exports = {
       repo: agent.session.did,
       collection: 'app.bsky.feed.repost',
       rkey
-    })
+    });
+    if (postUri) return getReactions(postUri);
+    return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: {} };
   },
   /**
    * Durchsucht Bluesky-Posts (Tabs „Top“/„Latest“ im Client).

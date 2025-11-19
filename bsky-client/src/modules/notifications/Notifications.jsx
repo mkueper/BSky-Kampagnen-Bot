@@ -12,13 +12,12 @@ const MENTION_REASONS = new Set(['mention', 'reply', 'quote'])
 
 function getNotificationId (entry) {
   if (!entry) return ''
-  return (
-    entry.uri ||
-    entry.cid ||
-    entry.reasonSubject ||
-    entry.indexedAt ||
-    ''
-  )
+  if (entry.groupKey) {
+    return entry.groupKey
+  }
+  // Für einzelne Benachrichtigungen ist die URI der eindeutige Schlüssel.
+  // Der Zeitstempel dient als Fallback, um Kollisionen bei fehlenden URIs zu vermeiden.
+  return entry.uri || `${entry.reason}:${entry.reasonSubject}:${entry.indexedAt}`
 }
 
 
@@ -346,9 +345,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   } = useBskyEngagement({
     uri: item?.uri,
     cid: item?.cid || record?.cid,
-    initialLikes: item?.stats?.likeCount,
-    initialReposts: item?.stats?.repostCount,
-    viewer: item?.viewer,
+    initialLikes: record?.stats?.likeCount,
+    initialReposts: record?.stats?.repostCount,
+    viewer: record?.viewer || item?.viewer,
   })
 
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
@@ -522,7 +521,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               }}
             >
               <ChatBubbleIcon className='h-5 w-5' />
-              <span>Antworten</span>
+              <span className='tabular-nums'>{record?.stats?.replyCount ?? 0}</span>
             </button>
             <RepostMenuButton
               count={repostCount}

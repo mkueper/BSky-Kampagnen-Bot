@@ -9,7 +9,9 @@
 ### Client
 - Der `useBskyEngagement`-Hook wurde angepasst, um die vereinheitlichten `likesCount`- und `repostsCount`-Werte vom Backend korrekt zu verarbeiten und darzustellen.
 - **Feature:** Medien (Bilder/Videos) in Antwort-Benachrichtigungen werden nun direkt in der Mitteilungsansicht als Vorschau angezeigt und können in der Lightbox geöffnet werden.
-- **Bugfix:** Medien in Antwort-Benachrichtigungen werden nun korrekt extrahiert und zusammen mit dem Antworttext in einem einheitlichen Container angezeigt. Dies behebt ein Problem, bei dem Medien aufgrund einer falschen Datenextraktion und URL-Generierung nicht sichtbar waren.
+- **Bugfix:** Eine React-Warnung wegen doppelter Schlüssel (`duplicate key`) in der Mitteilungsliste wurde behoben. Gruppierte Benachrichtigungen (z.B. mehrere Likes) erhalten nun einen stabilen, einzigartigen Schlüssel, was das Rendering effizienter und fehlerfrei macht.
+- **Feature:** Antwort-Benachrichtigungen zeigen nun direkt im Footer die Anzahl der Likes, Reposts und Antworten an. Die Daten werden effizient im Backend abgerufen, um das Frontend zu entlasten.
+- **Bugfix:** Der Interaktionsstatus (Like/Repost) in Mitteilungen bleibt nun nach einem Refresh erhalten. Die API gibt nach einer Aktion den aktualisierten `viewer`-Status zurück, der im Frontend korrekt synchronisiert wird.
 
 ## 2025-11-18
 

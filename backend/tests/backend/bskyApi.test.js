@@ -18,8 +18,8 @@ describe('bsky API', () => {
     const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
     const ctrl = loadController()
     await ctrl.getReactions(req, res)
-    expect(payload?.likesCount).toBe(2)
-    expect(payload?.repostsCount).toBe(1)
+    expect(payload?.likeCount).toBe(2)
+    expect(payload?.repostCount).toBe(1)
   })
 
   it('POST /api/bsky/reply validates input', async () => {

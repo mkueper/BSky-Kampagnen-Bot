@@ -48,16 +48,16 @@ export function useBskyEngagement({
         const { targetUri, targetCid } = ensureTarget();
         const data = await likePost({ uri: targetUri, cid: targetCid });
         setLikeUri(data?.viewer?.like || null);
-        if (data?.totals?.likes != null) {
-          setLikeCount(toNumber(data.totals.likes, likeCount));
+        if (data?.likeCount != null) {
+          setLikeCount(toNumber(data.likeCount, likeCount));
         } else {
           setLikeCount((count) => count + 1);
         }
       } else if (likeUri) {
-        const data = await unlikePost({ likeUri });
+        const data = await unlikePost({ likeUri, postUri: uri }); // postUri für Re-Fetch
         setLikeUri(null);
-        if (data?.totals?.likes != null) {
-          setLikeCount(toNumber(data.totals.likes, likeCount));
+        if (data?.likeCount != null) {
+          setLikeCount(toNumber(data.likeCount, likeCount));
         } else {
           setLikeCount((count) => Math.max(0, count - 1));
         }
@@ -68,7 +68,7 @@ export function useBskyEngagement({
     } finally {
       setBusy(false);
     }
-  }, [busy, hasLiked, likeUri, ensureTarget, likeCount]);
+  }, [busy, hasLiked, likeUri, ensureTarget, likeCount, uri]);
 
   const toggleRepost = useCallback(async () => {
     if (busy) return;
@@ -78,16 +78,16 @@ export function useBskyEngagement({
         const { targetUri, targetCid } = ensureTarget();
         const data = await repostPost({ uri: targetUri, cid: targetCid });
         setRepostUri(data?.viewer?.repost || null);
-        if (data?.totals?.reposts != null) {
-          setRepostCount(toNumber(data.totals.reposts, repostCount));
+        if (data?.repostCount != null) {
+          setRepostCount(toNumber(data.repostCount, repostCount));
         } else {
           setRepostCount((count) => count + 1);
         }
       } else if (repostUri) {
-        const data = await unrepostPost({ repostUri });
+        const data = await unrepostPost({ repostUri, postUri: uri }); // postUri für Re-Fetch
         setRepostUri(null);
-        if (data?.totals?.reposts != null) {
-          setRepostCount(toNumber(data.totals.reposts, repostCount));
+        if (data?.repostCount != null) {
+          setRepostCount(toNumber(data.repostCount, repostCount));
         } else {
           setRepostCount((count) => Math.max(0, count - 1));
         }
@@ -98,7 +98,7 @@ export function useBskyEngagement({
     } finally {
       setBusy(false);
     }
-  }, [busy, hasReposted, repostUri, ensureTarget, repostCount]);
+  }, [busy, hasReposted, repostUri, ensureTarget, repostCount, uri]);
 
   const refresh = useCallback(async () => {
     if (refreshing) return;

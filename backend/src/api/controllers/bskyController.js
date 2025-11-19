@@ -165,7 +165,8 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
       }
     }
   }
-  return {
+
+  const baseEntry = {
     uri: entry.uri || null,
     cid: entry.cid || null,
     reason: entry.reason || 'unknown',
@@ -182,12 +183,22 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
       type: record.$type || null,
       text: typeof record.text === 'string' ? record.text : '',
       reply: record.reply || null,
-      embed: record.embed || null
+      embed: record.embed || null,
+      stats: record.stats || null,
+      viewer: record.viewer || null
     },
     subject,
     raw: entry,
     additionalCount
+  };
+
+  if (additionalCount > 0) {
+    baseEntry.groupKey = `group:${baseEntry.reason}:${baseEntry.reasonSubject}`;
+    baseEntry.uri = null; // Wichtig, um Key-Konflikte zu vermeiden
+    baseEntry.cid = null; // Wichtig, um Key-Konflikte zu vermeiden
   }
+
+  return baseEntry;
 }
 
 function mapSearchPost (post) {
@@ -396,7 +407,21 @@ async function getNotifications (req, res) {
     const cursor = req.query.cursor || undefined
     const markSeen = String(req.query.markSeen || '').toLowerCase() === 'true'
     const data = await bsky.getNotifications({ limit, cursor })
+
+    // Zähler für Antworten parallel abrufen
     const notifications = Array.isArray(data?.notifications) ? data.notifications : []
+    const replyNotifications = notifications.filter(n => n.reason === 'reply' && n.uri)
+    const reactionPromises = replyNotifications.map(n =>
+      bsky.getReactions(n.uri)
+        .then(stats => ({ uri: n.uri, stats }))
+        .catch(error => {
+          log.warn('Konnte Reaktionen für Antwort-Benachrichtigung nicht laden', { uri: n.uri, error: error.message })
+          return { uri: n.uri, stats: null }
+        })
+    )
+    const reactionResults = await Promise.all(reactionPromises)
+    const reactionMap = new Map(reactionResults.map(r => [r.uri, r.stats]))
+
     const subjectUris = Array.from(
       new Set(
         notifications.flatMap((entry) => {
@@ -425,6 +450,18 @@ async function getNotifications (req, res) {
     const items = aggregated
       .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
       .filter(Boolean)
+
+    // Zähler in die finalen Elemente einfügen
+    for (const item of items) {
+      if (item.reason === 'reply' && item.uri && reactionMap.has(item.uri)) {
+        const reactionData = reactionMap.get(item.uri)
+        if (reactionData) {
+          const { viewer, ...stats } = reactionData
+          item.record.stats = stats
+          if (viewer) item.record.viewer = viewer
+        }
+      }
+    }
     if (markSeen) {
       try {
         await bsky.markNotificationsSeen()
