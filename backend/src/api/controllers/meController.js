@@ -1,6 +1,8 @@
 const bskyController = require('@api/controllers/bskyController');
 const { getBlueskyCredentials } = require('@core/services/credentialsService');
 
+
+// eslint-disable-next-line no-unused-vars
 async function getMe(req, res, next) {
   try {
     const { handle } = getBlueskyCredentials();
