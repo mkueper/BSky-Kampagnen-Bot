@@ -344,7 +344,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const shareUrl = useMemo(() => buildShareUrl(item), [item])
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [menuPositionClass, setMenuPositionClass] = useState('bottom-full mb-2')
   const menuRef = useRef(null)
+  const optionsButtonRef = useRef(null)
 
   useEffect(() => {
     if (!optionsOpen) return undefined
@@ -359,7 +361,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       document.removeEventListener('pointerdown', handler)
     }
   }, [optionsOpen])
-
 
   const copyToClipboard = async (value, successMessage = 'Kopiert') => {
     if (!value) return
@@ -781,11 +782,22 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           <button
             type='button'
             className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+            ref={optionsButtonRef}
             aria-label='Mehr Optionen'
-            onClick={(event) => {
+            onPointerDown={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              setOptionsOpen((prev) => !prev)
+              // Wenn das Menü bereits offen ist, schließe es einfach.
+              if (optionsOpen) {
+                setOptionsOpen(false)
+                return
+              }
+              if (optionsButtonRef.current) {
+                const buttonRect = optionsButtonRef.current.getBoundingClientRect()
+                // Geschätzte Menühöhe (ca. 300px)
+                setMenuPositionClass(buttonRect.top < 500 ? 'top-full mt-2' : 'bottom-full mb-2')
+              }
+              setOptionsOpen(true) // Jetzt öffnen
             }}
           >
             <DotsHorizontalIcon className='h-5 w-5' />
@@ -793,7 +805,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           {optionsOpen ? (
             <div
               ref={menuRef}
-              className='absolute right-0 bottom-full z-20 mb-2 w-60 rounded-2xl border border-border bg-background shadow-2xl'
+              className={`absolute right-0 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl ${menuPositionClass}`}
             >
               <ul className='py-1 text-sm'>
                 {menuActions.map((entry) => {
