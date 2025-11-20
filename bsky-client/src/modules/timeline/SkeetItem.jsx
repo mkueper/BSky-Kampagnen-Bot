@@ -347,6 +347,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [menuPositionClass, setMenuPositionClass] = useState('bottom-full mb-2')
   const menuRef = useRef(null)
   const optionsButtonRef = useRef(null)
+  const menuHeightRef = useRef(null)
 
   useEffect(() => {
     if (!optionsOpen) return undefined
@@ -787,26 +788,35 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             onPointerDown={(event) => {
               event.preventDefault()
               event.stopPropagation()
-              // Wenn das Menü bereits offen ist, schließe es einfach.
               if (optionsOpen) {
                 setOptionsOpen(false)
                 return
               }
+              
+              if (menuRef.current && !menuHeightRef.current) {
+                menuHeightRef.current = Math.ceil(menuRef.current.getBoundingClientRect().height) || 300
+              }
+
               if (optionsButtonRef.current) {
                 const buttonRect = optionsButtonRef.current.getBoundingClientRect()
-                // Geschätzte Menühöhe (ca. 300px)
-                setMenuPositionClass(buttonRect.top < 500 ? 'top-full mt-2' : 'bottom-full mb-2')
+                const menuHeight = menuHeightRef.current || 320
+                const headerHeight = 100 // Angepasste Header-Höhe
+                const availableTopSpace = Math.trunc(buttonRect.top - headerHeight)
+                console.log(availableTopSpace, menuHeight, headerHeight)
+
+                setMenuPositionClass(availableTopSpace < menuHeight ? 'top-full mt-2' : 'bottom-full mb-2')
               }
               setOptionsOpen(true) // Jetzt öffnen
             }}
           >
             <DotsHorizontalIcon className='h-5 w-5' />
           </button>
-          {optionsOpen ? (
-            <div
-              ref={menuRef}
-              className={`absolute right-0 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl ${menuPositionClass}`}
-            >
+          <div
+            ref={menuRef}
+            className={`absolute right-0 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl transition-opacity duration-100 ${menuPositionClass} ${
+              optionsOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          >
               <ul className='py-1 text-sm'>
                 {menuActions.map((entry) => {
                   const Icon = entry.icon
@@ -832,7 +842,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 })}
               </ul>
             </div>
-          ) : null}
         </div>
       </footer>
       {feedbackMessage ? (
