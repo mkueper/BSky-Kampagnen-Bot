@@ -4,6 +4,7 @@ import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 import { PlusIcon, SunIcon, MoonIcon, ShadowIcon, Half2Icon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
 import { useThemeMode } from '../../hooks/useThemeMode'
+import { useLayout } from '../../context/LayoutContext'
 
 const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'dashboard']
 const MOBILE_NAV_HEIGHT = 72
@@ -98,6 +99,7 @@ export default function BskyClientLayout ({
     defaultTheme: 'dark'
   })
   const ThemeIcon = ActiveThemeIcon || SunIcon
+  const { setHeaderRef } = useLayout()
   const themeToggleProps = {
     label: currentThemeConfig?.label || 'Theme',
     nextLabel: nextThemeLabel,
@@ -195,6 +197,7 @@ export default function BskyClientLayout ({
           <header
             className='sticky top-0 z-10 mb-2 rounded-2xl border border-border bg-background-elevated/80 px-2 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
             data-component='BskyTimelineHeader'
+            ref={setHeaderRef}
           >
             {headerContent}
           </header>

@@ -180,10 +180,7 @@ describe('NotificationCard interactions', () => {
 
   it('löst Reply- und Quote-Aktionen für Antwort-Benachrichtigungen aus', async () => {
     const user = userEvent.setup()
-    const item = {
-      ...createNotification({ id: 'reply-1', reason: 'reply', text: 'Reply record' }),
-      reason: 'reply'
-    }
+    const item = createNotification({ id: 'reply-1', reason: 'reply', text: 'Reply record' })
     const handleReply = vi.fn()
     const handleQuote = vi.fn()
 
@@ -195,7 +192,7 @@ describe('NotificationCard interactions', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: 'Antworten' }))
+    await user.click(screen.getByTitle('Antworten'))
     expect(handleReply).toHaveBeenCalledWith({ uri: item.uri, cid: item.cid })
 
     await user.click(screen.getByRole('button', { name: 'Quote' }))

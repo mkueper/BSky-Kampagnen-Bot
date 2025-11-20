@@ -36,6 +36,7 @@ import { useThreadActions } from './hooks/useThreadActions'
 import LoginView from './components/views/LoginView'
 import { useSession } from './hooks/useSession'
 
+import { LayoutProvider } from 'bsky-client/context/LayoutContext.jsx'
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
   bluesky: 'Bluesky',
@@ -810,7 +811,8 @@ function DashboardApp ({ session, onLogout }) {
 
   return (
     <ThemeProvider value={{
-      panelBg: 'bg-background',
+      // panelBg: 'bg-background',
+      panelBg: 'bg-background/80 backdrop-blur-lg',
       cardBg: 'bg-background',
       cardHover: false
     }}>
@@ -870,7 +872,11 @@ function App () {
     return <LoginView session={session} sessionError={error} refreshSession={refresh} />
   }
 
-  return <DashboardApp session={session?.user} onLogout={handleLogout} />
+  return (
+    <LayoutProvider>
+      <DashboardApp session={session?.user} onLogout={handleLogout} />
+    </LayoutProvider>
+  )
 }
 
 export default App

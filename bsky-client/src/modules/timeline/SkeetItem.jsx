@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { use, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChatBubbleIcon,
   HeartIcon,
@@ -17,6 +17,7 @@ import {
   CrossCircledIcon,
   TriangleRightIcon
 } from '@radix-ui/react-icons'
+import { useLayout } from '../../context/LayoutContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, Card } from '../shared'
@@ -348,6 +349,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const menuRef = useRef(null)
   const optionsButtonRef = useRef(null)
   const menuHeightRef = useRef(null)
+  const { headerHeight } = useLayout()
+  const { headerTop} = useLayout()
+
 
   useEffect(() => {
     if (!optionsOpen) return undefined
@@ -799,11 +803,11 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
               if (optionsButtonRef.current) {
                 const buttonRect = optionsButtonRef.current.getBoundingClientRect()
+                const btnHeight = buttonRect.height
+                const btnTop = Math.trunc(buttonRect.top)
                 const menuHeight = menuHeightRef.current || 320
-                const headerHeight = 100 // Angepasste Header-Höhe
-                const availableTopSpace = Math.trunc(buttonRect.top - headerHeight)
-                console.log(availableTopSpace, menuHeight, headerHeight)
-
+                const availableTopSpace = Math.trunc(buttonRect.top - headerHeight - headerTop - btnHeight - 25)
+                console.log({ availableTopSpace, menuHeight, headerHeight, headerTop, btnTop, btnHeight })
                 setMenuPositionClass(availableTopSpace < menuHeight ? 'top-full mt-2' : 'bottom-full mb-2')
               }
               setOptionsOpen(true) // Jetzt öffnen
