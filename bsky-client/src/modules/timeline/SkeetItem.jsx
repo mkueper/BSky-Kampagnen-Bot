@@ -453,51 +453,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               {new Date(createdAt).toLocaleString('de-DE')}
             </time>
           ) : null}
-          <button
-            type='button'
-            className='ml-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-            aria-label='Mehr Optionen'
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              setOptionsOpen((prev) => !prev)
-            }}
-          >
-            <DotsHorizontalIcon className='h-5 w-5' />
-          </button>
         </div>
       </header>
-      {optionsOpen ? (
-        <div
-          ref={menuRef}
-          className='absolute right-4 top-12 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl'
-        >
-          <ul className='py-1 text-sm'>
-            {menuActions.map((entry) => {
-              const Icon = entry.icon
-              return (
-                <li key={entry.label}>
-                  <button
-                    type='button'
-                    className='flex w-full items-center gap-2 px-3 py-2 text-left text-foreground hover:bg-background-subtle'
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setOptionsOpen(false)
-                      try {
-                        entry.action()
-                      } catch {}
-                    }}
-                  >
-                    {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
-                    <span>{entry.label}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ) : null}
       <p className='mt-3 text-sm text-foreground'>
         <RichText text={text} facets={item?.raw?.post?.record?.facets} className='whitespace-pre-wrap break-words' />
       </p>
@@ -807,19 +764,64 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           )}
           <span className='tabular-nums'>{likeCount}</span>
         </button>
-        <button
-          type='button'
-          className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle sm:ml-auto'
-          onClick={(event) => {
-            event?.preventDefault()
-            event?.stopPropagation()
-            copyToClipboard(shareUrl, 'Link kopiert')
-          }}
-          title='Link kopieren'
-          aria-label='Beitrag teilen'
-        >
-          <Share2Icon className='h-4 w-4' />
-        </button>
+        <div className='relative flex items-center gap-1 sm:ml-auto'>
+          <button
+            type='button'
+            className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+            onClick={(event) => {
+              event?.preventDefault()
+              event?.stopPropagation()
+              copyToClipboard(shareUrl, 'Link kopiert')
+            }}
+            title='Link kopieren'
+            aria-label='Beitrag teilen'
+          >
+            <Share2Icon className='h-4 w-4' />
+          </button>
+          <button
+            type='button'
+            className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+            aria-label='Mehr Optionen'
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              setOptionsOpen((prev) => !prev)
+            }}
+          >
+            <DotsHorizontalIcon className='h-5 w-5' />
+          </button>
+          {optionsOpen ? (
+            <div
+              ref={menuRef}
+              className='absolute right-0 bottom-full z-20 mb-2 w-60 rounded-2xl border border-border bg-background shadow-2xl'
+            >
+              <ul className='py-1 text-sm'>
+                {menuActions.map((entry) => {
+                  const Icon = entry.icon
+                  return (
+                    <li key={entry.label}>
+                      <button
+                        type='button'
+                        className='flex w-full items-center gap-2 px-3 py-2 text-left text-foreground hover:bg-background-subtle'
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setOptionsOpen(false)
+                          try {
+                            entry.action()
+                          } catch {}
+                        }}
+                      >
+                        {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
+                        <span>{entry.label}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </div>
       </footer>
       {feedbackMessage ? (
         <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>

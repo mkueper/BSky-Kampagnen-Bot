@@ -457,7 +457,7 @@ async function getNotifications (req, res) {
         const reactionData = reactionMap.get(item.uri)
         if (reactionData) {
           const { viewer, ...stats } = reactionData
-          item.record.stats = stats
+          item.record.stats = { ...item.record.stats, ...stats }
           if (viewer) item.record.viewer = viewer
         }
       }
