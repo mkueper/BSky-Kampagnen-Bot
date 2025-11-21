@@ -2,6 +2,8 @@ import { useCallback, useRef } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import { fetchThread as fetchThreadApi } from '../modules/shared';
 
+const HISTORY_LIMIT = 10
+
 export function useThread() {
   const { threadState } = useAppState();
   const dispatch = useAppDispatch();
@@ -17,7 +19,7 @@ export function useThread() {
     []
   );
 
-  const loadThread = useCallback(async (uri, { rememberScroll = false } = {}) => {
+  const loadThread = useCallback(async (uri, { rememberScroll = false, pushHistory = true } = {}) => {
     const normalized = String(uri || '').trim();
     if (!normalized) return;
     const requestId = ++requestIdRef.current;
@@ -25,6 +27,16 @@ export function useThread() {
     if (rememberScroll) {
       const el = getScrollContainer();
       if (el) threadScrollPosRef.current = el.scrollTop || 0;
+    }
+
+    if (
+      pushHistory &&
+      threadState.active &&
+      threadState.uri &&
+      threadState.uri !== normalized
+    ) {
+      const snapshot = { ...threadState };
+      threadHistoryRef.current = [...threadHistoryRef.current, snapshot].slice(-HISTORY_LIMIT);
     }
 
     dispatch({
@@ -87,7 +99,7 @@ export function useThread() {
   }, [loadThread, threadState.active, threadState.uri]);
 
   const reloadThread = useCallback(() => {
-    if (threadState.uri) loadThread(threadState.uri);
+    if (threadState.uri) loadThread(threadState.uri, { pushHistory: false });
   }, [threadState.uri, loadThread]);
 
   return {

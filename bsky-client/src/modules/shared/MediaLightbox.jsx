@@ -71,10 +71,9 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     }
   }, [current?.src, isHlsSource, videoActive])
 
-  if (!current) return null
-
   useEffect(() => {
     if (!mediaContainerRef.current || typeof ResizeObserver !== 'function') return undefined
+    if (!current) return undefined
     const observer = new ResizeObserver((entries) => {
       const [{ contentRect }] = entries
       setMediaWidth(contentRect?.width || 0)
@@ -84,6 +83,8 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       observer.disconnect()
     }
   }, [current])
+
+  if (!current) return null
 
   return (
     <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 pointer-events-none' data-component='BskyMediaLightbox'>

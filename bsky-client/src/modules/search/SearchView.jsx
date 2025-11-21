@@ -35,6 +35,7 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
   const [error, setError] = useState('')
   const [recentSearches, setRecentSearches] = useState([])
   const loadMoreTriggerRef = useRef(null)
+  const searchSignatureRef = useRef('')
 
   const normalizedDraft = draftQuery.trim()
   const normalizedQuery = query.trim()
@@ -128,14 +129,22 @@ export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedi
     setQuery(trimmed)
   }, [draftQuery, rememberSearch])
 
- const loadMore = useCallback(async () => {
-   if (!cursor || loading || loadingMore || !hasQuery) return
-   setLoadingMore(true)
+  useEffect(() => {
+    const signature = `${query}::${activeTab}`
+    searchSignatureRef.current = signature
+  }, [query, activeTab])
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || loading || loadingMore || !hasQuery) return
+    const requestSignature = searchSignatureRef.current
+    setLoadingMore(true)
     try {
       const { items: nextItems, cursor: nextCursor } = await searchBsky({ query, type: activeTab, cursor })
+      if (searchSignatureRef.current !== requestSignature) return
       setItems(prev => [...prev, ...nextItems])
       setCursor(nextCursor)
     } catch (err) {
+      if (searchSignatureRef.current !== requestSignature) return
       setError(err?.message || 'Weitere Ergebnisse konnten nicht geladen werden.')
     } finally {
       setLoadingMore(false)

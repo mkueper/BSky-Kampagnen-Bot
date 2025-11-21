@@ -460,7 +460,7 @@ export default function ProfileView ({
 
     loadFeed()
     return () => { ignore = true }
-  }, [profile, activeTab])
+  }, [profile, activeTab, feeds])
 
   const isOwnProfile = useMemo(() => {
     if (!profile || !me) return false

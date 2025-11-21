@@ -1,5 +1,16 @@
 # Unreleased Notes
 
+## 2025-11-21
+
+### Backend
+- **Bugfix:** Uploads, die als Data-URL via JSON eingehen, respektieren jetzt `UPLOAD_MAX_BYTES` und liefern bei zu großen Payloads HTTP 413 statt 400. Gleichzeitig wurde die Validierung für Multer-basierte Uploads gehärtet.
+
+### Client
+- **Verbesserung:** Die Thread-Ansicht merkt sich eine kleine Verlaufshistorie. Beim Schließen springt der Nutzer nun zuverlässig zum zuvor geöffneten Beitrag zurück.
+- **Bugfix:** Profil-Tabs (Beiträge/Antworten/Medien) laden nach einem Fehler wieder korrekt nach, wenn der Benutzer „Erneut versuchen“ wählt.
+- **Bugfix:** Die Suche verhindert, dass verspätete `loadMore`-Antworten Ergebnisse eines alten Queries anfügen.
+- **Bugfix:** Die Media-Lightbox hält die React-Hook-Reihenfolge stabil, selbst wenn vorübergehend kein Medium vorhanden ist – Warnungen/Memory-Leaks bleiben aus.
+
 ## 2025-11-19
 
 ### Backend
