@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const threadController = require('@api/controllers/threadController');
 const importExportController = require('@api/controllers/importExportController');
-const mediaController = require('@api/controllers/mediaController');
+const { addMedia, uploadMiddleware } = require('@api/controllers/mediaController');
 
 router.get('/export', importExportController.exportThreads);
 router.get('/', threadController.listThreads);
@@ -18,6 +18,6 @@ router.post('/engagement/refresh-all', threadController.refreshAllEngagement);
 router.post('/import', importExportController.importThreads);
 
 // Media for thread segments
-router.post('/:id/segments/:sequence/media', mediaController.addMedia);
+router.post('/:id/segments/:sequence/media', uploadMiddleware, addMedia);
 
 module.exports = router;

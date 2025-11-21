@@ -12,7 +12,7 @@ const tenorController = require("@api/controllers/tenorController");
 const bskyActionsController = require("@api/controllers/bskyActionsController");
 const maintenanceController = require("@api/controllers/maintenanceController");
 const mediaController = require("@api/controllers/mediaController");
-const uploadController = require("@api/controllers/uploadController");
+const { uploadMiddleware, uploadTemp } = require("@api/controllers/uploadController");
 const credentialsController = require("@api/controllers/credentialsController");
 const heartbeatController = require("@api/controllers/heartbeatController");
 const previewController = require("@api/controllers/previewController");
@@ -91,6 +91,6 @@ router.patch("/skeet-media/:mediaId", mediaController.updateSkeetMedia);
 router.delete("/skeet-media/:mediaId", mediaController.deleteSkeetMedia);
 
 // Temp uploads
-router.post("/uploads/temp", uploadController.uploadTemp);
+router.post("/uploads/temp", uploadMiddleware, uploadTemp);
 
 module.exports = router;

@@ -66,7 +66,7 @@
     "tools:hash-password": "node scripts/hashPassword.js"
   },
   "dependencies": {
-    "@atproto/api": "^0.15.27",
+    "@atproto/api": "^0.18.1",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.1",
@@ -74,6 +74,7 @@
     "grapheme-splitter": "^1.0.4",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.2",
+    "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
@@ -84,7 +85,7 @@
     "@vitest/ui": "^3.2.4",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^38.2.2",
+    "electron": "^39.2.3",
     "electron-builder": "^26.0.12",
     "eslint": "^9.37.0",
     "eslint-plugin-import": "^2.32.0",

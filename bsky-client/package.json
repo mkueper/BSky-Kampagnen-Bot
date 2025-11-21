@@ -16,7 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@atproto/api": "^0.13.18",
+    "@atproto/api": "^0.18.1",
     "@bsky-kampagnen-bot/shared-ui": "file:../packages/shared-ui",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",

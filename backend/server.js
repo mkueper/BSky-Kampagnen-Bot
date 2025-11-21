@@ -7,7 +7,7 @@
  * jeweiligen Controllern und Services.
  */
 
-try { require('module-alias/register'); } catch { /* Aliases optional at runtime */ }
+require('module-alias/register');
 require('express-async-errors');
 const express = require("express");
 const helmet = require("helmet");

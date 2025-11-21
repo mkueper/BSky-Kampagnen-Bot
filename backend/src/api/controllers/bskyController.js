@@ -406,10 +406,16 @@ async function getNotifications (req, res) {
     const limit = Math.min(Math.max(parseInt(req.query.limit || '40', 10) || 40, 1), 100)
     const cursor = req.query.cursor || undefined
     const markSeen = String(req.query.markSeen || '').toLowerCase() === 'true'
+    const filter = req.query.filter || 'all'
     const data = await bsky.getNotifications({ limit, cursor })
 
     // Zähler für Antworten parallel abrufen
-    const notifications = Array.isArray(data?.notifications) ? data.notifications : []
+    let notifications = Array.isArray(data?.notifications) ? data.notifications : []
+
+    if (filter === 'mentions') {
+      notifications = notifications.filter((n) => n.reason === 'reply' || n.reason === 'mention')
+    }
+
     const replyNotifications = notifications.filter(n => n.reason === 'reply' && n.uri)
     const reactionPromises = replyNotifications.map(n =>
       bsky.getReactions(n.uri)
@@ -1000,6 +1006,10 @@ function handleFeedError (res, error, fallback, scope) {
   return res.status(statusCode).json({ error: error?.message || fallback })
 }
 
+function isPostUri (value) {
+  return typeof value === 'string' && value.includes(`/${POST_RECORD_COLLECTION}/`)
+}
+
 module.exports = {
   getTimeline,
   getNotifications,
@@ -1016,8 +1026,6 @@ module.exports = {
   getFeeds,
   pinFeed,
   unpinFeed,
-  reorderPinnedFeeds
-}
-function isPostUri (value) {
-  return typeof value === 'string' && value.includes(`/${POST_RECORD_COLLECTION}/`)
+  reorderPinnedFeeds,
+  isPostUri
 }

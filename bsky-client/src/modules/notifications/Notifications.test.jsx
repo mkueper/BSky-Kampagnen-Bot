@@ -102,7 +102,7 @@ beforeEach(() => {
 })
 
 describe('Notifications', () => {
-  it('rendert Mitteilungen der ersten Seite', async () => {
+  it('rendert Mitteilungen der ersten Seite wenn activeTab="all"', async () => {
     fetchNotificationsMock.mockResolvedValueOnce({
       items: [
         createNotification({ id: '1', text: 'Alpha Text' }),
@@ -112,26 +112,27 @@ describe('Notifications', () => {
       unreadCount: 2
     })
 
-    const { container } = render(<Notifications />)
+    const { container } = render(<Notifications activeTab='all' />)
 
     await waitFor(() => {
       expect(container.querySelectorAll('[data-component="BskyNotificationCard"]').length).toBe(2)
     })
-    expect(fetchNotificationsMock).toHaveBeenCalledWith({ cursor: undefined, markSeen: true })
+    expect(fetchNotificationsMock).toHaveBeenCalledWith({ cursor: undefined, markSeen: true, filter: 'all' })
     expect(screen.getByText('Alpha Text')).toBeVisible()
     expect(screen.getByText('Bravo Text')).toBeVisible()
   })
 
-  it('filtert den Mentions-Tab und lädt zusätzliche Elemente bis zum Mindestpuffer', async () => {
+  it('lädt Erwähnungen und füllt den Puffer auf, wenn der Mentions-Tab aktiv ist', async () => {
+    // First fetch returns only one mention, which is less than the buffer
     fetchNotificationsMock
       .mockResolvedValueOnce({
         items: [
-          createNotification({ id: 'm1', reason: 'mention', text: 'Mention Body' }),
-          createNotification({ id: 'l1', reason: 'like', text: 'Like Body' })
+          createNotification({ id: 'm1', reason: 'mention', text: 'Mention Body' })
         ],
         cursor: 'cursor-1',
-        unreadCount: 2
+        unreadCount: 1
       })
+      // Second fetch is triggered to fill the buffer
       .mockResolvedValueOnce({
         items: Array.from({ length: 5 }, (_, idx) => createNotification({
           id: `more-${idx}`,
@@ -139,19 +140,24 @@ describe('Notifications', () => {
           text: `More mention ${idx}`
         })),
         cursor: null,
-        unreadCount: 1
+        unreadCount: 0
       })
 
     const { container } = render(<Notifications activeTab='mentions' />)
 
-    await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2))
-    expect(fetchNotificationsMock.mock.calls[1][0]).toEqual({ cursor: 'cursor-1', markSeen: false })
+    // Wait for both fetches to complete
+    await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2), { timeout: 2000 })
 
+    // Check the calls
+    expect(fetchNotificationsMock.mock.calls[0][0]).toEqual({ cursor: undefined, markSeen: true, filter: 'mentions' })
+    expect(fetchNotificationsMock.mock.calls[1][0]).toEqual({ cursor: 'cursor-1', markSeen: false, filter: 'mentions' })
+
+    // Check the rendered output
     await waitFor(() => {
       expect(container.querySelectorAll('[data-component="BskyNotificationCard"]').length).toBe(6)
     })
     expect(screen.getByText('Mention Body')).toBeVisible()
-    expect(screen.queryByText('Like Body')).toBeNull()
+    expect(screen.getByText('More mention 0')).toBeVisible()
   })
 })
 

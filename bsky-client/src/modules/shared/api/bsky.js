@@ -1,4 +1,4 @@
-﻿import { AtpAgent } from '@atproto/api'
+﻿import { BskyAgent } from '@atproto/api'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -169,14 +169,14 @@ function createDirectSignature (config) {
   return `${config.service}::${config.identifier}`;
 }
 
-function createAtpAgentPushTransport ({ service = DEFAULT_BSKY_SERVICE, identifier, appPassword }) {
+function createBskyAgentPushTransport ({ service = DEFAULT_BSKY_SERVICE, identifier, appPassword }) {
   const normalizedService = normalizeConfigEntry(service) || DEFAULT_BSKY_SERVICE;
   const normalizedIdentifier = normalizeConfigEntry(identifier);
   const normalizedPassword = normalizeConfigEntry(appPassword);
   if (!normalizedIdentifier || !normalizedPassword) {
     throw new Error('identifier und appPassword sind für den direkten Push-Transport erforderlich');
   }
-  const agent = new AtpAgent({ service: normalizedService });
+  const agent = new BskyAgent({ service: normalizedService });
   let loginPromise = null;
   const ensureLoggedIn = async () => {
     if (agent?.session?.did) return;
@@ -211,7 +211,7 @@ function getOrCreateDirectTransport () {
     return cachedDirectTransport;
   }
   try {
-    cachedDirectTransport = createAtpAgentPushTransport(config);
+    cachedDirectTransport = createBskyAgentPushTransport(config);
     cachedDirectSignature = signature;
     return cachedDirectTransport;
   } catch (error) {
@@ -276,10 +276,11 @@ export async function fetchTimeline({ tab, feedUri, cursor, limit } = {}) {
   };
 }
 
-export async function fetchNotifications({ cursor, markSeen } = {}) {
+export async function fetchNotifications({ cursor, markSeen, filter } = {}) {
   const params = createSearchParams();
   if (cursor) params.set('cursor', cursor);
   if (markSeen) params.set('markSeen', 'true');
+  if (filter) params.set('filter', filter);
   const query = params.toString();
   const data = await requestJson(`/api/bsky/notifications${query ? `?${query}` : ''}`);
   return {
@@ -464,4 +465,4 @@ export async function unregisterPushSubscription({ serviceDid, token, platform, 
   return transport.unregister(payload, { action: 'unregister' });
 }
 
-export { requestJson, createAtpAgentPushTransport };
+export { requestJson, createBskyAgentPushTransport };

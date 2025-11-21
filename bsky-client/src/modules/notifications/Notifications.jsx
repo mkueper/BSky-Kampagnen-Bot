@@ -8,7 +8,6 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
-const MENTION_REASONS = new Set(['mention', 'reply', 'quote'])
 
 function getNotificationId (entry) {
   if (!entry) return ''
@@ -904,10 +903,11 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
 
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
-  const fetchPage = useCallback(async ({ withCursor, markSeen = false } = {}) => {
+  const fetchPage = useCallback(async ({ withCursor, markSeen = false, filter = 'all' } = {}) => {
     const { items: notifications, cursor: nextCursor, unreadCount } = await fetchNotificationsApi({
       cursor: withCursor,
       markSeen,
+      filter,
     })
     return { notifications, cursor: nextCursor, unreadCount }
   }, [])
@@ -918,7 +918,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
       setLoading(true)
       setError('')
       try {
-        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ markSeen: true })
+        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ markSeen: true, filter: activeTab })
         if (!ignore) {
           setItems(notifications)
           setCursor(nextCursor)
@@ -934,13 +934,13 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     return () => {
       ignore = true
     }
-  }, [refreshKey, retryTick, fetchPage])
+  }, [refreshKey, retryTick, fetchPage, activeTab])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ withCursor: cursor })
+      const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ withCursor: cursor, filter: activeTab })
       setItems(prev => [...prev, ...notifications])
       setCursor(nextCursor)
       if (typeof unreadCount === 'number') {
@@ -951,7 +951,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     } finally {
       setLoadingMore(false)
     }
-  }, [cursor, fetchPage, hasMore, loadingMore])
+  }, [cursor, fetchPage, hasMore, loadingMore, activeTab])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead) return
@@ -999,21 +999,16 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     }
   }, [hasMore, loadMore])
 
-  const filteredItems = useMemo(() => {
-    if (activeTab === 'mentions') {
-      return items.filter((entry) => MENTION_REASONS.has(entry?.reason))
-    }
-    return items
-  }, [activeTab, items])
+
 
   useEffect(() => {
     if (activeTab !== 'mentions') return
     if (loading || loadingMore) return
     if (!hasMore) return
     const MIN_BUFFER = 8
-    if (filteredItems.length >= MIN_BUFFER) return
+    if (items.length >= MIN_BUFFER) return
     loadMore()
-  }, [activeTab, filteredItems.length, hasMore, loadMore, loading, loadingMore])
+  }, [activeTab, items.length, hasMore, loadMore, loading, loadingMore])
 
   if (loading) {
     return (
@@ -1036,14 +1031,14 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     )
   }
 
-  if (filteredItems.length === 0) {
+  if (items.length === 0) {
     return <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
   }
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
-        {filteredItems.map((item, idx) => {
+        {items.map((item, idx) => {
           const itemId = getNotificationId(item)
           return (
             <li key={itemId || `notification-${idx}`}>

@@ -1,154 +1,138 @@
 // This file defines the AppContext for the BskyClient application.
 import { createContext, useContext, useReducer, useEffect } from 'react';
+import {
+  composerInitialState,
+  composerReducer,
+  feedInitialState,
+  feedReducer,
+  mediaLightboxInitialState,
+  mediaLightboxReducer,
+  notificationsInitialState,
+  notificationsReducer,
+  profileInitialState,
+  profileReducer,
+  defaultProfileViewerState,
+  threadInitialState,
+  threadReducer,
+  timelineInitialState,
+  timelineReducer
+} from './reducers/index.js';
+
 
 const AppStateContext = createContext();
 const AppDispatchContext = createContext();
 
-const DEFAULT_TIMELINE_SOURCE = {
-  id: 'discover',
-  kind: 'official',
-  label: 'Discover',
-  feedUri: null,
-  origin: 'official'
-};
-
-const initialFeedPickerState = {
-  loading: false,
-  error: '',
-  pinned: [],
-  saved: [],
-  errors: [],
-  lastUpdatedAt: 0,
-  action: {
-    pinning: '',
-    unpinning: '',
-    savingOrder: false,
-    refreshing: false
-  }
-};
-
-const defaultProfileViewerState = {
-  open: false,
-  actor: null,
-  originSection: null,
-  anchor: null
-}
-
 const initialState = {
   section: 'home',
-  profileActor: null,
-  me: null,
-  composeOpen: false,
-  timelineTab: 'discover',
-  timelineSource: DEFAULT_TIMELINE_SOURCE,
-  replyTarget: null,
-  quoteTarget: null,
-  confirmDiscard: false,
-  refreshTick: 0,
-  notificationsRefreshTick: 0,
-  timelineTopUri: '',
-  timelineHasNew: false,
-  timelineLoading: true,
-  timelineReady: false,
-  feedPicker: initialFeedPickerState,
-  feedManagerOpen: false,
-  mediaLightbox: { open: false, images: [], index: 0 },
-  threadState: { active: false, loading: false, error: '', data: null, uri: null },
-  notificationsUnread: 0,
-  profileViewer: { ...defaultProfileViewerState }
+
+  ...timelineInitialState,
+  ...composerInitialState,
+  ...notificationsInitialState,
+  ...profileInitialState,
+
+  mediaLightbox: mediaLightboxInitialState,
+  ...feedInitialState,
+  threadState: threadInitialState,
 };
 
 function appReducer(state, action) {
+  // Handle cross-slice actions first
   switch (action.type) {
-    case 'SET_SECTION':
+    case 'SET_SECTION': {
+      const { payload: section, actor } = action;
       return {
         ...state,
-        section: action.payload,
-        profileActor: action.payload === 'profile' ? (action.actor || null) : state.profileActor,
+        section,
+        profileActor: section === 'profile' ? (actor || null) : state.profileActor,
         profileViewer: { ...defaultProfileViewerState }
       };
-    case 'SET_ME':
-      return { ...state, me: action.payload };
-    case 'SET_COMPOSE_OPEN':
-      return { ...state, composeOpen: action.payload };
-    case 'SET_TIMELINE_TAB':
-      return { ...state, timelineTab: action.payload };
-    case 'SET_TIMELINE_SOURCE': {
-      const nextSource = action.payload || DEFAULT_TIMELINE_SOURCE;
-      const shouldUpdateTab = nextSource?.origin !== 'pinned';
-      return {
-        ...state,
-        timelineSource: nextSource,
-        timelineTab: shouldUpdateTab ? (nextSource?.id || state.timelineTab) : state.timelineTab
-      };
     }
-    case 'SET_REPLY_TARGET':
-      return { ...state, replyTarget: action.payload };
-    case 'SET_QUOTE_TARGET':
-      return { ...state, quoteTarget: action.payload };
-    case 'RESET_COMPOSER_TARGETS':
-      return { ...state, replyTarget: null, quoteTarget: null };
-    case 'SET_CONFIRM_DISCARD':
-      return { ...state, confirmDiscard: action.payload };
-    case 'REFRESH_TIMELINE':
-      return { ...state, refreshTick: state.refreshTick + 1, timelineHasNew: false, timelineReady: false };
-    case 'REFRESH_NOTIFICATIONS':
-      return { ...state, notificationsRefreshTick: state.notificationsRefreshTick + 1 };
-    case 'SET_TIMELINE_TOP_URI':
-      return { ...state, timelineTopUri: action.payload, timelineHasNew: false, timelineReady: true };
-    case 'SET_TIMELINE_HAS_NEW':
-      return { ...state, timelineHasNew: action.payload };
-    case 'SET_TIMELINE_LOADING':
-      return { ...state, timelineLoading: action.payload };
-    case 'SET_TIMELINE_READY':
-        return { ...state, timelineReady: action.payload };
-    case 'OPEN_MEDIA_LIGHTBOX':
-      return { ...state, mediaLightbox: { open: true, ...action.payload } };
-    case 'CLOSE_MEDIA_LIGHTBOX':
-      return { ...state, mediaLightbox: { ...state.mediaLightbox, open: false } };
-    case 'NAVIGATE_MEDIA_LIGHTBOX': {
-      if (!state.mediaLightbox.open || state.mediaLightbox.images.length === 0) return state;
-      const delta = action.payload === 'prev' ? -1 : 1;
-      const nextIndex = (state.mediaLightbox.index + delta + state.mediaLightbox.images.length) % state.mediaLightbox.images.length;
-      return { ...state, mediaLightbox: { ...state.mediaLightbox, index: nextIndex } };
-    }
-    case 'SET_THREAD_STATE':
-      return { ...state, threadState: action.payload };
-    case 'SET_NOTIFICATIONS_UNREAD':
-      return { ...state, notificationsUnread: action.payload };
-    case 'SET_FEED_PICKER_STATE': {
-      const payload = action.payload || {};
-      const { action: actionPatch, ...rest } = payload;
-      const nextFeedPicker = {
-        ...state.feedPicker,
-        ...rest,
-        action: {
-          ...state.feedPicker.action,
-          ...(actionPatch || {})
-        }
-      };
-      return { ...state, feedPicker: nextFeedPicker };
-    }
-    case 'SET_FEED_MANAGER_OPEN':
-      return { ...state, feedManagerOpen: Boolean(action.payload) };
     case 'OPEN_PROFILE_VIEWER': {
-      const actor = String(action.actor || '').trim() || null
-      const anchor = action.anchor || null
+      const actor = String(action.actor || '').trim() || null;
+      if (!actor) return state;
       return {
         ...state,
         profileViewer: {
-          open: Boolean(actor),
+          ...state.profileViewer,
+          open: true,
           actor,
           originSection: state.section,
-          anchor
+          anchor: action.anchor || null,
         }
-      }
+      };
     }
-    case 'CLOSE_PROFILE_VIEWER':
-      return { ...state, profileViewer: { ...defaultProfileViewerState } }
-    default:
-      throw new Error(`Unknown action: ${action.type}`);
+    case 'SET_FEED_PICKER_STATE': {
+        const payload = action.payload || {};
+        const { action: actionPatch, ...rest } = payload;
+        const nextFeedPicker = {
+            ...state.feedPicker,
+            ...rest,
+            action: {
+                ...state.feedPicker.action,
+                ...(actionPatch || {})
+            }
+        };
+        return { ...state, feedPicker: nextFeedPicker };
+    }
   }
+
+  // For other actions, combine results from sliced reducers.
+  // Note: The 'unknown action' error from the original reducer is removed for simplicity,
+  // as each action is now passed to multiple reducer slices.
+  const timeline = timelineReducer({
+    timelineTab: state.timelineTab,
+    timelineSource: state.timelineSource,
+    refreshTick: state.refreshTick,
+    timelineTopUri: state.timelineTopUri,
+    timelineHasNew: state.timelineHasNew,
+    timelineLoading: state.timelineLoading,
+    timelineReady: state.timelineReady,
+  }, action);
+
+  const composer = composerReducer({
+    composeOpen: state.composeOpen,
+    replyTarget: state.replyTarget,
+    quoteTarget: state.quoteTarget,
+    confirmDiscard: state.confirmDiscard,
+  }, action);
+
+  const notifications = notificationsReducer({
+    notificationsRefreshTick: state.notificationsRefreshTick,
+    notificationsUnread: state.notificationsUnread,
+  }, action);
+  
+  const feed = feedReducer({
+    feedPicker: state.feedPicker,
+    feedManagerOpen: state.feedManagerOpen,
+  }, action);
+
+  const profile = profileReducer({
+    me: state.me,
+    profileActor: state.profileActor,
+    profileViewer: state.profileViewer,
+  }, action);
+
+  const finalState = {
+    ...state,
+    ...timeline,
+    ...composer,
+    ...notifications,
+    ...feed,
+    ...profile,
+    mediaLightbox: mediaLightboxReducer(state.mediaLightbox, action),
+    threadState: threadReducer(state.threadState, action),
+  };
+
+  if (Object.keys(finalState).every(key => finalState[key] === state[key])) {
+    // If no slice reducer changed the state, and it wasn't a cross-slice action,
+    // it's an unknown action.
+    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE'].includes(action.type)) {
+      // Uncomment to restore original behavior for unknown actions
+      // throw new Error(`Unknown action: ${action.type}`);
+    }
+  }
+
+  return finalState;
 }
 
 export const AppProvider = ({ children }) => {

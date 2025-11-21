@@ -11,9 +11,9 @@ const { createLogger } = require("@utils/logging");
 const log = createLogger('bluesky');
 
 const { serverUrl, identifier, appPassword } = env.bluesky;
-const { AtpAgent } = require("@atproto/api");
+const { BskyAgent } = require("@atproto/api");
 
-const agent = new AtpAgent({ service: serverUrl });
+const agent = new BskyAgent({ service: serverUrl });
 let loginPromise = null;
 let refreshPromise = null;
 let refreshTimer = null;
