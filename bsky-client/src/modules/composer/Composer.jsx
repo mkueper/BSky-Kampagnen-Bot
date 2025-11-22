@@ -22,6 +22,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
   const [tenorAvailable, setTenorAvailable] = useState(false)
+  const focusRequestedRef = useRef(false)
   const quoteInfo = useMemo(() => {
     if (!quote || !quote.uri || !quote.cid) return null
     const author = quote.author || {}
@@ -40,6 +41,24 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
   const inlineQuoteAuthorLabel = quote?.author?.displayName || quote?.author?.handle || 'Unbekannter Account'
   const inlineQuoteAuthorMissing = Boolean(quote && !(quote.author?.displayName || quote.author?.handle))
+
+  useEffect(() => {
+    focusRequestedRef.current = false
+    requestAnimationFrame(() => {
+      try {
+        textareaRef.current?.focus()
+        focusRequestedRef.current = true
+      } catch {}
+    })
+  }, [reply, quote])
+
+  useEffect(() => {
+    if (focusRequestedRef.current) return
+    const timer = setTimeout(() => {
+      try { textareaRef.current?.focus() } catch {}
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     let ignore = false
@@ -117,7 +136,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
   async function uploadTempMedia (file, fallbackPreview = '') {
     if (!file) throw new Error('Keine Datei ausgewählt')
-    if (pendingMedia.length >= MAX_MEDIA_COUNT) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+    if (pendingMedia.length >= MAX_MEDIA_COUNT) {
+      throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+    }
     const dataUrl = await blobToDataUrl(file)
     const res = await fetch('/api/uploads/temp', {
       method: 'POST',
@@ -126,13 +147,20 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     })
     const info = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(info?.error || 'Upload fehlgeschlagen')
-    let added = false
-    setPendingMedia((arr) => {
-      if (arr.length >= MAX_MEDIA_COUNT) return arr
-      added = true
-      return [...arr, { tempId: info.tempId, previewUrl: info.previewUrl || fallbackPreview, mime: info.mime }]
+    setPendingMedia((arr) => [...arr, { tempId: info.tempId, previewUrl: info.previewUrl || fallbackPreview, mime: info.mime }])
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) {
+        console.warn('[Composer] textareaRef missing after upload')
+        return
+      }
+      try {
+        el.focus()
+        console.log('[Composer] focus set in uploadTempMedia', { hasSelection: typeof el.selectionStart === 'number' })
+      } catch (err) {
+        console.warn('[Composer] focus failed in uploadTempMedia', err)
+      }
     })
-    if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     return info
   }
 
@@ -141,7 +169,21 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     setMessage('')
     try {
       await uploadTempMedia(file)
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (!el) {
+          console.warn('[Composer] textareaRef missing after handleLocalFile')
+          return
+        }
+        try {
+          el.focus()
+          console.log('[Composer] focus set in handleLocalFile', { pending: pendingMedia.length })
+        } catch (err) {
+          console.warn('[Composer] focus failed in handleLocalFile', err)
+        }
+      })
     } catch (e) {
+      console.warn('[Composer] handleLocalFile failed', e)
       setMessage(e?.message || 'Upload fehlgeschlagen')
     }
   }
@@ -171,7 +213,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           mime: info.mime || 'image/gif'
         }]
       })
-      if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+      if (limitHit) {
+      throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+    }
+    if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     } catch (e) {
       setMessage(e?.message || 'GIF konnte nicht geladen werden')
     } finally {

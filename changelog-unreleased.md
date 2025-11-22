@@ -4,6 +4,7 @@
 
 ### Client
 - **Refactor:** Die Funktion `parseAspectRatioValue` liegt nun zentral in `shared/utils/media`. Timeline, Notifications und Media-Lightbox greifen gemeinsam darauf zu, sodass Anpassungen an einer Stelle genügen.
+- **Bugfix:** Der Composer verhindert nach dem vierten Anhang weitere Uploads, bevor Requests gestartet werden; der Fokus springt nach Bild/GIF wieder zuverlässig in die Textarea.
 
 ## 2025-11-21
 
