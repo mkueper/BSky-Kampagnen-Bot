@@ -687,8 +687,15 @@ async function getProfileLikes (req, res) {
     })
     return res.json({ items, cursor: data?.cursor || null })
   } catch (error) {
-    log.error('getProfileLikes failed', { error: error?.message || String(error), actor })
-    return res.status(500).json({ error: error?.message || 'Likes konnten nicht geladen werden.' })
+    const message = error?.message || 'Likes konnten nicht geladen werden.'
+    const status = (error?.status === 400 && /profile not found/i.test(message)) ? 404 : 500
+    if (status >= 500) {
+      log.error('getProfileLikes failed', { error: message, actor })
+    } else {
+      log.warn('getProfileLikes unavailable', { error: message, actor })
+    }
+    const errorMsg = status === 404 ? 'Likes sind nicht verfügbar oder versteckt.' : message
+    return res.status(status).json({ error: errorMsg })
   }
 }
 
