@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
+import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppDispatch } from '../../context/AppContext'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
@@ -8,23 +9,6 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
-const parseAspectRatioValue = (value) => {
-  if (!value) return null
-  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
-  if (Array.isArray(value) && value.length === 2) {
-    const [w, h] = value.map(Number)
-    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return w / h
-  }
-  if (typeof value === 'string') {
-    if (value.includes(':')) {
-      const [w, h] = value.split(':').map(Number)
-      if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return w / h
-    }
-    const numeric = Number(value)
-    if (Number.isFinite(numeric) && numeric > 0) return numeric
-  }
-  return null
-}
 
 
 function getNotificationId (entry) {

@@ -1,5 +1,10 @@
 # Unreleased Notes
 
+## 2025-11-22
+
+### Client
+- **Refactor:** Die Funktion `parseAspectRatioValue` liegt nun zentral in `shared/utils/media`. Timeline, Notifications und Media-Lightbox greifen gemeinsam darauf zu, sodass Anpassungen an einer Stelle genügen.
+
 ## 2025-11-21
 
 ### Backend

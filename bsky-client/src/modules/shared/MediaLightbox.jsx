@@ -1,6 +1,7 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
+import { parseAspectRatioValue } from './utils/media.js'
 
 function isVideo (item) {
   if (!item) return false
@@ -14,6 +15,10 @@ function isVideo (item) {
 export default function MediaLightbox ({ images = [], index = 0, onClose, onNavigate }) {
   const current = images[index] || null
   const videoActive = useMemo(() => isVideo(current), [current])
+  const aspectRatio = useMemo(() => {
+    if (!videoActive) return null
+    return parseAspectRatioValue(current?.aspectRatio || current?.raw?.aspectRatio) || (16 / 9)
+  }, [current, videoActive])
   const isHlsSource = useMemo(() => {
     if (!videoActive || typeof current?.src !== 'string') return false
     return /\.m3u8($|\?)/i.test(current.src)
@@ -102,32 +107,50 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
         onClick={onClose}
       />
       <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-black/40 p-4 shadow-2xl backdrop-blur-sm pointer-events-auto'>
-        <div ref={mediaContainerRef} className='flex w-full justify-center'>
+        <div className='flex w-full justify-center'>
           {videoActive ? (
-            <video
-              ref={videoRef}
-              src={!isHlsSource ? current.src : undefined}
-              poster={current.poster || current.thumb || ''}
-              controls
-              autoPlay
-              playsInline
-              loop
-              className='max-h-[80vh] max-w-[80vw] rounded-xl bg-black object-contain'
-              onClick={(event) => {
-                event.stopPropagation()
+            <div
+              ref={mediaContainerRef}
+              className='relative overflow-hidden rounded-xl'
+              style={{
+                width: aspectRatio ? `min(80vw, calc(80vh * ${aspectRatio}))` : '80vw',
+                height: aspectRatio ? `min(80vh, calc(80vw / ${aspectRatio}))` : '80vh',
+                maxWidth: '80vw',
+                maxHeight: '80vh',
+                backgroundColor: 'var(--background-subtle, #000)'
               }}
-            />
+            >
+              <video
+                ref={videoRef}
+                src={!isHlsSource ? current.src : undefined}
+                poster={current.poster || current.thumb || ''}
+                controls
+                autoPlay
+                playsInline
+                loop
+                className='h-full w-full object-contain'
+                onClick={(event) => {
+                  event.stopPropagation()
+                }}
+              />
+            </div>
           ) : (
-            <img
-              src={current.src}
-              alt={current.alt || ''}
-              className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
-              loading='lazy'
-              onClick={(event) => {
-                event.stopPropagation()
-                onClose?.()
-              }}
-            />
+            <div
+              ref={mediaContainerRef}
+              className='relative'
+              style={{ maxWidth: '80vw', maxHeight: '80vh' }}
+            >
+              <img
+                src={current.src}
+                alt={current.alt || ''}
+                className='max-h-[80vh] max-w-[80vw] cursor-zoom-out object-contain rounded-xl'
+                loading='lazy'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onClose?.()
+                }}
+              />
+            </div>
           )}
         </div>
         {current.alt ? (
