@@ -20,6 +20,40 @@ import {
 const numberFormatter = new Intl.NumberFormat('de-DE')
 const PROFILE_SCROLL_CONTAINER_ID = 'bsky-profile-scroll-container'
 
+const debugProfileLog = (...args) => {
+  try {
+    console.debug('[ProfileView]', ...args)
+  } catch {
+    /* noop */
+  }
+}
+
+function createInitialFeedState () {
+  return {
+    posts: {
+      items: [],
+      cursor: null,
+      error: '',
+      status: 'idle',
+      lastUpdatedAt: null
+    },
+    replies: {
+      items: [],
+      cursor: null,
+      error: '',
+      status: 'idle',
+      lastUpdatedAt: null
+    },
+    media: {
+      items: [],
+      cursor: null,
+      error: '',
+      status: 'idle',
+      lastUpdatedAt: null
+    }
+  }
+}
+
 function formatNumber (value) {
   const num = Number(value || 0)
   if (!Number.isFinite(num)) return '0'
@@ -357,15 +391,20 @@ export default function ProfileView ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
-  const [feeds, setFeeds] = useState({
-    posts: { items: [], cursor: null, error: '', status: 'idle' },
-    replies: { items: [], cursor: null, error: '', status: 'idle' },
-    media: { items: [], cursor: null, error: '', status: 'idle' }
-  })
+  const [feeds, setFeeds] = useState(() => createInitialFeedState())
   const [tabsStuck, setTabsStuck] = useState(false)
   const containerRef = useRef(null)
   const tabsWrapperRef = useRef(null)
   const tabsSentinelRef = useRef(null)
+  const feedRequestRef = useRef({})
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   const handleClose = useCallback(() => {
     if (typeof onClose === 'function') {
@@ -388,13 +427,9 @@ export default function ProfileView ({
       setLoading(true)
       setError('')
       setProfile(null)
-      setFeeds({
-        posts: { items: [], cursor: null, error: '', status: 'idle' },
-        replies: { items: [], cursor: null, error: '', status: 'idle' },
-        media: { items: [], cursor: null, error: '', status: 'idle' }
-      })
+      setFeeds(createInitialFeedState())
+      feedRequestRef.current = {}
       setActiveTab('posts')
-
       try {
         const data = await fetchProfile(actor)
         if (!ignore) {
@@ -417,49 +452,79 @@ export default function ProfileView ({
 
   // Effekt zum Laden der Feed-Daten für den aktiven Tab
   useEffect(() => {
-    if (!profile || activeTab === 'videos') return
-
+    if (!profile || !profile.did) {
+      debugProfileLog('Abbruch: kein Profil oder fehlende DID', { profilePresent: Boolean(profile) })
+      return
+    }
+    if (activeTab === 'videos') {
+      debugProfileLog('Abbruch: Tab Videos ist deaktiviert')
+      return
+    }
     const currentFeed = feeds[activeTab]
-    // Nicht neu laden, wenn bereits geladen oder am Laden
-    if (currentFeed.status === 'success' || currentFeed.status === 'loading') {
+    if (!currentFeed) {
+      debugProfileLog('Abbruch: Kein Feedzustand für Tab', { tabId: activeTab })
+      return
+    }
+    if (currentFeed.status !== 'idle') {
+      debugProfileLog('Abbruch: Feedstatus nicht idle', { tabId: activeTab, status: currentFeed.status })
       return
     }
 
-    let ignore = false
-    const loadFeed = async () => {
-      setFeeds(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], status: 'loading', error: '' } }))
-      try {
-        const filterMap = {
-          posts: 'posts_no_replies',
-          replies: 'posts_with_replies',
-          media: 'posts_with_media'
-        }
-        const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
-          actor: profile.did,
-          limit: 20,
-          filter: filterMap[activeTab]
-        })
-
-        if (!ignore) {
-          const normalized = activeTab === 'replies'
-            ? nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
-            : nextItemsRaw
-
-          setFeeds(prev => ({
-            ...prev,
-            [activeTab]: { items: normalized, cursor: nextCursor, status: 'success', error: '' }
-          }))
-        }
-      } catch (err) {
-        if (!ignore) {
-          const message = err.message || 'Beiträge konnten nicht geladen werden.'
-          setFeeds(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], status: 'error', error: message } }))
-        }
-      }
+    const tabId = activeTab
+    const filterMap = {
+      posts: 'posts_no_replies',
+      replies: 'posts_with_replies',
+      media: 'posts_with_media'
     }
+    const requestId = Symbol(`profile-feed-${tabId}`)
+    feedRequestRef.current[tabId] = requestId
 
-    loadFeed()
-    return () => { ignore = true }
+    debugProfileLog('Starte Feed-Ladevorgang', { tabId, actor: profile.did })
+
+    setFeeds(prev => ({
+      ...prev,
+      [tabId]: { ...prev[tabId], status: 'loading', error: '' }
+    }))
+
+    fetchProfileFeed({
+      actor: profile.did,
+      limit: 20,
+      filter: filterMap[tabId]
+    })
+      .then(({ items: nextItemsRaw, cursor: nextCursor }) => {
+        if (!isMountedRef.current) return
+        if (feedRequestRef.current[tabId] !== requestId) return
+        const normalized = tabId === 'replies'
+          ? nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
+          : nextItemsRaw
+
+        debugProfileLog('Feed geladen', { tabId, items: normalized.length, cursor: nextCursor || null })
+        setFeeds(prev => {
+          const next = {
+            ...prev,
+            [tabId]: {
+              ...prev[tabId],
+              items: normalized,
+              cursor: nextCursor,
+              status: 'success',
+              error: '',
+              lastUpdatedAt: Date.now()
+            }
+          }
+          debugProfileLog('Feed-State aktualisiert', { tabId, status: next[tabId].status, items: next[tabId].items.length })
+          return next
+        })
+      })
+      .catch((err) => {
+        if (!isMountedRef.current) return
+        if (feedRequestRef.current[tabId] !== requestId) return
+        const message = err?.message || 'Beiträge konnten nicht geladen werden.'
+        debugProfileLog('Feed-Ladevorgang fehlgeschlagen', { tabId, error: message })
+        setFeeds(prev => ({
+          ...prev,
+          [tabId]: { ...prev[tabId], status: 'error', error: message }
+        }))
+      })
   }, [profile, activeTab, feeds])
 
   const isOwnProfile = useMemo(() => {
@@ -568,7 +633,11 @@ export default function ProfileView ({
           ) : null}
         </Card>
       </div>
-      {(activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media') ? (
+      {(() => {
+        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media'
+        if (!allowed) return null
+        debugProfileLog('render ProfilePosts', { activeTab, feedStatus: feeds[activeTab]?.status, items: feeds[activeTab]?.items?.length })
+        return (
         <ProfilePosts
           actor={profile.did}
           activeTab={activeTab}
@@ -580,7 +649,8 @@ export default function ProfileView ({
           onQuote={onQuote}
           onViewMedia={onViewMedia}
         />
-      ) : null}
+        )
+      })()}
       <ScrollTopButton
         containerId={PROFILE_SCROLL_CONTAINER_ID}
         position='bottom-left'

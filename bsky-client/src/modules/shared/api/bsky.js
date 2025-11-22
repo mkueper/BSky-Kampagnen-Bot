@@ -381,7 +381,9 @@ export async function fetchProfileFeed ({ actor, cursor, limit, filter } = {}) {
   if (cursor) params.set('cursor', cursor)
   if (typeof limit === 'number') params.set('limit', String(limit))
   if (filter) params.set('filter', filter)
+  console.debug('[fetchProfileFeed] request', { actor: normalized, cursor, limit, filter })
   const data = await requestJson(`/api/bsky/profile/feed?${params.toString()}`)
+  console.debug('[fetchProfileFeed] response', { actor: normalized, length: Array.isArray(data?.items) ? data.items.length : 0, cursor: data?.cursor || null })
   return {
     items: Array.isArray(data?.items) ? data.items : [],
     cursor: data?.cursor || null

@@ -4,11 +4,28 @@ import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
 import SkeetItem from '../timeline/SkeetItem.jsx'
 import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
 
-export default function ProfilePosts ({ actor, activeTab, feedData, setFeeds, scrollContainerRef, onSelectPost, onReply, onQuote, onViewMedia }) {
+const debugProfilePosts = (...args) => {
+  try {
+    console.debug('[ProfilePosts]', ...args)
+  } catch {}
+}
+
+export default function ProfilePosts ({
+  actor,
+  activeTab,
+  feedData,
+  setFeeds,
+  scrollContainerRef,
+  onSelectPost,
+  onReply,
+  onQuote,
+  onViewMedia
+}) {
   const [loadingMore, setLoadingMore] = useState(false)
   const loadMoreTriggerRef = useRef(null)
 
   const { items, cursor, status, error } = feedData
+  debugProfilePosts('render', { activeTab, status, length: items.length, error })
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
   const loadMore = useCallback(async () => {

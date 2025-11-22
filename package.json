@@ -19,7 +19,7 @@
     "dev": "cross-env NODE_ENV=development nodemon backend/server.js",
     "dev:frontend": "cross-env npm_config_workspaces=true npm run dev --workspace dashboard",
     "dev:bsky-client": "cross-env npm_config_workspaces=true npm run dev --workspace bsky-client",
-    "dev:app": "concurrently \"npm run dev\" \"wait-on http://127.0.0.1:35123 && npm run dev:bsky-client\"",
+    "dev:app": "concurrently \"npm run dev\" \"node scripts/wait-backend.js && npm run dev:bsky-client\"",
     "dev:electron": "concurrently \"npm run dev:frontend\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "start": "node backend/server.js",
     "start:dev": "node scripts/switch-env.js dev if-missing && NODE_ENV=development node backend/server.js",
