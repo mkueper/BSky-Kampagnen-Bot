@@ -1059,6 +1059,7 @@ module.exports = {
   search,
   getProfile,
   getProfileFeed,
+  getProfileLikes,
   getFeeds,
   pinFeed,
   unpinFeed,
