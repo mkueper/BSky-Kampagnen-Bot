@@ -479,9 +479,12 @@ export default function ProfileView ({
       [tabId]: { ...prev[tabId], status: 'loading', error: '' }
     }))
 
+    const actorTarget = tabId === 'likes'
+      ? (profile.handle || profile.did)
+      : profile.did
     const fetchCurrent = tabId === 'likes'
-      ? fetchProfileLikes({ actor: profile.did, limit: 20 })
-      : fetchProfileFeed({ actor: profile.did, limit: 20, filter: filterMap[tabId] })
+      ? fetchProfileLikes({ actor: actorTarget, limit: 20 })
+      : fetchProfileFeed({ actor: actorTarget, limit: 20, filter: filterMap[tabId] })
 
     fetchCurrent
       .then(({ items: nextItemsRaw, cursor: nextCursor }) => {
@@ -630,6 +633,7 @@ export default function ProfileView ({
         return (
         <ProfilePosts
           actor={profile.did}
+          actorHandle={profile.handle || ''}
           activeTab={activeTab}
           feedData={feeds[activeTab]}
           setFeeds={setFeeds}

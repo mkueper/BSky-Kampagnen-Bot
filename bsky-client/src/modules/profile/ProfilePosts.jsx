@@ -7,6 +7,7 @@ import { hasVideoMedia } from './utils.js'
 
 export default function ProfilePosts ({
   actor,
+  actorHandle = '',
   activeTab,
   feedData,
   setFeeds,
@@ -43,7 +44,7 @@ export default function ProfilePosts ({
       let nextCursor = null
       if (activeTab === 'likes') {
         const result = await fetchProfileLikes({
-          actor,
+          actor: actorHandle || actor,
           cursor,
           limit: 20
         })
