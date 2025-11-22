@@ -535,7 +535,7 @@ module.exports = {
    */
   async likePost (uri, cid) {
     await ensureLoggedIn();
-    await agent.com.atproto.repo.createRecord({
+    const result = await agent.com.atproto.repo.createRecord({
       repo: agent.session.did,
       collection: 'app.bsky.feed.like',
       record: {
@@ -543,7 +543,12 @@ module.exports = {
         createdAt: new Date().toISOString(),
       }
     });
-    return getReactions(uri);
+    const reactions = await getReactions(uri);
+    if (!reactions.viewer) reactions.viewer = {};
+    if (!reactions.viewer.like && result?.uri) {
+      reactions.viewer.like = result.uri;
+    }
+    return reactions;
   },
   /**
    * Entfernt ein Like-Record.
@@ -558,8 +563,12 @@ module.exports = {
       collection: 'app.bsky.feed.like',
       rkey
     });
-    if (postUri) return getReactions(postUri);
-    return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: {} };
+    if (postUri) {
+      const reactions = await getReactions(postUri);
+      if (reactions.viewer) reactions.viewer.like = null;
+      return reactions;
+    }
+    return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: { like: null } };
   },
   /**
    * Erstellt einen Repost-Record für den angegebenen Post.
