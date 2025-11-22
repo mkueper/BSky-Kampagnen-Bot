@@ -460,6 +460,7 @@ export default function ProfileView ({
   // Effekt zum Laden der Feed-Daten für den aktiven Tab
   useEffect(() => {
     if (!profile || !profile.did) return
+    if (activeTab === 'likes' && !isOwnProfile) return
     const currentFeed = feeds[activeTab]
     if (!currentFeed) return
     if (currentFeed.status !== 'idle') return
@@ -532,8 +533,14 @@ export default function ProfileView ({
     { id: 'replies', label: 'Antworten', disabled: false },
     { id: 'media', label: 'Medien', disabled: false },
     { id: 'videos', label: 'Videos', disabled: false },
-    { id: 'likes', label: 'Likes', disabled: false }
-  ]), [])
+    { id: 'likes', label: 'Likes', disabled: !isOwnProfile }
+  ]), [isOwnProfile])
+
+  useEffect(() => {
+    if (!isOwnProfile && activeTab === 'likes') {
+      setActiveTab('posts')
+    }
+  }, [isOwnProfile, activeTab])
 
   useEffect(() => {
     const el = containerRef.current
@@ -628,21 +635,22 @@ export default function ProfileView ({
         </Card>
       </div>
       {(() => {
-        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media' || activeTab === 'videos' || activeTab === 'likes'
-        if (!allowed) return null
+        const allowedTabs = new Set(['posts', 'replies', 'media', 'videos'])
+        if (isOwnProfile) allowedTabs.add('likes')
+        if (!allowedTabs.has(activeTab)) return null
         return (
-        <ProfilePosts
-          actor={profile.did}
-          actorHandle={profile.handle || ''}
-          activeTab={activeTab}
-          feedData={feeds[activeTab]}
-          setFeeds={setFeeds}
-          scrollContainerRef={containerRef}
-          onSelectPost={onSelectPost}
-          onReply={onReply}
-          onQuote={onQuote}
-          onViewMedia={onViewMedia}
-        />
+          <ProfilePosts
+            actor={profile.did}
+            actorHandle={profile.handle || ''}
+            activeTab={activeTab}
+            feedData={feeds[activeTab]}
+            setFeeds={setFeeds}
+            scrollContainerRef={containerRef}
+            onSelectPost={onSelectPost}
+            onReply={onReply}
+            onQuote={onQuote}
+            onViewMedia={onViewMedia}
+          />
         )
       })()}
       <ScrollTopButton

@@ -660,31 +660,6 @@ module.exports = {
     return res?.data ?? null;
   },
   /**
-   * Listet Like-Records eines Actors direkt aus dem Repo (Fallback).
-   *
-   * @param {string} actor DID oder Handle
-   * @param {{limit?: number, cursor?: string}} [opts]
-   */
-  async listActorLikeRecords (actor, { limit = 30, cursor } = {}) {
-    const profile = await this.getProfile(actor);
-    const repo = profile?.did;
-    if (!repo) {
-      const err = new Error('Profil nicht gefunden');
-      err.status = 404;
-      throw err;
-    }
-    await ensureLoggedIn();
-    const params = {
-      repo,
-      collection: 'app.bsky.feed.like',
-      limit: Math.min(Math.max(parseInt(limit, 10) || 30, 1), 50),
-      cursor,
-      reverse: true
-    };
-    const res = await agent.com.atproto.repo.listRecords(params);
-    return res?.data ?? { records: [], cursor: null };
-  },
-  /**
    * Durchsucht Feed-Generatoren („Feeds“-Tab). Nutzt das neue API, fällt aber
    * bei älteren SDKs auf einen generischen XRPC-Call zurück.
    *
