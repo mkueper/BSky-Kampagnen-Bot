@@ -688,14 +688,36 @@ async function getProfileLikes (req, res) {
     return res.json({ items, cursor: data?.cursor || null })
   } catch (error) {
     const message = error?.message || 'Likes konnten nicht geladen werden.'
-    const status = (error?.status === 400 && /profile not found/i.test(message)) ? 404 : 500
-    if (status >= 500) {
-      log.error('getProfileLikes failed', { error: message, actor })
-    } else {
-      log.warn('getProfileLikes unavailable', { error: message, actor })
+    const isHidden = error?.status === 400 && /profile not found/i.test(message)
+    if (isHidden) {
+      try {
+        const fallback = await bsky.listActorLikeRecords(actor, { limit, cursor })
+        const records = Array.isArray(fallback?.records) ? fallback.records : []
+        if (records.length === 0) {
+          return res.json({ items: [], cursor: fallback?.cursor || null })
+        }
+        const uris = records
+          .map(record => record?.value?.subject?.uri || record?.value?.subjectUri || '')
+          .filter(isPostUri)
+        const posts = await bsky.getPostsByUri(uris)
+        const postMap = new Map(posts.map(post => [post.uri, post]))
+        const items = records
+          .map(record => {
+            const uri = record?.value?.subject?.uri || record?.value?.subjectUri
+            const post = postMap.get(uri)
+            if (!post) return null
+            const mapped = mapPostView(post)
+            return mapped
+          })
+          .filter(Boolean)
+        return res.json({ items, cursor: fallback?.cursor || null })
+      } catch (fallbackError) {
+        log.warn('getProfileLikes fallback failed', { error: fallbackError?.message || String(fallbackError), actor })
+        return res.status(404).json({ error: 'Likes sind nicht verfügbar oder versteckt.' })
+      }
     }
-    const errorMsg = status === 404 ? 'Likes sind nicht verfügbar oder versteckt.' : message
-    return res.status(status).json({ error: errorMsg })
+    log.error('getProfileLikes failed', { error: message, actor })
+    return res.status(500).json({ error: message })
   }
 }
 
