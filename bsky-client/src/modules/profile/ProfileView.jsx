@@ -50,6 +50,13 @@ function createInitialFeedState () {
       error: '',
       status: 'idle',
       lastUpdatedAt: null
+    },
+    likes: {
+      items: [],
+      cursor: null,
+      error: '',
+      status: 'idle',
+      lastUpdatedAt: null
     }
   }
 }
@@ -618,7 +625,7 @@ export default function ProfileView ({
         </Card>
       </div>
       {(() => {
-        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media' || activeTab === 'videos'
+        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media' || activeTab === 'videos' || activeTab === 'likes'
         if (!allowed) return null
         return (
         <ProfilePosts
