@@ -3,8 +3,13 @@
 ## 2025-11-22
 
 ### Client
+- **Bugfix:** Ein Absturz in der Mitteilungsansicht wurde behoben, der durch einen fehlenden Import des `useMediaLightbox`-Hooks verursacht wurde.
+- **Refactor:** Die Komponenten des Clients (`Timeline`, `Notifications`, `ProfileView`, `SearchView`, `ThreadView`) wurden umfassend überarbeitet. Anstatt vieler Eigenschaften (Props) beziehen sie ihre Daten und Funktionen nun zentral aus dem `AppContext` über Hooks (`useComposer`, `useThread`, `useMediaLightbox`). Dies reduziert die Komplexität, entkoppelt die Komponenten und vereinfacht die Wartung.
+- **UI:** Das responsive Verhalten der Seitenleiste wurde für mittelgroße Bildschirme (Tablets) verbessert, indem der Haltepunkt von `xl` auf `lg` geändert wurde.
 - **Refactor:** Die Funktion `parseAspectRatioValue` liegt nun zentral in `shared/utils/media`. Timeline, Notifications und Media-Lightbox greifen gemeinsam darauf zu, sodass Anpassungen an einer Stelle genügen.
 - **Bugfix:** Der Composer verhindert nach dem vierten Anhang weitere Uploads, bevor Requests gestartet werden; der Fokus springt nach Bild/GIF wieder zuverlässig in die Textarea.
+- **Refactor:** Die Kernkomponenten des Clients (`Timeline`, `Notifications`, `ThreadView`, `SearchView`, `ProfilePosts`) wurden umfassend refaktoriert. Sie beziehen ihre Daten und Funktionen nun direkt aus dem App-Kontext über Hooks, anstatt sie über Props zu erhalten. Dies reduziert die Komplexität und verbessert die Wartbarkeit. Die dazugehörigen Tests wurden ebenfalls an diese neue Architektur angepasst.
+- **UI:** Der responsive Breakpoint für die Anzeige der breiten Sidebar wurde von `xl` auf `lg` reduziert.
 
 ## 2025-11-21
 

@@ -4,6 +4,9 @@ import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
 import SkeetItem from '../timeline/SkeetItem.jsx'
 import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
 import { hasVideoMedia } from './utils.js'
+import { useThread } from '../../hooks/useThread'
+import { useComposer } from '../../hooks/useComposer'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 
 export default function ProfilePosts ({
   actor,
@@ -11,12 +14,12 @@ export default function ProfilePosts ({
   activeTab,
   feedData,
   setFeeds,
-  scrollContainerRef,
-  onSelectPost,
-  onReply,
-  onQuote,
-  onViewMedia
+  scrollContainerRef
 }) {
+  const { selectThreadFromItem: onSelectPost } = useThread()
+  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
+  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+
   const [loadingMore, setLoadingMore] = useState(false)
   const loadMoreTriggerRef = useRef(null)
 

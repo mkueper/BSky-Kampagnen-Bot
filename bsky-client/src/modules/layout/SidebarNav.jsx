@@ -55,16 +55,16 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
               aria-label={label}
               data-nav-item={item.id}
               title={label}
-              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-12 w-12 xl:h-auto xl:w-auto xl:px-4 xl:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center lg:justify-start gap-0 lg:gap-3 h-12 w-12 lg:h-auto lg:w-auto lg:px-4 lg:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                 isActive
                   ? 'bg-background-subtle text-foreground shadow-soft'
                   : 'text-foreground-muted hover:text-foreground'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {Icon ? <Icon className="h-6 w-6 shrink-0" /> : null}
-              <span className="hidden xl:inline truncate">{item.label}</span>
+              <span className="hidden lg:inline truncate">{item.label}</span>
               <span
-                className={`absolute top-2 right-2 xl:static xl:ml-1 xl:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
+                className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
                   showBadge ? 'opacity-100' : 'opacity-0'
                 }`}
                 aria-hidden={!showBadge}
@@ -84,18 +84,18 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
             <button
               type="button"
               onClick={themeToggle.onToggle}
-              className="inline-flex h-12 w-12 xl:h-auto xl:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle xl:px-4 xl:py-3 text-sm text-foreground transition hover:bg-background"
+              className="inline-flex h-12 w-12 lg:h-auto lg:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle lg:px-4 lg:py-3 text-sm text-foreground transition hover:bg-background"
               aria-label={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
               title={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
             >
               {ThemeToggleIcon ? <ThemeToggleIcon className="h-6 w-5" /> : null}
-              <span className="hidden xl:inline truncate">Theme</span>
-              <span className="hidden xl:inline text-xs text-foreground-muted">
+              <span className="hidden lg:inline truncate">Theme</span>
+              <span className="hidden lg:inline text-xs text-foreground-muted">
                 {themeToggle.label}
               </span>
               {themeToggle?.nextConfig?.colors && (
                 <span
-                  className="hidden xl:inline-block h-4 w-4 rounded-full ml-auto"
+                  className="hidden lg:inline-block h-4 w-4 rounded-full ml-auto"
                   style={{
                     backgroundColor: themeToggle.nextConfig.colors.background,
                     border: `2px solid ${themeToggle.nextConfig.colors.background}`
@@ -110,13 +110,13 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
           <button
             type="button"
             onClick={onCompose}
-            className="inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 xl:h-auto xl:w-full xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:w-full lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Neuer Post"
             data-nav-item="compose"
             title="Neuer Post"
           >
             <PlusIcon className="h-6 w-6 shrink-0" />
-            <span className="hidden xl:inline truncate">Neuer Post</span>
+            <span className="hidden lg:inline truncate">Neuer Post</span>
           </button>
         </div>
       </div>

@@ -2,8 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
+import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useComposer } from '../../hooks/useComposer'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox'
+import { useThread } from '../../hooks/useThread'
 
-export default function Timeline ({ tab = 'discover', source = null, renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
+export default function Timeline ({ renderMode, isActive = true }) {
+  const { timelineTab: tab, timelineSource: source, refreshTick: refreshKey } = useAppState()
+  const dispatch = useAppDispatch()
+  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
+  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+  const { selectThreadFromItem: onSelectPost } = useThread()
+
+  const onLoadingChange = useCallback((loading) => {
+    dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading })
+  }, [dispatch])
+
+  const onTopItemChange = useCallback((item) => {
+    const nextUri = item?.uri || ''
+    dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
+  }, [dispatch])
+
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

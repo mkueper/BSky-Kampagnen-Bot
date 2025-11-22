@@ -1,0 +1,669 @@
+diff --git a/bsky-client/src/ClientApp.jsx b/bsky-client/src/ClientApp.jsx
+index b6004ff..3006c57 100644
+--- a/bsky-client/src/ClientApp.jsx
++++ b/bsky-client/src/ClientApp.jsx
+@@ -232,19 +232,6 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
+ 
+   const topBlock = null
+ 
+-  const handleTimelineLoadingChange = useCallback(
+-    (loading) => dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading }),
+-    [dispatch]
+-  )
+-
+-  const handleTopItemChange = useCallback(
+-    (item) => {
+-      const nextUri = item?.uri || ''
+-      dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
+-    },
+-    [dispatch]
+-  )
+-
+   useEffect(() => {
+     dispatch({ type: 'SET_TIMELINE_READY', payload: false })
+   }, [timelineTab, dispatch])
+@@ -305,51 +292,25 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
+         scrollTopForceVisible={scrollTopForceVisible}
+         onScrollTopActivate={handleScrollTopActivate}
+       >
+-        <MainContent
+-          section={section}
+-          quickComposerEnabled={quickComposerEnabled}
+-          refreshTimeline={refreshTimeline}
+-          threadState={threadState}
+-          timelineTab={timelineTab}
+-          timelineSource={timelineSource}
+-          refreshTick={refreshTick}
+-          handleTimelineLoadingChange={handleTimelineLoadingChange}
+-          openReplyComposer={openReplyComposer}
+-          openQuoteComposer={openQuoteComposer}
+-          openMediaPreview={openMediaPreview}
+-          selectThreadFromItem={selectThreadFromItem}
+-          handleTopItemChange={handleTopItemChange}
+-          reloadThread={reloadThread}
+-          notificationsRefreshTick={notificationsRefreshTick}
+-          dispatch={dispatch}
+-          notificationTab={notificationTab}
+-        />
++        <MainContent />
+       </BskyClientLayout>
+       <Modals />
+     </>
+   )
+ }
+ 
+-function MainContent (props) {
++function MainContent () {
+   const {
+     section,
+-    quickComposerEnabled,
+-    refreshTimeline,
+-    threadState,
+-    timelineTab,
+-    timelineSource,
+-    refreshTick,
+-    handleTimelineLoadingChange,
+-    openReplyComposer,
+-    openQuoteComposer,
+-    openMediaPreview,
+-    selectThreadFromItem,
+-    handleTopItemChange,
+-    reloadThread,
+-    notificationsRefreshTick,
+-    dispatch,
+-    notificationTab
+-  } = props
++    threadState
++  } = useAppState()
++  const dispatch = useAppDispatch()
++
++  const { clientConfig } = useClientConfig()
++  const quickComposerEnabled = clientConfig?.ui?.quickComposer?.enabled !== false
++
++  const refreshTimeline = useCallback(() => dispatch({ type: 'REFRESH_TIMELINE' }), [dispatch])
++  const [notificationTab, setNotificationTab] = useState('all')
+ 
+   if (section === 'home') {
+     return (
+@@ -358,28 +319,10 @@ function MainContent (props) {
+           <QuickComposer onSent={() => refreshTimeline()} />
+         ) : null}
+         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+-          <Timeline
+-            tab={timelineTab}
+-            source={timelineSource}
+-            refreshKey={refreshTick}
+-            onLoadingChange={handleTimelineLoadingChange}
+-            isActive={section === 'home'}
+-            onReply={openReplyComposer}
+-            onQuote={openQuoteComposer}
+-            onViewMedia={openMediaPreview}
+-            onSelectPost={selectThreadFromItem}
+-            onTopItemChange={handleTopItemChange}
+-          />
++          <Timeline isActive={section === 'home'} />
+         </div>
+         {threadState.active ? (
+-          <ThreadView
+-            state={threadState}
+-            onReload={reloadThread}
+-            onReply={openReplyComposer}
+-            onQuote={openQuoteComposer}
+-            onViewMedia={openMediaPreview}
+-            onSelectPost={selectThreadFromItem}
+-          />
++          <ThreadView />
+         ) : null}
+       </div>
+     )
+@@ -388,12 +331,7 @@ function MainContent (props) {
+   if (section === 'search') {
+     return (
+       <Suspense fallback={<SectionFallback label='Suche' />}>
+-        <SearchViewLazy
+-          onSelectPost={selectThreadFromItem}
+-          onReply={openReplyComposer}
+-          onQuote={openQuoteComposer}
+-          onViewMedia={openMediaPreview}
+-        />
++        <SearchViewLazy />
+       </Suspense>
+     )
+   }
+@@ -403,26 +341,11 @@ function MainContent (props) {
+       <div className='space-y-6'>
+         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+           <Suspense fallback={<NotificationsFallback />}>
+-            <NotificationsLazy
+-              refreshKey={notificationsRefreshTick}
+-              onSelectPost={selectThreadFromItem}
+-              onReply={openReplyComposer}
+-              onQuote={openQuoteComposer}
+-              onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
+-              activeTab={notificationTab}
+-              onViewMedia={openMediaPreview}
+-            />
++            <NotificationsLazy activeTab={notificationTab} />
+           </Suspense>
+         </div>
+         {threadState.active ? (
+-          <ThreadView
+-            state={threadState}
+-            onReload={reloadThread}
+-            onReply={openReplyComposer}
+-            onQuote={openQuoteComposer}
+-            onViewMedia={openMediaPreview}
+-            onSelectPost={selectThreadFromItem}
+-          />
++          <ThreadView />
+         ) : null}
+       </div>
+     )
+@@ -440,22 +363,10 @@ function MainContent (props) {
+     return (
+       <div className='space-y-6'>
+         <Suspense fallback={<SectionFallback label='Profil' />}>
+-          <ProfileViewLazy
+-            onSelectPost={selectThreadFromItem}
+-            onReply={openReplyComposer}
+-            onQuote={openQuoteComposer}
+-            onViewMedia={openMediaPreview}
+-          />
++          <ProfileViewLazy />
+         </Suspense>
+         {threadState.active ? (
+-          <ThreadView
+-            state={threadState}
+-            onReload={reloadThread}
+-            onReply={openReplyComposer}
+-            onQuote={openQuoteComposer}
+-            onViewMedia={openMediaPreview}
+-            onSelectPost={selectThreadFromItem}
+-          />
++          <ThreadView />
+         ) : null}
+       </div>
+     )
+diff --git a/bsky-client/src/modules/layout/BskyClientLayout.jsx b/bsky-client/src/modules/layout/BskyClientLayout.jsx
+index 17a9d14..d1772eb 100644
+--- a/bsky-client/src/modules/layout/BskyClientLayout.jsx
++++ b/bsky-client/src/modules/layout/BskyClientLayout.jsx
+@@ -141,7 +141,7 @@ export default function BskyClientLayout ({
+     'fixed top-4 bottom-4 left-4',
+     isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]',
+     'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
+-    'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
++    'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 lg:w-max lg:px-[6px]',
+     {
+       'translate-x-0': navVisible,
+       '-translate-x-[120%] md:translate-x-0': !navVisible
+diff --git a/bsky-client/src/modules/layout/SidebarNav.jsx b/bsky-client/src/modules/layout/SidebarNav.jsx
+index 512e781..d57189b 100644
+--- a/bsky-client/src/modules/layout/SidebarNav.jsx
++++ b/bsky-client/src/modules/layout/SidebarNav.jsx
+@@ -55,16 +55,16 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
+               aria-label={label}
+               data-nav-item={item.id}
+               title={label}
+-              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center xl:justify-start gap-0 xl:gap-3 h-12 w-12 xl:h-auto xl:w-auto xl:px-4 xl:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
++              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center lg:justify-start gap-0 lg:gap-3 h-12 w-12 lg:h-auto lg:w-auto lg:px-4 lg:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                 isActive
+                   ? 'bg-background-subtle text-foreground shadow-soft'
+                   : 'text-foreground-muted hover:text-foreground'
+               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+             >
+               {Icon ? <Icon className="h-6 w-6 shrink-0" /> : null}
+-              <span className="hidden xl:inline truncate">{item.label}</span>
++              <span className="hidden lg:inline truncate">{item.label}</span>
+               <span
+-                className={`absolute top-2 right-2 xl:static xl:ml-1 xl:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
++                className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
+                   showBadge ? 'opacity-100' : 'opacity-0'
+                 }`}
+                 aria-hidden={!showBadge}
+@@ -84,18 +84,18 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
+             <button
+               type="button"
+               onClick={themeToggle.onToggle}
+-              className="inline-flex h-12 w-12 xl:h-auto xl:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle xl:px-4 xl:py-3 text-sm text-foreground transition hover:bg-background"
++              className="inline-flex h-12 w-12 lg:h-auto lg:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle lg:px-4 lg:py-3 text-sm text-foreground transition hover:bg-background"
+               aria-label={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
+               title={`Theme wechseln – nächstes: ${themeToggle.nextLabel}`}
+             >
+               {ThemeToggleIcon ? <ThemeToggleIcon className="h-6 w-5" /> : null}
+-              <span className="hidden xl:inline truncate">Theme</span>
+-              <span className="hidden xl:inline text-xs text-foreground-muted">
++              <span className="hidden lg:inline truncate">Theme</span>
++              <span className="hidden lg:inline text-xs text-foreground-muted">
+                 {themeToggle.label}
+               </span>
+               {themeToggle?.nextConfig?.colors && (
+                 <span
+-                  className="hidden xl:inline-block h-4 w-4 rounded-full ml-auto"
++                  className="hidden lg:inline-block h-4 w-4 rounded-full ml-auto"
+                   style={{
+                     backgroundColor: themeToggle.nextConfig.colors.background,
+                     border: `2px solid ${themeToggle.nextConfig.colors.background}`
+@@ -110,13 +110,13 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
+           <button
+             type="button"
+             onClick={onCompose}
+-            className="inline-flex items-center justify-center xl:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 xl:h-auto xl:w-full xl:px-4 xl:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
++            className="inline-flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:w-full lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+             aria-label="Neuer Post"
+             data-nav-item="compose"
+             title="Neuer Post"
+           >
+             <PlusIcon className="h-6 w-6 shrink-0" />
+-            <span className="hidden xl:inline truncate">Neuer Post</span>
++            <span className="hidden lg:inline truncate">Neuer Post</span>
+           </button>
+         </div>
+       </div>
+diff --git a/bsky-client/src/modules/notifications/Notifications.jsx b/bsky-client/src/modules/notifications/Notifications.jsx
+index 70695a4..b34ef78 100644
+--- a/bsky-client/src/modules/notifications/Notifications.jsx
++++ b/bsky-client/src/modules/notifications/Notifications.jsx
+@@ -3,8 +3,13 @@ import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@
+ import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
+ import { parseAspectRatioValue } from '../shared/utils/media.js'
+ import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
+-import { useAppDispatch } from '../../context/AppContext'
++import { useAppState, useAppDispatch } from '../../context/AppContext'
+ import { useCardConfig } from '../../context/CardConfigContext.jsx'
++import { useThread } from '../../hooks/useThread.js'
++import { useComposer } from '../../hooks/useComposer.js'
++import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
++
++
+ 
+ const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
+ const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
+@@ -907,7 +912,13 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
+   return null
+ }
+ 
+-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all', onViewMedia }) {
++export default function Notifications ({ activeTab = 'all' }) {
++  const { notificationsRefreshTick: refreshKey } = useAppState()
++  const dispatch = useAppDispatch()
++  const { selectThreadFromItem: onSelectPost } = useThread()
++  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
++  const { openMediaPreview: onViewMedia } = useMediaLightbox()
++
+   const [items, setItems] = useState([])
+   const [loading, setLoading] = useState(true)
+   const [error, setError] = useState('')
+@@ -918,10 +929,8 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply,
+   const [unreadCount, setUnreadCount] = useState(0)
+   const syncUnread = useCallback((count) => {
+     setUnreadCount(count)
+-    if (typeof onUnreadChange === 'function') {
+-      onUnreadChange(count)
+-    }
+-  }, [onUnreadChange])
++    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })
++  }, [dispatch])
+ 
+   const hasMore = useMemo(() => Boolean(cursor), [cursor])
+ 
+@@ -973,7 +982,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply,
+     } finally {
+       setLoadingMore(false)
+     }
+-  }, [cursor, fetchPage, hasMore, loadingMore, activeTab])
++  }, [cursor, fetchPage, hasMore, loadingMore, activeTab, syncUnread])
+ 
+   const handleMarkRead = useCallback((notification) => {
+     if (!notification || notification.isRead) return
+@@ -994,10 +1003,10 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply,
+     setUnreadCount(current => {
+       if (current <= 0) return 0
+       const next = current - 1
+-      if (typeof onUnreadChange === 'function') onUnreadChange(next)
++      dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: next })
+       return next
+     })
+-  }, [onUnreadChange])
++  }, [dispatch])
+ 
+   useEffect(() => {
+     if (!hasMore || !loadMoreTriggerRef.current) return
+diff --git a/bsky-client/src/modules/notifications/Notifications.test.jsx b/bsky-client/src/modules/notifications/Notifications.test.jsx
+index c07e816..0cb4553 100644
+--- a/bsky-client/src/modules/notifications/Notifications.test.jsx
++++ b/bsky-client/src/modules/notifications/Notifications.test.jsx
+@@ -2,6 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react'
+ import userEvent from '@testing-library/user-event'
+ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+ import Notifications, { NotificationCard } from './Notifications.jsx'
++import { AppProvider } from '../../context/AppContext.jsx'
++
++const renderWithProviders = (ui, options) => {
++  return render(ui, {
++    wrapper: AppProvider,
++    ...options
++  })
++}
+ 
+ const { fetchNotificationsMock, mockDispatch, engagementOverrides } = vi.hoisted(() => ({
+   fetchNotificationsMock: vi.fn(),
+@@ -9,10 +17,13 @@ const { fetchNotificationsMock, mockDispatch, engagementOverrides } = vi.hoisted
+   engagementOverrides: { current: null }
+ }))
+ 
+-vi.mock('../../context/AppContext', () => ({
+-  useAppDispatch: () => mockDispatch
+-}))
+-
++vi.mock('../../context/AppContext', async (importOriginal) => {
++  const original = await importOriginal()
++  return {
++    ...original,
++    useAppDispatch: () => mockDispatch
++  }
++})
+ vi.mock('../../context/CardConfigContext.jsx', () => ({
+   useCardConfig: () => ({
+     config: { singleMax: 256 }
+@@ -99,6 +110,10 @@ beforeEach(() => {
+   fetchNotificationsMock.mockReset()
+   mockDispatch.mockReset()
+   engagementOverrides.current = null
++  vi.spyOn(window, 'fetch').mockResolvedValue({
++    ok: true,
++    json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
++  })
+ })
+ 
+ describe('Notifications', () => {
+@@ -112,7 +127,7 @@ describe('Notifications', () => {
+       unreadCount: 2
+     })
+ 
+-    const { container } = render(<Notifications activeTab='all' />)
++    const { container } = renderWithProviders(<Notifications activeTab='all' />)
+ 
+     await waitFor(() => {
+       expect(container.querySelectorAll('[data-component="BskyNotificationCard"]').length).toBe(2)
+@@ -143,7 +158,7 @@ describe('Notifications', () => {
+         unreadCount: 0
+       })
+ 
+-    const { container } = render(<Notifications activeTab='mentions' />)
++    const { container } = renderWithProviders(<Notifications activeTab='mentions' />)
+ 
+     // Wait for both fetches to complete
+     await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2), { timeout: 2000 })
+diff --git a/bsky-client/src/modules/profile/ProfilePosts.jsx b/bsky-client/src/modules/profile/ProfilePosts.jsx
+index ad59135..d75a4e5 100644
+--- a/bsky-client/src/modules/profile/ProfilePosts.jsx
++++ b/bsky-client/src/modules/profile/ProfilePosts.jsx
+@@ -4,6 +4,9 @@ import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
+ import SkeetItem from '../timeline/SkeetItem.jsx'
+ import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
+ import { hasVideoMedia } from './utils.js'
++import { useThread } from '../../hooks/useThread'
++import { useComposer } from '../../hooks/useComposer'
++import { useMediaLightbox } from '../../hooks/useMediaLightbox'
+ 
+ export default function ProfilePosts ({
+   actor,
+@@ -11,12 +14,12 @@ export default function ProfilePosts ({
+   activeTab,
+   feedData,
+   setFeeds,
+-  scrollContainerRef,
+-  onSelectPost,
+-  onReply,
+-  onQuote,
+-  onViewMedia
++  scrollContainerRef
+ }) {
++  const { selectThreadFromItem: onSelectPost } = useThread()
++  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
++  const { openMediaPreview: onViewMedia } = useMediaLightbox()
++
+   const [loadingMore, setLoadingMore] = useState(false)
+   const loadMoreTriggerRef = useRef(null)
+ 
+diff --git a/bsky-client/src/modules/profile/ProfilePosts.test.jsx b/bsky-client/src/modules/profile/ProfilePosts.test.jsx
+index ba6cc5a..d4af666 100644
+--- a/bsky-client/src/modules/profile/ProfilePosts.test.jsx
++++ b/bsky-client/src/modules/profile/ProfilePosts.test.jsx
+@@ -1,6 +1,14 @@
+ import { render, screen } from '@testing-library/react'
+ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+ import ProfilePosts from './ProfilePosts.jsx'
++import { AppProvider } from '../../context/AppContext.jsx'
++
++const renderWithProviders = (ui, options) => {
++  return render(ui, {
++    wrapper: AppProvider,
++    ...options
++  })
++}
+ 
+ vi.mock('../timeline/SkeetItem.jsx', () => ({
+   default: () => <div data-testid='skeet-item'>item</div>
+@@ -20,15 +28,15 @@ describe('ProfilePosts', () => {
+     activeTab: 'posts',
+     setFeeds: vi.fn(),
+     scrollContainerRef: { current: null },
+-    feedData: { items: [], cursor: null, status: 'idle', error: '' },
+-    onSelectPost: undefined,
+-    onReply: undefined,
+-    onQuote: undefined,
+-    onViewMedia: undefined
++    feedData: { items: [], cursor: null, status: 'idle', error: '' }
+   }
+ 
+   beforeEach(() => {
+     vi.stubGlobal('IntersectionObserver', createIntersectionObserverMock())
++    vi.spyOn(window, 'fetch').mockResolvedValue({
++      ok: true,
++      json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
++    })
+   })
+ 
+   afterEach(() => {
+@@ -37,7 +45,7 @@ describe('ProfilePosts', () => {
+   })
+ 
+   it('shows skeleton placeholders while loading', () => {
+-    render(
++    renderWithProviders(
+       <ProfilePosts
+         {...defaultProps}
+         feedData={{ items: [], cursor: null, status: 'loading', error: '' }}
+@@ -47,7 +55,7 @@ describe('ProfilePosts', () => {
+   })
+ 
+   it('renders empty message for tabs without entries', () => {
+-    render(
++    renderWithProviders(
+       <ProfilePosts
+         {...defaultProps}
+         activeTab='replies'
+@@ -58,7 +66,7 @@ describe('ProfilePosts', () => {
+   })
+ 
+   it('shows inline error block with retry button when pagination fails after data', () => {
+-    render(
++    renderWithProviders(
+       <ProfilePosts
+         {...defaultProps}
+         feedData={{ items: [{ uri: 'at://example/post' }], cursor: null, status: 'success', error: 'Mehr laden fehlgeschlagen.' }}
+diff --git a/bsky-client/src/modules/profile/ProfileView.jsx b/bsky-client/src/modules/profile/ProfileView.jsx
+index 50abd40..1411674 100644
+--- a/bsky-client/src/modules/profile/ProfileView.jsx
++++ b/bsky-client/src/modules/profile/ProfileView.jsx
+@@ -385,11 +385,7 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
+ 
+ export default function ProfileView ({
+   actor: actorOverride = null,
+-  onClose,
+-  onSelectPost,
+-  onReply,
+-  onQuote,
+-  onViewMedia
++  onClose
+ }) {
+   const { profileActor, me } = useAppState()
+   const dispatch = useAppDispatch()
+@@ -646,10 +642,6 @@ export default function ProfileView ({
+             feedData={feeds[activeTab]}
+             setFeeds={setFeeds}
+             scrollContainerRef={containerRef}
+-            onSelectPost={onSelectPost}
+-            onReply={onReply}
+-            onQuote={onQuote}
+-            onViewMedia={onViewMedia}
+           />
+         )
+       })()}
+diff --git a/bsky-client/src/modules/search/SearchView.jsx b/bsky-client/src/modules/search/SearchView.jsx
+index 6f80309..5891d26 100644
+--- a/bsky-client/src/modules/search/SearchView.jsx
++++ b/bsky-client/src/modules/search/SearchView.jsx
+@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+ import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
+ import { Button, Card, searchBsky, RichText } from '../shared'
+ import SkeetItem from '../timeline/SkeetItem'
++import { useThread } from '../../hooks/useThread'
++import { useComposer } from '../../hooks/useComposer'
++import { useMediaLightbox } from '../../hooks/useMediaLightbox'
+ 
+ const SEARCH_TABS = [
+   { id: 'top', label: 'Top' },
+@@ -24,7 +27,11 @@ const buildFeedUrl = (feed) => {
+   return `https://bsky.app/profile/${profileSegment}/feed/${rkey}`
+ }
+ 
+-export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedia }) {
++export default function SearchView () {
++  const { selectThreadFromItem: onSelectPost } = useThread()
++  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
++  const { openMediaPreview: onViewMedia } = useMediaLightbox()
++
+   const [draftQuery, setDraftQuery] = useState('')
+   const [query, setQuery] = useState('')
+   const [activeTab, setActiveTab] = useState('top')
+diff --git a/bsky-client/src/modules/timeline/ThreadView.jsx b/bsky-client/src/modules/timeline/ThreadView.jsx
+index ae770fe..4c8c130 100644
+--- a/bsky-client/src/modules/timeline/ThreadView.jsx
++++ b/bsky-client/src/modules/timeline/ThreadView.jsx
+@@ -1,5 +1,9 @@
+ import { Button } from '../shared'
+ import SkeetItem from './SkeetItem'
++import { useAppState } from '../../context/AppContext'
++import { useComposer } from '../../hooks/useComposer'
++import { useMediaLightbox } from '../../hooks/useMediaLightbox'
++import { useThread } from '../../hooks/useThread'
+ 
+ const CONNECTOR_OFFSET = 28
+ const INDENT_STEP = 30
+@@ -89,7 +93,12 @@ function ThreadNodeList ({
+   )
+ }
+ 
+-export default function ThreadView ({ state, onReload, onReply, onQuote, onViewMedia, onSelectPost }) {
++export default function ThreadView () {
++  const { threadState: state } = useAppState()
++  const { reloadThread: onReload, selectThreadFromItem: onSelectPost } = useThread()
++  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
++  const { openMediaPreview: onViewMedia } = useMediaLightbox()
++
+   const { loading, error, data } = state || {}
+   const parents = Array.isArray(data?.parents) ? data.parents : []
+   const focus = data?.focus || null
+diff --git a/bsky-client/src/modules/timeline/Timeline.jsx b/bsky-client/src/modules/timeline/Timeline.jsx
+index 01b4128..0befd75 100644
+--- a/bsky-client/src/modules/timeline/Timeline.jsx
++++ b/bsky-client/src/modules/timeline/Timeline.jsx
+@@ -2,8 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
+ import SkeetItem from './SkeetItem'
+ import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
+ import { fetchTimeline as fetchTimelineApi } from '../shared'
++import { useAppState, useAppDispatch } from '../../context/AppContext'
++import { useComposer } from '../../hooks/useComposer'
++import { useMediaLightbox } from '../../hooks/useMediaLightbox'
++import { useThread } from '../../hooks/useThread'
++
++export default function Timeline ({ renderMode, isActive = true }) {
++  const { timelineTab: tab, timelineSource: source, refreshTick: refreshKey } = useAppState()
++  const dispatch = useAppDispatch()
++  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
++  const { openMediaPreview: onViewMedia } = useMediaLightbox()
++  const { selectThreadFromItem: onSelectPost } = useThread()
++
++  const onLoadingChange = useCallback((loading) => {
++    dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading })
++  }, [dispatch])
++
++  const onTopItemChange = useCallback((item) => {
++    const nextUri = item?.uri || ''
++    dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
++  }, [dispatch])
+ 
+-export default function Timeline ({ tab = 'discover', source = null, renderMode, onReply, onQuote, onViewMedia, refreshKey = 0, onSelectPost, onTopItemChange, onLoadingChange, isActive = true }) {
+   const [items, setItems] = useState([])
+   const [loading, setLoading] = useState(true)
+   const [error, setError] = useState('')
+diff --git a/bsky-client/src/modules/timeline/Timeline.test.jsx b/bsky-client/src/modules/timeline/Timeline.test.jsx
+index 15078a2..115aef2 100644
+--- a/bsky-client/src/modules/timeline/Timeline.test.jsx
++++ b/bsky-client/src/modules/timeline/Timeline.test.jsx
+@@ -1,6 +1,14 @@
+ import { render, screen, waitFor } from '@testing-library/react'
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+ import Timeline from './Timeline.jsx'
++import { AppProvider } from '../../context/AppContext.jsx'
++
++const renderWithProviders = (ui, options) => {
++  return render(ui, {
++    wrapper: AppProvider,
++    ...options
++  })
++}
+ 
+ const fetchTimelineMock = vi.fn()
+ 
+@@ -15,11 +23,15 @@ vi.mock('./SkeetItem.jsx', () => ({
+ describe('Timeline', () => {
+   beforeEach(() => {
+     fetchTimelineMock.mockReset()
++    vi.spyOn(window, 'fetch').mockResolvedValue({
++      ok: true,
++      json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
++    })
+   })
+ 
+   it('renders skeleton placeholders while the first page loads', () => {
+     fetchTimelineMock.mockReturnValue(new Promise(() => {}))
+-    render(<Timeline />)
++    renderWithProviders(<Timeline />)
+     expect(screen.getByRole('status')).toBeInTheDocument()
+     expect(screen.getAllByRole('listitem')).toHaveLength(3)
+   })
+@@ -30,7 +42,7 @@ describe('Timeline', () => {
+       cursor: null
+     })
+ 
+-    render(<Timeline />)
++    renderWithProviders(<Timeline />)
+ 
+     await waitFor(() => {
+       expect(screen.getByTestId('skeet-item')).toHaveTextContent('at://example/post1')
+diff --git a/changelog-unreleased.md b/changelog-unreleased.md
+index 860e2c5..c0d3c7d 100644
+--- a/changelog-unreleased.md
++++ b/changelog-unreleased.md
+@@ -3,6 +3,7 @@
+ ## 2025-11-22
+ 
+ ### Client
++- **Bugfix:** Ein Absturz in der Mitteilungsansicht wurde behoben, der durch einen fehlenden Import des `useMediaLightbox`-Hooks verursacht wurde.
+ - **Refactor:** Die Funktion `parseAspectRatioValue` liegt nun zentral in `shared/utils/media`. Timeline, Notifications und Media-Lightbox greifen gemeinsam darauf zu, sodass Anpassungen an einer Stelle genügen.
+ - **Bugfix:** Der Composer verhindert nach dem vierten Anhang weitere Uploads, bevor Requests gestartet werden; der Fokus springt nach Bild/GIF wieder zuverlässig in die Textarea.
+ 

@@ -2,6 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import Notifications, { NotificationCard } from './Notifications.jsx'
+import { AppProvider } from '../../context/AppContext.jsx'
+
+const renderWithProviders = (ui, options) => {
+  return render(ui, {
+    wrapper: AppProvider,
+    ...options
+  })
+}
 
 const { fetchNotificationsMock, mockDispatch, engagementOverrides } = vi.hoisted(() => ({
   fetchNotificationsMock: vi.fn(),
@@ -9,10 +17,13 @@ const { fetchNotificationsMock, mockDispatch, engagementOverrides } = vi.hoisted
   engagementOverrides: { current: null }
 }))
 
-vi.mock('../../context/AppContext', () => ({
-  useAppDispatch: () => mockDispatch
-}))
-
+vi.mock('../../context/AppContext', async (importOriginal) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useAppDispatch: () => mockDispatch
+  }
+})
 vi.mock('../../context/CardConfigContext.jsx', () => ({
   useCardConfig: () => ({
     config: { singleMax: 256 }
@@ -99,6 +110,10 @@ beforeEach(() => {
   fetchNotificationsMock.mockReset()
   mockDispatch.mockReset()
   engagementOverrides.current = null
+  vi.spyOn(window, 'fetch').mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
+  })
 })
 
 describe('Notifications', () => {
@@ -112,7 +127,7 @@ describe('Notifications', () => {
       unreadCount: 2
     })
 
-    const { container } = render(<Notifications activeTab='all' />)
+    const { container } = renderWithProviders(<Notifications activeTab='all' />)
 
     await waitFor(() => {
       expect(container.querySelectorAll('[data-component="BskyNotificationCard"]').length).toBe(2)
@@ -143,7 +158,7 @@ describe('Notifications', () => {
         unreadCount: 0
       })
 
-    const { container } = render(<Notifications activeTab='mentions' />)
+    const { container } = renderWithProviders(<Notifications activeTab='mentions' />)
 
     // Wait for both fetches to complete
     await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2), { timeout: 2000 })

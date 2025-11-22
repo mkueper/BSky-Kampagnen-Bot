@@ -141,7 +141,7 @@ export default function BskyClientLayout ({
     'fixed top-4 bottom-4 left-4',
     isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]',
     'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
-    'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 xl:w-max xl:px-[6px]',
+    'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 lg:w-max lg:px-[6px]',
     {
       'translate-x-0': navVisible,
       '-translate-x-[120%] md:translate-x-0': !navVisible

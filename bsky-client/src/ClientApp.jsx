@@ -232,19 +232,6 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 
   const topBlock = null
 
-  const handleTimelineLoadingChange = useCallback(
-    (loading) => dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading }),
-    [dispatch]
-  )
-
-  const handleTopItemChange = useCallback(
-    (item) => {
-      const nextUri = item?.uri || ''
-      dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: nextUri })
-    },
-    [dispatch]
-  )
-
   useEffect(() => {
     dispatch({ type: 'SET_TIMELINE_READY', payload: false })
   }, [timelineTab, dispatch])
@@ -305,51 +292,25 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
       >
-        <MainContent
-          section={section}
-          quickComposerEnabled={quickComposerEnabled}
-          refreshTimeline={refreshTimeline}
-          threadState={threadState}
-          timelineTab={timelineTab}
-          timelineSource={timelineSource}
-          refreshTick={refreshTick}
-          handleTimelineLoadingChange={handleTimelineLoadingChange}
-          openReplyComposer={openReplyComposer}
-          openQuoteComposer={openQuoteComposer}
-          openMediaPreview={openMediaPreview}
-          selectThreadFromItem={selectThreadFromItem}
-          handleTopItemChange={handleTopItemChange}
-          reloadThread={reloadThread}
-          notificationsRefreshTick={notificationsRefreshTick}
-          dispatch={dispatch}
-          notificationTab={notificationTab}
-        />
+        <MainContent />
       </BskyClientLayout>
       <Modals />
     </>
   )
 }
 
-function MainContent (props) {
+function MainContent () {
   const {
     section,
-    quickComposerEnabled,
-    refreshTimeline,
-    threadState,
-    timelineTab,
-    timelineSource,
-    refreshTick,
-    handleTimelineLoadingChange,
-    openReplyComposer,
-    openQuoteComposer,
-    openMediaPreview,
-    selectThreadFromItem,
-    handleTopItemChange,
-    reloadThread,
-    notificationsRefreshTick,
-    dispatch,
-    notificationTab
-  } = props
+    threadState
+  } = useAppState()
+  const dispatch = useAppDispatch()
+
+  const { clientConfig } = useClientConfig()
+  const quickComposerEnabled = clientConfig?.ui?.quickComposer?.enabled !== false
+
+  const refreshTimeline = useCallback(() => dispatch({ type: 'REFRESH_TIMELINE' }), [dispatch])
+  const [notificationTab, setNotificationTab] = useState('all')
 
   if (section === 'home') {
     return (
@@ -358,28 +319,10 @@ function MainContent (props) {
           <QuickComposer onSent={() => refreshTimeline()} />
         ) : null}
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Timeline
-            tab={timelineTab}
-            source={timelineSource}
-            refreshKey={refreshTick}
-            onLoadingChange={handleTimelineLoadingChange}
-            isActive={section === 'home'}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-            onTopItemChange={handleTopItemChange}
-          />
+          <Timeline isActive={section === 'home'} />
         </div>
         {threadState.active ? (
-          <ThreadView
-            state={threadState}
-            onReload={reloadThread}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-          />
+          <ThreadView />
         ) : null}
       </div>
     )
@@ -388,12 +331,7 @@ function MainContent (props) {
   if (section === 'search') {
     return (
       <Suspense fallback={<SectionFallback label='Suche' />}>
-        <SearchViewLazy
-          onSelectPost={selectThreadFromItem}
-          onReply={openReplyComposer}
-          onQuote={openQuoteComposer}
-          onViewMedia={openMediaPreview}
-        />
+        <SearchViewLazy />
       </Suspense>
     )
   }
@@ -403,26 +341,11 @@ function MainContent (props) {
       <div className='space-y-6'>
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
           <Suspense fallback={<NotificationsFallback />}>
-            <NotificationsLazy
-              refreshKey={notificationsRefreshTick}
-              onSelectPost={selectThreadFromItem}
-              onReply={openReplyComposer}
-              onQuote={openQuoteComposer}
-              onUnreadChange={(count) => dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })}
-              activeTab={notificationTab}
-              onViewMedia={openMediaPreview}
-            />
+            <NotificationsLazy activeTab={notificationTab} />
           </Suspense>
         </div>
         {threadState.active ? (
-          <ThreadView
-            state={threadState}
-            onReload={reloadThread}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-          />
+          <ThreadView />
         ) : null}
       </div>
     )
@@ -440,22 +363,10 @@ function MainContent (props) {
     return (
       <div className='space-y-6'>
         <Suspense fallback={<SectionFallback label='Profil' />}>
-          <ProfileViewLazy
-            onSelectPost={selectThreadFromItem}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-          />
+          <ProfileViewLazy />
         </Suspense>
         {threadState.active ? (
-          <ThreadView
-            state={threadState}
-            onReload={reloadThread}
-            onReply={openReplyComposer}
-            onQuote={openQuoteComposer}
-            onViewMedia={openMediaPreview}
-            onSelectPost={selectThreadFromItem}
-          />
+          <ThreadView />
         ) : null}
       </div>
     )

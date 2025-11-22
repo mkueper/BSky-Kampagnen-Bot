@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button, Card, searchBsky, RichText } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
+import { useThread } from '../../hooks/useThread'
+import { useComposer } from '../../hooks/useComposer'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 
 const SEARCH_TABS = [
   { id: 'top', label: 'Top' },
@@ -24,7 +27,11 @@ const buildFeedUrl = (feed) => {
   return `https://bsky.app/profile/${profileSegment}/feed/${rkey}`
 }
 
-export default function SearchView ({ onSelectPost, onReply, onQuote, onViewMedia }) {
+export default function SearchView () {
+  const { selectThreadFromItem: onSelectPost } = useThread()
+  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
+  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('top')

@@ -3,8 +3,13 @@ import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
-import { useAppDispatch } from '../../context/AppContext'
+import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
+import { useThread } from '../../hooks/useThread.js'
+import { useComposer } from '../../hooks/useComposer.js'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
+
+
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
@@ -907,7 +912,13 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
   return null
 }
 
-export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, onQuote, onUnreadChange, activeTab = 'all', onViewMedia }) {
+export default function Notifications ({ activeTab = 'all' }) {
+  const { notificationsRefreshTick: refreshKey } = useAppState()
+  const dispatch = useAppDispatch()
+  const { selectThreadFromItem: onSelectPost } = useThread()
+  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
+  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -918,10 +929,8 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
   const [unreadCount, setUnreadCount] = useState(0)
   const syncUnread = useCallback((count) => {
     setUnreadCount(count)
-    if (typeof onUnreadChange === 'function') {
-      onUnreadChange(count)
-    }
-  }, [onUnreadChange])
+    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })
+  }, [dispatch])
 
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
@@ -973,7 +982,7 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     } finally {
       setLoadingMore(false)
     }
-  }, [cursor, fetchPage, hasMore, loadingMore, activeTab])
+  }, [cursor, fetchPage, hasMore, loadingMore, activeTab, syncUnread])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead) return
@@ -994,10 +1003,10 @@ export default function Notifications ({ refreshKey = 0, onSelectPost, onReply, 
     setUnreadCount(current => {
       if (current <= 0) return 0
       const next = current - 1
-      if (typeof onUnreadChange === 'function') onUnreadChange(next)
+      dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: next })
       return next
     })
-  }, [onUnreadChange])
+  }, [dispatch])
 
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return

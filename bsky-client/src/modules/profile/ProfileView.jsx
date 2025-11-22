@@ -385,11 +385,7 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
 
 export default function ProfileView ({
   actor: actorOverride = null,
-  onClose,
-  onSelectPost,
-  onReply,
-  onQuote,
-  onViewMedia
+  onClose
 }) {
   const { profileActor, me } = useAppState()
   const dispatch = useAppDispatch()
@@ -646,10 +642,6 @@ export default function ProfileView ({
             feedData={feeds[activeTab]}
             setFeeds={setFeeds}
             scrollContainerRef={containerRef}
-            onSelectPost={onSelectPost}
-            onReply={onReply}
-            onQuote={onQuote}
-            onViewMedia={onViewMedia}
           />
         )
       })()}

@@ -1,5 +1,9 @@
 import { Button } from '../shared'
 import SkeetItem from './SkeetItem'
+import { useAppState } from '../../context/AppContext'
+import { useComposer } from '../../hooks/useComposer'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox'
+import { useThread } from '../../hooks/useThread'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
@@ -89,7 +93,12 @@ function ThreadNodeList ({
   )
 }
 
-export default function ThreadView ({ state, onReload, onReply, onQuote, onViewMedia, onSelectPost }) {
+export default function ThreadView () {
+  const { threadState: state } = useAppState()
+  const { reloadThread: onReload, selectThreadFromItem: onSelectPost } = useThread()
+  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
+  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+
   const { loading, error, data } = state || {}
   const parents = Array.isArray(data?.parents) ? data.parents : []
   const focus = data?.focus || null

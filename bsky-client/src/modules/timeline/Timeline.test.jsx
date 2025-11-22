@@ -1,6 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Timeline from './Timeline.jsx'
+import { AppProvider } from '../../context/AppContext.jsx'
+
+const renderWithProviders = (ui, options) => {
+  return render(ui, {
+    wrapper: AppProvider,
+    ...options
+  })
+}
 
 const fetchTimelineMock = vi.fn()
 
@@ -15,11 +23,15 @@ vi.mock('./SkeetItem.jsx', () => ({
 describe('Timeline', () => {
   beforeEach(() => {
     fetchTimelineMock.mockReset()
+    vi.spyOn(window, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
+    })
   })
 
   it('renders skeleton placeholders while the first page loads', () => {
     fetchTimelineMock.mockReturnValue(new Promise(() => {}))
-    render(<Timeline />)
+    renderWithProviders(<Timeline />)
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
@@ -30,7 +42,7 @@ describe('Timeline', () => {
       cursor: null
     })
 
-    render(<Timeline />)
+    renderWithProviders(<Timeline />)
 
     await waitFor(() => {
       expect(screen.getByTestId('skeet-item')).toHaveTextContent('at://example/post1')

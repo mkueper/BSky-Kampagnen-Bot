@@ -1,0 +1,27 @@
+{
+  "ide": {
+    "enabled": true
+  },
+  "hasSeenIdeIntegrationNudge": true,
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "tools": {
+    "shell": {
+      "enableInteractiveShell": true,
+      "showColor": true
+    },
+    "core": [
+      "run_shell_command(npm)",
+      "run_shell_command(npx)",
+      "run_shell_command(node)",
+      "run_shell_command(git)"
+    ],
+    "exclude": [
+      "run_shell_command(rm)",
+      "run_shell_command(git push)"
+    ]
+  }
+}
