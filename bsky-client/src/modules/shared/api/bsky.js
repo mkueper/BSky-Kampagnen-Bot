@@ -381,9 +381,20 @@ export async function fetchProfileFeed ({ actor, cursor, limit, filter } = {}) {
   if (cursor) params.set('cursor', cursor)
   if (typeof limit === 'number') params.set('limit', String(limit))
   if (filter) params.set('filter', filter)
-  console.debug('[fetchProfileFeed] request', { actor: normalized, cursor, limit, filter })
   const data = await requestJson(`/api/bsky/profile/feed?${params.toString()}`)
-  console.debug('[fetchProfileFeed] response', { actor: normalized, length: Array.isArray(data?.items) ? data.items.length : 0, cursor: data?.cursor || null })
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    cursor: data?.cursor || null
+  }
+}
+
+export async function fetchProfileLikes ({ actor, cursor, limit } = {}) {
+  const normalized = typeof actor === 'string' ? actor.trim() : ''
+  if (!normalized) throw new Error('actor erforderlich')
+  const params = createSearchParams({ actor: normalized })
+  if (cursor) params.set('cursor', cursor)
+  if (typeof limit === 'number') params.set('limit', String(limit))
+  const data = await requestJson(`/api/bsky/profile/likes?${params.toString()}`)
   return {
     items: Array.isArray(data?.items) ? data.items : [],
     cursor: data?.cursor || null

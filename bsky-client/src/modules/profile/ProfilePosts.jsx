@@ -1,14 +1,9 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { fetchProfileFeed } from '../shared/api/bsky'
+import { fetchProfileFeed, fetchProfileLikes } from '../shared/api/bsky'
 import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
 import SkeetItem from '../timeline/SkeetItem.jsx'
 import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
-
-const debugProfilePosts = (...args) => {
-  try {
-    console.debug('[ProfilePosts]', ...args)
-  } catch {}
-}
+import { hasVideoMedia } from './utils.js'
 
 export default function ProfilePosts ({
   actor,
@@ -25,7 +20,6 @@ export default function ProfilePosts ({
   const loadMoreTriggerRef = useRef(null)
 
   const { items, cursor, status, error } = feedData
-  debugProfilePosts('render', { activeTab, status, length: items.length, error })
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
 
   const loadMore = useCallback(async () => {
@@ -42,17 +36,35 @@ export default function ProfilePosts ({
       const filterMap = {
         posts: 'posts_no_replies',
         replies: 'posts_with_replies',
-        media: 'posts_with_media'
+        media: 'posts_with_media',
+        videos: 'posts_with_media'
       }
-      const { items: nextItemsRaw, cursor: nextCursor } = await fetchProfileFeed({
-        actor,
-        cursor,
-        limit: 20,
-        filter: filterMap[activeTab]
-      })
-      const normalized = activeTab === 'replies'
-        ? nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
-        : nextItemsRaw
+      let nextItemsRaw = []
+      let nextCursor = null
+      if (activeTab === 'likes') {
+        const result = await fetchProfileLikes({
+          actor,
+          cursor,
+          limit: 20
+        })
+        nextItemsRaw = result.items
+        nextCursor = result.cursor
+      } else {
+        const result = await fetchProfileFeed({
+          actor,
+          cursor,
+          limit: 20,
+          filter: filterMap[activeTab]
+        })
+        nextItemsRaw = result.items
+        nextCursor = result.cursor
+      }
+      let normalized = nextItemsRaw
+      if (activeTab === 'replies') {
+        normalized = nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
+      } else if (activeTab === 'videos') {
+        normalized = nextItemsRaw.filter(hasVideoMedia)
+      }
 
       setFeeds(prev => ({
         ...prev,
@@ -142,7 +154,9 @@ export default function ProfilePosts ({
     const emptyMessageMap = {
       posts: 'Noch keine Beiträge.',
       replies: 'Noch keine Antworten.',
-      media: 'Noch keine Medien.'
+      media: 'Noch keine Medien.',
+      videos: 'Noch keine Videos.',
+      likes: 'Noch keine Likes.'
     }
     return (
       <p className='text-sm text-foreground-muted'>{emptyMessageMap[activeTab]}</p>

@@ -638,6 +638,27 @@ module.exports = {
     const res = await agent.app.bsky.actor.getProfile({ actor: normalized });
     return res?.data ?? null;
   },
+
+  /**
+   * Lädt Posts, die der Actor geliked hat.
+   *
+   * @param {string} actor DID oder Handle
+   * @param {{limit?: number, cursor?: string}} [opts]
+   */
+  async getActorLikes(actor, { limit = 30, cursor } = {}) {
+    const normalizedActor = typeof actor === 'string' ? actor.trim() : '';
+    if (!normalizedActor) {
+      throw new Error('actor erforderlich');
+    }
+    await ensureLoggedIn();
+    const params = {
+      actor: normalizedActor,
+      limit,
+      cursor
+    };
+    const res = await agent.app.bsky.feed.getActorLikes(params);
+    return res?.data ?? null;
+  },
   /**
    * Durchsucht Feed-Generatoren („Feeds“-Tab). Nutzt das neue API, fällt aber
    * bei älteren SDKs auf einen generischen XRPC-Call zurück.

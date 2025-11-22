@@ -66,6 +66,7 @@ router.post("/bsky/post", bskyController.postNow);
 router.get("/bsky/search", bskyController.search);
 router.get("/bsky/profile", bskyController.getProfile);
 router.get("/bsky/profile/feed", bskyController.getProfileFeed);
+router.get("/bsky/profile/likes", bskyController.getProfileLikes);
 router.get("/bsky/feeds", bskyController.getFeeds);
 router.post("/bsky/feeds/pin", bskyController.pinFeed);
 router.delete("/bsky/feeds/pin", bskyController.unpinFeed);

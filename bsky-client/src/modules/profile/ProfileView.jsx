@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
-import { fetchProfile, fetchProfileFeed } from '../shared/api/bsky'
+import { fetchProfile, fetchProfileFeed, fetchProfileLikes } from '../shared/api/bsky'
 import { Card, Button, ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import SkeetItem from '../timeline/SkeetItem.jsx'
+import { hasVideoMedia } from './utils.js'
 import {
   ArrowLeftIcon,
   ChatBubbleIcon,
@@ -19,14 +20,6 @@ import {
 
 const numberFormatter = new Intl.NumberFormat('de-DE')
 const PROFILE_SCROLL_CONTAINER_ID = 'bsky-profile-scroll-container'
-
-const debugProfileLog = (...args) => {
-  try {
-    console.debug('[ProfileView]', ...args)
-  } catch {
-    /* noop */
-  }
-}
 
 function createInitialFeedState () {
   return {
@@ -45,6 +38,13 @@ function createInitialFeedState () {
       lastUpdatedAt: null
     },
     media: {
+      items: [],
+      cursor: null,
+      error: '',
+      status: 'idle',
+      lastUpdatedAt: null
+    },
+    videos: {
       items: [],
       cursor: null,
       error: '',
@@ -452,53 +452,41 @@ export default function ProfileView ({
 
   // Effekt zum Laden der Feed-Daten für den aktiven Tab
   useEffect(() => {
-    if (!profile || !profile.did) {
-      debugProfileLog('Abbruch: kein Profil oder fehlende DID', { profilePresent: Boolean(profile) })
-      return
-    }
-    if (activeTab === 'videos') {
-      debugProfileLog('Abbruch: Tab Videos ist deaktiviert')
-      return
-    }
+    if (!profile || !profile.did) return
     const currentFeed = feeds[activeTab]
-    if (!currentFeed) {
-      debugProfileLog('Abbruch: Kein Feedzustand für Tab', { tabId: activeTab })
-      return
-    }
-    if (currentFeed.status !== 'idle') {
-      debugProfileLog('Abbruch: Feedstatus nicht idle', { tabId: activeTab, status: currentFeed.status })
-      return
-    }
+    if (!currentFeed) return
+    if (currentFeed.status !== 'idle') return
 
     const tabId = activeTab
     const filterMap = {
       posts: 'posts_no_replies',
       replies: 'posts_with_replies',
-      media: 'posts_with_media'
+      media: 'posts_with_media',
+      videos: 'posts_with_media'
     }
     const requestId = Symbol(`profile-feed-${tabId}`)
     feedRequestRef.current[tabId] = requestId
-
-    debugProfileLog('Starte Feed-Ladevorgang', { tabId, actor: profile.did })
 
     setFeeds(prev => ({
       ...prev,
       [tabId]: { ...prev[tabId], status: 'loading', error: '' }
     }))
 
-    fetchProfileFeed({
-      actor: profile.did,
-      limit: 20,
-      filter: filterMap[tabId]
-    })
+    const fetchCurrent = tabId === 'likes'
+      ? fetchProfileLikes({ actor: profile.did, limit: 20 })
+      : fetchProfileFeed({ actor: profile.did, limit: 20, filter: filterMap[tabId] })
+
+    fetchCurrent
       .then(({ items: nextItemsRaw, cursor: nextCursor }) => {
         if (!isMountedRef.current) return
         if (feedRequestRef.current[tabId] !== requestId) return
-        const normalized = tabId === 'replies'
-          ? nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
-          : nextItemsRaw
+        let normalized = nextItemsRaw
+        if (tabId === 'replies') {
+          normalized = nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
+        } else if (tabId === 'videos') {
+          normalized = nextItemsRaw.filter(hasVideoMedia)
+        }
 
-        debugProfileLog('Feed geladen', { tabId, items: normalized.length, cursor: nextCursor || null })
         setFeeds(prev => {
           const next = {
             ...prev,
@@ -511,7 +499,6 @@ export default function ProfileView ({
               lastUpdatedAt: Date.now()
             }
           }
-          debugProfileLog('Feed-State aktualisiert', { tabId, status: next[tabId].status, items: next[tabId].items.length })
           return next
         })
       })
@@ -519,7 +506,6 @@ export default function ProfileView ({
         if (!isMountedRef.current) return
         if (feedRequestRef.current[tabId] !== requestId) return
         const message = err?.message || 'Beiträge konnten nicht geladen werden.'
-        debugProfileLog('Feed-Ladevorgang fehlgeschlagen', { tabId, error: message })
         setFeeds(prev => ({
           ...prev,
           [tabId]: { ...prev[tabId], status: 'error', error: message }
@@ -535,7 +521,8 @@ export default function ProfileView ({
     { id: 'posts', label: 'Beiträge', disabled: false },
     { id: 'replies', label: 'Antworten', disabled: false },
     { id: 'media', label: 'Medien', disabled: false },
-    { id: 'videos', label: 'Videos', disabled: true }
+    { id: 'videos', label: 'Videos', disabled: false },
+    { id: 'likes', label: 'Likes', disabled: false }
   ]), [])
 
   useEffect(() => {
@@ -628,15 +615,11 @@ export default function ProfileView ({
               })}
             </div>
           </div>
-          {activeTab === 'videos' ? (
-            <p className='text-sm text-foreground-muted'>Videos werden bald verfügbar sein.</p>
-          ) : null}
         </Card>
       </div>
       {(() => {
-        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media'
+        const allowed = activeTab === 'posts' || activeTab === 'replies' || activeTab === 'media' || activeTab === 'videos'
         if (!allowed) return null
-        debugProfileLog('render ProfilePosts', { activeTab, feedStatus: feeds[activeTab]?.status, items: feeds[activeTab]?.items?.length })
         return (
         <ProfilePosts
           actor={profile.did}
