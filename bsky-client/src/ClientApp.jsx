@@ -39,11 +39,7 @@ const ProfileViewLazy = lazy(async () => {
   const module = await import('./modules/profile/ProfileView')
   return { default: module.ProfileView ?? module.default }
 })
-const SectionFallback = ({ label = 'Bereich' }) => (
-  <Card background='subtle' padding='p-4' className='text-sm text-foreground-muted'>
-    {label} wird geladen…
-  </Card>
-)
+const SectionFallback = () => null
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
