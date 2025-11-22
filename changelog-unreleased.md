@@ -10,6 +10,7 @@
 - **Bugfix:** Profil-Tabs (Beiträge/Antworten/Medien) laden nach einem Fehler wieder korrekt nach, wenn der Benutzer „Erneut versuchen“ wählt.
 - **Bugfix:** Die Suche verhindert, dass verspätete `loadMore`-Antworten Ergebnisse eines alten Queries anfügen.
 - **Bugfix:** Die Media-Lightbox hält die React-Hook-Reihenfolge stabil, selbst wenn vorübergehend kein Medium vorhanden ist – Warnungen/Memory-Leaks bleiben aus.
+- **UI:** Videokacheln in Timeline und Mitteilungen nutzen jetzt das angegebene Seitenverhältnis; Poster und Fallbacks teilen sich dieselben Maße wie Bildvorschauen und blocken Pointer-Events sauber.
 
 ## 2025-11-19
 

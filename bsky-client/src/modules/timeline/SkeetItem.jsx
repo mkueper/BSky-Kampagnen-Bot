@@ -24,6 +24,28 @@ import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, C
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
 
+const parseAspectRatioValue = (value) => {
+  if (!value) return null
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+  if (Array.isArray(value) && value.length === 2) {
+    const [w, h] = value.map(Number)
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      return w / h
+    }
+  }
+  if (typeof value === 'string') {
+    if (value.includes(':')) {
+      const [w, h] = value.split(':').map(Number)
+      if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+        return w / h
+      }
+    }
+    const numeric = Number(value)
+    if (Number.isFinite(numeric) && numeric > 0) return numeric
+  }
+  return null
+}
+
 function extractMediaFromEmbed (item) {
   try {
     const post = item?.raw?.post || {}
@@ -579,52 +601,54 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
       {videos.length > 0 ? (
         <div className='mt-3 space-y-2' data-component='BskySkeetVideos'>
-          {videos.map((video) => (
-            <button
-              key={video.mediaIndex ?? video.src}
-              type='button'
-              className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-              onClick={(event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  handleMediaPreview(event, video.mediaIndex ?? 0)
-                }
-              }}
-              title='Video öffnen'
-              aria-label='Video öffnen'
-            >
-              {video.poster ? (
-                <img
-                  src={video.poster}
-                  alt={video.alt || ''}
-                  className='w-full rounded-xl object-cover opacity-80'
-                  style={{
-                    ...(config?.mode === 'fixed'
-                      ? { height: (config?.singleMax ?? 360), width: (config?.singleMax ?? 360) }
-                      : { maxHeight: (config?.singleMax ?? 360), width: '100%' }),
-                    backgroundColor: 'var(--background-subtle, #000)'
-                  }}
-                  loading='lazy'
-                />
-              ) : (
+          {videos.map((video) => {
+            const singleMediaMax = config?.singleMax ?? 360
+            const ratio = parseAspectRatioValue(video.aspectRatio) || (16 / 9)
+            const previewContainerStyle = {
+              aspectRatio: ratio,
+              width: '100%',
+              maxHeight: singleMediaMax,
+              backgroundColor: 'var(--background-subtle, #000)'
+            }
+            return (
+              <button
+                key={video.mediaIndex ?? video.src}
+                type='button'
+                className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                onClick={(event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    handleMediaPreview(event, video.mediaIndex ?? 0)
+                  }
+                }}
+                title='Video öffnen'
+                aria-label='Video öffnen'
+              >
                 <div
-                  className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white'
-                  style={{
-                    ...(config?.mode === 'fixed'
-                      ? { height: (config?.singleMax ?? 360), width: (config?.singleMax ?? 360) }
-                      : { maxHeight: (config?.singleMax ?? 360), width: '100%' })
-                  }}
+                  className='relative w-full overflow-hidden rounded-xl'
+                  style={previewContainerStyle}
                 >
-                  <span className='text-sm uppercase tracking-wide'>Video</span>
+                  {video.poster ? (
+                    <img
+                      src={video.poster}
+                      alt={video.alt || ''}
+                      className='h-full w-full object-contain opacity-80'
+                      loading='lazy'
+                    />
+                  ) : (
+                    <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
+                      <span className='text-sm uppercase tracking-wide'>Video</span>
+                    </div>
+                  )}
+                  <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                    <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
+                      <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
+                    </span>
+                  </span>
                 </div>
-              )}
-              <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
-                <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
-                  <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
-                </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       ) : null}
 

@@ -8,6 +8,24 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
+const parseAspectRatioValue = (value) => {
+  if (!value) return null
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+  if (Array.isArray(value) && value.length === 2) {
+    const [w, h] = value.map(Number)
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return w / h
+  }
+  if (typeof value === 'string') {
+    if (value.includes(':')) {
+      const [w, h] = value.split(':').map(Number)
+      if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) return w / h
+    }
+    const numeric = Number(value)
+    if (Number.isFinite(numeric) && numeric > 0) return numeric
+  }
+  return null
+}
+
 
 function getNotificationId (entry) {
   if (!entry) return ''
@@ -698,45 +716,53 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
         </button>
       ) : null}
       {!preview.image && preview.video ? (
-        <button
-          type='button'
-          onClick={(event) => handlePreviewMediaClick(event, preview.videoIndex ?? 0)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              handlePreviewMediaClick(event, preview.videoIndex ?? 0)
-            }
-          }}
-          className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-          aria-label='Video öffnen'
-          title='Video öffnen'
-        >
-          {preview.video.poster ? (
-            <img
-              src={preview.video.poster}
-              alt={preview.video.alt || ''}
-              className='w-full rounded-xl object-cover opacity-80'
-              style={{
-                ...(config?.mode === 'fixed'
-                  ? { height: config?.singleMax ?? 256, width: config?.singleMax ?? 256 }
-                  : { maxHeight: config?.singleMax ?? 256, width: '100%' }),
-                backgroundColor: 'var(--background-subtle, #000)'
+        (() => {
+          const singleMax = config?.singleMax ?? 256
+          const ratio = parseAspectRatioValue(preview.video.aspectRatio) || (16 / 9)
+          return (
+            <button
+              type='button'
+              onClick={(event) => handlePreviewMediaClick(event, preview.videoIndex ?? 0)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  handlePreviewMediaClick(event, preview.videoIndex ?? 0)
+                }
               }}
-              loading='lazy'
-            />
-          ) : (
-            <div
-              className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white'
-              style={{ maxHeight: config?.singleMax ?? 256 }}
+              className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              aria-label='Video öffnen'
+              title='Video öffnen'
             >
-              <span className='text-sm uppercase tracking-wide'>Video</span>
-            </div>
-          )}
-          <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
-            <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
-              <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
-            </span>
-          </span>
-        </button>
+              <div
+                className='relative w-full overflow-hidden rounded-xl'
+                style={{
+                  aspectRatio: ratio,
+                  width: '100%',
+                  maxHeight: singleMax,
+                  minHeight: singleMax,
+                  backgroundColor: 'var(--background-subtle, #000)'
+                }}
+              >
+                {preview.video.poster ? (
+                  <img
+                    src={preview.video.poster}
+                    alt={preview.video.alt || ''}
+                    className='h-full w-full object-contain opacity-80'
+                    loading='lazy'
+                  />
+                ) : (
+                  <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
+                    <span className='text-sm uppercase tracking-wide'>Video</span>
+                  </div>
+                )}
+              </div>
+              <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'>
+                  <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
+                </span>
+              </span>
+            </button>
+          )
+        })()
       ) : null}
       {preview.external ? (
         <a
@@ -849,6 +875,8 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
 
   if (firstVideo) {
     const videoIndex = media.indexOf(firstVideo)
+    const singleMax = config?.singleMax ?? 256
+    const ratio = parseAspectRatioValue(firstVideo.aspectRatio) || (16 / 9)
     return (
       <button
         type='button'
@@ -862,19 +890,29 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
         aria-label='Video öffnen'
         title='Video öffnen'
       >
-        {firstVideo.poster ? (
-          <img
-            src={firstVideo.poster}
-            alt={firstVideo.alt || ''}
-            className='w-full rounded-xl object-cover opacity-80'
-            style={{ maxHeight: config?.singleMax ?? 256, width: '100%' }}
-            loading='lazy'
-          />
-        ) : (
-          <div className='flex h-48 w-full items-center justify-center rounded-xl bg-gradient-to-br from-black/80 to-gray-800 text-white' style={{ maxHeight: config?.singleMax ?? 256 }}>
-            <span className='text-sm uppercase tracking-wide'>Video</span>
-          </div>
-        )}
+        <div
+          className='relative w-full overflow-hidden rounded-xl'
+          style={{
+            aspectRatio: ratio,
+            width: '100%',
+            maxHeight: singleMax,
+            minHeight: singleMax,
+            backgroundColor: 'var(--background-subtle, #000)'
+          }}
+        >
+          {firstVideo.poster ? (
+            <img
+              src={firstVideo.poster}
+              alt={firstVideo.alt || ''}
+              className='h-full w-full object-contain opacity-80'
+              loading='lazy'
+            />
+          ) : (
+            <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
+              <span className='text-sm uppercase tracking-wide'>Video</span>
+            </div>
+          )}
+        </div>
         <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
           <span className='flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-white'><TriangleRightIcon className='h-6 w-6 translate-x-[1px]' /></span>
         </span>

@@ -2,8 +2,8 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from '
 
 const DEFAULTS = {
   mode: 'flex', // 'flex' | 'fixed'
-  singleMax: 256,
-  multiMax: 128
+  singleMax: 384,
+  multiMax: 192
 }
 
 const CardConfigContext = createContext({

@@ -47,6 +47,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
         videoEl.src = current.src
         videoEl.load?.()
       }
+      videoEl.play?.().catch(() => {})
       return undefined
     }
     const canPlayNative = typeof videoEl.canPlayType === 'function'
@@ -57,6 +58,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
         videoEl.src = current.src
         videoEl.load?.()
       }
+      videoEl.play?.().catch(() => {})
       return undefined
     }
     if (!Hls.isSupported()) {
@@ -66,7 +68,12 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     const hls = new Hls()
     hls.loadSource(current.src)
     hls.attachMedia(videoEl)
+    const handleReady = () => {
+      videoEl.play?.().catch(() => {})
+    }
+    hls.on(Hls.Events.MANIFEST_PARSED, handleReady)
     return () => {
+      hls.off(Hls.Events.MANIFEST_PARSED, handleReady)
       hls.destroy()
     }
   }, [current?.src, isHlsSource, videoActive])
@@ -87,7 +94,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
   if (!current) return null
 
   return (
-    <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4 pointer-events-none' data-component='BskyMediaLightbox'>
+    <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/10 backdrop-blur-sm p-4' data-component='BskyMediaLightbox'>
       <button
         type='button'
         className='absolute inset-0 h-full w-full cursor-zoom-out'

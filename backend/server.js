@@ -62,7 +62,16 @@ const app = express();
 const defaultCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
 defaultCsp["img-src"] = ["'self'", "data:", "blob:", "*"];
 const connectSrc = defaultCsp["connect-src"] || ["'self'"];
-defaultCsp["connect-src"] = Array.from(new Set([...connectSrc, "https://media.tenor.com", "https://cdn.jsdelivr.net"]));
+const videoOrigins = [
+  "https://media.tenor.com",
+  "https://cdn.jsdelivr.net",
+  "https://video.bsky.app",
+  "https://video.cdn.bsky.app",
+  "https://cdn.bsky.app"
+];
+defaultCsp["connect-src"] = Array.from(new Set([...connectSrc, ...videoOrigins]));
+const mediaSrc = defaultCsp["media-src"] || ["'self'"];
+defaultCsp["media-src"] = Array.from(new Set([...mediaSrc, "data:", "blob:", ...videoOrigins]));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: defaultCsp,
