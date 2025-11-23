@@ -303,26 +303,35 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const handleToggleLike = useCallback(async () => {
     clearError()
     const result = await toggleLike()
-    if (result && onEngagementChange && item?.uri) {
-      onEngagementChange(item.uri, { likeUri: result.likeUri, likeCount: result.likeCount })
+    if (result && onEngagementChange) {
+      const targetId = item?.listEntryId || item?.uri || item?.cid
+      if (targetId) {
+        onEngagementChange(targetId, { likeUri: result.likeUri, likeCount: result.likeCount })
+      }
     }
-  }, [clearError, item?.uri, onEngagementChange, toggleLike])
+  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
-    if (result && onEngagementChange && item?.uri) {
-      onEngagementChange(item.uri, { repostUri: result.repostUri, repostCount: result.repostCount })
+    if (result && onEngagementChange) {
+      const targetId = item?.listEntryId || item?.uri || item?.cid
+      if (targetId) {
+        onEngagementChange(targetId, { repostUri: result.repostUri, repostCount: result.repostCount })
+      }
     }
-  }, [clearError, item?.uri, onEngagementChange, toggleRepost])
+  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleRepost])
 
   const handleToggleBookmark = useCallback(async () => {
     clearError()
     const result = await toggleBookmark()
-    if (result && onEngagementChange && item?.uri) {
-      onEngagementChange(item.uri, { bookmarked: result.bookmarked })
+    if (result && onEngagementChange) {
+      const targetId = item?.listEntryId || item?.uri || item?.cid
+      if (targetId) {
+        onEngagementChange(targetId, { bookmarked: result.bookmarked })
+      }
     }
-  }, [clearError, item?.uri, onEngagementChange, toggleBookmark])
+  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
   const Wrapper = variant === 'card' ? Card : 'div'
   const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
   const wrapperProps = variant === 'card'

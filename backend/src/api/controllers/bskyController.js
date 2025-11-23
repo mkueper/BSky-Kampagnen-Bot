@@ -3,6 +3,7 @@ const log = createLogger('api:bsky')
 const bsky = require('@core/services/blueskyClient')
 const path = require('path')
 const fsp = require('fs/promises')
+const crypto = require('crypto')
 
 const TIMELINE_TABS = {
   following: { type: 'timeline' },
@@ -51,11 +52,19 @@ function sortThreadReplies (nodes = []) {
   })
 }
 
+function createListEntryId (baseId = '', context = '') {
+  const normalizedBase = String(baseId || '')
+  const normalizedContext = String(context || 'base')
+  if (!normalizedBase && !normalizedContext) return crypto.randomUUID()
+  return crypto.createHash('sha1').update(`${normalizedBase}|${normalizedContext}`).digest('hex')
+}
+
 function mapThreadNode (node) {
   if (!node || node.$type !== THREAD_NODE_TYPE) return null
   const post = node.post || {}
   const author = post.author || {}
   const record = post.record || {}
+  const listEntryId = createListEntryId(post.uri || post.cid || crypto.randomUUID(), record.createdAt || post.indexedAt || 'thread')
   const replies = Array.isArray(node.replies)
     ? sortThreadReplies(node.replies.map(mapThreadNode).filter(Boolean))
     : []
@@ -64,6 +73,7 @@ function mapThreadNode (node) {
     cid: post.cid || null,
     text: record.text || '',
     createdAt: record.createdAt || post.indexedAt || null,
+    listEntryId,
     author: {
       handle: author.handle || '',
       did: author.did || '',
@@ -372,14 +382,17 @@ async function getTimeline(req, res) {
     }
 
     // Schlankes Mapping für das Frontend (optional, raw bleibt verfügbar)
-    const items = data.feed.map(entry => {
+    const items = data.feed.map((entry, index) => {
       const post = entry?.post || {}
       const author = post?.author || {}
+      const reasonContext = entry?.reason?.indexedAt || entry?.reason?.$type || `timeline:${requestedTab}:${index}`
+      const listEntryId = createListEntryId(post?.uri || post?.cid || `timeline-${index}`, reasonContext)
       return {
         uri: post?.uri || null,
         cid: post?.cid || null,
         text: post?.record?.text || '',
         createdAt: post?.record?.createdAt || null,
+        listEntryId,
         author: {
           handle: author?.handle || '',
           displayName: author?.displayName || author?.handle || '',
@@ -640,14 +653,17 @@ async function getProfileFeed (req, res) {
   try {
     const data = await bsky.getAuthorFeed(actor, { limit, cursor, filter })
     const feed = Array.isArray(data?.feed) ? data.feed : []
-    const items = feed.map(entry => {
+    const items = feed.map((entry, index) => {
       const post = entry?.post || {}
       const author = post?.author || {}
+      const context = entry?.reason?.indexedAt || entry?.reason?.$type || `profile-feed:${index}`
+      const listEntryId = createListEntryId(post?.uri || post?.cid || `profile:${index}`, context)
       return {
         uri: post?.uri || null,
         cid: post?.cid || null,
         text: post?.record?.text || '',
         createdAt: post?.record?.createdAt || null,
+        listEntryId,
         author: {
           handle: author?.handle || '',
           displayName: author?.displayName || author?.handle || '',
@@ -677,14 +693,17 @@ async function getProfileLikes (req, res) {
   try {
     const data = await bsky.getActorLikes(actor, { limit, cursor })
     const feed = Array.isArray(data?.feed) ? data.feed : []
-    const items = feed.map(entry => {
+    const items = feed.map((entry, index) => {
       const post = entry?.post || {}
       const author = post?.author || {}
+      const context = entry?.reason?.indexedAt || entry?.reason?.$type || `profile-likes:${index}`
+      const listEntryId = createListEntryId(post?.uri || post?.cid || `profile-like:${index}`, context)
       return {
         uri: post?.uri || null,
         cid: post?.cid || null,
         text: post?.record?.text || '',
         createdAt: post?.record?.createdAt || null,
+        listEntryId,
         author: {
           handle: author?.handle || '',
           displayName: author?.displayName || author?.handle || '',
@@ -718,15 +737,18 @@ async function getBookmarks (req, res) {
     const cursor = req.query.cursor || undefined;
     const data = await bsky.getBookmarks({ limit, cursor });
     const bookmarks = Array.isArray(data?.bookmarks) ? data.bookmarks : [];
-    const items = bookmarks.map((entry) => {
+    const items = bookmarks.map((entry, index) => {
       const post = entry?.item || {};
       const author = post?.author || {};
       const viewer = post?.viewer || {};
+      const context = entry?.createdAt || entry?.subject?.uri || `bookmark:${index}`;
+      const listEntryId = createListEntryId(post?.uri || post?.cid || `bookmark:${index}`, context);
       return {
         uri: post?.uri || null,
         cid: post?.cid || null,
         text: post?.record?.text || '',
         createdAt: post?.record?.createdAt || null,
+        listEntryId,
         author: {
           handle: author?.handle || '',
           displayName: author?.displayName || author?.handle || '',

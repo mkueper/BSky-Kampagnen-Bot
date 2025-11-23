@@ -93,13 +93,14 @@ export default function ProfilePosts ({
     }
   }, [actor, cursor, hasMore, loadingMore, activeTab, setFeeds])
 
-  const handleEngagementChange = useCallback((targetUri, patch = {}) => {
-    if (!targetUri) return
+  const handleEngagementChange = useCallback((targetId, patch = {}) => {
+    if (!targetId) return
     setFeeds(prev => {
       const tabState = prev[activeTab]
       if (!tabState) return prev
       const nextItems = tabState.items.map((entry) => {
-        if ((entry.uri || entry.cid) !== targetUri) return entry
+        const entryId = entry.listEntryId || entry.uri || entry.cid
+        if (entryId !== targetId) return entry
         const nextStats = { ...(entry.stats || {}) }
         if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
         if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
@@ -206,7 +207,7 @@ export default function ProfilePosts ({
     <div className='space-y-4'>
       <ul className='space-y-3'>
         {items.map((item, idx) => {
-          const key = item.uri || item.cid || `${idx}-${item.record?.createdAt || ''}`
+          const key = item.listEntryId || item.uri || item.cid || `${idx}-${item.record?.createdAt || ''}`
           return (
             <li key={key}>
               <SkeetItem

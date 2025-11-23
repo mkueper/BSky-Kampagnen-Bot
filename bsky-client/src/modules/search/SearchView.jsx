@@ -177,10 +177,11 @@ export default function SearchView () {
     return () => observer.unobserve(target)
   }, [cursor, hasQuery, loadMore])
 
-  const handleEngagementChange = useCallback((targetUri, patch = {}) => {
-    if (!targetUri) return
+  const handleEngagementChange = useCallback((targetId, patch = {}) => {
+    if (!targetId) return
     setItems((prev) => prev.map((entry) => {
-      if ((entry.uri || entry.cid) !== targetUri) return entry
+      const entryId = entry.listEntryId || entry.uri || entry.cid
+      if (entryId !== targetId) return entry
       const nextStats = { ...(entry.stats || {}) }
       if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
       if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
@@ -205,8 +206,8 @@ export default function SearchView () {
     if (!isPostsTab) return null
     return (
       <ul className='space-y-4'>
-        {items.map((item) => (
-          <li key={item.uri || item.cid}>
+        {items.map((item, idx) => (
+          <li key={item.listEntryId || item.uri || item.cid || `search-${idx}`}>
             <SkeetItem
               item={item}
               onReply={onReply}

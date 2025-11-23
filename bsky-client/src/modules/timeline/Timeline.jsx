@@ -80,10 +80,11 @@ export default function Timeline ({ renderMode, isActive = true }) {
     return () => { ignore = true }
   }, [timelineSource, fetchPage, refreshKey])
 
-  const handleEngagementChange = useCallback((targetUri, patch = {}) => {
-    if (!targetUri) return
+  const handleEngagementChange = useCallback((targetId, patch = {}) => {
+    if (!targetId) return
     setItems((prev) => prev.map((entry) => {
-      if ((entry.uri || entry.cid) !== targetUri) return entry
+      const entryId = entry.listEntryId || entry.uri || entry.cid
+      if (entryId !== targetId) return entry
       const nextStats = { ...(entry.stats || {}) }
       if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
       if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
@@ -165,8 +166,8 @@ export default function Timeline ({ renderMode, isActive = true }) {
   if (items.length === 0) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>Keine Einträge gefunden.</p>
   return (
     <ul className='space-y-3' data-component='BskyTimeline' data-tab={tab}>
-      {items.map((it) => (
-        <li key={it.uri || it.cid}>
+      {items.map((it, idx) => (
+        <li key={it.listEntryId || it.uri || it.cid || `timeline-${idx}`}>
           <SkeetItem
             item={it}
             variant={variant}

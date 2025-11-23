@@ -23,7 +23,7 @@ function ThreadNodeList ({
   return (
     <div className='space-y-4'>
       {nodes.map((node, idx) => {
-        const key = node?.uri || node?.cid || `thread-node-${depth}-${idx}`
+        const key = node?.listEntryId || node?.uri || node?.cid || `thread-node-${depth}-${idx}`
         const isLast = idx === nodes.length - 1
         const hasChildren = Array.isArray(node?.replies) && node.replies.length > 0
         const showConnector = depth > 0 || !isLast || hasChildren

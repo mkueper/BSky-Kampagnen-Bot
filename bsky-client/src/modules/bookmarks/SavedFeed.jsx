@@ -101,11 +101,12 @@ export default function SavedFeed ({ isActive = true }) {
     return <p className='text-sm text-muted-foreground'>Keine gespeicherten Beiträge gefunden.</p>
   }
 
-  const handleEngagementChange = useCallback((targetUri, patch = {}) => {
-    if (!targetUri) return
+  const handleEngagementChange = useCallback((targetId, patch = {}) => {
+    if (!targetId) return
     setItems((prev) => {
       const baseList = prev.map((entry) => {
-        if ((entry.uri || entry.cid) !== targetUri) return entry
+        const entryId = entry.listEntryId || entry.uri || entry.cid
+        if (entryId !== targetId) return entry
         const nextStats = { ...(entry.stats || {}) }
         if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
         if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
@@ -125,7 +126,7 @@ export default function SavedFeed ({ isActive = true }) {
         }
       })
       if (patch.bookmarked === false) {
-        return baseList.filter((entry) => (entry.uri || entry.cid) !== targetUri)
+        return baseList.filter((entry) => (entry.listEntryId || entry.uri || entry.cid) !== targetId)
       }
       return baseList
     })
@@ -133,8 +134,8 @@ export default function SavedFeed ({ isActive = true }) {
 
   return (
     <ul className='space-y-3' data-component='BskySavedFeed'>
-      {items.map((item) => (
-        <li key={item.uri || item.cid}>
+      {items.map((item, idx) => (
+        <li key={item.listEntryId || item.uri || item.cid || `saved-${idx}`}>
           <SkeetItem
             item={item}
             variant={variant}
