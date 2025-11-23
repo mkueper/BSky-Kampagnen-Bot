@@ -1,4 +1,12 @@
-export { Button, Card, MediaDialog } from '@bsky-kampagnen-bot/shared-ui';
+export {
+  Button,
+  Card,
+  MediaDialog,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem
+} from '@bsky-kampagnen-bot/shared-ui';
 export { default as RichText } from './RichText.jsx';
 export { default as RepostMenuButton } from './RepostMenuButton.jsx';
 export { default as MediaLightbox } from './MediaLightbox.jsx';

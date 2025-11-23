@@ -20,7 +20,17 @@ import {
 import { useLayout } from '../../context/LayoutContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch } from '../../context/AppContext.jsx'
-import { useBskyEngagement, RichText, RepostMenuButton, ProfilePreviewTrigger, Card } from '../shared'
+import {
+  useBskyEngagement,
+  RichText,
+  RepostMenuButton,
+  ProfilePreviewTrigger,
+  Card,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem
+} from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
@@ -346,6 +356,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const actorIdentifier = author?.did || author?.handle || ''
   const shareUrl = useMemo(() => buildShareUrl(item), [item])
   const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [menuPositionClass, setMenuPositionClass] = useState('bottom-full mb-2')
   const menuRef = useRef(null)
@@ -775,81 +786,76 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           <span className='tabular-nums'>{likeCount}</span>
         </button>
         <div className='relative flex items-center gap-1 sm:ml-auto'>
-          <button
-            type='button'
-            className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
-            onClick={(event) => {
-              event?.preventDefault()
-              event?.stopPropagation()
-              copyToClipboard(shareUrl, 'Link kopiert')
-            }}
-            title='Link kopieren'
-            aria-label='Beitrag teilen'
-          >
-            <Share2Icon className='h-4 w-4' />
-          </button>
-          <button
-            type='button'
-            className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-            ref={optionsButtonRef}
-            aria-label='Mehr Optionen'
-            onPointerDown={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              if (optionsOpen) {
-                setOptionsOpen(false)
-                return
-              }
-              
-              if (menuRef.current && !menuHeightRef.current) {
-                menuHeightRef.current = Math.ceil(menuRef.current.getBoundingClientRect().height) || 300
-              }
-
-              if (optionsButtonRef.current) {
-                const buttonRect = optionsButtonRef.current.getBoundingClientRect()
-                const btnHeight = buttonRect.height
-                const btnTop = Math.trunc(buttonRect.top)
-                const menuHeight = menuHeightRef.current || 320
-                const availableTopSpace = Math.trunc(buttonRect.top - headerHeight - headerTop - btnHeight - 25)
-                console.log({ availableTopSpace, menuHeight, headerHeight, headerTop, btnTop, btnHeight })
-                setMenuPositionClass(availableTopSpace < menuHeight ? 'top-full mt-2' : 'bottom-full mb-2')
-              }
-              setOptionsOpen(true) // Jetzt öffnen
-            }}
-          >
-            <DotsHorizontalIcon className='h-5 w-5' />
-          </button>
-          <div
-            ref={menuRef}
-            className={`absolute right-0 z-20 w-60 rounded-2xl border border-border bg-background shadow-2xl transition-opacity duration-100 ${menuPositionClass} ${
-              optionsOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
-          >
-              <ul className='py-1 text-sm'>
+          <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
+            <InlineMenuTrigger>
+              <button
+                type='button'
+                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                title='Teilen'
+                aria-label='Beitrag teilen'
+              >
+                <Share2Icon className='h-4 w-4' />
+              </button>
+            </InlineMenuTrigger>
+            <InlineMenuContent side='top' align='end' sideOffset={10}>
+              <div className='py-1'>
+                <InlineMenuItem
+                  icon={CopyIcon}
+                  onSelect={(event) => {
+                    event?.preventDefault?.()
+                    copyToClipboard(shareUrl, 'Link kopiert')
+                    setShareMenuOpen(false)
+                  }}
+                >
+                  Link kopieren
+                </InlineMenuItem>
+                <InlineMenuItem
+                  icon={ExternalLinkIcon}
+                  onSelect={(event) => {
+                    event?.preventDefault?.()
+                    if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer')
+                    setShareMenuOpen(false)
+                  }}
+                  disabled={!shareUrl}
+                >
+                  In Bluesky öffnen
+                </InlineMenuItem>
+              </div>
+            </InlineMenuContent>
+          </InlineMenu>
+          <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
+            <InlineMenuTrigger>
+              <button
+                type='button'
+                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                aria-label='Mehr Optionen'
+              >
+                <DotsHorizontalIcon className='h-5 w-5' />
+              </button>
+            </InlineMenuTrigger>
+            <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
+              <div className='py-1 text-sm'>
                 {menuActions.map((entry) => {
                   const Icon = entry.icon
                   return (
-                    <li key={entry.label}>
-                      <button
-                        type='button'
-                        className='flex w-full items-center gap-2 px-3 py-2 text-left text-foreground hover:bg-background-subtle'
-                        onClick={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
-                          setOptionsOpen(false)
-                          try {
-                            entry.action()
-                          } catch {}
-                        }}
-                      >
-                        {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
-                        <span>{entry.label}</span>
-                      </button>
-                    </li>
+                    <InlineMenuItem
+                      key={entry.label}
+                      icon={Icon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        try {
+                          entry.action()
+                        } catch {}
+                        setOptionsOpen(false)
+                      }}
+                    >
+                      {entry.label}
+                    </InlineMenuItem>
                   )
                 })}
-              </ul>
-            </div>
+              </div>
+            </InlineMenuContent>
+          </InlineMenu>
         </div>
       </footer>
       {feedbackMessage ? (

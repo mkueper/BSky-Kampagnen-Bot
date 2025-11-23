@@ -6,3 +6,9 @@ export { default as MediaDialog } from './components/MediaDialog.jsx'
 export { default as ScrollTopButton } from './components/ScrollTopButton.jsx'
 export { ToastProvider } from './components/ToastProvider.jsx'
 export { useToast } from './hooks/useToast.js'
+export {
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem
+} from './components/InlineMenu.jsx'
