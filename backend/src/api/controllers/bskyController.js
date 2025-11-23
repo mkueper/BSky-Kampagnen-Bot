@@ -390,6 +390,7 @@ async function getTimeline(req, res) {
           repostCount: post?.repostCount ?? 0,
           replyCount: post?.replyCount ?? 0,
         },
+        viewer: post?.viewer || null,
         raw: entry,
       }
     })
@@ -657,6 +658,7 @@ async function getProfileFeed (req, res) {
           repostCount: post?.repostCount ?? 0,
           replyCount: post?.replyCount ?? 0
         },
+        viewer: post?.viewer || null,
         raw: entry
       }
     })
@@ -693,6 +695,7 @@ async function getProfileLikes (req, res) {
           repostCount: post?.repostCount ?? 0,
           replyCount: post?.replyCount ?? 0
         },
+        viewer: post?.viewer || null,
         raw: entry
       }
     })
@@ -706,6 +709,42 @@ async function getProfileLikes (req, res) {
     }
     log.error('getProfileLikes failed', { error: message, actor })
     return res.status(500).json({ error: message })
+  }
+}
+
+async function getBookmarks (req, res) {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100);
+    const cursor = req.query.cursor || undefined;
+    const data = await bsky.getBookmarks({ limit, cursor });
+    const bookmarks = Array.isArray(data?.bookmarks) ? data.bookmarks : [];
+    const items = bookmarks.map((entry) => {
+      const post = entry?.item || {};
+      const author = post?.author || {};
+      const viewer = post?.viewer || {};
+      return {
+        uri: post?.uri || null,
+        cid: post?.cid || null,
+        text: post?.record?.text || '',
+        createdAt: post?.record?.createdAt || null,
+        author: {
+          handle: author?.handle || '',
+          displayName: author?.displayName || author?.handle || '',
+          avatar: author?.avatar || null
+        },
+        stats: {
+          likeCount: post?.likeCount ?? 0,
+          repostCount: post?.repostCount ?? 0,
+          replyCount: post?.replyCount ?? 0
+        },
+        viewer: { ...viewer, bookmarked: true },
+        raw: entry
+      };
+    });
+    return res.json({ items, cursor: data?.cursor || null });
+  } catch (error) {
+    log.error('getBookmarks failed', { error: error?.message || String(error) });
+    return res.status(500).json({ error: error?.message || 'Bookmarks konnten nicht geladen werden.' });
   }
 }
 
@@ -1077,6 +1116,7 @@ module.exports = {
   getProfile,
   getProfileFeed,
   getProfileLikes,
+  getBookmarks,
   getFeeds,
   pinFeed,
   unpinFeed,

@@ -7,10 +7,13 @@
 - **Refactor UI:** - QuickComposer entfernt – der „Neuer Post“-Button öffnet wieder ausschließlich den vollwertigen Composer, sodass sämtliche Features nur noch an einer Stelle gepflegt werden müssen.
 - **Bugfix:** Likes/Reposts werden nach einer Aktion sofort konsistent angezeigt. Der `useBskyEngagement`-Hook wertet jetzt `recordUri`-Fallbacks aus, unterstützt sowohl `likeCount` als auch `likesCount` und synchronisiert seine Viewer-Daten über den neuen `/api/bsky/reactions`-Payload.
 - **UI:** Der Reskeet-Button öffnet auch nach einem erfolgreichen Reskeet weiterhin das Menü mit „Reskeet zurückziehen“ und „Post zitieren“, statt die Aktion direkt auszuführen. So lassen sich versehentliche Rücknahmen vermeiden.
+- **Feature:** Bookmarks sind nun direkt im Client verfügbar: Jeder Skeet hat einen „Merken“-Button mit Radix-Icon, und der Navigationspunkt „Gespeichert“ zeigt eine eigene Liste (inkl. Infinite Scroll) der gespeicherten Beiträge.
+- **Bugfix:** Likes und Reskeets bleiben nach dem Ausführen sichtbar. Die jeweiligen Buttons liefern ihre neuen Zähler/Viewer-States an Timeline, Suche, Profile und den Gespeichert-Feed zurück, sodass die UI nicht mehr kurzzeitig zurückfällt.
 
 ### Backend
 - **Refactor:** Unnötigen `quickComposer`-UI-Schalter aus Config/Client-Config entfernt; `/api/client-config` liefert nur noch tatsächlich genutzte UI-Flags.
 - **Bugfix:** Die Bluesky-Aktionsendpunkte (`like`, `repost`, `unlike`, `unrepost`) geben den erzeugten Record-URI zurück und setzen den Viewer-Status direkt, während `/api/bsky/reactions` neben den Zählern nun auch den aktuellen Viewer (`like`/`repost`) ausliefert. Damit bleiben Timeline und Mitteilungen nach Engagement-Aktionen synchron.
+- **Feature:** Bookmarks werden unterstützt: neue Endpunkte (`POST/DELETE /api/bsky/bookmark`, `GET /api/bsky/bookmarks`) kapseln die Bluesky-Bookmark-API und liefern gespeicherte Beiträge in demselben Format wie die Timeline.
 
 ### Docs
 - **Refactor UI:** README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).

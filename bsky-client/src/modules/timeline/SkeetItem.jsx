@@ -1,4 +1,4 @@
-import { use, useEffect, useMemo, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChatBubbleIcon,
   HeartIcon,
@@ -16,7 +16,9 @@ import {
   EyeClosedIcon,
   PersonIcon,
   CrossCircledIcon,
-  TriangleRightIcon
+  TriangleRightIcon,
+  BookmarkIcon,
+  BookmarkFilledIcon
 } from '@radix-ui/react-icons'
 import { useLayout } from '../../context/LayoutContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
@@ -239,7 +241,7 @@ function buildShareUrl (item) {
   }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -279,20 +281,48 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     repostCount,
     hasLiked,
     hasReposted,
+    isBookmarked,
     busy,
+    bookmarking,
     error: actionError,
     toggleLike,
     toggleRepost,
+    toggleBookmark,
     clearError,
   } = useBskyEngagement({
     uri: item?.uri,
     cid: item?.cid || item?.raw?.post?.cid,
     initialLikes: stats?.likeCount,
     initialReposts: stats?.repostCount,
-    viewer: item?.raw?.post?.viewer || item?.viewer,
+    viewer: item?.raw?.post?.viewer || item?.raw?.item?.viewer || item?.viewer,
   })
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined // rose-600
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined // sky-500
+  const bookmarkStyle = isBookmarked ? { color: '#f97316' } : undefined // orange-500
+
+  const handleToggleLike = useCallback(async () => {
+    clearError()
+    const result = await toggleLike()
+    if (result && onEngagementChange && item?.uri) {
+      onEngagementChange(item.uri, { likeUri: result.likeUri, likeCount: result.likeCount })
+    }
+  }, [clearError, item?.uri, onEngagementChange, toggleLike])
+
+  const handleToggleRepost = useCallback(async () => {
+    clearError()
+    const result = await toggleRepost()
+    if (result && onEngagementChange && item?.uri) {
+      onEngagementChange(item.uri, { repostUri: result.repostUri, repostCount: result.repostCount })
+    }
+  }, [clearError, item?.uri, onEngagementChange, toggleRepost])
+
+  const handleToggleBookmark = useCallback(async () => {
+    clearError()
+    const result = await toggleBookmark()
+    if (result && onEngagementChange && item?.uri) {
+      onEngagementChange(item.uri, { bookmarked: result.bookmarked })
+    }
+  }, [clearError, item?.uri, onEngagementChange, toggleBookmark])
   const Wrapper = variant === 'card' ? Card : 'div'
   const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
   const wrapperProps = variant === 'card'
@@ -762,12 +792,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           busy={busy}
           style={repostStyle}
           onRepost={() => {
-            clearError()
-            toggleRepost()
+            handleToggleRepost()
           }}
           onUnrepost={() => {
-            clearError()
-            toggleRepost()
+            handleToggleRepost()
           }}
           onQuote={onQuote ? (() => {
             clearError()
@@ -781,7 +809,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           title='Gefällt mir'
           aria-pressed={hasLiked}
           disabled={busy}
-          onClick={toggleLike}
+          onClick={handleToggleLike}
         >
           {hasLiked ? (
             <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
@@ -791,6 +819,21 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           <span className='tabular-nums'>{likeCount}</span>
         </button>
         <div className='relative flex items-center gap-1 sm:ml-auto'>
+          <button
+            type='button'
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
+            style={bookmarkStyle}
+            title={isBookmarked ? 'Gespeichert' : 'Merken'}
+            aria-pressed={isBookmarked}
+            disabled={bookmarking}
+            onClick={handleToggleBookmark}
+          >
+            {isBookmarked ? (
+              <BookmarkFilledIcon className='h-4 w-4' />
+            ) : (
+              <BookmarkIcon className='h-4 w-4' />
+            )}
+          </button>
           <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
             <InlineMenuTrigger>
               <button

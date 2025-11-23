@@ -22,6 +22,34 @@ describe('bsky API', () => {
     expect(payload?.repostsCount).toBe(1)
   })
 
+  it('GET /api/bsky/bookmarks mapped to list items', async () => {
+    const bsky = require('@core/services/blueskyClient')
+    vi.spyOn(bsky, 'getBookmarks').mockResolvedValue({
+      cursor: 'next',
+      bookmarks: [
+        {
+          item: {
+            uri: 'at://foo/post/123',
+            cid: 'cid123',
+            record: { text: 'Hallo', createdAt: '2025-11-23T12:00:00Z' },
+            author: { handle: 'user', displayName: 'User' },
+            likeCount: 5,
+            repostCount: 2,
+            replyCount: 1
+          }
+        }
+      ]
+    })
+    const req = { query: { limit: '5' } }
+    let payload = null
+    const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
+    const ctrl = loadController()
+    await ctrl.getBookmarks(req, res)
+    expect(payload?.cursor).toBe('next')
+    expect(payload?.items?.[0]?.uri).toBe('at://foo/post/123')
+    expect(payload?.items?.[0]?.stats?.likeCount).toBe(5)
+  })
+
   it('POST /api/bsky/reply validates input', async () => {
     const ctrl = loadController()
     let statusCode = 200

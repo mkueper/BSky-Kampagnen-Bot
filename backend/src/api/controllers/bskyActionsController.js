@@ -44,10 +44,14 @@ const like = createActionHandler('likePost', ['uri', 'cid'], 'like', 'Like fehlg
 const repost = createActionHandler('repostPost', ['uri', 'cid'], 'repost', 'Repost fehlgeschlagen')
 const unlike = createActionHandler('unlikePost', ['likeUri'], 'unlike', 'Unlike fehlgeschlagen')
 const unrepost = createActionHandler('unrepostPost', ['repostUri'], 'unrepost', 'Undo-Repost fehlgeschlagen')
+const bookmark = createActionHandler('bookmarkPost', ['uri', 'cid'], 'bookmark', 'Bookmark fehlgeschlagen')
+const unbookmark = createActionHandler('unbookmarkPost', ['uri'], 'unbookmark', 'Bookmark entfernen fehlgeschlagen')
 
 module.exports = {
   like,
   unlike,
   repost,
-  unrepost
+  unrepost,
+  bookmark,
+  unbookmark
 }

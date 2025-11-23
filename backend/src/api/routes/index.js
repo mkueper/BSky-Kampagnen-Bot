@@ -52,6 +52,8 @@ router.post("/bsky/like", bskyActionsController.like);
 router.delete("/bsky/like", bskyActionsController.unlike);
 router.post("/bsky/repost", bskyActionsController.repost);
 router.delete("/bsky/repost", bskyActionsController.unrepost);
+router.post("/bsky/bookmark", bskyActionsController.bookmark);
+router.delete("/bsky/bookmark", bskyActionsController.unbookmark);
 
 // Bluesky utility
 router.get("/bsky/timeline", bskyController.getTimeline);
@@ -67,6 +69,7 @@ router.get("/bsky/search", bskyController.search);
 router.get("/bsky/profile", bskyController.getProfile);
 router.get("/bsky/profile/feed", bskyController.getProfileFeed);
 router.get("/bsky/profile/likes", bskyController.getProfileLikes);
+router.get("/bsky/bookmarks", bskyController.getBookmarks);
 router.get("/bsky/feeds", bskyController.getFeeds);
 router.post("/bsky/feeds/pin", bskyController.pinFeed);
 router.delete("/bsky/feeds/pin", bskyController.unpinFeed);

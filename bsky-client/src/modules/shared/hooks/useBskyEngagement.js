@@ -5,6 +5,8 @@ import {
   unlikePost,
   repostPost,
   unrepostPost,
+  bookmarkPost,
+  unbookmarkPost,
 } from '../api/bsky.js';
 
 function toNumber(value, fallback = 0) {
@@ -44,8 +46,10 @@ export function useBskyEngagement({
   const [likeCount, setLikeCount] = useState(toNumber(initialLikes));
   const [repostCount, setRepostCount] = useState(toNumber(initialReposts));
   const [busy, setBusy] = useState(false);
+  const [bookmarking, setBookmarking] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [isBookmarked, setIsBookmarked] = useState(Boolean(viewer?.bookmarked));
 
   const hasLiked = Boolean(likeUri);
   const hasReposted = Boolean(repostUri);
@@ -60,58 +64,136 @@ export function useBskyEngagement({
   }, [uri, cid]);
 
   const toggleLike = useCallback(async () => {
-    if (busy) return;
+    if (busy) return null;
     setBusy(true);
     try {
       if (!hasLiked) {
         const { targetUri, targetCid } = ensureTarget();
         const data = await likePost({ uri: targetUri, cid: targetCid });
-        const nextLikeUri = resolveViewerUri(data, 'like');
-        setLikeUri(nextLikeUri || likeUri || null);
+        const nextLikeUri = resolveViewerUri(data, 'like') || likeUri || null;
+        setLikeUri(nextLikeUri);
         const serverCount = resolveCount(data, 'likeCount', 'likesCount');
-        if (serverCount != null) setLikeCount(serverCount);
-        else setLikeCount((count) => count + 1);
+        let nextLikeCount = likeCount + 1;
+        if (serverCount != null) {
+          nextLikeCount = serverCount;
+          setLikeCount(serverCount);
+        } else {
+          setLikeCount((count) => {
+            const updated = count + 1;
+            nextLikeCount = updated;
+            return updated;
+          });
+        }
+        setError('');
+        return { status: 'liked', likeUri: nextLikeUri, likeCount: nextLikeCount };
       } else if (likeUri) {
         const data = await unlikePost({ likeUri, postUri: uri }); // postUri für Re-Fetch
         setLikeUri(null);
         const serverCount = resolveCount(data, 'likeCount', 'likesCount');
-        if (serverCount != null) setLikeCount(serverCount);
-        else setLikeCount((count) => Math.max(0, count - 1));
+        let nextLikeCount = Math.max(0, likeCount - 1);
+        if (serverCount != null) {
+          nextLikeCount = serverCount;
+          setLikeCount(serverCount);
+        } else {
+          setLikeCount((count) => {
+            const updated = Math.max(0, count - 1);
+            nextLikeCount = updated;
+            return updated;
+          });
+        }
+        setError('');
+        return { status: 'unliked', likeUri: null, likeCount: nextLikeCount };
       }
-      setError('');
+      return null;
     } catch (err) {
       setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
     } finally {
       setBusy(false);
     }
   }, [busy, hasLiked, likeUri, ensureTarget, likeCount, uri]);
 
   const toggleRepost = useCallback(async () => {
-    if (busy) return;
+    if (busy) return null;
     setBusy(true);
     try {
       if (!hasReposted) {
         const { targetUri, targetCid } = ensureTarget();
         const data = await repostPost({ uri: targetUri, cid: targetCid });
-        const nextRepostUri = resolveViewerUri(data, 'repost');
-        setRepostUri(nextRepostUri || repostUri || null);
+        const nextRepostUri = resolveViewerUri(data, 'repost') || repostUri || null;
+        setRepostUri(nextRepostUri);
         const serverCount = resolveCount(data, 'repostCount', 'repostsCount');
-        if (serverCount != null) setRepostCount(serverCount);
-        else setRepostCount((count) => count + 1);
+        let nextRepostCount = repostCount + 1;
+        if (serverCount != null) {
+          nextRepostCount = serverCount;
+          setRepostCount(serverCount);
+        } else {
+          setRepostCount((count) => {
+            const updated = count + 1;
+            nextRepostCount = updated;
+            return updated;
+          });
+        }
+        setError('');
+        return { status: 'reposted', repostUri: nextRepostUri, repostCount: nextRepostCount };
       } else if (repostUri) {
         const data = await unrepostPost({ repostUri, postUri: uri }); // postUri für Re-Fetch
         setRepostUri(null);
         const serverCount = resolveCount(data, 'repostCount', 'repostsCount');
-        if (serverCount != null) setRepostCount(serverCount);
-        else setRepostCount((count) => Math.max(0, count - 1));
+        let nextRepostCount = Math.max(0, repostCount - 1);
+        if (serverCount != null) {
+          nextRepostCount = serverCount;
+          setRepostCount(serverCount);
+        } else {
+          setRepostCount((count) => {
+            const updated = Math.max(0, count - 1);
+            nextRepostCount = updated;
+            return updated;
+          });
+        }
+        setError('');
+        return { status: 'unreposted', repostUri: null, repostCount: nextRepostCount };
       }
-      setError('');
+      return null;
     } catch (err) {
       setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
     } finally {
       setBusy(false);
     }
   }, [busy, hasReposted, repostUri, ensureTarget, repostCount, uri]);
+
+  const toggleBookmark = useCallback(async () => {
+    if (bookmarking) return null;
+    setBookmarking(true);
+    try {
+      if (!isBookmarked) {
+        const { targetUri, targetCid } = ensureTarget();
+        const data = await bookmarkPost({ uri: targetUri, cid: targetCid });
+        const nextState = data?.viewer && Object.prototype.hasOwnProperty.call(data.viewer, 'bookmarked')
+          ? Boolean(data.viewer.bookmarked)
+          : true;
+        setIsBookmarked(nextState);
+        setError('');
+        return { status: 'bookmarked', bookmarked: nextState };
+      } else {
+        const targetUri = String(uri || '').trim();
+        if (!targetUri) throw new Error('Ungueltiger Beitrag.');
+        const data = await unbookmarkPost({ uri: targetUri });
+        const nextState = data?.viewer && Object.prototype.hasOwnProperty.call(data.viewer, 'bookmarked')
+          ? Boolean(data.viewer.bookmarked)
+          : false;
+        setIsBookmarked(nextState);
+        setError('');
+        return { status: 'unbookmarked', bookmarked: nextState };
+      }
+    } catch (err) {
+      setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
+    } finally {
+      setBookmarking(false);
+    }
+  }, [bookmarking, isBookmarked, ensureTarget, uri]);
 
   const refresh = useCallback(async () => {
     if (refreshing) return;
@@ -130,6 +212,9 @@ export function useBskyEngagement({
         }
         if (Object.prototype.hasOwnProperty.call(data.viewer, 'repost')) {
           setRepostUri(data.viewer.repost || null);
+        }
+        if (Object.prototype.hasOwnProperty.call(data.viewer, 'bookmarked')) {
+          setIsBookmarked(Boolean(data.viewer.bookmarked));
         }
       }
       setError('');
@@ -154,11 +239,14 @@ export function useBskyEngagement({
     repostCount,
     hasLiked,
     hasReposted,
+    isBookmarked,
     busy,
+    bookmarking,
     refreshing,
     error,
     toggleLike,
     toggleRepost,
+    toggleBookmark,
     refresh,
     clearError,
   };

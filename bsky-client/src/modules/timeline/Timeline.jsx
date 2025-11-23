@@ -80,6 +80,33 @@ export default function Timeline ({ renderMode, isActive = true }) {
     return () => { ignore = true }
   }, [timelineSource, fetchPage, refreshKey])
 
+  const handleEngagementChange = useCallback((targetUri, patch = {}) => {
+    if (!targetUri) return
+    setItems((prev) => prev.map((entry) => {
+      if ((entry.uri || entry.cid) !== targetUri) return entry
+      const nextStats = { ...(entry.stats || {}) }
+      if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
+      if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
+      const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
+      const nextViewer = { ...baseViewer }
+      if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
+      if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
+      if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
+      const nextRaw = entry.raw ? { ...entry.raw } : null
+      if (nextRaw?.post) {
+        nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
+      } else if (nextRaw?.item) {
+        nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
+      }
+      return {
+        ...entry,
+        stats: nextStats,
+        viewer: nextViewer,
+        raw: nextRaw || entry.raw
+      }
+    }))
+  }, [])
+
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return
     setLoadingMore(true)
@@ -147,6 +174,7 @@ export default function Timeline ({ renderMode, isActive = true }) {
             onQuote={onQuote}
             onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
             onViewMedia={onViewMedia}
+            onEngagementChange={handleEngagementChange}
           />
         </li>
       ))}

@@ -346,9 +346,37 @@ export async function unrepostPost({ repostUri }) {
   });
 }
 
+export async function bookmarkPost({ uri, cid }) {
+  return requestJson('/api/bsky/bookmark', {
+    method: 'POST',
+    body: { uri, cid },
+    headers: JSON_HEADERS,
+  });
+}
+
+export async function unbookmarkPost({ uri }) {
+  return requestJson('/api/bsky/bookmark', {
+    method: 'DELETE',
+    body: { uri },
+    headers: JSON_HEADERS,
+  });
+}
+
 export async function fetchReactions({ uri }) {
   const params = createSearchParams({ uri });
   return requestJson(`/api/bsky/reactions?${params.toString()}`);
+}
+
+export async function fetchBookmarks({ cursor, limit } = {}) {
+  const params = createSearchParams();
+  if (cursor) params.set('cursor', cursor);
+  if (typeof limit === 'number') params.set('limit', String(limit));
+  const query = params.toString();
+  const data = await requestJson(`/api/bsky/bookmarks${query ? `?${query}` : ''}`);
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    cursor: data?.cursor || null,
+  };
 }
 
 export async function searchBsky({ query, type, cursor, limit } = {}) {

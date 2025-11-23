@@ -13,6 +13,7 @@ import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
+import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -379,11 +380,23 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
     )
   }
 
+  if (section === 'saved') {
+    return (
+      <div className='space-y-6'>
+        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+          <SavedFeed isActive={section === 'saved'} />
+        </div>
+        {threadState.active ? (
+          <ThreadView />
+        ) : null}
+      </div>
+    )
+  }
+
   const placeholderText = {
     chat: 'Chat folgt',
     feeds: 'Feeds folgt',
-    lists: 'Listen folgt',
-    saved: 'Gespeichert folgt'
+    lists: 'Listen folgt'
   }[section]
 
   if (placeholderText) {

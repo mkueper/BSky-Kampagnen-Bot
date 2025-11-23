@@ -616,6 +616,36 @@ module.exports = {
     return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: {} };
   },
   /**
+   * Setzt ein Bookmark auf den angegebenen Post.
+   * @param {string} uri at:// URI des Posts
+   * @param {string} cid CID des Posts
+   */
+  async bookmarkPost (uri, cid) {
+    await ensureLoggedIn();
+    await agent.app.bsky.bookmark.createBookmark({ uri, cid });
+    return { viewer: { bookmarked: true } };
+  },
+  /**
+   * Entfernt ein Bookmark für den angegebenen Post.
+   * @param {string} uri at:// URI des Posts
+   */
+  async unbookmarkPost (uri) {
+    await ensureLoggedIn();
+    await agent.app.bsky.bookmark.deleteBookmark({ uri });
+    return { viewer: { bookmarked: false } };
+  },
+  /**
+   * Liefert die Bookmarks des aktuellen Accounts.
+   *
+   * @param {{limit?: number, cursor?: string}} [opts]
+   */
+  async getBookmarks ({ limit = 30, cursor } = {}) {
+    await ensureLoggedIn();
+    const params = { limit, cursor };
+    const res = await agent.app.bsky.bookmark.getBookmarks(params);
+    return res?.data ?? { bookmarks: [], cursor: null };
+  },
+  /**
    * Durchsucht Bluesky-Posts (Tabs „Top“/„Latest“ im Client).
    *
    * @param {{q?: string, limit?: number, cursor?: string, sort?: 'top'|'latest'}} [opts]
