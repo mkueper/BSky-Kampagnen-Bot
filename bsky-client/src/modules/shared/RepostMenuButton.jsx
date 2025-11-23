@@ -8,6 +8,7 @@ export default function RepostMenuButton({
   busy,
   style,
   onRepost,
+  onUnrepost,
   onQuote,
 }) {
   const [open, setOpen] = useState(false);
@@ -50,9 +51,19 @@ export default function RepostMenuButton({
       </InlineMenuTrigger>
       <InlineMenuContent side="top" align="center" sideOffset={10} style={{ width: 220 }}>
         <div className="py-1 text-sm">
-          <InlineMenuItem icon={LoopIcon} onSelect={handleRepost}>
-            Reposten
-          </InlineMenuItem>
+          {!hasReposted ? (
+            <InlineMenuItem icon={LoopIcon} onSelect={handleRepost}>
+              Reposten
+            </InlineMenuItem>
+          ) : null}
+          {hasReposted ? (
+            <InlineMenuItem icon={LoopIcon} onSelect={() => {
+              setOpen(false);
+              onUnrepost?.();
+            }}>
+              Reskeet zurückziehen
+            </InlineMenuItem>
+          ) : null}
           <InlineMenuItem icon={QuoteIcon} onSelect={handleQuote} disabled={!onQuote}>
             Post zitieren
           </InlineMenuItem>

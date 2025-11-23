@@ -764,6 +764,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             clearError()
             toggleRepost()
           }}
+          onUnrepost={() => {
+            clearError()
+            toggleRepost()
+          }}
           onQuote={onQuote ? (() => {
             clearError()
             onQuote(item)
