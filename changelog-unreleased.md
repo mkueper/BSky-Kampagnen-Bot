@@ -71,6 +71,11 @@
 - Theme-Umschaltung in der Sidebar verfeinert: Ein kleiner Indikator-Punkt zeigt eine Vorschau der nächsten Theme-Farbe, ohne das Button-Design zu verändern. Button-Größen wurden vereinheitlicht und ein Trenner verbessert die visuelle Struktur.
 - Card-Config-Defaults auf 256px / 128px reduziert und in den Mitteilungen wiederverwendet, damit Bildhöhen in Timeline & Notifications identisch laufen.
 
+## 2025-11-23
+
+### Client
+- **Refactor UI:** Timeline-Aktionsleisten (Teilen, Optionen, Reskeet) nutzen jetzt Radix-basierte Popover-Menüs: Link kopieren, Direktnachricht-Platzhalter und Embed sind sauber gruppiert, das Optionsmenü bleibt zugänglich und das Repost-Menü bietet explizite Einträge für Reposten bzw. Reskeet zurückziehen. Die Komponenten liegen als `InlineMenu` im Shared-UI und stehen damit auch dem Dashboard offen.
+
 ## 2025-11-17
 
 ### Client
