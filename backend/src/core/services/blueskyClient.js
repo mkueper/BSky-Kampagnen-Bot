@@ -543,12 +543,13 @@ module.exports = {
         createdAt: new Date().toISOString(),
       }
     });
+    const recordUri = result?.uri || null;
     const reactions = await getReactions(uri);
     if (!reactions.viewer) reactions.viewer = {};
-    if (!reactions.viewer.like && result?.uri) {
-      reactions.viewer.like = result.uri;
+    if (!reactions.viewer.like && recordUri) {
+      reactions.viewer.like = recordUri;
     }
-    return reactions;
+    return { ...reactions, recordUri };
   },
   /**
    * Entfernt ein Like-Record.
@@ -578,7 +579,7 @@ module.exports = {
    */
   async repostPost (uri, cid) {
     await ensureLoggedIn();
-    await agent.com.atproto.repo.createRecord({
+    const result = await agent.com.atproto.repo.createRecord({
       repo: agent.session.did,
       collection: 'app.bsky.feed.repost',
       record: {
@@ -586,7 +587,13 @@ module.exports = {
         createdAt: new Date().toISOString(),
       }
     });
-    return getReactions(uri);
+    const recordUri = result?.uri || null;
+    const reactions = await getReactions(uri);
+    if (!reactions.viewer) reactions.viewer = {};
+    if (!reactions.viewer.repost && recordUri) {
+      reactions.viewer.repost = recordUri;
+    }
+    return { ...reactions, recordUri };
   },
   /**
    * Entfernt einen Repost-Record.
@@ -601,7 +608,11 @@ module.exports = {
       collection: 'app.bsky.feed.repost',
       rkey
     });
-    if (postUri) return getReactions(postUri);
+    if (postUri) {
+      const reactions = await getReactions(postUri);
+      if (reactions.viewer) reactions.viewer.repost = null;
+      return reactions;
+    }
     return { likeCount: 0, repostCount: 0, replyCount: 0, viewer: {} };
   },
   /**

@@ -13,17 +13,6 @@ export default function RepostMenuButton({
 }) {
   const [open, setOpen] = useState(false);
 
-  const handleTriggerClick = (event) => {
-    if (busy) {
-      event.preventDefault();
-      return;
-    }
-    if (hasReposted) {
-      event.preventDefault();
-      onRepost?.();
-    }
-  };
-
   const handleRepost = () => {
     setOpen(false);
     onRepost?.();
@@ -43,7 +32,7 @@ export default function RepostMenuButton({
           style={style}
           title={hasReposted ? "Reskeet rückgängig machen" : "Reskeet-Optionen"}
           aria-expanded={open}
-          onClick={handleTriggerClick}
+          disabled={busy}
         >
           <LoopIcon className="h-5 w-5 md:h-6 md:w-6" />
           <span className="tabular-nums">{count}</span>

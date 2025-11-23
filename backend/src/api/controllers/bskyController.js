@@ -526,7 +526,18 @@ async function getReactions(req, res) {
     const r = await bsky.getReactions(uri)
     const likesCount = typeof r?.likesCount === 'number' ? r.likesCount : 0
     const repostsCount = typeof r?.repostsCount === 'number' ? r.repostsCount : 0
-    res.json({ likesCount, repostsCount })
+    const replyCount = typeof r?.replyCount === 'number' ? r.replyCount : 0
+    const viewer = (r && typeof r.viewer === 'object') ? r.viewer : {}
+    res.json({
+      likesCount,
+      repostsCount,
+      replyCount,
+      viewer: {
+        ...viewer,
+        like: viewer?.like || null,
+        repost: viewer?.repost || null
+      }
+    })
   } catch (error) {
     log.error('reactions failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Reaktionen.' })

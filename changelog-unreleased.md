@@ -3,13 +3,17 @@
 ## 2025-11-23
 
 ### Client
-- QuickComposer entfernt – der „Neuer Post“-Button öffnet wieder ausschließlich den vollwertigen Composer, sodass sämtliche Features nur noch an einer Stelle gepflegt werden müssen.
+- **Refactor UI:** Timeline-Aktionsleisten (Teilen, Optionen, Reskeet) nutzen jetzt Radix-basierte Popover-Menüs: Link kopieren, Direktnachricht-Platzhalter und Embed sind sauber gruppiert, das Optionsmenü bleibt zugänglich und das Repost-Menü bietet explizite Einträge für Reposten bzw. Reskeet zurückziehen. Die Komponenten liegen als `InlineMenu` im Shared-UI und stehen damit auch dem Dashboard offen.
+- **Refactor UI:** - QuickComposer entfernt – der „Neuer Post“-Button öffnet wieder ausschließlich den vollwertigen Composer, sodass sämtliche Features nur noch an einer Stelle gepflegt werden müssen.
+- **Bugfix:** Likes/Reposts werden nach einer Aktion sofort konsistent angezeigt. Der `useBskyEngagement`-Hook wertet jetzt `recordUri`-Fallbacks aus, unterstützt sowohl `likeCount` als auch `likesCount` und synchronisiert seine Viewer-Daten über den neuen `/api/bsky/reactions`-Payload.
+- **UI:** Der Reskeet-Button öffnet auch nach einem erfolgreichen Reskeet weiterhin das Menü mit „Reskeet zurückziehen“ und „Post zitieren“, statt die Aktion direkt auszuführen. So lassen sich versehentliche Rücknahmen vermeiden.
 
 ### Backend
-- Unnötigen `quickComposer`-UI-Schalter aus Config/Client-Config entfernt; `/api/client-config` liefert nur noch tatsächlich genutzte UI-Flags.
+- **Refactor:** Unnötigen `quickComposer`-UI-Schalter aus Config/Client-Config entfernt; `/api/client-config` liefert nur noch tatsächlich genutzte UI-Flags.
+- **Bugfix:** Die Bluesky-Aktionsendpunkte (`like`, `repost`, `unlike`, `unrepost`) geben den erzeugten Record-URI zurück und setzen den Viewer-Status direkt, während `/api/bsky/reactions` neben den Zählern nun auch den aktuellen Viewer (`like`/`repost`) ausliefert. Damit bleiben Timeline und Mitteilungen nach Engagement-Aktionen synchron.
 
 ### Docs
-- README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).
+- **Refactor UI:** README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).
 
 ## 2025-11-22
 
@@ -70,11 +74,6 @@
 - Theme-Umschaltung sitzt jetzt direkt in der Sidebar bzw. im mobilen Bottom-Nav und schaltet zwischen Hell → Gedimmt → Dunkel → Mitternacht.
 - Theme-Umschaltung in der Sidebar verfeinert: Ein kleiner Indikator-Punkt zeigt eine Vorschau der nächsten Theme-Farbe, ohne das Button-Design zu verändern. Button-Größen wurden vereinheitlicht und ein Trenner verbessert die visuelle Struktur.
 - Card-Config-Defaults auf 256px / 128px reduziert und in den Mitteilungen wiederverwendet, damit Bildhöhen in Timeline & Notifications identisch laufen.
-
-## 2025-11-23
-
-### Client
-- **Refactor UI:** Timeline-Aktionsleisten (Teilen, Optionen, Reskeet) nutzen jetzt Radix-basierte Popover-Menüs: Link kopieren, Direktnachricht-Platzhalter und Embed sind sauber gruppiert, das Optionsmenü bleibt zugänglich und das Repost-Menü bietet explizite Einträge für Reposten bzw. Reskeet zurückziehen. Die Komponenten liegen als `InlineMenu` im Shared-UI und stehen damit auch dem Dashboard offen.
 
 ## 2025-11-17
 
