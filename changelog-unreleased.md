@@ -10,12 +10,14 @@
 - **Feature:** Bookmarks sind nun direkt im Client verfügbar: Jeder Skeet hat einen „Merken“-Button mit Radix-Icon, und der Navigationspunkt „Gespeichert“ zeigt eine eigene Liste (inkl. Infinite Scroll) der gespeicherten Beiträge.
 - **Bugfix:** Likes und Reskeets bleiben nach dem Ausführen sichtbar. Die jeweiligen Buttons liefern ihre neuen Zähler/Viewer-States an Timeline, Suche, Profile und den Gespeichert-Feed zurück, sodass die UI nicht mehr kurzzeitig zurückfällt.
 - **Bugfix:** React-Keys & Engagement-Updates nutzen eine serverseitige `listEntryId`, wodurch doppelte Einträge (z.B. Selbst-Quotes) nicht mehr kollidieren und die Status-Anzeige immer dem richtigen Karten-Exemplar zugeordnet wird.
+- **Bugfix:** Auch die Mitteilungs-Liste verwendet die `listEntryId`, damit gruppierte oder mehrfach auftretende Notifications nicht mehr doppelt dargestellt werden.
 
 ### Backend
 - **Refactor:** Unnötigen `quickComposer`-UI-Schalter aus Config/Client-Config entfernt; `/api/client-config` liefert nur noch tatsächlich genutzte UI-Flags.
 - **Bugfix:** Die Bluesky-Aktionsendpunkte (`like`, `repost`, `unlike`, `unrepost`) geben den erzeugten Record-URI zurück und setzen den Viewer-Status direkt, während `/api/bsky/reactions` neben den Zählern nun auch den aktuellen Viewer (`like`/`repost`) ausliefert. Damit bleiben Timeline und Mitteilungen nach Engagement-Aktionen synchron.
 - **Feature:** Bookmarks werden unterstützt: neue Endpunkte (`POST/DELETE /api/bsky/bookmark`, `GET /api/bsky/bookmarks`) kapseln die Bluesky-Bookmark-API und liefern gespeicherte Beiträge in demselben Format wie die Timeline.
-- **Verbesserung:** Alle Timeline-/Profil-/Bookmark-Feeds liefern zusätzlich eine stabile `listEntryId`, sodass der Client jeden Postkontext eindeutig referenzieren kann (z.B. Zitat vs. Original).
+- **Improvement:** Alle Timeline-/Profil-/Bookmark-Feeds liefern zusätzlich eine stabile `listEntryId`, sodass der Client jeden Postkontext eindeutig referenzieren kann (z.B. Zitat vs. Original).
+- **Improvement:** Das Mitteilungs-Endpoint gibt dieselbe `listEntryId` aus, sodass Gruppenbenachrichtigungen und Einzelereignisse stabil adressiert werden können.
 
 ### Docs
 - **Refactor UI:** README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).
@@ -37,7 +39,7 @@
 - **Bugfix:** Uploads, die als Data-URL via JSON eingehen, respektieren jetzt `UPLOAD_MAX_BYTES` und liefern bei zu großen Payloads HTTP 413 statt 400. Gleichzeitig wurde die Validierung für Multer-basierte Uploads gehärtet.
 
 ### Client
-- **Verbesserung:** Die Thread-Ansicht merkt sich eine kleine Verlaufshistorie. Beim Schließen springt der Nutzer nun zuverlässig zum zuvor geöffneten Beitrag zurück.
+- **Improvement:** Die Thread-Ansicht merkt sich eine kleine Verlaufshistorie. Beim Schließen springt der Nutzer nun zuverlässig zum zuvor geöffneten Beitrag zurück.
 - **Bugfix:** Profil-Tabs (Beiträge/Antworten/Medien) laden nach einem Fehler wieder korrekt nach, wenn der Benutzer „Erneut versuchen“ wählt.
 - **Bugfix:** Die Suche verhindert, dass verspätete `loadMore`-Antworten Ergebnisse eines alten Queries anfügen.
 - **Bugfix:** Die Media-Lightbox hält die React-Hook-Reihenfolge stabil, selbst wenn vorübergehend kein Medium vorhanden ist – Warnungen/Memory-Leaks bleiben aus.

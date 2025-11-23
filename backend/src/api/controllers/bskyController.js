@@ -202,10 +202,15 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
     additionalCount
   };
 
+  const baseIdentifier = entry.uri || entry.cid || entry.groupKey || `${entry.reason || 'notification'}:${reasonSubject || ''}`
+  const contextIdentifier = entry.indexedAt || reasonSubject || record?.subject?.uri || `notification:${author?.did || ''}`
+  baseEntry.listEntryId = createListEntryId(baseIdentifier, contextIdentifier)
+
   if (additionalCount > 0) {
     baseEntry.groupKey = `group:${baseEntry.reason}:${baseEntry.reasonSubject}`;
     baseEntry.uri = null; // Wichtig, um Key-Konflikte zu vermeiden
     baseEntry.cid = null; // Wichtig, um Key-Konflikte zu vermeiden
+    baseEntry.listEntryId = createListEntryId(baseEntry.groupKey, `${baseEntry.reason || 'group'}:${baseEntry.reasonSubject || ''}:${baseEntry.indexedAt || ''}`)
   }
 
   return baseEntry;

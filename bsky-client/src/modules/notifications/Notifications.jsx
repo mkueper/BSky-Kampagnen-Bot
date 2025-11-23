@@ -18,6 +18,9 @@ const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
 
 function getNotificationId (entry) {
   if (!entry) return ''
+  if (entry.listEntryId) {
+    return entry.listEntryId
+  }
   if (entry.groupKey) {
     return entry.groupKey
   }
