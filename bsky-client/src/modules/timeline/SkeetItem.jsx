@@ -7,6 +7,7 @@ import {
   DotsHorizontalIcon,
   Link2Icon,
   CopyIcon,
+  CodeIcon,
   ExternalLinkIcon,
   ExclamationTriangleIcon,
   QuestionMarkCircledIcon,
@@ -807,22 +808,42 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   icon={CopyIcon}
                   onSelect={(event) => {
                     event?.preventDefault?.()
-                    copyToClipboard(shareUrl, 'Link kopiert')
+                    copyToClipboard(shareUrl, 'Link zum Post kopiert')
                     setShareMenuOpen(false)
                   }}
                 >
-                  Link kopieren
+                  Link zum Post kopieren
                 </InlineMenuItem>
                 <InlineMenuItem
                   icon={ExternalLinkIcon}
                   onSelect={(event) => {
                     event?.preventDefault?.()
-                    if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer')
+                    const url = `/thread/${encodeURIComponent(item?.uri || '')}`
+                    window.open(url, '_blank', 'noopener,noreferrer')
                     setShareMenuOpen(false)
                   }}
-                  disabled={!shareUrl}
                 >
-                  In Bluesky öffnen
+                  In Kampagnen-Bot öffnen
+                </InlineMenuItem>
+                <InlineMenuItem
+                  icon={Link2Icon}
+                  onSelect={(event) => {
+                    event?.preventDefault?.()
+                    showPlaceholder('Direktnachricht')
+                    setShareMenuOpen(false)
+                  }}
+                >
+                  Per Direktnachricht senden
+                </InlineMenuItem>
+                <InlineMenuItem
+                  icon={CodeIcon}
+                  onSelect={(event) => {
+                    event?.preventDefault?.()
+                    showPlaceholder('Embed')
+                    setShareMenuOpen(false)
+                  }}
+                >
+                  Post einbetten
                 </InlineMenuItem>
               </div>
             </InlineMenuContent>
