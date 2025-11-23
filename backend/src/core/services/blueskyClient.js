@@ -30,6 +30,7 @@ const OFFICIAL_FEED_GENERATORS = {
 };
 const TIMELINE_FOLLOWING_VALUE = 'following';
 const SUPPORTED_PUSH_PLATFORMS = new Set(['ios', 'android', 'web']);
+const FEED_SEARCH_LEXICON = 'app.bsky.feed.searchFeedGenerators';
 
 function createStatusError (statusCode, message) {
   const error = new Error(message);
@@ -46,6 +47,17 @@ function normalizeXrpcError (error, fallbackMessage = 'Bluesky API Fehler') {
     throw createStatusError(status, error?.message || fallbackMessage);
   }
   throw error;
+}
+
+function isLexiconMissingError (error, identifier) {
+  if (!error) return false;
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.error || '').toLowerCase();
+  const id = identifier ? String(identifier).toLowerCase() : '';
+  if (message.includes('lexicon not found')) return true;
+  if (id && message.includes(id)) return true;
+  if (id && code.includes(id)) return true;
+  return false;
 }
 
 
@@ -718,13 +730,22 @@ module.exports = {
   async searchFeeds({ q, limit = 25, cursor } = {}) {
     await ensureLoggedIn();
     const params = { q, limit, cursor };
-    // Neuere Versionen von @atproto/api stellen searchFeedGenerators bereit.
-    if (typeof agent.app?.bsky?.feed?.searchFeedGenerators === 'function') {
-      const res = await agent.app.bsky.feed.searchFeedGenerators(params);
+    try {
+      if (typeof agent.app?.bsky?.feed?.searchFeedGenerators === 'function') {
+        const res = await agent.app.bsky.feed.searchFeedGenerators(params);
+        return res?.data ?? { feeds: [], cursor: null };
+      }
+      const res = await agent.call(FEED_SEARCH_LEXICON, params);
       return res?.data ?? { feeds: [], cursor: null };
+    } catch (error) {
+      if (isLexiconMissingError(error, FEED_SEARCH_LEXICON)) {
+        const unsupportedError = new Error('Feeds-Suche wird von dieser Bluesky-Version nicht unterstützt.');
+        unsupportedError.code = 'BSKY_FEED_SEARCH_UNSUPPORTED';
+        unsupportedError.statusCode = 501;
+        unsupportedError.cause = error;
+        throw unsupportedError;
+      }
+      throw error;
     }
-    // Rückfall: direkte XRPC-Call
-    const res = await agent.call('app.bsky.feed.searchFeedGenerators', params);
-    return res?.data ?? { feeds: [], cursor: null };
   },
 };

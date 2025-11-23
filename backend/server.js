@@ -21,6 +21,7 @@ const { runPreflight } = require("@utils/preflight");
 const config = require("@config");
 const { sequelize } = require("@data/models");
 const { createLogger } = require("@utils/logging");
+const { getCustomization } = require("@utils/customization");
 const appLog = createLogger('app');
 
 const LOGGED_BODY_LIMIT = Number(process.env.ERROR_BODY_LOG_LIMIT || 1024);
@@ -59,19 +60,16 @@ const summarizeBody = (payload) => {
 };
 
 const app = express();
+const customization = getCustomization();
 const defaultCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
 defaultCsp["img-src"] = ["'self'", "data:", "blob:", "*"];
 const connectSrc = defaultCsp["connect-src"] || ["'self'"];
-const videoOrigins = [
-  "https://media.tenor.com",
-  "https://cdn.jsdelivr.net",
-  "https://video.bsky.app",
-  "https://video.cdn.bsky.app",
-  "https://cdn.bsky.app"
-];
-defaultCsp["connect-src"] = Array.from(new Set([...connectSrc, ...videoOrigins]));
+const mediaOrigins = Array.isArray(customization?.csp?.mediaOrigins)
+  ? customization.csp.mediaOrigins.filter((origin) => typeof origin === 'string' && origin.trim())
+  : [];
+defaultCsp["connect-src"] = Array.from(new Set([...connectSrc, ...mediaOrigins]));
 const mediaSrc = defaultCsp["media-src"] || ["'self'"];
-defaultCsp["media-src"] = Array.from(new Set([...mediaSrc, "data:", "blob:", ...videoOrigins]));
+defaultCsp["media-src"] = Array.from(new Set([...mediaSrc, "data:", "blob:", ...mediaOrigins]));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: defaultCsp,

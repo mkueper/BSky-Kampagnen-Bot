@@ -5,6 +5,7 @@ import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
+import { useClientConfig } from '../../hooks/useClientConfig'
 
 const SEARCH_TABS = [
   { id: 'top', label: 'Top' },
@@ -12,6 +13,7 @@ const SEARCH_TABS = [
   { id: 'people', label: 'Personen' },
   { id: 'feeds', label: 'Feeds' }
 ]
+const DEFAULT_ADVANCED_PREFIXES = ['from:', 'mention:', 'mentions:', 'domain:']
 
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
 const RECENT_SEARCH_LIMIT = 8
@@ -31,6 +33,7 @@ export default function SearchView () {
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
+  const { clientConfig } = useClientConfig()
 
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
@@ -48,11 +51,31 @@ export default function SearchView () {
   const normalizedQuery = query.trim()
   const hasQuery = normalizedQuery.length > 0
   const isPostsTab = activeTab === 'top' || activeTab === 'latest'
-  const isAuthorSearch = normalizedDraft.startsWith('from:')
+  const configuredAdvancedPrefixes = useMemo(() => {
+    if (Array.isArray(clientConfig?.search?.advancedPrefixes) && clientConfig.search.advancedPrefixes.length > 0) {
+      return clientConfig.search.advancedPrefixes
+    }
+    return DEFAULT_ADVANCED_PREFIXES
+  }, [clientConfig?.search?.advancedPrefixes])
+  const normalizedPrefixes = useMemo(
+    () => configuredAdvancedPrefixes
+      .map(prefix => (typeof prefix === 'string' ? prefix.trim().toLowerCase() : ''))
+      .filter(Boolean),
+    [configuredAdvancedPrefixes]
+  )
+  const lowerDraft = normalizedDraft.toLowerCase()
+  const hasAdvancedFilter = normalizedPrefixes.some((prefix) => lowerDraft.startsWith(prefix))
   const availableTabs = useMemo(() => {
-    if (!isAuthorSearch) return SEARCH_TABS
+    if (!hasAdvancedFilter) return SEARCH_TABS
     return SEARCH_TABS.filter(tab => tab.id === 'top' || tab.id === 'latest')
-  }, [isAuthorSearch])
+  }, [hasAdvancedFilter])
+
+  useEffect(() => {
+    if (availableTabs.some(tab => tab.id === activeTab)) return
+    if (availableTabs.length > 0) {
+      setActiveTab(availableTabs[0].id)
+    }
+  }, [availableTabs, activeTab])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

@@ -18,8 +18,14 @@
  *   `/api/client-config` an das Dashboard geliefert.
  */
 require("dotenv").config();
+const { getCustomization, DEFAULT_CUSTOMIZATION } = require('./utils/customization');
 
+const customization = getCustomization();
 const DEFAULT_CRON = "* * * * *"; // Standard: jede Minute prüfen
+const DEFAULT_ADVANCED_PREFIXES = DEFAULT_CUSTOMIZATION.search?.advancedPrefixes || ['from:', 'mention:', 'mentions:', 'domain:'];
+const configuredAdvancedPrefixes = Array.isArray(customization?.search?.advancedPrefixes) && customization.search.advancedPrefixes.length
+  ? customization.search.advancedPrefixes
+  : DEFAULT_ADVANCED_PREFIXES;
 /**
  * Parst Zahlenwerte robust, sonst Default.
  * @param {unknown} v
@@ -150,6 +156,9 @@ module.exports = {
         .filter(Boolean),
       requireAltText:
         toBool(process.env.REQUIRE_ALT_TEXT_IMAGES, false),
+    },
+    search: {
+      advancedPrefixes: configuredAdvancedPrefixes,
     },
   },
   /** Serverseitige Steuerung des Engagement-Collectors */

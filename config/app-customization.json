@@ -1,0 +1,19 @@
+{
+  "csp": {
+    "mediaOrigins": [
+      "https://media.tenor.com",
+      "https://cdn.jsdelivr.net",
+      "https://video.bsky.app",
+      "https://video.cdn.bsky.app",
+      "https://cdn.bsky.app"
+    ]
+  },
+  "search": {
+    "advancedPrefixes": [
+      "from:",
+      "mention:",
+      "mentions:",
+      "domain:"
+    ]
+  }
+}

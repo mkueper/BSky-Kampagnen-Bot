@@ -37,6 +37,7 @@ const AUTHOR_FEED_ALLOWED_FILTERS = new Set(['posts_with_replies', 'posts_no_rep
 const PUSH_REQUEST_KEYS = ['serviceDid', 'token', 'platform', 'appId']
 
 const POST_RECORD_COLLECTION = 'app.bsky.feed.post'
+const MAX_ERROR_RESPONSE_PREVIEW = 800
 
 function toTimestamp (value) {
   if (!value) return 0
@@ -57,6 +58,28 @@ function createListEntryId (baseId = '', context = '') {
   const normalizedContext = String(context || 'base')
   if (!normalizedBase && !normalizedContext) return crypto.randomUUID()
   return crypto.createHash('sha1').update(`${normalizedBase}|${normalizedContext}`).digest('hex')
+}
+
+function serializeErrorForLog (error) {
+  if (!error) return {}
+  const details = {
+    message: error?.message || String(error),
+    name: error?.name,
+    status: error?.status ?? error?.statusCode ?? error?.response?.status ?? null
+  }
+  if (error?.stack) details.stack = error.stack
+  const responseData = error?.response?.data
+  if (responseData !== undefined) {
+    try {
+      const serialized = typeof responseData === 'string'
+        ? responseData
+        : JSON.stringify(responseData)
+      details.responseData = serialized.slice(0, MAX_ERROR_RESPONSE_PREVIEW)
+    } catch {
+      details.responseData = '[unserializable response data]'
+    }
+  }
+  return details
 }
 
 function mapThreadNode (node) {
@@ -415,7 +438,13 @@ async function getTimeline(req, res) {
 
     res.json({ feed: items, cursor: data.cursor || null, tab: requestedTab })
   } catch (error) {
-    log.error('timeline failed', { error: error?.message || String(error) })
+    log.error('timeline failed', {
+      ...serializeErrorForLog(error),
+      tab: requestedTab,
+      cursor,
+      feedUri: feedUri || tabConfig?.feedUri || null,
+      limit
+    })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Bluesky-Timeline.' })
   }
 }
@@ -605,10 +634,18 @@ async function search (req, res) {
       return res.json({ items, cursor: data?.cursor || null, type: 'people' })
     }
 
-    if (type === 'feeds') {
-      const data = await bsky.searchFeeds({ q, limit, cursor })
-      const items = Array.isArray(data?.feeds) ? data.feeds.map(mapSearchFeed).filter(Boolean) : []
-      return res.json({ items, cursor: data?.cursor || null, type: 'feeds' })
+  if (type === 'feeds') {
+      try {
+        const data = await bsky.searchFeeds({ q, limit, cursor })
+        const items = Array.isArray(data?.feeds) ? data.feeds.map(mapSearchFeed).filter(Boolean) : []
+        return res.json({ items, cursor: data?.cursor || null, type: 'feeds' })
+      } catch (err) {
+        if (err?.code === 'BSKY_FEED_SEARCH_UNSUPPORTED') {
+          const status = err?.statusCode || 501
+          return res.status(status).json({ error: err.message || 'Feeds-Suche wird nicht unterstützt.' })
+        }
+        throw err
+      }
     }
 
     const sort = type === 'latest' ? 'latest' : 'top'

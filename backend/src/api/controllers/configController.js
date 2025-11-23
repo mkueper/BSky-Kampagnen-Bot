@@ -49,6 +49,9 @@ async function getClientConfig(req, res) {
       },
       gifs: {
         tenorAvailable: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
+      },
+      search: {
+        advancedPrefixes: config.CLIENT_CONFIG?.search?.advancedPrefixes || []
       }
     });
   } catch (error) {

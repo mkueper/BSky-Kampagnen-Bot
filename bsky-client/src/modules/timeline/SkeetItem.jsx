@@ -10,12 +10,13 @@ import {
   CodeIcon,
   ExternalLinkIcon,
   ExclamationTriangleIcon,
-  QuestionMarkCircledIcon,
-  SpeakerLoudIcon,
+  MagicWandIcon,
+  FaceIcon,
+  SpeakerOffIcon,
+  SpeakerModerateIcon,
   MixerVerticalIcon,
   EyeClosedIcon,
-  PersonIcon,
-  CrossCircledIcon,
+  ScissorsIcon,
   TriangleRightIcon,
   BookmarkIcon,
   BookmarkFilledIcon
@@ -443,26 +444,26 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
   const menuActions = useMemo(() => [
     {
-      label: 'Uebersetzen (Google)',
-      icon: QuestionMarkCircledIcon,
+      label: 'Übersetzen',
+      icon: MagicWandIcon,
       action: () => {
         const target = encodeURIComponent(text || '')
-        if (!target) { showPlaceholder('Uebersetzung'); return }
+        if (!target) { showPlaceholder('Übersetzung'); return }
         const lang = (navigator?.language || 'en').split('-')[0] || 'en'
         const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
         window.open(url, '_blank', 'noopener,noreferrer')
       }
     },
     { label: 'Post-Text kopieren', icon: CopyIcon, action: () => copyToClipboard(String(text || ''), 'Text kopiert') },
-    { label: 'Link kopieren', icon: Link2Icon, action: () => copyToClipboard(shareUrl, 'Link kopiert') },
-    { label: 'Thread stummschalten', icon: SpeakerLoudIcon, action: () => showPlaceholder('Thread stummschalten') },
-    { label: 'Woerter/Tags stummschalten', icon: MixerVerticalIcon, action: () => showPlaceholder('Wort-Filter') },
-    { label: 'Post ausblenden', icon: EyeClosedIcon, action: () => showPlaceholder('Post ausblenden') },
-    { label: 'Account stummschalten', icon: PersonIcon, action: () => showPlaceholder('Account stummschalten') },
-    { label: 'Account blockieren', icon: CrossCircledIcon, action: () => showPlaceholder('Account blockieren') },
-    { label: 'In Bluesky öffnen', icon: ExternalLinkIcon, action: () => { if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer') } },
+    { label: 'Mehr davon anzeigen', icon: FaceIcon, action: () => showPlaceholder('Mehr davon anzeigen') },
+    { label: 'Weniger davon anzeigen', icon: FaceIcon, action: () => showPlaceholder('Weniger davon anzeigen') },
+    { label: 'Thread stummschalten', icon: SpeakerOffIcon, action: () => showPlaceholder('Thread stummschalten') },
+    { label: 'Wörter und Tags stummschalten', icon: MixerVerticalIcon, action: () => showPlaceholder('Wörter und Tags stummschalten') },
+    { label: 'Post für mich ausblenden', icon: EyeClosedIcon, action: () => showPlaceholder('Post ausblenden') },
+    { label: 'Account stummschalten', icon: SpeakerModerateIcon, action: () => showPlaceholder('Account stummschalten') },
+    { label: 'Account blockieren', icon: ScissorsIcon, action: () => showPlaceholder('Account blockieren') },
     { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => showPlaceholder('Melden') }
-  ], [shareUrl, text])
+  ], [text])
 
   const handleProfileClick = (event) => {
     event.preventDefault()

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
 import { fetchTimeline as fetchTimelineApi } from '../shared'
@@ -26,7 +26,12 @@ export default function Timeline ({ renderMode, isActive = true }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [cursor, setCursor] = useState(null)
+  const [cursor, setCursorState] = useState(null)
+  const cursorRef = useRef(null)
+  const updateCursor = useCallback((value) => {
+    cursorRef.current = value
+    setCursorState(value)
+  }, [])
   const [loadingMore, setLoadingMore] = useState(false)
   const hasMore = useMemo(() => Boolean(cursor), [cursor])
   const sourceFeedUri = source?.feedUri || null
@@ -66,7 +71,7 @@ export default function Timeline ({ renderMode, isActive = true }) {
         const { nextItems, nextCursor } = await fetchPage({ limit: 20 })
         if (!ignore) {
           setItems(nextItems)
-          setCursor(nextCursor)
+          updateCursor(nextCursor || null)
         }
       } catch (e) {
         if (!ignore) setError(e?.message || String(e))
@@ -75,10 +80,10 @@ export default function Timeline ({ renderMode, isActive = true }) {
       }
     }
     setItems([])
-    setCursor(null)
+    updateCursor(null)
     load()
     return () => { ignore = true }
-  }, [timelineSource, fetchPage, refreshKey])
+  }, [timelineSource, fetchPage, refreshKey, updateCursor])
 
   const handleEngagementChange = useCallback((targetId, patch = {}) => {
     if (!targetId) return
@@ -110,18 +115,33 @@ export default function Timeline ({ renderMode, isActive = true }) {
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return
+    const currentCursor = cursorRef.current
+    if (!currentCursor) return
     setLoadingMore(true)
     try {
-      const { nextItems, nextCursor } = await fetchPage({ withCursor: cursor })
-      setItems(prev => [...prev, ...nextItems])
-      setCursor(nextCursor)
+      const { nextItems, nextCursor } = await fetchPage({ withCursor: currentCursor })
+      setItems(prev => {
+        if (!Array.isArray(nextItems) || nextItems.length === 0) return prev
+        const seen = new Set(
+          prev.map(entry => entry?.listEntryId || entry?.uri || entry?.cid).filter(Boolean)
+        )
+        const deduped = nextItems.filter(entry => {
+          const key = entry?.listEntryId || entry?.uri || entry?.cid
+          if (!key) return true
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        return deduped.length ? [...prev, ...deduped] : prev
+      })
+      updateCursor(nextCursor || null)
     } catch (e) {
       // we don't surface as fatal; keep existing items
       console.error('Timeline loadMore failed:', e)
     } finally {
       setLoadingMore(false)
     }
-  }, [cursor, fetchPage, hasMore, loading, loadingMore])
+  }, [fetchPage, hasMore, loading, loadingMore, updateCursor])
 
   // Scroll listener on the outer BSky scroll container to trigger loadMore
   useEffect(() => {
