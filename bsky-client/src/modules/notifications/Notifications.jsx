@@ -305,6 +305,32 @@ function extractQuotedPost (subject) {
   }
 }
 
+function buildReplyTarget (notification) {
+  try {
+    if (!notification) return null
+    const record = { ...(notification?.raw?.post?.record || notification?.record || {}) }
+    const author = notification?.author || notification?.raw?.post?.author || {}
+    const uri = notification?.uri || record?.uri || notification?.reasonSubject || null
+    const cid = notification?.cid || record?.cid || null
+    if (!uri || !cid) return null
+    const post = {
+      uri,
+      cid,
+      record,
+      author,
+      viewer: notification?.record?.viewer || notification?.raw?.post?.viewer || {}
+    }
+    return {
+      uri,
+      cid,
+      author,
+      raw: { post }
+    }
+  } catch {
+    return null
+  }
+}
+
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
   const {
@@ -521,8 +547,11 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               title='Antworten'
               onClick={() => {
                 if (typeof onReply === 'function') {
-                  clearError()
-                  onReply({ uri: item?.uri, cid: item?.cid || record?.cid })
+                  const target = buildReplyTarget(item)
+                  if (target) {
+                    clearError()
+                    onReply(target)
+                  }
                 }
               }}
             >
@@ -912,7 +941,7 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
   return null
 }
 
-export default function Notifications ({ activeTab = 'all' }) {
+export default function Notifications ({ activeTab = 'all', manualRefreshTick = 0 }) {
   const { notificationsRefreshTick: refreshKey } = useAppState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
@@ -949,7 +978,10 @@ export default function Notifications ({ activeTab = 'all' }) {
       setLoading(true)
       setError('')
       try {
-        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ markSeen: true, filter: activeTab })
+        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({
+          markSeen: activeTab === 'all',
+          filter: activeTab
+        })
         if (!ignore) {
           setItems(notifications)
           setCursor(nextCursor)
@@ -965,7 +997,7 @@ export default function Notifications ({ activeTab = 'all' }) {
     return () => {
       ignore = true
     }
-  }, [refreshKey, retryTick, fetchPage, activeTab])
+  }, [refreshKey, retryTick, fetchPage, activeTab, manualRefreshTick])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return

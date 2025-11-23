@@ -145,7 +145,6 @@ Changelog pflegen:
 | `ENGAGEMENT_IDLE_MIN_MS`   | Minimaler Abstand im Idle-Modus (keine Heartbeats)     | `1200000`|
 | `CLIENT_IDLE_THRESHOLD_MS` | Dauer ohne Heartbeat, bevor der Server „idle“ annimmt  | `1200000`|
 | `UPLOAD_MAX_BYTES`     | Upload-Limit für Medien (Skeets/Threads/Temp)             | `8388608` (8 MB) |
-| `UI_QUICK_COMPOSER_ENABLED` (`VITE_UI_QUICK_COMPOSER_ENABLED`) | Steuert, ob der QuickComposer im integrierten Bluesky-Client sichtbar ist | `true` |
 | `AUTH_USERNAME` | Benutzername für den Dashboard-Login | – |
 | `AUTH_PASSWORD_HASH` | Salt:Hash aus `npm run tools:hash-password` | – |
 | `AUTH_TOKEN_SECRET` | Zufälliger Schlüssel für die Signatur der Session-Cookies | – |

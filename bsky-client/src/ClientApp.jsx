@@ -11,7 +11,6 @@ import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
-import { QuickComposer } from './modules/composer'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 
@@ -104,7 +103,6 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   }, [feedPicker?.pinned])
 
   const timelineTabs = officialTabs
-  const quickComposerEnabled = clientConfig?.ui?.quickComposer?.enabled !== false
 
   const toggleFeedMenu = useCallback(() => {
     setFeedMenuOpen((prev) => !prev)
@@ -158,6 +156,17 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   }, [getScrollContainer, dispatch])
 
   const [notificationTab, setNotificationTab] = useState('all')
+  const [notificationTabRefreshKey, setNotificationTabRefreshKey] = useState(0)
+
+  const handleNotificationTabSelect = useCallback((tabId) => {
+    setNotificationTab((prev) => {
+      if (prev === tabId) {
+        setNotificationTabRefreshKey((tick) => tick + 1)
+        return prev
+      }
+      return tabId
+    })
+  }, [])
 
   const headerContent = useMemo(() => {
     if (section === 'home') {
@@ -196,7 +205,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
               <button
                 key={tab}
                 type='button'
-                onClick={() => setNotificationTab(tab)}
+                onClick={() => handleNotificationTabSelect(tab)}
                 className={`rounded-full border px-3 py-1 text-sm ${
                   notificationTab === tab
                     ? 'border-foreground bg-foreground text-background'
@@ -227,7 +236,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     closeFeedMenu,
     closeThread,
     notificationsUnread,
-    notificationTab
+    notificationTab,
+    handleNotificationTabSelect
   ])
 
   const topBlock = null
@@ -292,14 +302,17 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
       >
-        <MainContent />
+        <MainContent
+          notificationTab={notificationTab}
+          notificationTabRefreshKey={notificationTabRefreshKey}
+        />
       </BskyClientLayout>
       <Modals />
     </>
   )
 }
 
-function MainContent () {
+function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   const {
     section,
     threadState
@@ -307,17 +320,11 @@ function MainContent () {
   const dispatch = useAppDispatch()
 
   const { clientConfig } = useClientConfig()
-  const quickComposerEnabled = clientConfig?.ui?.quickComposer?.enabled !== false
-
   const refreshTimeline = useCallback(() => dispatch({ type: 'REFRESH_TIMELINE' }), [dispatch])
-  const [notificationTab, setNotificationTab] = useState('all')
 
   if (section === 'home') {
     return (
       <div className='space-y-6'>
-        {quickComposerEnabled ? (
-          <QuickComposer onSent={() => refreshTimeline()} />
-        ) : null}
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
           <Timeline isActive={section === 'home'} />
         </div>
@@ -341,7 +348,7 @@ function MainContent () {
       <div className='space-y-6'>
         <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
           <Suspense fallback={<NotificationsFallback />}>
-            <NotificationsLazy activeTab={notificationTab} />
+            <NotificationsLazy activeTab={notificationTab} manualRefreshTick={notificationTabRefreshKey} />
           </Suspense>
         </div>
         {threadState.active ? (

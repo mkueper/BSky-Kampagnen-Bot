@@ -737,7 +737,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           onClick={() => {
             if (typeof onReply === 'function') {
               clearError()
-              onReply({ uri: item?.uri, cid: item?.cid || item?.raw?.post?.cid })
+              onReply(item)
             }
           }}
         >

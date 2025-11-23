@@ -213,9 +213,6 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           mime: info.mime || 'image/gif'
         }]
       })
-      if (limitHit) {
-      throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
-    }
     if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     } catch (e) {
       setMessage(e?.message || 'GIF konnte nicht geladen werden')
@@ -255,13 +252,17 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     setSending(true)
     try {
       if (reply && reply.uri && reply.cid) {
+        const parent = { uri: reply.uri, cid: reply.cid }
+        const rootReply = reply.raw?.post?.record?.reply?.root
+        const root = rootReply && rootReply.uri && rootReply.cid ? rootReply : parent
+
         const res = await fetch('/api/bsky/reply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: content,
-            root: { uri: reply.uri, cid: reply.cid },
-            parent: { uri: reply.uri, cid: reply.cid },
+            root: { uri: root.uri, cid: root.cid },
+            parent: { uri: parent.uri, cid: parent.cid },
             media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
             external: externalPayload
           })

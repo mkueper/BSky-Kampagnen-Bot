@@ -411,6 +411,7 @@ async function getNotifications (req, res) {
 
     // Zähler für Antworten parallel abrufen
     let notifications = Array.isArray(data?.notifications) ? data.notifications : []
+    const globalUnreadCount = notifications.reduce((sum, entry) => sum + (entry?.isRead ? 0 : 1), 0)
 
     if (filter === 'mentions') {
       notifications = notifications.filter((n) => n.reason === 'reply' || n.reason === 'mention')
@@ -468,19 +469,18 @@ async function getNotifications (req, res) {
         }
       }
     }
-    if (markSeen) {
+    if (markSeen && filter === 'all') {
       try {
         await bsky.markNotificationsSeen()
       } catch (error) {
         log.warn('markNotificationsSeen failed', { error: error?.message || String(error) })
       }
     }
-    const unreadCount = notifications.reduce((sum, entry) => sum + (entry?.isRead ? 0 : 1), 0)
     res.json({
       notifications: items,
       cursor: data?.cursor || null,
       seenAt: data?.seenAt || null,
-      unreadCount
+      unreadCount: globalUnreadCount
     })
   } catch (error) {
     log.error('notifications failed', { error: error?.message || String(error) })

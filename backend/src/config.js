@@ -151,16 +151,6 @@ module.exports = {
       requireAltText:
         toBool(process.env.REQUIRE_ALT_TEXT_IMAGES, false),
     },
-    ui: {
-      quickComposer: {
-        enabled:
-          toBool(
-            process.env.UI_QUICK_COMPOSER_ENABLED ??
-              process.env.VITE_UI_QUICK_COMPOSER_ENABLED,
-            true
-          ),
-      },
-    },
   },
   /** Serverseitige Steuerung des Engagement-Collectors */
   ENGAGEMENT_ACTIVE_MIN_MS:

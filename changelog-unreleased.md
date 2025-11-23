@@ -1,5 +1,16 @@
 # Unreleased Notes
 
+## 2025-11-23
+
+### Client
+- QuickComposer entfernt – der „Neuer Post“-Button öffnet wieder ausschließlich den vollwertigen Composer, sodass sämtliche Features nur noch an einer Stelle gepflegt werden müssen.
+
+### Backend
+- Unnötigen `quickComposer`-UI-Schalter aus Config/Client-Config entfernt; `/api/client-config` liefert nur noch tatsächlich genutzte UI-Flags.
+
+### Docs
+- README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).
+
 ## 2025-11-22
 
 ### Client
@@ -92,7 +103,7 @@
 - Timeline-Tabs blenden den nativen Scrollbalken aus, das horizontale Scrollen erfolgt ausschließlich über die Pfeil-Buttons.
 - Der ScrollTopButton sitzt auf Mobilgeräten dichter am linken Fensterrand und kollidiert nicht mehr mit dem Content.
 - Theme-Umschaltung bietet jetzt zusätzlich ein „Gedimmtes“ dunkles Theme (zwischen Dunkel und Mitternacht) für Nutzer, die weniger Kontrast wünschen.
-- Neuer `QuickComposer` erlaubt spontane Skeets direkt im Bluesky-Client; komplette Testsuite inklusive.
+- QuickComposer entfernt – der „Neuer Post“-Button öffnet wieder ausschließlich den vollwertigen Composer, sodass sämtliche Features nur noch an einer Stelle gepflegt werden müssen.
 - `NewPostsBanner` zeigt frische Timeline-Einträge und verbindet Banner-Klick mit schnellem Refresh.
 - Gemeinsamer `Button` lebt jetzt im Paket `@bsky-kampagnen-bot/shared-ui` und ersetzt die duplizierten Varianten in Client & Dashboard.
 - Shared UI erweitert um `Modal`, `MediaDialog`, `ToastProvider` & `ScrollTopButton`; sowohl Dashboard als auch Bsky-Client nutzen die zentralen Komponenten.
