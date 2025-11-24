@@ -26,5 +26,6 @@ threadwriter/src-tauri/gen/
 logs/
 false/
 Codex-Regeln.md
+z-tests/
 Info.txt
 :electron

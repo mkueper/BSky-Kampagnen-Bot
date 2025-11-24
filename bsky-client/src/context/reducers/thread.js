@@ -3,7 +3,11 @@ export const threadInitialState = {
   loading: false,
   error: '',
   data: null,
-  uri: null
+  uri: null,
+  viewMode: 'full',
+  isAuthorThread: false,
+  rootAuthorDid: null,
+  focusAuthorDid: null
 };
 
 export function threadReducer(state, action) {

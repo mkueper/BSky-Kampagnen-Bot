@@ -196,6 +196,7 @@ export default function Timeline ({ renderMode, isActive = true }) {
             onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
             onViewMedia={onViewMedia}
             onEngagementChange={handleEngagementChange}
+            showThreadButton
           />
         </li>
       ))}

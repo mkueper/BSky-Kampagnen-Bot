@@ -4,15 +4,17 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 
 ## Backlog
 - Skeet-/Thread-Planung: Vorschaukarten an Live-Timeline anlehnen (Autorzeile, Media-Preview) und Outline für lange Threads bereitstellen.
-- Thread-Lesefenster (Modal) ohne Reaktionen, Inhalte über `app.bsky.feed.getPostThread` laden, Text/Medien `user-select: none`.
 - Weitere Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und bei Bedarf in `app-customization.json` aufnehmen.
 - Prefixe können nicht nur am Anfang einer Suche stehen. Im Ergebnis nur die Tabs "Top" und "Neuste" anzeigen.
 
 ## In Progress
-- _(derzeit nichts)_
+- Thread-Unroll: Wenn `record.reply.root.author` dem aktuellen Autor entspricht (eigener Thread), im Thread-Pane einen „Unroll“-Button anzeigen, der den Autor-Verlauf ohne Fremdantworten darstellt (inkl. Scrollposition/Startpost-Überlegung).
 
 ## Review
 - Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
+
+## Done
+- Thread-Lesefenster (Inline-Pane) ohne Reaktionen, Inhalte über `app.bsky.feed.getPostThread` laden, Text/Medien `user-select: none`.
 
 ## Done
 - Hashtags im RichText sind klickbar und öffnen ein Kontextmenü mit Aktionen (Posts anzeigen, Posts des Nutzers, Stumm-Option als Platzhalter).

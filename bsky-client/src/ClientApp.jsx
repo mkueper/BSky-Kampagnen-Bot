@@ -10,11 +10,13 @@ import { useNotificationPolling } from './hooks/useNotificationPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
 import BlockListView from './modules/settings/BlockListView.jsx'
+import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
+import HashtagSearchPane from './modules/search/HashtagSearchPane.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -61,7 +63,9 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     timelineTopUri,
     notificationsUnread,
     timelineHasNew,
-    me
+    me,
+    profileViewer,
+    hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
 
@@ -170,15 +174,26 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     })
   }, [])
 
+  const threadActions = threadState.active ? (
+    <>
+      <Button variant='secondary' size='pill' disabled={!threadState.isAuthorThread}>Unroll</Button>
+      <Button variant='secondary' size='pill' onClick={() => reloadThread()} disabled={threadState.loading}>
+        Aktualisieren
+      </Button>
+    </>
+  ) : null
+
   const headerContent = useMemo(() => {
+    if (threadState.active) {
+      return (
+        <ThreadHeader
+          onClose={() => closeThread({ force: true })}
+          actions={threadActions}
+        />
+      )
+    }
+
     if (section === 'home') {
-      if (threadState.active) {
-        return (
-          <ThreadHeader
-            onClose={() => closeThread({ force: true })}
-          />
-        )
-      }
       return (
         <TimelineHeader
           timelineTab={timelineSource?.id || timelineTab}
@@ -192,13 +207,6 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       )
     }
     if (section === 'notifications') {
-      if (threadState.active) {
-        return (
-          <ThreadHeader
-            onClose={() => closeThread({ force: true })}
-          />
-        )
-      }
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-base font-semibold text-foreground'>Mitteilungen</p>
@@ -299,6 +307,16 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     }
   }, [section, timelineHasNew, scrollTimelineToTop, refreshTimeline])
 
+  const threadPane = threadState.active ? <ThreadView /> : null
+  const profilePane = profileViewer?.open ? <ProfileViewerPane /> : null
+  const hashtagPane = hashtagSearch?.open ? <HashtagSearchPane /> : null
+  const detailPane = threadPane || profilePane || hashtagPane
+  const detailPaneActive = Boolean(
+    (threadState.active && threadPane) ||
+    (profileViewer?.open && profilePane) ||
+    (hashtagSearch?.open && hashtagPane)
+  )
+
   return (
     <>
       <BskyClientLayout
@@ -310,6 +328,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         topBlock={topBlock}
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
+        detailPane={detailPane}
+        detailPaneActive={detailPaneActive}
       >
         <MainContent
           notificationTab={notificationTab}
@@ -322,10 +342,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 }
 
 function MainContent ({ notificationTab, notificationTabRefreshKey }) {
-  const {
-    section,
-    threadState
-  } = useAppState()
+  const { section } = useAppState()
   const dispatch = useAppDispatch()
 
   const { clientConfig } = useClientConfig()
@@ -334,12 +351,7 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   if (section === 'home') {
     return (
       <div className='space-y-6'>
-        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Timeline isActive={section === 'home'} />
-        </div>
-        {threadState.active ? (
-          <ThreadView />
-        ) : null}
+        <Timeline isActive />
       </div>
     )
   }
@@ -347,14 +359,9 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   if (section === 'search') {
     return (
       <div className='space-y-6'>
-        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Suspense fallback={<SectionFallback label='Suche' />}>
-            <SearchViewLazy />
-          </Suspense>
-        </div>
-        {threadState.active ? (
-          <ThreadView />
-        ) : null}
+        <Suspense fallback={<SectionFallback label='Suche' />}>
+          <SearchViewLazy />
+        </Suspense>
       </div>
     )
   }
@@ -362,14 +369,9 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   if (section === 'notifications') {
     return (
       <div className='space-y-6'>
-        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <Suspense fallback={<NotificationsFallback />}>
-            <NotificationsLazy activeTab={notificationTab} manualRefreshTick={notificationTabRefreshKey} />
-          </Suspense>
-        </div>
-        {threadState.active ? (
-          <ThreadView />
-        ) : null}
+        <Suspense fallback={<NotificationsFallback />}>
+          <NotificationsLazy activeTab={notificationTab} manualRefreshTick={notificationTabRefreshKey} />
+        </Suspense>
       </div>
     )
   }
@@ -388,9 +390,6 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
         <Suspense fallback={<SectionFallback label='Profil' />}>
           <ProfileViewLazy />
         </Suspense>
-        {threadState.active ? (
-          <ThreadView />
-        ) : null}
       </div>
     )
   }
@@ -398,12 +397,7 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   if (section === 'saved') {
     return (
       <div className='space-y-6'>
-        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
-          <SavedFeed isActive={section === 'saved'} />
-        </div>
-        {threadState.active ? (
-          <ThreadView />
-        ) : null}
+        <SavedFeed isActive={section === 'saved'} />
       </div>
     )
   }

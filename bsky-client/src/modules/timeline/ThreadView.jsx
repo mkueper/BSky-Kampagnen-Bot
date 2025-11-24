@@ -1,9 +1,9 @@
-import { Button } from '../shared'
+import { useMemo } from 'react'
 import SkeetItem from './SkeetItem'
 import { useAppState } from '../../context/AppContext'
-import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
+import { useComposer } from '../../hooks/useComposer'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
@@ -63,13 +63,13 @@ function ThreadNodeList ({
               ) : null}
 
               <div className={isFocus ? 'rounded-2xl ring-2 ring-primary/40' : ''}>
-              <SkeetItem
-                item={node}
-                onReply={onReply}
-                onQuote={onQuote}
-                onViewMedia={onViewMedia}
-                onSelect={onSelect ? ((selected) => onSelect(selected || node)) : undefined}
-              />
+                <SkeetItem
+                  item={node}
+                  onReply={onReply}
+                  onQuote={onQuote}
+                  onViewMedia={onViewMedia}
+                  onSelect={onSelect ? ((selected) => onSelect(selected || node)) : undefined}
+                />
               </div>
             </div>
 
@@ -93,17 +93,24 @@ function ThreadNodeList ({
   )
 }
 
-export default function ThreadView () {
-  const { threadState: state } = useAppState()
-  const { reloadThread: onReload, selectThreadFromItem: onSelectPost } = useThread()
-  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
-  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+const toTimestamp = (node) => {
+  const created = node?.createdAt || node?.record?.createdAt || node?.raw?.post?.record?.createdAt || node?.raw?.post?.indexedAt
+  const fallback = node?.indexedAt || node?.raw?.post?.indexedAt
+  return Date.parse(created || fallback || '') || 0
+}
 
-  const { loading, error, data } = state || {}
+export default function ThreadView () {
+  const { threadState: state, threadViewVariant } = useAppState()
+  const { selectThreadFromItem } = useThread()
+  const { openMediaPreview } = useMediaLightbox()
+  const { openReplyComposer, openQuoteComposer } = useComposer()
+
+  const { error, data, active, viewMode = 'full' } = state || {}
   const parents = Array.isArray(data?.parents) ? data.parents : []
   const focus = data?.focus || null
+  const threadAuthorDid = focus?.author?.did || parents[0]?.author?.did || null
 
-  const threadNodes = (() => {
+  const threadNodes = useMemo(() => {
     if (!focus) return parents.map((parent) => ({ ...parent, replies: [] }))
 
     const focusNode = {
@@ -125,32 +132,123 @@ export default function ThreadView () {
       }
     }
     return [parentClones[0]]
-  })()
+  }, [focus, parents])
+
+  const authorTimeline = useMemo(() => {
+    if (!focus) return []
+    const timeline = []
+    const filteredParents = parents.filter((parent) => !threadAuthorDid || parent?.author?.did === threadAuthorDid)
+    for (const parent of filteredParents) {
+      timeline.push(parent)
+    }
+    timeline.push(focus)
+    const collectOwnReplies = (node) => {
+      const replies = Array.isArray(node?.replies) ? node.replies : []
+      const ownReplies = replies
+        .filter((reply) => reply?.author?.did && reply.author.did === threadAuthorDid)
+        .sort((a, b) => toTimestamp(a) - toTimestamp(b))
+      for (const reply of ownReplies) {
+        timeline.push(reply)
+        collectOwnReplies(reply)
+      }
+    }
+    collectOwnReplies(focus)
+    return timeline
+  }, [focus, parents, threadAuthorDid])
+
+  const branchCandidates = useMemo(() => {
+    if (!focus) return []
+    const branches = []
+    const traverse = (node) => {
+      const replies = Array.isArray(node?.replies) ? node.replies : []
+      for (const reply of replies) {
+        if (!threadAuthorDid || reply?.author?.did !== threadAuthorDid) {
+          branches.push(reply)
+        }
+        traverse(reply)
+      }
+    }
+    traverse(focus)
+    return branches
+      .map((entry) => ({
+        ...entry,
+        snippet: entry?.text || entry?.raw?.post?.record?.text || ''
+      }))
+      .slice(0, 25)
+  }, [focus, threadAuthorDid])
+
+  if (!active) return null
+
+  const showBranchPanel = viewMode === 'author' && threadViewVariant === 'planner' && branchCandidates.length > 0
+
+  const renderFullThread = () => (
+    <ThreadNodeList
+      nodes={threadNodes}
+      highlightUri={focus?.uri}
+      onReply={openReplyComposer}
+      onQuote={openQuoteComposer}
+      onViewMedia={openMediaPreview}
+      onSelect={selectThreadFromItem}
+    />
+  )
+
+  const renderAuthorThread = () => (
+    authorTimeline.length ? (
+      <div className='space-y-4'>
+        {authorTimeline.map((node) => {
+          const key = node?.listEntryId || node?.uri || node?.cid
+          const isFocus = node?.uri && node.uri === focus.uri
+          return (
+            <div key={key || `thread-node-${node?.createdAt || ''}`} className={isFocus ? 'rounded-2xl ring-2 ring-primary/40' : ''}>
+              <SkeetItem
+                item={node}
+                onViewMedia={openMediaPreview}
+                showActions={false}
+              />
+            </div>
+          )
+        })}
+      </div>
+    ) : (
+      <p className='text-sm text-foreground-muted'>Keine Beiträge des Autors gefunden.</p>
+    )
+  )
 
   return (
-    <div className='space-y-5' data-component='BskyThreadView'>
-      {error ? (
-        <div className='rounded-2xl border border-red-400 bg-red-50 p-4 text-red-700'>
-          <p className='font-semibold'>Fehler beim Laden des Threads</p>
-          <p className='mt-1 text-sm'>{error}</p>
-          <Button className='mt-3' variant='primary' onClick={onReload}>Erneut versuchen</Button>
-        </div>
-      ) : null}
-
-      {loading && !focus ? (
-        <p className='text-sm text-foreground-muted'>Thread wird geladen...</p>
-      ) : null}
-
-      {!loading && !error && focus ? (
-        <ThreadNodeList
-          nodes={threadNodes}
-          highlightUri={focus?.uri}
-          onReply={onReply}
-          onQuote={onQuote}
-          onViewMedia={onViewMedia}
-          onSelect={onSelectPost}
-        />
-      ) : null}
+    <div className='flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-soft' data-component='BskyThreadPaneContent'>
+      <div className='flex-1 space-y-4 overflow-y-auto px-4 py-4 select-none'>
+        {error ? (
+          <p className='text-sm text-red-600'>{error}</p>
+        ) : null}
+        {!error && focus ? (
+          viewMode === 'author'
+            ? renderAuthorThread()
+            : renderFullThread()
+        ) : null}
+        {showBranchPanel ? (
+          <section className='mt-6 space-y-3 border-t border-border/60 pt-4'>
+            <p className='text-sm font-semibold text-foreground'>Verzweigungen</p>
+            {branchCandidates.map((branch) => (
+              <button
+                key={branch.listEntryId || branch.uri || branch.cid}
+                type='button'
+                className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle'
+                onClick={() => selectThreadFromItem?.(branch)}
+              >
+                <p className='text-sm font-semibold text-foreground'>{branch.author?.displayName || branch.author?.handle || 'Unbekannt'}</p>
+                {branch.author?.handle ? (
+                  <p className='text-xs text-foreground-muted'>@{branch.author.handle}</p>
+                ) : null}
+                {branch.snippet ? (
+                  <p className='mt-2 text-sm text-foreground line-clamp-3'>{branch.snippet}</p>
+                ) : (
+                  <p className='mt-2 text-xs text-foreground-muted'>Kein Text verfügbar.</p>
+                )}
+              </button>
+            ))}
+          </section>
+        ) : null}
+      </div>
     </div>
   )
 }

@@ -82,6 +82,8 @@ export default function BskyClientLayout ({
   headerContent,
   topBlock,
   children,
+  detailPane = null,
+  detailPaneActive = false,
   scrollTopForceVisible = false,
   onScrollTopActivate
 }) {
@@ -167,6 +169,12 @@ export default function BskyClientLayout ({
     'space-y-5 sm:space-y-8': !isProfileSection,
     'pb-6 sm:pb-8': !isProfileSection && !isMobile
   })
+  const hasDetailPane = Boolean(detailPane)
+  const isPaneExclusive = hasDetailPane && detailPaneActive
+  const contentWrapperClassName = clsx(
+    hasDetailPane ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8' : '',
+    hasDetailPane ? 'mt-0' : ''
+  )
 
   return (
     <div
@@ -218,9 +226,27 @@ export default function BskyClientLayout ({
           data-component='BskyScrollContainer'
           style={{ scrollbarGutter: 'stable', paddingBottom: bottomPaddingValue }}
         >
-          <main className={mainClassName}>
-            {children}
-          </main>
+          <div className={contentWrapperClassName}>
+            <main
+              className={mainClassName}
+              aria-hidden={isPaneExclusive}
+              style={isPaneExclusive ? { display: 'none' } : undefined}
+            >
+              {children}
+            </main>
+            {detailPane ? (
+              <section
+                className={clsx(
+                  'mt-0 xl:mt-0',
+                  !detailPaneActive ? 'xl:mt-0 xl:sticky xl:top-4 xl:self-start' : '',
+                  detailPaneActive ? 'w-full' : ''
+                )}
+                data-component='BskyThreadPane'
+              >
+                {detailPane}
+              </section>
+            ) : null}
+          </div>
           {isMobile ? (
             <div
               className='pointer-events-none'

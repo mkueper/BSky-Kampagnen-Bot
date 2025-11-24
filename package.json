@@ -76,6 +76,7 @@
     "module-alias": "^2.2.2",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "node-fetch": "^3.3.2",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
     "sqlite3": "^5.1.7",

@@ -4,25 +4,33 @@ import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { HorizontalScrollContainer } from './index.js'
 import { Button } from '../shared/index.js'
 
-export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title = 'Thread-Ansicht' }) {
+export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title = 'Thread-Ansicht', actions = null }) {
   return (
-    <div className='flex items-center gap-3' data-component='BskyThreadHeader'>
-      <button
-        type='button'
-        className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
-        onClick={onClose}
-        aria-label='Zurueck zur Timeline'
-      >
-        <ArrowLeftIcon className='h-4 w-4' />
-      </button>
-      <p className='truncate text-base font-semibold text-foreground'>{title}</p>
+    <div className='flex flex-wrap items-center justify-between gap-3' data-component='BskyThreadHeader'>
+      <div className='flex items-center gap-3'>
+        <button
+          type='button'
+          className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+          onClick={onClose}
+          aria-label='Zurueck zur Timeline'
+        >
+          <ArrowLeftIcon className='h-4 w-4' />
+        </button>
+        <p className='truncate text-base font-semibold text-foreground'>{title}</p>
+      </div>
+      {actions ? (
+        <div className='flex flex-wrap items-center gap-2'>
+          {actions}
+        </div>
+      ) : null}
     </div>
   )
 })
 
 ThreadHeader.propTypes = {
   onClose: PropTypes.func.isRequired,
-  title: PropTypes.string
+  title: PropTypes.string,
+  actions: PropTypes.node
 }
 
 ThreadHeader.displayName = 'ThreadHeader'

@@ -33,6 +33,7 @@ const initialState = {
   mediaLightbox: mediaLightboxInitialState,
   ...feedInitialState,
   threadState: threadInitialState,
+  threadViewVariant: 'modal-cards',
   hashtagSearch: {
     open: false,
     label: '',
@@ -109,6 +110,13 @@ function appReducer(state, action) {
             }
         };
         return { ...state, feedPicker: nextFeedPicker };
+    }
+    case 'SET_THREAD_VIEW_VARIANT': {
+      const variant = typeof action.payload === 'string' ? action.payload : state.threadViewVariant;
+      return {
+        ...state,
+        threadViewVariant: variant || state.threadViewVariant
+      };
     }
   }
 
