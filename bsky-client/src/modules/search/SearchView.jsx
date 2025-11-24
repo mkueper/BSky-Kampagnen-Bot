@@ -52,7 +52,15 @@ export default function SearchView () {
     [configuredAdvancedPrefixes]
   )
   const lowerDraft = normalizedDraft.toLowerCase()
-  const hasAdvancedFilter = normalizedPrefixes.some((prefix) => lowerDraft.startsWith(prefix))
+  const hasAdvancedFilter = useMemo(() => {
+    if (!lowerDraft) return false
+    return normalizedPrefixes.some((prefix) => {
+      if (!prefix) return false
+      const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const pattern = new RegExp(`(?:^|\\s)${escaped}`)
+      return pattern.test(lowerDraft)
+    })
+  }, [lowerDraft, normalizedPrefixes])
   const availableTabs = useMemo(() => {
     if (!hasAdvancedFilter) return SEARCH_TABS
     return SEARCH_TABS.filter(tab => tab.id === 'top' || tab.id === 'latest')
