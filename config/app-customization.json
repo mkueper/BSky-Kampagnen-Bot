@@ -13,7 +13,11 @@
       "from:",
       "mention:",
       "mentions:",
-      "domain:"
+      "domain:",
+      "to:",
+      "lang:",
+      "since:",
+      "until:"
     ]
   }
 }
