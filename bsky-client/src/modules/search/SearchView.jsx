@@ -118,6 +118,28 @@ export default function SearchView () {
   }, [rememberSearch])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handlePrefill = (event) => {
+      const detail = event?.detail || {}
+      const rawQuery = typeof detail.query === 'string' ? detail.query : ''
+      const trimmed = rawQuery.trim()
+      if (!trimmed) return
+      setDraftQuery(trimmed)
+      const nextTab = typeof detail.tab === 'string' ? detail.tab : null
+      if (nextTab) {
+        setActiveTab(nextTab)
+      }
+      if (detail.execute === false) return
+      rememberSearch(trimmed)
+      setQuery(trimmed)
+    }
+    window.addEventListener('bsky:search:set-query', handlePrefill)
+    return () => {
+      window.removeEventListener('bsky:search:set-query', handlePrefill)
+    }
+  }, [rememberSearch])
+
+  useEffect(() => {
     if (!query) return
     if (draftQuery.trim().length === 0) {
       setQuery('')
@@ -263,7 +285,11 @@ export default function SearchView () {
                   <p className='text-sm text-foreground-muted truncate'>@{person.handle}</p>
                   {person.description ? (
                     <p className='mt-2 text-sm text-foreground'>
-                      <RichText text={person.description} className='line-clamp-3 break-words' />
+                      <RichText
+                        text={person.description}
+                        className='line-clamp-3 break-words'
+                        hashtagContext={{ authorHandle: person.handle }}
+                      />
                     </p>
                   ) : null}
                 </div>

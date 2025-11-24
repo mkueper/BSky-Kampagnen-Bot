@@ -1,5 +1,9 @@
-import React from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
+import { MagnifyingGlassIcon, PersonIcon, SpeakerOffIcon } from '@radix-ui/react-icons'
+import { InlineMenu, InlineMenuContent, InlineMenuItem, InlineMenuTrigger } from '@bsky-kampagnen-bot/shared-ui'
 import { useAppDispatch } from '../../context/AppContext'
+const MIN_HASHTAG_LENGTH = 2
 
 // Helper to convert byte offsets to character offsets
 function byteToCharIndex (text, byteIndex) {
@@ -55,10 +59,13 @@ function parseSegments (text, facets) {
     const end = byteToCharIndex(text, byteEnd)
     const segmentText = text.slice(start, end)
 
-    if (facet.features[0]?.$type === 'app.bsky.richtext.facet#mention') {
-      segments.push({ text: segmentText, isMention: true, did: facet.features[0].did })
-    } else if (facet.features[0]?.$type === 'app.bsky.richtext.facet#link') {
-      segments.push({ text: segmentText, isLink: true, href: facet.features[0].uri })
+    const feature = facet.features[0]
+    if (feature?.$type === 'app.bsky.richtext.facet#mention') {
+      segments.push({ text: segmentText, isMention: true, did: feature.did })
+    } else if (feature?.$type === 'app.bsky.richtext.facet#link') {
+      segments.push({ text: segmentText, isLink: true, href: feature.uri })
+    } else if (feature?.$type === 'app.bsky.richtext.facet#tag') {
+      segments.push({ text: segmentText, isHashtag: true, hashtag: feature.tag || segmentText.replace(/^#+/, '') })
     } else {
       segments.push({ text: segmentText })
     }
@@ -75,14 +82,97 @@ function parseSegments (text, facets) {
   return segments
 }
 
-export default function RichText ({ text = '', facets, className = '' }) {
+function isValidHashtagBoundary (char) {
+  if (!char) return true
+  return /[\s([{/'"`]/.test(char)
+}
+
+function isValidHashtagChar (codePoint) {
+  if (!codePoint && codePoint !== 0) return false
+  if (codePoint === 95) return true // underscore
+  if ((codePoint >= 48 && codePoint <= 57) || (codePoint >= 65 && codePoint <= 90) || (codePoint >= 97 && codePoint <= 122)) {
+    return true
+  }
+  // Allow extended latin and general unicode letters/numbers
+  if (codePoint >= 0x80 && codePoint <= 0x10ffff) {
+    // exclude obvious separators
+    if (codePoint === 0x2000 || codePoint === 0x2001 || codePoint === 0x2002 || codePoint === 0x2003) return false
+    return true
+  }
+  return false
+}
+
+function splitTextByHashtags (text) {
+  if (!text) return [{ text }]
+  const segments = []
+  let bufferStart = 0
+  let cursor = 0
+  const totalLength = text.length
+  while (cursor < totalLength) {
+    const currentChar = text[cursor]
+    if (currentChar === '#') {
+      const prevChar = cursor > 0 ? text[cursor - 1] : ''
+      if (isValidHashtagBoundary(prevChar)) {
+        let end = cursor + 1
+        while (end < totalLength) {
+          const codePoint = text.codePointAt(end)
+          if (!isValidHashtagChar(codePoint)) break
+          end += codePoint > 0xffff ? 2 : 1
+        }
+        const bodyLength = end - (cursor + 1)
+        if (bodyLength >= MIN_HASHTAG_LENGTH) {
+          if (cursor > bufferStart) {
+            segments.push({ text: text.slice(bufferStart, cursor) })
+          }
+          const segmentText = text.slice(cursor, end)
+          segments.push({ text: segmentText, isHashtag: true, hashtag: segmentText.replace(/^#+/, '') })
+          bufferStart = end
+          cursor = end
+          continue
+        }
+      }
+    }
+    const codePoint = text.codePointAt(cursor)
+    cursor += codePoint > 0xffff ? 2 : 1
+  }
+  if (bufferStart < totalLength) {
+    segments.push({ text: text.slice(bufferStart) })
+  }
+  return segments
+}
+
+function normalizeSegmentsWithHashtags (segments) {
+  return segments.flatMap((segment) => {
+    if (!segment.text) return [segment]
+    if (segment.isMention || segment.isLink || segment.isHashtag) {
+      return [segment]
+    }
+    return splitTextByHashtags(segment.text)
+  })
+}
+
+export default function RichText ({ text = '', facets, className = '', hashtagContext = null }) {
   const dispatch = useAppDispatch()
 
   if (!text) {
     return <span className={className}>{text}</span>
   }
 
-  const segments = parseSegments(text, facets)
+  const segments = useMemo(() => normalizeSegmentsWithHashtags(parseSegments(text, facets)), [text, facets])
+
+  const openHashtagSearch = useCallback((payload) => {
+    const query = typeof payload?.query === 'string' ? payload.query.trim() : ''
+    if (!query) return
+    dispatch({
+      type: 'OPEN_HASHTAG_SEARCH',
+      payload: {
+        query,
+        label: payload?.label || query,
+        description: payload?.description || '',
+        tab: payload?.tab
+      }
+    })
+  }, [dispatch])
 
   const handleMentionClick = (event, did) => {
     event.preventDefault()
@@ -114,8 +204,115 @@ export default function RichText ({ text = '', facets, className = '' }) {
             </a>
           )
         }
+        if (segment.isHashtag) {
+          return (
+            <HashtagMenu
+              key={`hashtag-${index}-${segment.text}`}
+              hashtag={segment.hashtag}
+              display={segment.text}
+              onNavigate={openHashtagSearch}
+              context={hashtagContext}
+            />
+          )
+        }
         return <React.Fragment key={index}>{segment.text}</React.Fragment>
       })}
     </span>
+  )
+}
+
+function HashtagMenu ({ hashtag, display, onNavigate, context }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const normalizedTag = useMemo(() => {
+    if (typeof hashtag === 'string' && hashtag.trim()) {
+      return hashtag.replace(/^#+/, '')
+    }
+    if (typeof display === 'string' && display.trim().startsWith('#')) {
+      return display.trim().replace(/^#+/, '')
+    }
+    return ''
+  }, [hashtag, display])
+  const label = normalizedTag ? `#${normalizedTag}` : ''
+  const authorHandle = useMemo(() => {
+    if (!context) return ''
+    const handle = context.authorHandle || ''
+    if (!handle) return ''
+    return handle.replace(/^@/, '')
+  }, [context])
+
+  const handleContextMenu = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!label) return
+    setMenuOpen(true)
+  }, [label])
+
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (!label) return
+      setMenuOpen(true)
+    }
+  }, [label])
+
+  const showPosts = useCallback(() => {
+    if (!label) return
+    onNavigate({ query: label, label, description: `${label}-Posts ansehen`, tab: 'top' })
+    setMenuOpen(false)
+  }, [label, onNavigate])
+
+  const showAuthorPosts = useCallback(() => {
+    if (!label || !authorHandle) return
+    const authorQuery = `from:${authorHandle} ${label}`
+    onNavigate({ query: authorQuery, label, description: `${label}-Posts des Nutzers ansehen`, tab: 'top' })
+    setMenuOpen(false)
+  }, [authorHandle, label, onNavigate])
+
+  const handleMenuChange = useCallback((nextOpen) => {
+    setMenuOpen(nextOpen)
+  }, [])
+
+  if (!label) {
+    return <>{display}</>
+  }
+
+  const queryLabel = `${label}-Posts ansehen`
+  const authorLabel = `${label}-Posts des Nutzers ansehen`
+  const muteLabel = normalizedTag ? `${normalizedTag} stummschalten` : 'Tag stummschalten'
+
+  return (
+    <InlineMenu open={menuOpen} onOpenChange={handleMenuChange}>
+      <Popover.Anchor asChild>
+        <InlineMenuTrigger>
+          <button
+            type='button'
+            onContextMenu={handleContextMenu}
+            onKeyDown={handleKeyDown}
+            className='inline bg-transparent p-0 text-primary underline decoration-primary/40 hover:decoration-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+            title={`Hashtag ${label}`}
+            data-hashtag={normalizedTag}
+          >
+            {label}
+          </button>
+        </InlineMenuTrigger>
+      </Popover.Anchor>
+      <InlineMenuContent align='start' side='top' sideOffset={6}>
+        <InlineMenuItem icon={MagnifyingGlassIcon} onSelect={showPosts}>
+          {queryLabel}
+        </InlineMenuItem>
+        <InlineMenuItem
+          icon={PersonIcon}
+          onSelect={showAuthorPosts}
+          disabled={!authorHandle}
+        >
+          {authorLabel}
+        </InlineMenuItem>
+        <div className='my-1 h-px bg-border' role='separator' />
+        <InlineMenuItem icon={SpeakerOffIcon} disabled>
+          {muteLabel}
+        </InlineMenuItem>
+      </InlineMenuContent>
+    </InlineMenu>
   )
 }

@@ -11,6 +11,7 @@
 - **Bugfix:** Die Timeline blockt doppelte Keys beim Nachladen; Cursor-Wechsel beim Tab-Switch verhindert die zuvor sporadischen 500er nach „Discover → Following“.
 - **Improvement:** Das Kontextmenü eines Skeets orientiert sich an der offiziellen Bluesky-App („Übersetzen“, „Mehr/Weniger davon anzeigen“, „Thread/Wörter stummschalten“, „Post ausblenden“, „Account stummschalten/blockieren“, „Post melden“).
 - **Improvement:** Die Suche liest die konfigurierbaren Advanced-Prefixes vom Backend; sobald ein solcher Filter (`from:`, `mention:`, `domain:` …) verwendet wird, bleiben nur noch die Tabs „Top“ und „Neueste“ aktiv.
+- **Feature:** Hashtags im RichText öffnen per Linksklick ein Menü mit Aktionen wie „#…-Posts ansehen“; die Treffer erscheinen anschließend in einem eigenen Modal (Tabs „Top/Neueste“), das die bestehenden Timeline-Komponenten inkl. Reply/Quote/Media-Lightbox nutzt.
 
 ## 2025-11-23
 

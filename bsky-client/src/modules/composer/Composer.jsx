@@ -338,7 +338,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               ) : null}
               {quoteInfo.text ? (
                 <div className='mt-2 text-sm text-foreground'>
-                  <RichText text={quoteInfo.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                  <RichText
+                    text={quoteInfo.text}
+                    className='whitespace-pre-wrap break-words text-sm text-foreground'
+                    hashtagContext={{ authorHandle: quoteInfo?.author?.handle }}
+                  />
                 </div>
               ) : null}
             </div>

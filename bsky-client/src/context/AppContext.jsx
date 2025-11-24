@@ -33,6 +33,13 @@ const initialState = {
   mediaLightbox: mediaLightboxInitialState,
   ...feedInitialState,
   threadState: threadInitialState,
+  hashtagSearch: {
+    open: false,
+    label: '',
+    description: '',
+    query: '',
+    tab: 'top'
+  }
 };
 
 function appReducer(state, action) {
@@ -45,6 +52,31 @@ function appReducer(state, action) {
         section,
         profileActor: section === 'profile' ? (actor || null) : state.profileActor,
         profileViewer: { ...defaultProfileViewerState }
+      };
+    }
+    case 'OPEN_HASHTAG_SEARCH': {
+      const payload = action.payload || {};
+      const query = String(payload.query || '').trim();
+      if (!query) return state;
+      const nextTab = payload.tab === 'latest' ? 'latest' : 'top';
+      return {
+        ...state,
+        hashtagSearch: {
+          open: true,
+          label: payload.label || query,
+          description: payload.description || '',
+          query,
+          tab: nextTab
+        }
+      };
+    }
+    case 'CLOSE_HASHTAG_SEARCH': {
+      return {
+        ...state,
+        hashtagSearch: {
+          ...state.hashtagSearch,
+          open: false
+        }
       };
     }
     case 'OPEN_PROFILE_VIEWER': {
@@ -126,7 +158,7 @@ function appReducer(state, action) {
   if (Object.keys(finalState).every(key => finalState[key] === state[key])) {
     // If no slice reducer changed the state, and it wasn't a cross-slice action,
     // it's an unknown action.
-    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE'].includes(action.type)) {
+    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE', 'OPEN_HASHTAG_SEARCH', 'CLOSE_HASHTAG_SEARCH'].includes(action.type)) {
       // Uncomment to restore original behavior for unknown actions
       // throw new Error(`Unknown action: ${action.type}`);
     }

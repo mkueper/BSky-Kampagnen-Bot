@@ -516,7 +516,12 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         </div>
       </header>
       <p className='mt-3 text-sm text-foreground'>
-        <RichText text={text} facets={item?.raw?.post?.record?.facets} className='whitespace-pre-wrap break-words' />
+        <RichText
+          text={text}
+          facets={item?.raw?.post?.record?.facets}
+          className='whitespace-pre-wrap break-words'
+          hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+        />
       </p>
 
       {quoted ? (
@@ -559,7 +564,12 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 ) : null}
                 {quoted.text ? (
                   <div className='mt-2 text-sm text-foreground'>
-                    <RichText text={quoted.text} facets={quoted?.raw?.record?.facets} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                    <RichText
+                      text={quoted.text}
+                      facets={quoted?.raw?.record?.facets}
+                      className='whitespace-pre-wrap break-words text-sm text-foreground'
+                      hashtagContext={{ authorHandle: quoted?.author?.handle, authorDid: quoted?.author?.did }}
+                    />
                   </div>
                 ) : null}
               </div>

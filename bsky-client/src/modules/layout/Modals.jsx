@@ -7,6 +7,7 @@ import { Button, MediaLightbox, Card } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 import ProfileMetaSkeleton from '../profile/ProfileMetaSkeleton.jsx';
+import HashtagSearchModal from '../search/HashtagSearchModal.jsx';
 
 const ProfileViewLazy = lazy(async () => {
   const module = await import('../profile/ProfileView');
@@ -14,7 +15,7 @@ const ProfileViewLazy = lazy(async () => {
 });
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, profileViewer } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, profileViewer, hashtagSearch } = useAppState();
   const { mediaLightbox, openMediaPreview, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { closeComposer, setQuoteTarget } = useComposer();
@@ -122,6 +123,10 @@ export function Modals() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {hashtagSearch?.open ? (
+        <HashtagSearchModal />
       ) : null}
     </>
   );

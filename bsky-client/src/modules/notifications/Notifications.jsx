@@ -515,7 +515,11 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           ) : null}
           {recordText ? (
             <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
-              <RichText text={recordText} className='whitespace-pre-wrap break-words' />
+              <RichText
+                text={recordText}
+                className='whitespace-pre-wrap break-words'
+                hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+              />
             </p>
           ) : null}
           {isReply && replyMedia?.media?.length > 0 ? (
@@ -707,7 +711,11 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       </div>
       {subject?.text ? (
         <div className='text-sm text-foreground'>
-          <RichText text={subject.text} className='whitespace-pre-wrap break-words' />
+          <RichText
+            text={subject.text}
+            className='whitespace-pre-wrap break-words'
+            hashtagContext={{ authorHandle: subject?.author?.handle, authorDid: subject?.author?.did }}
+          />
         </div>
       ) : null}
       {preview.image ? (
@@ -836,7 +844,11 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                 </div>
                 {quoted.text ? (
                   <div className='text-sm text-foreground'>
-                    <RichText text={quoted.text} className='whitespace-pre-wrap break-words text-sm text-foreground' />
+                    <RichText
+                      text={quoted.text}
+                      className='whitespace-pre-wrap break-words text-sm text-foreground'
+                      hashtagContext={{ authorHandle: quoted?.author?.handle, authorDid: quoted?.author?.did }}
+                    />
                   </div>
                 ) : null}
               </div>
