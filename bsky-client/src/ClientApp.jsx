@@ -346,9 +346,16 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
 
   if (section === 'search') {
     return (
-      <Suspense fallback={<SectionFallback label='Suche' />}>
-        <SearchViewLazy />
-      </Suspense>
+      <div className='space-y-6'>
+        <div aria-hidden={threadState.active} style={{ display: threadState.active ? 'none' : 'block' }}>
+          <Suspense fallback={<SectionFallback label='Suche' />}>
+            <SearchViewLazy />
+          </Suspense>
+        </div>
+        {threadState.active ? (
+          <ThreadView />
+        ) : null}
+      </div>
     )
   }
 
