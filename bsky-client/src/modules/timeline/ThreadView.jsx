@@ -1,156 +1,205 @@
+import { useEffect, useMemo } from 'react'
+import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button } from '../shared'
 import SkeetItem from './SkeetItem'
 import { useAppState } from '../../context/AppContext'
-import { useComposer } from '../../hooks/useComposer'
-import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
+import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 
-const CONNECTOR_OFFSET = 28
-const INDENT_STEP = 30
-const BASE_PADDING = 32
+function collectThreadLayout (threadData) {
+  const focus = threadData?.focus || null
+  const parents = Array.isArray(threadData?.parents) ? threadData.parents : []
+  const authorDid = focus?.author?.did || null
+  const posts = []
+  const branches = []
+  const seen = new Set()
 
-function ThreadNodeList ({
-  nodes = [],
-  depth = 0,
-  highlightUri,
-  onReply,
-  onQuote,
-  onViewMedia,
-  onSelect
-}) {
-  if (!Array.isArray(nodes) || nodes.length === 0) return null
+  const pushPost = (node) => {
+    if (!node) return
+    const key = node.listEntryId || node.uri || node.cid
+    if (key && seen.has(key)) return
+    if (key) seen.add(key)
+    posts.push(node)
+  }
 
-  return (
-    <div className='space-y-4'>
-      {nodes.map((node, idx) => {
-        const key = node?.listEntryId || node?.uri || node?.cid || `thread-node-${depth}-${idx}`
-        const isLast = idx === nodes.length - 1
-        const hasChildren = Array.isArray(node?.replies) && node.replies.length > 0
-        const showConnector = depth > 0 || !isLast || hasChildren
-        const appliedIndent = depth * INDENT_STEP
-        const connectorLeft = BASE_PADDING - 14 + appliedIndent
-        const isFocus = highlightUri && node?.uri === highlightUri
-        const verticalStyle = {
-          top: depth === 0 ? `${CONNECTOR_OFFSET}px` : '0px',
-          height: hasChildren || !isLast ? 'calc(100% + 16px)' : `${CONNECTOR_OFFSET}px`
-        }
-        const horizontalStyle = {
-          top: `${CONNECTOR_OFFSET}px`
-        }
+  parents.forEach((parent) => {
+    if (!parent) return
+    if (!authorDid || parent?.author?.did === authorDid) {
+      pushPost(parent)
+    } else {
+      branches.push({
+        type: 'parent',
+        parentUri: parent.uri || null,
+        parentAuthor: parent.author || null,
+        nodes: [parent]
+      })
+    }
+  })
 
-        return (
-          <div
-            key={key}
-            className='relative space-y-4'
-          >
-            <div
-              className='relative'
-              style={{ paddingLeft: BASE_PADDING + appliedIndent }}
-            >
-              {showConnector ? (
-                <>
-                  <span
-                    aria-hidden='true'
-                    className='pointer-events-none absolute w-px bg-border/50'
-                    style={{ ...verticalStyle, left: `${connectorLeft}px` }}
-                  />
-                  <span
-                    aria-hidden='true'
-                    className='pointer-events-none absolute w-4 border-t border-border/50'
-                    style={{ ...horizontalStyle, left: `${connectorLeft}px` }}
-                  />
-                </>
-              ) : null}
+  if (focus) pushPost(focus)
 
-              <div className={isFocus ? 'rounded-2xl ring-2 ring-primary/40' : ''}>
-              <SkeetItem
-                item={node}
-                onReply={onReply}
-                onQuote={onQuote}
-                onViewMedia={onViewMedia}
-                onSelect={onSelect ? ((selected) => onSelect(selected || node)) : undefined}
-              />
-              </div>
-            </div>
+  const walkReplies = (node) => {
+    if (!node || !Array.isArray(node.replies)) return
+    const sameAuthor = []
+    const otherAuthors = []
+    for (const reply of node.replies) {
+      if (!reply) continue
+      if (!authorDid || reply?.author?.did === authorDid) sameAuthor.push(reply)
+      else otherAuthors.push(reply)
+    }
+    if (otherAuthors.length > 0) {
+      branches.push({
+        type: 'reply',
+        parentUri: node.uri || null,
+        parentAuthor: node.author || null,
+        nodes: otherAuthors
+      })
+    }
+    if (sameAuthor.length > 0) {
+      const [primary, ...rest] = sameAuthor
+      if (primary) {
+        pushPost(primary)
+        walkReplies(primary)
+      }
+      if (rest.length > 0) {
+        branches.push({
+          type: 'author-branch',
+          parentUri: node.uri || null,
+          parentAuthor: node.author || null,
+          nodes: rest
+        })
+      }
+    }
+  }
 
-            {hasChildren ? (
-              <div className='mt-2'>
-                <ThreadNodeList
-                  nodes={node.replies}
-                  depth={depth + 1}
-                  highlightUri={highlightUri}
-                  onReply={onReply}
-                  onQuote={onQuote}
-                  onViewMedia={onViewMedia}
-                  onSelect={onSelect}
-                />
-              </div>
-            ) : null}
-          </div>
-        )
-      })}
-    </div>
-  )
+  if (focus) walkReplies(focus)
+
+  return {
+    author: focus?.author || posts[posts.length - 1]?.author || parents[parents.length - 1]?.author || null,
+    posts,
+    branches
+  }
 }
 
 export default function ThreadView () {
-  const { threadState: state } = useAppState()
-  const { reloadThread: onReload, selectThreadFromItem: onSelectPost } = useThread()
-  const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
-  const { openMediaPreview: onViewMedia } = useMediaLightbox()
+  const { threadState } = useAppState()
+  const { closeThread, reloadThread } = useThread()
+  const { openMediaPreview } = useMediaLightbox()
 
-  const { loading, error, data } = state || {}
-  const parents = Array.isArray(data?.parents) ? data.parents : []
-  const focus = data?.focus || null
+  const { author, posts, branches } = useMemo(() => collectThreadLayout(threadState?.data), [threadState?.data])
+  const branchCount = useMemo(() => {
+    return branches.reduce((total, group) => total + (Array.isArray(group?.nodes) ? group.nodes.length : 0), 0)
+  }, [branches])
+  const hasPosts = posts.length > 0
 
-  const threadNodes = (() => {
-    if (!focus) return parents.map((parent) => ({ ...parent, replies: [] }))
-
-    const focusNode = {
-      ...focus,
-      replies: Array.isArray(focus.replies) ? focus.replies : []
-    }
-
-    if (parents.length === 0) {
-      return [focusNode]
-    }
-
-    const parentClones = parents.map((parent) => ({ ...parent, replies: [] }))
-    for (let i = parentClones.length - 1; i >= 0; i -= 1) {
-      const current = parentClones[i]
-      if (i === parentClones.length - 1) {
-        current.replies = [focusNode]
-      } else {
-        current.replies = [parentClones[i + 1]]
+  useEffect(() => {
+    if (!threadState?.active) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeThread({ force: true })
       }
     }
-    return [parentClones[0]]
-  })()
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [closeThread, threadState?.active])
+
+  if (!threadState?.active) return null
 
   return (
-    <div className='space-y-5' data-component='BskyThreadView'>
-      {error ? (
-        <div className='rounded-2xl border border-red-400 bg-red-50 p-4 text-red-700'>
-          <p className='font-semibold'>Fehler beim Laden des Threads</p>
-          <p className='mt-1 text-sm'>{error}</p>
-          <Button className='mt-3' variant='primary' onClick={onReload}>Erneut versuchen</Button>
+    <div className='fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6' data-component='BskyThreadReaderModal'>
+      <div
+        className='absolute inset-0 bg-black/60 backdrop-blur-sm'
+        aria-hidden='true'
+        onClick={() => closeThread({ force: true })}
+      />
+      <div
+        className='relative z-50 flex h-[min(760px,92vh)] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-background text-foreground shadow-2xl select-none'
+        role='dialog'
+        aria-modal='true'
+        aria-label='Thread-Lesefenster'
+      >
+        <header className='flex items-start gap-4 border-b border-border px-4 py-4 sm:px-6'>
+          <div className='flex items-center gap-4'>
+            {author?.avatar ? (
+              <img src={author.avatar} alt='' className='h-14 w-14 rounded-full border border-border object-cover' />
+            ) : (
+              <div className='h-14 w-14 rounded-full border border-border bg-background-subtle' />
+            )}
+            <div className='min-w-0'>
+              <p className='text-base font-semibold leading-tight'>
+                {author?.displayName || author?.handle || 'Unbekannter Autor'}
+              </p>
+              {author?.handle ? (
+                <p className='text-sm text-foreground-muted'>@{author.handle}</p>
+              ) : null}
+              <p className='mt-2 text-xs text-foreground-muted'>
+                {threadState?.loading && !hasPosts ? 'Thread wird geladen…' : `${posts.length} Beiträge`}
+              </p>
+            </div>
+          </div>
+          <div className='ml-auto flex items-center gap-2'>
+            {threadState?.error ? (
+              <Button variant='secondary' size='pill' onClick={reloadThread}>
+                Erneut laden
+              </Button>
+            ) : null}
+            <Button
+              variant='ghost'
+              size='icon'
+              aria-label='Thread schließen'
+              onClick={() => closeThread({ force: true })}
+            >
+              <Cross2Icon className='h-5 w-5' />
+            </Button>
+          </div>
+        </header>
+        <div className='flex min-h-0 flex-1 divide-x divide-border'>
+          <div className='flex-1 overflow-y-auto px-4 py-4 sm:px-6'>
+            {threadState?.loading && !hasPosts ? (
+              <div className='rounded-2xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted'>
+                Thread wird geladen…
+              </div>
+            ) : null}
+            {threadState?.error ? (
+              <div className='rounded-2xl border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-700'>
+                <p className='font-semibold'>Fehler beim Laden des Threads</p>
+                <p className='mt-2 text-sm'>{threadState.error}</p>
+                <Button className='mt-4' variant='primary' onClick={reloadThread}>
+                  Erneut versuchen
+                </Button>
+              </div>
+            ) : null}
+            {hasPosts ? (
+              <ol className='space-y-4'>
+                {posts.map((item, idx) => (
+                  <li key={item.listEntryId || item.uri || item.cid || `thread-post-${idx}`}>
+                    <SkeetItem
+                      item={item}
+                      variant='card'
+                      onViewMedia={openMediaPreview}
+                      showActions={false}
+                    />
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+            {!threadState?.loading && !threadState?.error && !hasPosts ? (
+              <p className='text-sm text-foreground-muted'>Keine passenden Posts im Thread gefunden.</p>
+            ) : null}
+          </div>
+          <aside className='hidden w-64 flex-col justify-between bg-background-subtle/50 px-4 py-4 md:flex' aria-hidden='true'>
+            <div>
+              <p className='text-sm font-semibold text-foreground'>Verzweigungen</p>
+              <p className='mt-2 text-xs text-foreground-muted'>
+                {branchCount > 0
+                  ? `${branchCount} potentielle ${branchCount === 1 ? 'Antwort' : 'Antworten'} werden künftig hier visualisiert.`
+                  : 'Keine Verzweigungen erkannt.'}
+              </p>
+            </div>
+            <p className='text-[11px] text-foreground-subtle'>Spalte reserviert für spätere Thread-Zweige.</p>
+          </aside>
         </div>
-      ) : null}
-
-      {loading && !focus ? (
-        <p className='text-sm text-foreground-muted'>Thread wird geladen...</p>
-      ) : null}
-
-      {!loading && !error && focus ? (
-        <ThreadNodeList
-          nodes={threadNodes}
-          highlightUri={focus?.uri}
-          onReply={onReply}
-          onQuote={onQuote}
-          onViewMedia={onViewMedia}
-          onSelect={onSelectPost}
-        />
-      ) : null}
+      </div>
     </div>
   )
 }

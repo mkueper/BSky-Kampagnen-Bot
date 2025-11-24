@@ -8,6 +8,7 @@ import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 import ProfileMetaSkeleton from '../profile/ProfileMetaSkeleton.jsx';
 import HashtagSearchModal from '../search/HashtagSearchModal.jsx';
+import ThreadView from '../timeline/ThreadView.jsx';
 
 const ProfileViewLazy = lazy(async () => {
   const module = await import('../profile/ProfileView');
@@ -128,6 +129,8 @@ export function Modals() {
       {hashtagSearch?.open ? (
         <HashtagSearchModal />
       ) : null}
+
+      <ThreadView />
     </>
   );
 }

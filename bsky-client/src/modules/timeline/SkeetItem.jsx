@@ -242,7 +242,7 @@ function buildShareUrl (item) {
   }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -791,166 +791,170 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           {body}
         </div>
       ) : body}
-      <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
-        <button
-          type='button'
-          className='group inline-flex items-center gap-2 hover:text-foreground transition'
-          title='Antworten'
-          onClick={() => {
-            if (typeof onReply === 'function') {
-              clearError()
-              onReply(item)
-            }
-          }}
-        >
-          <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
-          <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
-        </button>
-        <RepostMenuButton
-          count={repostCount}
-          hasReposted={hasReposted}
-          busy={busy}
-          style={repostStyle}
-          onRepost={() => {
-            handleToggleRepost()
-          }}
-          onUnrepost={() => {
-            handleToggleRepost()
-          }}
-          onQuote={onQuote ? (() => {
-            clearError()
-            onQuote(item)
-          }) : undefined}
-        />
-        <button
-          type='button'
-          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
-          style={likeStyle}
-          title='Gefällt mir'
-          aria-pressed={hasLiked}
-          disabled={busy}
-          onClick={handleToggleLike}
-        >
-          {hasLiked ? (
-            <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
-          ) : (
-            <HeartIcon className='h-5 w-5 md:h-6 md:w-6' />
-          )}
-          <span className='tabular-nums'>{likeCount}</span>
-        </button>
-        <div className='relative flex items-center gap-1 sm:ml-auto'>
-          <button
-            type='button'
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
-            style={bookmarkStyle}
-            title={isBookmarked ? 'Gespeichert' : 'Merken'}
-            aria-pressed={isBookmarked}
-            disabled={bookmarking}
-            onClick={handleToggleBookmark}
-          >
-            {isBookmarked ? (
-              <BookmarkFilledIcon className='h-4 w-4' />
-            ) : (
-              <BookmarkIcon className='h-4 w-4' />
-            )}
-          </button>
-          <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
-            <InlineMenuTrigger>
+      {showActions ? (
+        <>
+          <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
+            <button
+              type='button'
+              className='group inline-flex items-center gap-2 hover:text-foreground transition'
+              title='Antworten'
+              onClick={() => {
+                if (typeof onReply === 'function') {
+                  clearError()
+                  onReply(item)
+                }
+              }}
+            >
+              <ChatBubbleIcon className='h-5 w-5 md:h-6 md:w-6' />
+              <span className='tabular-nums'>{Number(item?.stats?.replyCount ?? 0)}</span>
+            </button>
+            <RepostMenuButton
+              count={repostCount}
+              hasReposted={hasReposted}
+              busy={busy}
+              style={repostStyle}
+              onRepost={() => {
+                handleToggleRepost()
+              }}
+              onUnrepost={() => {
+                handleToggleRepost()
+              }}
+              onQuote={onQuote ? (() => {
+                clearError()
+                onQuote(item)
+              }) : undefined}
+            />
+            <button
+              type='button'
+              className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
+              style={likeStyle}
+              title='Gefällt mir'
+              aria-pressed={hasLiked}
+              disabled={busy}
+              onClick={handleToggleLike}
+            >
+              {hasLiked ? (
+                <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
+              ) : (
+                <HeartIcon className='h-5 w-5 md:h-6 md:w-6' />
+              )}
+              <span className='tabular-nums'>{likeCount}</span>
+            </button>
+            <div className='relative flex items-center gap-1 sm:ml-auto'>
               <button
                 type='button'
-                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
-                title='Teilen'
-                aria-label='Beitrag teilen'
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
+                style={bookmarkStyle}
+                title={isBookmarked ? 'Gespeichert' : 'Merken'}
+                aria-pressed={isBookmarked}
+                disabled={bookmarking}
+                onClick={handleToggleBookmark}
               >
-                <Share2Icon className='h-4 w-4' />
+                {isBookmarked ? (
+                  <BookmarkFilledIcon className='h-4 w-4' />
+                ) : (
+                  <BookmarkIcon className='h-4 w-4' />
+                )}
               </button>
-            </InlineMenuTrigger>
-            <InlineMenuContent side='top' align='end' sideOffset={10}>
-              <div className='py-1'>
-                <InlineMenuItem
-                  icon={CopyIcon}
-                  onSelect={(event) => {
-                    event?.preventDefault?.()
-                    copyToClipboard(shareUrl, 'Link zum Post kopiert')
-                    setShareMenuOpen(false)
-                  }}
-                >
-                  Link zum Post kopieren
-                </InlineMenuItem>
-                <InlineMenuItem
-                  icon={ExternalLinkIcon}
-                  onSelect={(event) => {
-                    event?.preventDefault?.()
-                    const url = `/thread/${encodeURIComponent(item?.uri || '')}`
-                    window.open(url, '_blank', 'noopener,noreferrer')
-                    setShareMenuOpen(false)
-                  }}
-                >
-                  In Kampagnen-Bot öffnen
-                </InlineMenuItem>
-                <InlineMenuItem
-                  icon={Link2Icon}
-                  onSelect={(event) => {
-                    event?.preventDefault?.()
-                    showPlaceholder('Direktnachricht')
-                    setShareMenuOpen(false)
-                  }}
-                >
-                  Per Direktnachricht senden
-                </InlineMenuItem>
-                <InlineMenuItem
-                  icon={CodeIcon}
-                  onSelect={(event) => {
-                    event?.preventDefault?.()
-                    showPlaceholder('Embed')
-                    setShareMenuOpen(false)
-                  }}
-                >
-                  Post einbetten
-                </InlineMenuItem>
-              </div>
-            </InlineMenuContent>
-          </InlineMenu>
-          <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
-            <InlineMenuTrigger>
-              <button
-                type='button'
-                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-                aria-label='Mehr Optionen'
-              >
-                <DotsHorizontalIcon className='h-5 w-5' />
-              </button>
-            </InlineMenuTrigger>
-            <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
-              <div className='py-1 text-sm'>
-                {menuActions.map((entry) => {
-                  const Icon = entry.icon
-                  return (
+              <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                    title='Teilen'
+                    aria-label='Beitrag teilen'
+                  >
+                    <Share2Icon className='h-4 w-4' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent side='top' align='end' sideOffset={10}>
+                  <div className='py-1'>
                     <InlineMenuItem
-                      key={entry.label}
-                      icon={Icon}
+                      icon={CopyIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
-                        try {
-                          entry.action()
-                        } catch {}
-                        setOptionsOpen(false)
+                        copyToClipboard(shareUrl, 'Link zum Post kopiert')
+                        setShareMenuOpen(false)
                       }}
                     >
-                      {entry.label}
+                      Link zum Post kopieren
                     </InlineMenuItem>
-                  )
-                })}
-              </div>
-            </InlineMenuContent>
-          </InlineMenu>
-        </div>
-      </footer>
-      {feedbackMessage ? (
-        <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
-      ) : null}
-      {actionError ? (
-        <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+                    <InlineMenuItem
+                      icon={ExternalLinkIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        const url = `/thread/${encodeURIComponent(item?.uri || '')}`
+                        window.open(url, '_blank', 'noopener,noreferrer')
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      In Kampagnen-Bot öffnen
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={Link2Icon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        showPlaceholder('Direktnachricht')
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      Per Direktnachricht senden
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={CodeIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        showPlaceholder('Embed')
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      Post einbetten
+                    </InlineMenuItem>
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+              <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                    aria-label='Mehr Optionen'
+                  >
+                    <DotsHorizontalIcon className='h-5 w-5' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
+                  <div className='py-1 text-sm'>
+                    {menuActions.map((entry) => {
+                      const Icon = entry.icon
+                      return (
+                        <InlineMenuItem
+                          key={entry.label}
+                          icon={Icon}
+                          onSelect={(event) => {
+                            event?.preventDefault?.()
+                            try {
+                              entry.action()
+                            } catch {}
+                            setOptionsOpen(false)
+                          }}
+                        >
+                          {entry.label}
+                        </InlineMenuItem>
+                      )
+                    })}
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+            </div>
+          </footer>
+          {feedbackMessage ? (
+            <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
+          ) : null}
+          {actionError ? (
+            <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+          ) : null}
+        </>
       ) : null}
     </Wrapper>
   )
