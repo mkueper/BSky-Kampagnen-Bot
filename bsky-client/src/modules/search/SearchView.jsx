@@ -10,24 +10,12 @@ import { useClientConfig } from '../../hooks/useClientConfig'
 const SEARCH_TABS = [
   { id: 'top', label: 'Top' },
   { id: 'latest', label: 'Neueste' },
-  { id: 'people', label: 'Personen' },
-  { id: 'feeds', label: 'Feeds' }
+  { id: 'people', label: 'Personen' }
 ]
 const DEFAULT_ADVANCED_PREFIXES = ['from:', 'mention:', 'mentions:', 'domain:']
 
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
 const RECENT_SEARCH_LIMIT = 8
-
-const buildFeedUrl = (feed) => {
-  if (!feed?.uri) return null
-  const parts = String(feed.uri).split('/')
-  const rkey = parts[parts.length - 1]
-  if (!rkey) return null
-  const did = parts[2]
-  const profileSegment = feed?.creator?.handle || did
-  if (!profileSegment) return null
-  return `https://bsky.app/profile/${profileSegment}/feed/${rkey}`
-}
 
 export default function SearchView () {
   const { selectThreadFromItem: onSelectPost } = useThread()
@@ -309,54 +297,6 @@ export default function SearchView () {
     )
   }, [activeTab, items])
 
-  const feedsContent = useMemo(() => {
-    if (activeTab !== 'feeds') return null
-    return (
-      <ul className='space-y-3'>
-        {items.map((feed) => (
-          <li key={feed.uri || feed.cid}>
-            <Card padding='p-4' className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-              <div className='flex items-start gap-3'>
-                {feed.avatar ? (
-                  <img src={feed.avatar} alt='' className='h-12 w-12 rounded-2xl border border-border object-cover' />
-                ) : (
-                  <div className='h-12 w-12 rounded-2xl border border-border bg-background-subtle' />
-                )}
-                <div className='min-w-0'>
-                  <p className='font-semibold text-foreground truncate'>{feed.displayName || 'Feed'}</p>
-                  {feed.description ? (
-                    <p className='mt-1 text-sm text-foreground-muted line-clamp-3'>{feed.description}</p>
-                  ) : null}
-                  {feed.creator?.handle ? (
-                    <p className='mt-1 text-xs text-foreground-muted truncate'>
-                      von {feed.creator.displayName || feed.creator.handle} · @{feed.creator.handle}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              {(() => {
-                const href = buildFeedUrl(feed)
-                return (
-                  <a
-                    href={href || '#'}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className={`inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold transition ${
-                      href ? 'text-foreground hover:bg-background-subtle' : 'text-foreground-muted cursor-not-allowed opacity-60'
-                    }`}
-                    aria-disabled={!href}
-                  >
-                    Feed öffnen
-                  </a>
-                )
-              })()}
-            </Card>
-          </li>
-        ))}
-      </ul>
-    )
-  }, [activeTab, items])
-
   const recentSearchesContent = useMemo(() => {
     if (!recentSearches.length) {
       return <p className='text-sm text-foreground-muted'>Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.</p>
@@ -399,7 +339,6 @@ export default function SearchView () {
     }
     if (isPostsTab) return postsContent
     if (activeTab === 'people') return peopleContent
-    if (activeTab === 'feeds') return feedsContent
     return null
   }
 
@@ -415,7 +354,7 @@ export default function SearchView () {
             type='search'
             value={draftQuery}
             onChange={(event) => setDraftQuery(event.target.value)}
-            placeholder='Nach Posts, Personen oder Feeds suchen…'
+            placeholder='Nach Posts oder Personen suchen…'
             className='flex-1 bg-transparent py-2 text-sm outline-none'
           />
         </div>
