@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { MagnifyingGlassIcon, PersonIcon, SpeakerOffIcon } from '@radix-ui/react-icons'
 import { InlineMenu, InlineMenuContent, InlineMenuItem, InlineMenuTrigger } from '@bsky-kampagnen-bot/shared-ui'
@@ -223,6 +223,7 @@ export default function RichText ({ text = '', facets, className = '', hashtagCo
 
 function HashtagMenu ({ hashtag, display, onNavigate, context }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
   const normalizedTag = useMemo(() => {
     if (typeof hashtag === 'string' && hashtag.trim()) {
       return hashtag.replace(/^#+/, '')
@@ -273,6 +274,10 @@ function HashtagMenu ({ hashtag, display, onNavigate, context }) {
     setMenuOpen(nextOpen)
   }, [])
 
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
+
   if (!label) {
     return <>{display}</>
   }
@@ -283,36 +288,36 @@ function HashtagMenu ({ hashtag, display, onNavigate, context }) {
 
   return (
     <InlineMenu open={menuOpen} onOpenChange={handleMenuChange}>
-      <Popover.Anchor asChild>
-        <InlineMenuTrigger>
-          <button
-            type='button'
-            onContextMenu={handleContextMenu}
-            onKeyDown={handleKeyDown}
-            className='inline bg-transparent p-0 text-primary underline decoration-primary/40 hover:decoration-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-            title={`Hashtag ${label}`}
-            data-hashtag={normalizedTag}
-          >
-            {label}
-          </button>
-        </InlineMenuTrigger>
-      </Popover.Anchor>
-      <InlineMenuContent align='start' side='top' sideOffset={6}>
-        <InlineMenuItem icon={MagnifyingGlassIcon} onSelect={showPosts}>
-          {queryLabel}
-        </InlineMenuItem>
-        <InlineMenuItem
-          icon={PersonIcon}
-          onSelect={showAuthorPosts}
-          disabled={!authorHandle}
+      <InlineMenuTrigger>
+        <button
+          type='button'
+          onContextMenu={handleContextMenu}
+          onKeyDown={handleKeyDown}
+          className='inline bg-transparent p-0 text-primary underline decoration-primary/40 hover:decoration-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+          title={`Hashtag ${label}`}
+          data-hashtag={normalizedTag}
         >
-          {authorLabel}
-        </InlineMenuItem>
-        <div className='my-1 h-px bg-border' role='separator' />
-        <InlineMenuItem icon={SpeakerOffIcon} disabled>
-          {muteLabel}
-        </InlineMenuItem>
-      </InlineMenuContent>
+          {label}
+        </button>
+      </InlineMenuTrigger>
+      {hydrated ? (
+        <InlineMenuContent align='start' side='top' sideOffset={6}>
+          <InlineMenuItem icon={MagnifyingGlassIcon} onSelect={showPosts}>
+            {queryLabel}
+          </InlineMenuItem>
+          <InlineMenuItem
+            icon={PersonIcon}
+            onSelect={showAuthorPosts}
+            disabled={!authorHandle}
+          >
+            {authorLabel}
+          </InlineMenuItem>
+          <div className='my-1 h-px bg-border' role='separator' />
+          <InlineMenuItem icon={SpeakerOffIcon} disabled>
+            {muteLabel}
+          </InlineMenuItem>
+        </InlineMenuContent>
+      ) : null}
     </InlineMenu>
   )
 }
