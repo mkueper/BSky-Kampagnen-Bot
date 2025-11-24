@@ -235,8 +235,18 @@ export default function SearchView () {
     }))
   }, [])
 
+  const handleSelectPost = useCallback((selectedItem, fallbackItem) => {
+    if (typeof onSelectPost !== 'function') return
+    const candidate = selectedItem && (selectedItem.uri || selectedItem?.raw?.post?.uri)
+      ? selectedItem
+      : fallbackItem
+    if (!candidate || !(candidate.uri || candidate?.raw?.post?.uri)) return
+    onSelectPost(candidate)
+  }, [onSelectPost])
+
   const postsContent = useMemo(() => {
     if (!isPostsTab) return null
+    const canSelectPosts = typeof onSelectPost === 'function'
     return (
       <ul className='space-y-4'>
         {items.map((item, idx) => (
@@ -246,14 +256,14 @@ export default function SearchView () {
               onReply={onReply}
               onQuote={onQuote}
               onViewMedia={onViewMedia}
-              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
+              onSelect={canSelectPosts ? ((selected) => handleSelectPost(selected, item)) : undefined}
               onEngagementChange={handleEngagementChange}
             />
           </li>
         ))}
       </ul>
     )
-  }, [handleEngagementChange, isPostsTab, items, onReply, onQuote, onSelectPost, onViewMedia])
+  }, [handleEngagementChange, handleSelectPost, isPostsTab, items, onReply, onQuote, onSelectPost, onViewMedia])
 
   const peopleContent = useMemo(() => {
     if (activeTab !== 'people') return null

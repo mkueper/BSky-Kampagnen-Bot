@@ -3,7 +3,6 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-- Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
 - Skeet-/Thread-Planung: Vorschaukarten an Live-Timeline anlehnen (Autorzeile, Media-Preview) und Outline für lange Threads bereitstellen.
 - Thread-Lesefenster (Modal) ohne Reaktionen, Inhalte über `app.bsky.feed.getPostThread` laden, Text/Medien `user-select: none`.
 - Weitere Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und bei Bedarf in `app-customization.json` aufnehmen.
@@ -13,7 +12,7 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 - _(derzeit nichts)_
 
 ## Review
-- _(derzeit nichts)_
+- Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
 
 ## Done
 - Hashtags im RichText sind klickbar und öffnen ein Kontextmenü mit Aktionen (Posts anzeigen, Posts des Nutzers, Stumm-Option als Platzhalter).
