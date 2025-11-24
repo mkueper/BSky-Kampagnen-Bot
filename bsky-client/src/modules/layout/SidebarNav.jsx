@@ -10,6 +10,7 @@ import {
   GearIcon,
   ViewHorizontalIcon,
   PlusIcon,
+  SlashIcon
 } from '@radix-ui/react-icons';
 
 export const NAV_ITEMS = [
@@ -20,6 +21,7 @@ export const NAV_ITEMS = [
   { id: 'feeds', label: 'Feeds', icon: LayersIcon },
   { id: 'lists', label: 'Listen', icon: ListBulletIcon },
   { id: 'saved', label: 'Gespeichert', icon: BookmarkIcon },
+  { id: 'blocks', label: 'Blockliste', icon: SlashIcon },
   { id: 'profile', label: 'Profil', icon: PersonIcon },
   { id: 'settings', label: 'Einstellungen', icon: GearIcon },
   { id: 'dashboard', label: 'Dashboard', icon: ViewHorizontalIcon },

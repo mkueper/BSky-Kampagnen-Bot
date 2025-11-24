@@ -4,7 +4,6 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 
 ## Backlog
 - Skeet-/Thread-Planung: Vorschaukarten an Live-Timeline anlehnen (Autorzeile, Media-Preview) und Outline für lange Threads bereitstellen.
-- Zusätzliches NAV-Menü um Accounts anzuzeigen, von denen man geblockt ist und die man selbst blockt.
 
 ## In Progress
 - _(derzeit nichts)_
@@ -23,3 +22,4 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 - Thread-Lesefenster (Modal) ohne Reaktionen, Inhalte über `app.bsky.feed.getPostThread` laden, Text/Medien `user-select: none` (inkl. späterer Branch-Spalte vorbereitet).
 - Prefixe können nicht nur am Anfang einer Suche stehen. Im Ergebnis nur die Tabs "Top" und "Neuste" anzeigen.
 - Weitere Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und bei Bedarf in `app-customization.json` aufnehmen.
+- Zusätzliches NAV-Menü, um eigene Blocklisten anzuzeigen (Liste der Accounts, die du blockst). Gegenblock-Infos bleiben vorerst offen.

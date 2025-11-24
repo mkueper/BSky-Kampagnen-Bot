@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import { useThemeMode } from '../../hooks/useThemeMode'
 import { useLayout } from '../../context/LayoutContext'
 
-const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'dashboard']
+const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'blocks', 'dashboard']
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
 const THEME_SEQUENCE = ['light', 'dim', 'dark', 'midnight']

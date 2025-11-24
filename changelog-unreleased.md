@@ -6,6 +6,7 @@
 - **Improvement:** Die Bluesky-Timeline-Logs enthalten bei 500ern nun Status, Cursor und Response-Ausschnitte – die Suche nach „Lexicon not found“ liefert statt eines generischen 500 jetzt ein klarer 501 mit Hinweis, falls `app.bsky.feed.searchFeedGenerators` nicht verfügbar ist.
 - **Feature:** Logging-Setup versteht Legacy-Targets wie `LOG_TARGET=logfile`, unterstützt Dateirotation via `LOG_MAX_BYTES` (max. 100 MB) und `LOG_MAX_BACKUPS` und deckt das Verhalten durch neue Vitest-Cases ab.
 - **Feature:** `config/app-customization.json` bündelt erlaubte Medien-Domains für die CSP sowie Advanced-Search-Prefixes; der Server liest die Datei (bzw. `APP_CUSTOMIZATION_PATH`) und liefert die Werte über `/api/client-config` an das Dashboard.
+- **Feature:** Neuer Proxy-Endpoint `GET /api/bsky/blocks` ruft `app.bsky.graph.getBlocks` auf und liefert eine sanitisierte Liste deiner geblockten Accounts (inkl. Cursor) an den Client.
 
 ### Client
 - **Bugfix:** Die Timeline blockt doppelte Keys beim Nachladen; Cursor-Wechsel beim Tab-Switch verhindert die zuvor sporadischen 500er nach „Discover → Following“.
@@ -16,6 +17,7 @@
 - **Feature:** Hashtags im RichText öffnen per Linksklick ein Menü mit Aktionen wie „#…-Posts ansehen“; die Treffer erscheinen anschließend in einem eigenen Modal (Tabs „Top/Neueste“), das die bestehenden Timeline-Komponenten inkl. Reply/Quote/Media-Lightbox nutzt.
 - **Change:** Der Feed-Tab wurde vorübergehend entfernt, bis Bluesky eine offizielle Feed-Such-API anbietet. So vermeiden wir die bisherigen Fehlermeldungen beim Abruf.
 - **Feature:** Das Thread-Lesefenster läuft jetzt als globales Modal – Timeline/Mitteilungen bleiben sichtbar, Beiträge erscheinen autorenrein ohne Reaktionsleisten und eine rechte Reservespalte bereitet die spätere Branch-Visualisierung vor (`showActions=false` in `SkeetItem`).
+- **Feature:** Neues NAV-Ziel „Blockliste“ zeigt direkt im Client alle Accounts an, die du blockiert hast, inklusive Profil-Link und Paginierung über den neuen Backend-Endpoint.
 
 ## 2025-11-23
 

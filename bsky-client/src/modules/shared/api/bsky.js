@@ -314,6 +314,18 @@ export async function fetchThread(uri) {
   return requestJson(`/api/bsky/thread?${params.toString()}`);
 }
 
+export async function fetchBlocks({ cursor, limit } = {}) {
+  const params = createSearchParams()
+  if (cursor) params.set('cursor', cursor)
+  if (typeof limit === 'number') params.set('limit', String(limit))
+  const query = params.toString()
+  const data = await requestJson(`/api/bsky/blocks${query ? `?${query}` : ''}`)
+  return {
+    blocks: Array.isArray(data?.blocks) ? data.blocks : [],
+    cursor: data?.cursor || null
+  }
+}
+
 export async function likePost({ uri, cid }) {
   return requestJson('/api/bsky/like', {
     method: 'POST',

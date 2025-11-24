@@ -57,6 +57,7 @@ router.delete("/bsky/bookmark", bskyActionsController.unbookmark);
 
 // Bluesky utility
 router.get("/bsky/timeline", bskyController.getTimeline);
+router.get("/bsky/blocks", bskyController.getBlocks);
 router.get("/bsky/reactions", bskyController.getReactions);
 router.get("/bsky/thread", bskyController.getThread);
 router.get("/bsky/notifications", bskyController.getNotifications);

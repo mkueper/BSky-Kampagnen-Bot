@@ -242,6 +242,16 @@ async function getNotifications ({ limit = 30, cursor } = {}) {
   return res?.data ?? null;
 }
 
+async function getBlocks ({ limit = 50, cursor } = {}) {
+  await ensureLoggedIn()
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100)
+  const res = await agent.app.bsky.graph.getBlocks({
+    limit: safeLimit,
+    cursor
+  })
+  return res?.data ?? { blocks: [] }
+}
+
 /**
  * Markiert alle Benachrichtigungen als „gesehen“.
  *
@@ -480,6 +490,7 @@ module.exports = {
   getReactions,
   getReplies,
   getNotifications,
+  getBlocks,
   markNotificationsSeen,
   registerPushSubscription,
   unregisterPushSubscription,
