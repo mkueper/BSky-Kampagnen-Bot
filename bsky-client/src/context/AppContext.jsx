@@ -90,6 +90,10 @@ function appReducer(state, action) {
           actor,
           originSection: state.section,
           anchor: action.anchor || null,
+        },
+        hashtagSearch: {
+          ...state.hashtagSearch,
+          open: false
         }
       };
     }
