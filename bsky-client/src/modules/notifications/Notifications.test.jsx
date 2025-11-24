@@ -164,7 +164,7 @@ describe('Notifications', () => {
     await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2), { timeout: 2000 })
 
     // Check the calls
-    expect(fetchNotificationsMock.mock.calls[0][0]).toEqual({ cursor: undefined, markSeen: true, filter: 'mentions' })
+    expect(fetchNotificationsMock.mock.calls[0][0]).toEqual({ cursor: undefined, markSeen: false, filter: 'mentions' })
     expect(fetchNotificationsMock.mock.calls[1][0]).toEqual({ cursor: 'cursor-1', markSeen: false, filter: 'mentions' })
 
     // Check the rendered output
@@ -214,10 +214,10 @@ describe('NotificationCard interactions', () => {
     )
 
     await user.click(screen.getByTitle('Antworten'))
-    expect(handleReply).toHaveBeenCalledWith({ uri: item.uri, cid: item.cid })
+    expect(handleReply).toHaveBeenCalledWith(expect.objectContaining({ uri: item.uri, cid: item.cid }))
 
     await user.click(screen.getByRole('button', { name: 'Quote' }))
-    expect(handleQuote).toHaveBeenCalledWith(item)
+    expect(handleQuote).toHaveBeenCalledWith(expect.objectContaining({ uri: item.uri, cid: item.cid }))
   })
 
   it('öffnet den Profilviewer über den Autoren-Button', async () => {

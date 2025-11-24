@@ -6,13 +6,16 @@
 - **Improvement:** Die Bluesky-Timeline-Logs enthalten bei 500ern nun Status, Cursor und Response-Ausschnitte – die Suche nach „Lexicon not found“ liefert statt eines generischen 500 jetzt ein klarer 501 mit Hinweis, falls `app.bsky.feed.searchFeedGenerators` nicht verfügbar ist.
 - **Feature:** Logging-Setup versteht Legacy-Targets wie `LOG_TARGET=logfile`, unterstützt Dateirotation via `LOG_MAX_BYTES` (max. 100 MB) und `LOG_MAX_BACKUPS` und deckt das Verhalten durch neue Vitest-Cases ab.
 - **Feature:** `config/app-customization.json` bündelt erlaubte Medien-Domains für die CSP sowie Advanced-Search-Prefixes; der Server liest die Datei (bzw. `APP_CUSTOMIZATION_PATH`) und liefert die Werte über `/api/client-config` an das Dashboard.
+- **Feature:** Neuer Proxy `GET /api/bsky/blocks` ruft `app.bsky.graph.getBlocks` auf, normalisiert die Profile (stabile `listEntryId`, Beschreibung, Avatar) und liefert Cursor/Pagination an den Client.
 
 ### Client
 - **Bugfix:** Die Timeline blockt doppelte Keys beim Nachladen; Cursor-Wechsel beim Tab-Switch verhindert die zuvor sporadischen 500er nach „Discover → Following“.
 - **Improvement:** Das Kontextmenü eines Skeets orientiert sich an der offiziellen Bluesky-App („Übersetzen“, „Mehr/Weniger davon anzeigen“, „Thread/Wörter stummschalten“, „Post ausblenden“, „Account stummschalten/blockieren“, „Post melden“).
 - **Improvement:** Die Suche liest die konfigurierbaren Advanced-Prefixes vom Backend; sobald ein solcher Filter (`from:`, `mention:`, `domain:` …) verwendet wird, bleiben nur noch die Tabs „Top“ und „Neueste“ aktiv.
+- **Feature:** Navigationspunkt „Blockliste“ (Sidebar & Mobile) zeigt alle Accounts, die du blockierst; die Karten enthalten Profil-Link und „Mehr laden“-Pagination über den neuen Backend-Proxy.
 - **Feature:** Hashtags im RichText öffnen per Linksklick ein Menü mit Aktionen wie „#…-Posts ansehen“; die Treffer erscheinen anschließend in einem eigenen Modal (Tabs „Top/Neueste“), das die bestehenden Timeline-Komponenten inkl. Reply/Quote/Media-Lightbox nutzt.
 - **Change:** Der Feed-Tab wurde vorübergehend entfernt, bis Bluesky eine offizielle Feed-Such-API anbietet. So vermeiden wir die bisherigen Fehlermeldungen beim Abruf.
+- **Improvement:** Profilansicht zeigt jetzt Relationship-Badges „Blockiert“ und „Blockiert dich“, sobald die Bluesky-API dies meldet – analog zur offiziellen App.
 
 ## 2025-11-23
 

@@ -148,6 +148,24 @@ function mapPostView (post) {
   }
 }
 
+function mapBlockedProfile (entry, context = 'block-list') {
+  if (!entry) return null
+  const subject = entry.subject || entry.profile || entry
+  const did = subject?.did || ''
+  const handle = subject?.handle || ''
+  const listEntryId = createListEntryId(did || handle || crypto.randomUUID(), context)
+  return {
+    did,
+    handle,
+    displayName: subject?.displayName || handle || did,
+    avatar: subject?.avatar || null,
+    description: subject?.description || '',
+    indexedAt: entry.indexedAt || subject?.indexedAt || null,
+    createdAt: subject?.createdAt || null,
+    listEntryId
+  }
+}
+
 function aggregateNotificationEntries (notifications = []) {
   const grouped = []
   const groupMap = new Map()
@@ -389,12 +407,13 @@ function sanitizeExternalPreview (input) {
  * Liefert je nach Tab entweder die persönliche Timeline oder einen offiziellen Feed-Generator.
  */
 async function getTimeline(req, res) {
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
+  const cursor = req.query.cursor || undefined
+  const feedUri = typeof req.query.feedUri === 'string' ? req.query.feedUri.trim() : ''
+  const requestedTab = String(req.query.tab || 'following').toLowerCase()
+  const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
+
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
-    const cursor = req.query.cursor || undefined
-    const feedUri = typeof req.query.feedUri === 'string' ? req.query.feedUri.trim() : ''
-    const requestedTab = String(req.query.tab || 'following').toLowerCase()
-    const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
 
     let data = null
     if (feedUri) {
@@ -533,6 +552,24 @@ async function getNotifications (req, res) {
   } catch (error) {
     log.error('notifications failed', { error: error?.message || String(error) })
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Mitteilungen.' })
+  }
+}
+
+async function getBlocks (req, res) {
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '50', 10) || 50, 1), 100)
+  const cursor = req.query.cursor || undefined
+  try {
+    const data = await bsky.getBlocks({ limit, cursor })
+    const blocks = Array.isArray(data?.blocks)
+      ? data.blocks.map((entry, idx) => mapBlockedProfile(entry, `blocks:${idx}`)).filter(Boolean)
+      : []
+    res.json({
+      blocks,
+      cursor: data?.cursor || null
+    })
+  } catch (error) {
+    log.error('blocks failed', { ...serializeErrorForLog(error), limit, cursor })
+    res.status(500).json({ error: error?.message || 'Fehler beim Laden deiner Blockliste.' })
   }
 }
 
@@ -1168,6 +1205,7 @@ function isPostUri (value) {
 
 module.exports = {
   getTimeline,
+  getBlocks,
   getNotifications,
   getNotificationsUnreadCount,
   getThread,

@@ -22,3 +22,4 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 - Reply-Mitteilungen zeigen Likes/Reposts/Replies inkl. aktueller Viewer-Daten.
 - Konfigurierbare Medien-Domains & Such-Prefixes über `config/app-customization.json`.
 - Such-Prefixes um "to:", "lang:", "since:" und "until:" ergänzt.
+- NAV-Menü „Blockliste“ inkl. Proxy auf `app.bsky.graph.getBlocks`.

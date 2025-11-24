@@ -22,6 +22,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
 - **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
 - **Direkter Bluesky-Client** – Integrierte Timeline mit Composer (Discover/Following u. a.) sowie rudimentäre Reply-Funktion.
+- **Blockliste & Profil-Hinweise** – Über den NAV-Punkt „Blockliste“ siehst du alle Accounts, die du blockierst; Profile zeigen sofort, ob du blockierst bzw. blockiert wirst.
 
 > Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 

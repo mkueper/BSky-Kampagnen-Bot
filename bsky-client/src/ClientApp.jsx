@@ -14,6 +14,7 @@ import { Card } from '@bsky-kampagnen-bot/shared-ui'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
+import BlockListView from './modules/settings/BlockListView.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -220,6 +221,13 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         </div>
       )
     }
+    if (section === 'blocks') {
+      return (
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <p className='text-base font-semibold text-foreground'>Blockliste</p>
+        </div>
+      )
+    }
     return null
   }, [
     section,
@@ -389,6 +397,14 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
         {threadState.active ? (
           <ThreadView />
         ) : null}
+      </div>
+    )
+  }
+
+  if (section === 'blocks') {
+    return (
+      <div className='space-y-6'>
+        <BlockListView />
       </div>
     )
   }

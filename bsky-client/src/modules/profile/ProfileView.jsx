@@ -75,6 +75,7 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
     if (profile.viewer?.following) next.push({ label: 'Von dir gefolgt', tone: 'secondary', hidden: true })
     if (profile.viewer?.muted) next.push({ label: 'Stummgeschaltet', tone: 'muted' })
     if (profile.viewer?.blocking) next.push({ label: 'Blockiert', tone: 'destructive' })
+    if (profile.viewer?.blockedBy) next.push({ label: 'Blockiert dich', tone: 'warning' })
     return next
   }, [profile.viewer])
   const labels = Array.isArray(profile.labels) ? profile.labels : []
@@ -216,9 +217,11 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     badge.tone === 'destructive'
                       ? 'bg-destructive/15 text-destructive'
-                      : badge.tone === 'muted'
-                        ? 'bg-background-subtle text-foreground-muted'
-                        : 'bg-border/70 text-foreground'
+                      : badge.tone === 'warning'
+                        ? 'bg-amber-100 text-amber-800'
+                        : badge.tone === 'muted'
+                          ? 'bg-background-subtle text-foreground-muted'
+                          : 'bg-border/70 text-foreground'
                   }`}
                 >
                   {badge.label}
@@ -354,9 +357,11 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       badge.tone === 'destructive'
                         ? 'bg-destructive/10 text-destructive'
-                        : badge.tone === 'muted'
-                          ? 'bg-background-subtle text-foreground-muted'
-                          : 'bg-border/70 text-foreground'
+                        : badge.tone === 'warning'
+                          ? 'bg-amber-100 text-amber-800'
+                          : badge.tone === 'muted'
+                            ? 'bg-background-subtle text-foreground-muted'
+                            : 'bg-border/70 text-foreground'
                     }`}
                   >
                     {badge.label}
@@ -454,12 +459,21 @@ export default function ProfileView ({
   }, [actor])
 
   // Effekt zum Laden der Feed-Daten für den aktiven Tab
+  const isOwnProfile = useMemo(() => {
+    if (!profile || !me) return false
+    return me.did === profile.did
+  }, [me, profile])
+  const isBlockedBy = Boolean(profile?.viewer?.blockedBy)
+  const isBlocking = Boolean(profile?.viewer?.blocking)
+  const isInteractionBlocked = isBlockedBy || isBlocking
+
   useEffect(() => {
     if (!profile || !profile.did) return
     if (activeTab === 'likes' && !isOwnProfile) return
     const currentFeed = feeds[activeTab]
     if (!currentFeed) return
     if (currentFeed.status !== 'idle') return
+    if (isInteractionBlocked) return
 
     const tabId = activeTab
     const filterMap = {
@@ -520,10 +534,6 @@ export default function ProfileView ({
       })
   }, [profile, activeTab, feeds])
 
-  const isOwnProfile = useMemo(() => {
-    if (!profile || !me) return false
-    return me.did === profile.did
-  }, [me, profile])
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
     { id: 'replies', label: 'Antworten', disabled: false },
@@ -630,7 +640,16 @@ export default function ProfileView ({
           </div>
         </Card>
       </div>
-      {(() => {
+      {isInteractionBlocked ? (
+        <Card padding='p-4' className='border-border bg-background-subtle text-sm text-foreground'>
+          <p className='font-semibold text-foreground'>Beiträge ausgeblendet</p>
+          <p className='mt-1 text-foreground-muted'>
+            {isBlockedBy
+              ? 'Dieser Account blockiert dich. Beiträge, Antworten und Medien werden ausgeblendet.'
+              : 'Du blockierst diesen Account. Beiträge, Antworten und Medien bleiben ausgeblendet, bis du die Blockierung aufhebst.'}
+          </p>
+        </Card>
+      ) : (() => {
         const allowedTabs = new Set(['posts', 'replies', 'media', 'videos'])
         if (isOwnProfile) allowedTabs.add('likes')
         if (!allowedTabs.has(activeTab)) return null
