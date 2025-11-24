@@ -65,3 +65,24 @@ function Example() {
 - Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight).
 - Für themenabhängige Styles bevorzugt CSS-Variablen (`bg-background`, `text-foreground`, …) statt fixer Hex-Werte verwenden.
 - Bitte neue Oberflächen bevorzugt auf diesen Bausteinen aufbauen.
+
+## Pane-Zuordnung
+
+### NAV-Pane (linke Sidebar)
+- Permanente Navigation und Schnellaktionen (Compose, Theme, Feeds). Wird nicht pro View getauscht.
+
+### Content-Pane (Hauptbereich)
+- `timeline`: Home-Feed/Tabs (TimelineHeader)
+- `search`: Globale Suche (SearchView)
+- `notifications`: Mitteilungen inkl. Tabs
+- `settings`, `blocks`, `saved`, etc. – sämtliche Hauptsektionen laufen hier
+- Der Inhalt bleibt im DOM und wird nur bei aktivem Detail-Pane via CSS ausgeblendet.
+
+### Detail-Pane (rechter/unterer Bereich)
+- `thread`: Thread-Lesefenster (zeigt aktuell den kompletten Baum; Unroll-Button steuert den Autoren-View)
+- `profileViewer`: Modalersatz für Profilansichten
+- `hashtagSearch`: Hashtag-Suche inkl. Tabs
+- Weitere darstellungsbezogene Views (z. B. künftige Modals) können hier integriert werden, solange sie dem Pane-Layout folgen.
+
+### Modals (klassisch)
+- Composer, Medien-Dialoge, Bestätigungen – reine Dialoge, keine Pane-Inhalte.

@@ -34,6 +34,9 @@ const initialState = {
   ...feedInitialState,
   threadState: threadInitialState,
   threadViewVariant: 'modal-cards',
+  threadUnroll: {
+    open: false
+  },
   hashtagSearch: {
     open: false,
     label: '',
@@ -97,6 +100,18 @@ function appReducer(state, action) {
           open: false
         }
       };
+    }
+    case 'OPEN_THREAD_UNROLL': {
+      return {
+        ...state,
+        threadUnroll: { open: true }
+      }
+    }
+    case 'CLOSE_THREAD_UNROLL': {
+      return {
+        ...state,
+        threadUnroll: { open: false }
+      }
     }
     case 'SET_FEED_PICKER_STATE': {
         const payload = action.payload || {};

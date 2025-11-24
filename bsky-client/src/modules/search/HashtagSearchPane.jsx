@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Cross2Icon } from '@radix-ui/react-icons'
+import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { searchBsky } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
@@ -153,7 +153,6 @@ export default function HashtagSearchPane () {
               onViewMedia={openMediaPreview}
               onSelect={selectThreadFromItem ? ((selected) => selectThreadFromItem(selected || item)) : undefined}
               onEngagementChange={handleEngagementChange}
-              showThreadButton
             />
           </li>
         ))}
@@ -166,22 +165,24 @@ export default function HashtagSearchPane () {
   return (
     <div className='flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-soft'>
       <header className='sticky top-0 z-10 border-b border-border/70 bg-background/95 px-4 py-3 backdrop-blur'>
-        <div className='flex items-start justify-between gap-3'>
-          <div className='min-w-0'>
-            <p className='text-xs uppercase tracking-wide text-foreground-muted'>Hashtag</p>
-            <h2 className='text-xl font-semibold text-foreground'>{label || query}</h2>
-            {description ? (
-              <p className='text-sm text-foreground-muted'>{description}</p>
-            ) : null}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex items-center gap-3'>
+            <button
+              type='button'
+              className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+              onClick={handleClose}
+              aria-label='Zurück'
+            >
+              <ArrowLeftIcon className='h-4 w-4' />
+            </button>
+            <div className='min-w-0'>
+              <p className='text-xs uppercase tracking-wide text-foreground-muted'>Hashtag</p>
+              <h2 className='text-xl font-semibold text-foreground'>{label || query}</h2>
+              {description ? (
+                <p className='text-sm text-foreground-muted'>{description}</p>
+              ) : null}
+            </div>
           </div>
-          <button
-            type='button'
-            onClick={handleClose}
-            className='rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-            aria-label='Hashtag-Suche schließen'
-          >
-            <Cross2Icon className='h-5 w-5' />
-          </button>
         </div>
         <div className='mt-3 flex gap-3'>
           {HASHTAG_TABS.map((tab) => (

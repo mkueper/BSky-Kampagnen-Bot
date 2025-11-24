@@ -258,7 +258,6 @@ export default function SearchView () {
               onViewMedia={onViewMedia}
               onSelect={canSelectPosts ? ((selected) => handleSelectPost(selected, item)) : undefined}
               onEngagementChange={handleEngagementChange}
-              showThreadButton
             />
           </li>
         ))}

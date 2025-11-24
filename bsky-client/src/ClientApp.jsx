@@ -176,7 +176,14 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 
   const threadActions = threadState.active ? (
     <>
-      <Button variant='secondary' size='pill' disabled={!threadState.isAuthorThread}>Unroll</Button>
+      <Button
+        variant='secondary'
+        size='pill'
+        disabled={!threadState.isAuthorThread}
+        onClick={() => threadState.isAuthorThread ? dispatch({ type: 'OPEN_THREAD_UNROLL' }) : null}
+      >
+        Unroll
+      </Button>
       <Button variant='secondary' size='pill' onClick={() => reloadThread()} disabled={threadState.loading}>
         Aktualisieren
       </Button>

@@ -14,6 +14,8 @@ Du bist Codex im BSky-Kampagnen-Bot. Bitte beachte dauerhaft:
 4. Immer erst nachfragen, bevor die angegebene Aufgabe aus dem Backlog ausgeführt wird.
 5. Aufgabenpflege: Sobald wir mit einer Aufgabe beginnen, wandert sie nach „In Progress“. Erst nach visueller Prüfung und `npm run test` (bzw. passenden Checks) verschieben wir sie nach „Review“; aus „Review“ geht es nach „Done“ oder zurück in die vorherigen Phasen.
 6. Backlog-Pflege: Punkte konsequent zwischen Backlog/In Progress/Review/Done verschieben.
+7. Backlog-Einträge in der Phase „Backlog“ immer nummerieren, damit wir einfacher auf „Aufgabe 2“ usw. verweisen können.
+8. Vor jedem Commit sicherstellen, dass `changelog-unreleased.md` aktualisiert ist.
 
 ## UI & Konsistenz
 1. Neue Menüs über Radix-Popover (`InlineMenu`), damit Timeline/Dashboard identisch funktionieren.

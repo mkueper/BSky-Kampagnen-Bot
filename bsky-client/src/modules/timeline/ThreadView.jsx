@@ -4,6 +4,7 @@ import { useAppState } from '../../context/AppContext'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
+import { buildAuthorTimeline } from './threadUtils'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
@@ -93,12 +94,6 @@ function ThreadNodeList ({
   )
 }
 
-const toTimestamp = (node) => {
-  const created = node?.createdAt || node?.record?.createdAt || node?.raw?.post?.record?.createdAt || node?.raw?.post?.indexedAt
-  const fallback = node?.indexedAt || node?.raw?.post?.indexedAt
-  return Date.parse(created || fallback || '') || 0
-}
-
 export default function ThreadView () {
   const { threadState: state, threadViewVariant } = useAppState()
   const { selectThreadFromItem } = useThread()
@@ -134,27 +129,7 @@ export default function ThreadView () {
     return [parentClones[0]]
   }, [focus, parents])
 
-  const authorTimeline = useMemo(() => {
-    if (!focus) return []
-    const timeline = []
-    const filteredParents = parents.filter((parent) => !threadAuthorDid || parent?.author?.did === threadAuthorDid)
-    for (const parent of filteredParents) {
-      timeline.push(parent)
-    }
-    timeline.push(focus)
-    const collectOwnReplies = (node) => {
-      const replies = Array.isArray(node?.replies) ? node.replies : []
-      const ownReplies = replies
-        .filter((reply) => reply?.author?.did && reply.author.did === threadAuthorDid)
-        .sort((a, b) => toTimestamp(a) - toTimestamp(b))
-      for (const reply of ownReplies) {
-        timeline.push(reply)
-        collectOwnReplies(reply)
-      }
-    }
-    collectOwnReplies(focus)
-    return timeline
-  }, [focus, parents, threadAuthorDid])
+  const authorTimeline = useMemo(() => buildAuthorTimeline(data), [data])
 
   const branchCandidates = useMemo(() => {
     if (!focus) return []

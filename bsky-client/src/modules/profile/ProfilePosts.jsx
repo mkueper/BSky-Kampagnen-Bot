@@ -218,7 +218,6 @@ export default function ProfilePosts ({
                 onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
                 onViewMedia={onViewMedia}
                 onEngagementChange={handleEngagementChange}
-                showThreadButton
               />
             </li>
           )

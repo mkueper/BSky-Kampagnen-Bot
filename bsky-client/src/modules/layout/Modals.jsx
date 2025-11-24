@@ -6,6 +6,7 @@ import { useFeedPicker } from '../../hooks/useFeedPicker';
 import { Button, MediaLightbox, Card } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
+import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard } = useAppState();
@@ -92,6 +93,7 @@ export function Modals() {
           onReorder={reorderPinnedFeeds}
         />
       ) : null}
+      <AuthorThreadUnrollModal />
 
     </>
   );

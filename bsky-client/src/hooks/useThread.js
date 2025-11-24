@@ -138,6 +138,7 @@ export function useThread() {
       type: 'SET_THREAD_STATE',
       payload: { active: false, loading: false, error: '', data: null, uri: null, viewMode: 'full', isAuthorThread: false, rootAuthorDid: null, focusAuthorDid: null }
     });
+    dispatch({ type: 'CLOSE_THREAD_UNROLL' });
     const el = getScrollContainer();
     if (el) el.scrollTop = threadScrollPosRef.current || 0;
   }, [dispatch, getScrollContainer]);

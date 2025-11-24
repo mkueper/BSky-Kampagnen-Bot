@@ -144,7 +144,6 @@ export default function SavedFeed ({ isActive = true }) {
             onSelect={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
             onViewMedia={onViewMedia}
             onEngagementChange={handleEngagementChange}
-            showThreadButton
           />
         </li>
       ))}

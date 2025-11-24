@@ -19,8 +19,7 @@ import {
   ScissorsIcon,
   TriangleRightIcon,
   BookmarkIcon,
-  BookmarkFilledIcon,
-  CommitIcon
+  BookmarkFilledIcon
 } from '@radix-ui/react-icons'
 import { useLayout } from '../../context/LayoutContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
@@ -243,9 +242,8 @@ function buildShareUrl (item) {
   }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, showThreadButton = false }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
-  const postRecord = item?.raw?.post?.record || item?.raw?.item?.record || item?.record || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
   const images = media.images
@@ -270,8 +268,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }, [external])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
-  const replyInfo = postRecord?.reply || null
-  const threadRootUri = replyInfo?.root?.uri || null
   const replyCountStat = Number(
     item?.stats?.replyCount ??
     item?.raw?.post?.replyCount ??
@@ -407,7 +403,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
   const actorIdentifier = author?.did || author?.handle || ''
   const shareUrl = useMemo(() => buildShareUrl(item), [item])
-  const showThreadTrigger = showThreadButton && typeof onSelect === 'function' && (Boolean(threadRootUri) || replyCountStat > 0)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -853,20 +848,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               <span className='tabular-nums'>{likeCount}</span>
         </button>
         <div className='relative flex items-center gap-1 sm:ml-auto'>
-          {showThreadTrigger ? (
-            <button
-              type='button'
-              className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition'
-              title='Thread anzeigen'
-              onClick={() => {
-                if (typeof onSelect === 'function') {
-                  onSelect(item)
-                }
-              }}
-            >
-              <CommitIcon className='h-4 w-4' />
-            </button>
-          ) : null}
           <button
             type='button'
             className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}

@@ -188,16 +188,15 @@ export default function Timeline ({ renderMode, isActive = true }) {
     <ul className='space-y-3' data-component='BskyTimeline' data-tab={tab}>
       {items.map((it, idx) => (
         <li key={it.listEntryId || it.uri || it.cid || `timeline-${idx}`}>
-          <SkeetItem
-            item={it}
-            variant={variant}
-            onReply={onReply}
-            onQuote={onQuote}
-            onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
-            onViewMedia={onViewMedia}
-            onEngagementChange={handleEngagementChange}
-            showThreadButton
-          />
+            <SkeetItem
+              item={it}
+              variant={variant}
+              onReply={onReply}
+              onQuote={onQuote}
+              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
+              onViewMedia={onViewMedia}
+              onEngagementChange={handleEngagementChange}
+            />
         </li>
       ))}
       {loadingMore ? (
