@@ -14,6 +14,18 @@ const SEARCH_TABS = [
 ]
 const DEFAULT_ADVANCED_PREFIXES = ['from:', 'mention:', 'mentions:', 'domain:']
 
+export function detectAdvancedPrefix (text, prefixes = []) {
+  const normalizedText = typeof text === 'string' ? text.toLowerCase() : ''
+  if (!normalizedText) return false
+  return prefixes.some((prefix) => {
+    if (!prefix) return false
+    const normalizedPrefix = prefix.toLowerCase()
+    const escaped = normalizedPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const pattern = new RegExp(`(?:^|\\s)${escaped}`)
+    return pattern.test(normalizedText)
+  })
+}
+
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
 const RECENT_SEARCH_LIMIT = 8
 
@@ -52,15 +64,7 @@ export default function SearchView () {
     [configuredAdvancedPrefixes]
   )
   const lowerDraft = normalizedDraft.toLowerCase()
-  const hasAdvancedFilter = useMemo(() => {
-    if (!lowerDraft) return false
-    return normalizedPrefixes.some((prefix) => {
-      if (!prefix) return false
-      const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const pattern = new RegExp(`(?:^|\\s)${escaped}`)
-      return pattern.test(lowerDraft)
-    })
-  }, [lowerDraft, normalizedPrefixes])
+  const hasAdvancedFilter = useMemo(() => detectAdvancedPrefix(lowerDraft, normalizedPrefixes), [lowerDraft, normalizedPrefixes])
   const availableTabs = useMemo(() => {
     if (!hasAdvancedFilter) return SEARCH_TABS
     return SEARCH_TABS.filter(tab => tab.id === 'top' || tab.id === 'latest')

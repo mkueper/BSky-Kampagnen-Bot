@@ -389,12 +389,13 @@ function sanitizeExternalPreview (input) {
  * Liefert je nach Tab entweder die persönliche Timeline oder einen offiziellen Feed-Generator.
  */
 async function getTimeline(req, res) {
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
+  const cursor = req.query.cursor || undefined
+  const feedUri = typeof req.query.feedUri === 'string' ? req.query.feedUri.trim() : ''
+  const requestedTab = String(req.query.tab || 'following').toLowerCase()
+  const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
+
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
-    const cursor = req.query.cursor || undefined
-    const feedUri = typeof req.query.feedUri === 'string' ? req.query.feedUri.trim() : ''
-    const requestedTab = String(req.query.tab || 'following').toLowerCase()
-    const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
 
     let data = null
     if (feedUri) {
