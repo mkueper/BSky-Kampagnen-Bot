@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { searchBsky } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useAppDispatch, useAppState } from '../../context/AppContext'
+import DetailPaneHeader from '../shared/DetailPaneHeader.jsx'
 
 const HASHTAG_TABS = [
   { id: 'top', label: 'Top' },
@@ -162,60 +162,57 @@ export default function HashtagSearchPane () {
 
   if (!open) return null
 
-  return (
-    <div className='flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-soft'>
-      <header className='sticky top-0 z-10 border-b border-border/70 bg-background/95 px-4 py-3 backdrop-blur'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <div className='flex items-center gap-3'>
-            <button
-              type='button'
-              className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
-              onClick={handleClose}
-              aria-label='Zurück'
-            >
-              <ArrowLeftIcon className='h-4 w-4' />
-            </button>
-            <div className='min-w-0'>
-              <p className='text-xs uppercase tracking-wide text-foreground-muted'>Hashtag</p>
-              <h2 className='text-xl font-semibold text-foreground'>{label || query}</h2>
-              {description ? (
-                <p className='text-sm text-foreground-muted'>{description}</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <div className='mt-3 flex gap-3'>
-          {HASHTAG_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type='button'
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab.id ? 'bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:text-foreground'
-              }`}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </header>
+  const renderTabs = () => (
+    <div className='flex flex-wrap gap-2'>
+      {HASHTAG_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          type='button'
+          onClick={() => setActiveTab(tab.id)}
+          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            activeTab === tab.id ? 'bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:text-foreground'
+          }`}
+          aria-current={activeTab === tab.id ? 'page' : undefined}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
 
-      <div className='flex-1 overflow-y-auto px-4 py-4' ref={scrollContainerRef}>
-        {loading ? (
-          <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
-            Suche läuft…
-          </div>
-        ) : null}
-        {error ? <p className='text-sm text-red-600'>{error}</p> : null}
-        {!loading && !error ? (
-          postsList || <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
-        ) : null}
-        {cursor ? (
-          <div ref={loadMoreTriggerRef} className='py-4 text-center text-xs text-foreground-muted'>
-            {loadingMore ? 'Lade…' : 'Mehr Ergebnisse werden automatisch geladen…'}
-          </div>
-        ) : null}
+  const baseTitle = label || query
+  const headerTitle = baseTitle
+    ? (baseTitle.startsWith('#') ? baseTitle : `#${baseTitle}`)
+    : 'Hashtag'
+
+  return (
+    <div className='flex h-full min-h-[400px] flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-background shadow-soft p-3 sm:p-4'>
+      <DetailPaneHeader
+        eyebrow='Hashtag'
+        title={headerTitle}
+        subtitle={description}
+        onBack={handleClose}
+      >
+        {renderTabs()}
+      </DetailPaneHeader>
+
+      <div className='flex-1 overflow-hidden rounded-[20px] border border-border/60 bg-background-subtle/30'>
+        <div className='h-full overflow-y-auto px-4 py-4' ref={scrollContainerRef}>
+          {loading ? (
+            <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
+              Suche läuft…
+            </div>
+          ) : null}
+          {error ? <p className='text-sm text-red-600'>{error}</p> : null}
+          {!loading && !error ? (
+            postsList || <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
+          ) : null}
+          {cursor ? (
+            <div ref={loadMoreTriggerRef} className='py-4 text-center text-xs text-foreground-muted'>
+              {loadingMore ? 'Lade…' : 'Mehr Ergebnisse werden automatisch geladen…'}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )

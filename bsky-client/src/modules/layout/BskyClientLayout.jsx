@@ -171,6 +171,8 @@ export default function BskyClientLayout ({
   })
   const hasDetailPane = Boolean(detailPane)
   const isPaneExclusive = hasDetailPane && detailPaneActive
+  const showHeaderContent = Boolean(headerContent) && !isPaneExclusive
+  const showTopBlock = Boolean(topBlock) && !isPaneExclusive
   const contentWrapperClassName = clsx(
     hasDetailPane ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8' : '',
     hasDetailPane ? 'mt-0' : ''
@@ -201,7 +203,7 @@ export default function BskyClientLayout ({
         className='min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden'
         data-component='BskyLayoutMain'
       >
-        {headerContent ? (
+        {showHeaderContent ? (
           <header
             className='sticky top-0 z-10 mb-2 rounded-2xl border border-border bg-background-elevated/80 px-2 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
             data-component='BskyTimelineHeader'
@@ -211,7 +213,7 @@ export default function BskyClientLayout ({
           </header>
         ) : null}
 
-        {topBlock ? (
+        {showTopBlock ? (
           <section
             className='space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6'
             data-component='BskyTopBlock'
@@ -253,15 +255,17 @@ export default function BskyClientLayout ({
               style={{ height: mobileNavReservedSpace }}
             />
           ) : null}
-          <ScrollTopButton
-            containerId='bsky-scroll-container'
-            position='bottom-left'
-            variant='primary'
-            forceVisible={scrollTopForceVisible}
-            onActivate={onScrollTopActivate}
-            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
-            horizontalOffset={isMobile ? 12 : 16}
-          />
+          {!isPaneExclusive ? (
+            <ScrollTopButton
+              containerId='bsky-scroll-container'
+              position='bottom-left'
+              variant='primary'
+              forceVisible={scrollTopForceVisible}
+              onActivate={onScrollTopActivate}
+              offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
+              horizontalOffset={isMobile ? 12 : 16}
+            />
+          ) : null}
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (
             <button

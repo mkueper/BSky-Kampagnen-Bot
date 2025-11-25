@@ -379,7 +379,9 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
 
 export default function ProfileView ({
   actor: actorOverride = null,
-  onClose
+  onClose,
+  onHeadlineChange,
+  showHeroBackButton = true
 }) {
   const { profileActor, me } = useAppState()
   const dispatch = useAppDispatch()
@@ -410,6 +412,20 @@ export default function ProfileView ({
       dispatch({ type: 'SET_SECTION', payload: 'home' })
     }
   }, [dispatch, onClose])
+
+  useEffect(() => {
+    if (typeof onHeadlineChange !== 'function') return
+    if (profile) {
+      onHeadlineChange({
+        displayName: profile.displayName || '',
+        handle: profile.handle || '',
+        did: profile.did || '',
+        actor
+      })
+    } else {
+      onHeadlineChange(null)
+    }
+  }, [profile, actor, onHeadlineChange])
 
   // Haupt-Effekt zum Laden des Profils. Wird nur durch den `actor` getriggert.
   useEffect(() => {
@@ -590,7 +606,12 @@ export default function ProfileView ({
       className='mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
     >
       <div className='relative z-10'>
-        <ProfileMeta profile={profile} onBack={handleClose} isOwnProfile={isOwnProfile} tabsStuck={tabsStuck} />
+        <ProfileMeta
+          profile={profile}
+          onBack={showHeroBackButton ? handleClose : null}
+          isOwnProfile={isOwnProfile}
+          tabsStuck={tabsStuck}
+        />
       </div>
       <div ref={tabsSentinelRef} aria-hidden='true' className='h-1 w-full' />
       <div ref={tabsWrapperRef} className='sticky -top-4 z-20 -mt-4'>

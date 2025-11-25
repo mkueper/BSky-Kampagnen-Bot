@@ -1,10 +1,12 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import SkeetItem from './SkeetItem'
-import { useAppState } from '../../context/AppContext'
+import { useAppDispatch, useAppState } from '../../context/AppContext'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { buildAuthorTimeline } from './threadUtils'
+import { Button } from '../shared'
+import DetailPaneHeader from '../shared/DetailPaneHeader.jsx'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
@@ -96,7 +98,8 @@ function ThreadNodeList ({
 
 export default function ThreadView () {
   const { threadState: state, threadViewVariant } = useAppState()
-  const { selectThreadFromItem } = useThread()
+  const dispatch = useAppDispatch()
+  const { selectThreadFromItem, closeThread, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
   const { openReplyComposer, openQuoteComposer } = useComposer()
 
@@ -154,6 +157,50 @@ export default function ThreadView () {
 
   if (!active) return null
 
+  const handleClose = useCallback(() => {
+    closeThread({ force: true })
+  }, [closeThread])
+
+  const handleReload = useCallback(() => {
+    reloadThread()
+  }, [reloadThread])
+
+  const handleUnroll = useCallback(() => {
+    if (!state.isAuthorThread) return
+    dispatch({ type: 'OPEN_THREAD_UNROLL' })
+  }, [dispatch, state.isAuthorThread])
+
+  const formatHandle = (value) => {
+    if (!value) return ''
+    return value.startsWith('@') ? value : `@${value}`
+  }
+
+  const focusAuthorName = focus?.author?.displayName || focus?.author?.handle || ''
+  const focusAuthorHandle = formatHandle(focus?.author?.handle || '')
+  const focusAuthorDid = focus?.author?.did || ''
+  const headerTitle = focusAuthorName ? `Thread von ${focusAuthorName}` : 'Thread-Ansicht'
+  const headerSubtitle = focusAuthorHandle || focusAuthorDid
+  const headerActions = (
+    <>
+      <Button
+        variant='secondary'
+        size='pill'
+        disabled={!state.isAuthorThread}
+        onClick={handleUnroll}
+      >
+        Unroll
+      </Button>
+      <Button
+        variant='secondary'
+        size='pill'
+        onClick={handleReload}
+        disabled={state.loading}
+      >
+        Aktualisieren
+      </Button>
+    </>
+  )
+
   const showBranchPanel = viewMode === 'author' && threadViewVariant === 'planner' && branchCandidates.length > 0
 
   const renderFullThread = () => (
@@ -190,39 +237,48 @@ export default function ThreadView () {
   )
 
   return (
-    <div className='flex h-full min-h-[400px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-soft' data-component='BskyThreadPaneContent'>
-      <div className='flex-1 space-y-4 overflow-y-auto px-4 py-4 select-none'>
-        {error ? (
-          <p className='text-sm text-red-600'>{error}</p>
-        ) : null}
-        {!error && focus ? (
-          viewMode === 'author'
-            ? renderAuthorThread()
-            : renderFullThread()
-        ) : null}
-        {showBranchPanel ? (
-          <section className='mt-6 space-y-3 border-t border-border/60 pt-4'>
-            <p className='text-sm font-semibold text-foreground'>Verzweigungen</p>
-            {branchCandidates.map((branch) => (
-              <button
-                key={branch.listEntryId || branch.uri || branch.cid}
-                type='button'
-                className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle'
-                onClick={() => selectThreadFromItem?.(branch)}
-              >
-                <p className='text-sm font-semibold text-foreground'>{branch.author?.displayName || branch.author?.handle || 'Unbekannt'}</p>
-                {branch.author?.handle ? (
-                  <p className='text-xs text-foreground-muted'>@{branch.author.handle}</p>
-                ) : null}
-                {branch.snippet ? (
-                  <p className='mt-2 text-sm text-foreground line-clamp-3'>{branch.snippet}</p>
-                ) : (
-                  <p className='mt-2 text-xs text-foreground-muted'>Kein Text verfügbar.</p>
-                )}
-              </button>
-            ))}
-          </section>
-        ) : null}
+    <div className='flex h-full min-h-[400px] flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-background shadow-soft p-3 sm:p-4' data-component='BskyThreadPaneContent'>
+      <DetailPaneHeader
+        eyebrow='Thread'
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        onBack={handleClose}
+        actions={headerActions}
+      />
+      <div className='flex-1 overflow-hidden rounded-[20px] border border-border/60 bg-background-subtle/30'>
+        <div className='h-full space-y-4 overflow-y-auto px-4 py-4 select-none'>
+          {error ? (
+            <p className='text-sm text-red-600'>{error}</p>
+          ) : null}
+          {!error && focus ? (
+            viewMode === 'author'
+              ? renderAuthorThread()
+              : renderFullThread()
+          ) : null}
+          {showBranchPanel ? (
+            <section className='mt-6 space-y-3 border-t border-border/60 pt-4'>
+              <p className='text-sm font-semibold text-foreground'>Verzweigungen</p>
+              {branchCandidates.map((branch) => (
+                <button
+                  key={branch.listEntryId || branch.uri || branch.cid}
+                  type='button'
+                  className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle'
+                  onClick={() => selectThreadFromItem?.(branch)}
+                >
+                  <p className='text-sm font-semibold text-foreground'>{branch.author?.displayName || branch.author?.handle || 'Unbekannt'}</p>
+                  {branch.author?.handle ? (
+                    <p className='text-xs text-foreground-muted'>@{branch.author.handle}</p>
+                  ) : null}
+                  {branch.snippet ? (
+                    <p className='mt-2 text-sm text-foreground line-clamp-3'>{branch.snippet}</p>
+                  ) : (
+                    <p className='mt-2 text-xs text-foreground-muted'>Kein Text verfügbar.</p>
+                  )}
+                </button>
+              ))}
+            </section>
+          ) : null}
+        </div>
       </div>
     </div>
   )

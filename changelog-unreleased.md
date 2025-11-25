@@ -10,6 +10,7 @@
 
 ### Client
 - **Bugfix:** Die Timeline blockt doppelte Keys beim Nachladen; Cursor-Wechsel beim Tab-Switch verhindert die zuvor sporadischen 500er nach „Discover → Following“.
+- **Refactor UI:** Detail-Panes (Thread, Profilviewer, Hashtag) nutzen jetzt einen gemeinsamen Sticky-Header inkl. Zurück-Button und Secondary-Actions; der globale Timeline-Header blendet sich automatisch aus, sobald ein Pane aktiv ist.
 - **Improvement:** Das Kontextmenü eines Skeets orientiert sich an der offiziellen Bluesky-App („Übersetzen“, „Mehr/Weniger davon anzeigen“, „Thread/Wörter stummschalten“, „Post ausblenden“, „Account stummschalten/blockieren“, „Post melden“).
 - **Improvement:** Die Suche liest die konfigurierbaren Advanced-Prefixes vom Backend; sobald ein solcher Filter (`from:`, `mention:`, `domain:` …) verwendet wird, bleiben nur noch die Tabs „Top“ und „Neueste“ aktiv.
 - **Improvement:** Suchtreffer öffnen jetzt das Thread-Lesefenster wie in der Timeline; `SearchView.test.jsx` stellt sicher, dass sowohl direkte Treffer als auch Fallbacks zuverlässig das ausgewählte Skeet übernehmen.
