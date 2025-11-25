@@ -1,14 +1,14 @@
 import { Suspense, lazy, useCallback, useState } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
-import DetailPaneHeader from '../shared/DetailPaneHeader.jsx'
+import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 
 const ProfileViewLazy = lazy(async () => {
   const module = await import('./ProfileView')
   return { default: module.ProfileView ?? module.default }
 })
 
-export default function ProfileViewerPane () {
+export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { profileViewer } = useAppState()
   const dispatch = useAppDispatch()
   const actor = profileViewer?.actor || ''
@@ -36,32 +36,30 @@ export default function ProfileViewerPane () {
   }
 
   const titleName = headline.name || formatIdentifier(headline.handle) || formatIdentifier(actor)
-  const headerTitle = titleName ? `Profil von ${titleName}` : 'Profil'
-  const subtitleCandidate = formatIdentifier(headline.handle) || headline.did || formatIdentifier(actor)
-  const showSubtitle = Boolean(subtitleCandidate && subtitleCandidate !== titleName)
+  const headerTitle = titleName || 'Profil'
 
   return (
-    <div className='flex h-full min-h-[400px] flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-background shadow-soft p-3 sm:p-4' data-component='BskyProfilePane'>
-      <DetailPaneHeader
-        eyebrow='Profil'
-        title={headerTitle}
-        subtitle={showSubtitle ? subtitleCandidate : ''}
-        onBack={handleClose}
-      />
-      <div className='flex-1 overflow-hidden rounded-[20px] border border-border/60 bg-background-subtle/30'>
-        <Suspense fallback={
-          <div className='flex h-full w-full items-center justify-center p-4'>
-            <ProfileMetaSkeleton />
-          </div>
-        }>
-          <ProfileViewLazy
-            actor={actor}
-            onClose={handleClose}
-            onHeadlineChange={handleHeadlineChange}
-            showHeroBackButton={false}
-          />
-        </Suspense>
-      </div>
-    </div>
+    <BskyDetailPane
+      header={{
+        title: headerTitle,
+        onBack: handleClose
+      }}
+      bodyClassName='overflow-hidden'
+      registerLayoutHeader={registerLayoutHeader}
+      renderHeaderInLayout={renderHeaderInLayout}
+    >
+      <Suspense fallback={
+        <div className='flex h-full w-full items-center justify-center p-4'>
+          <ProfileMetaSkeleton />
+        </div>
+      }>
+        <ProfileViewLazy
+          actor={actor}
+          onClose={handleClose}
+          onHeadlineChange={handleHeadlineChange}
+          showHeroBackButton={false}
+        />
+      </Suspense>
+    </BskyDetailPane>
   )
 }

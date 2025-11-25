@@ -5,14 +5,14 @@ import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useAppDispatch, useAppState } from '../../context/AppContext'
-import DetailPaneHeader from '../shared/DetailPaneHeader.jsx'
+import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 
 const HASHTAG_TABS = [
   { id: 'top', label: 'Top' },
   { id: 'latest', label: 'Neueste' }
 ]
 
-export default function HashtagSearchPane () {
+export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { hashtagSearch } = useAppState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem } = useThread()
@@ -145,7 +145,7 @@ export default function HashtagSearchPane () {
     return (
       <ul className='space-y-4'>
         {items.map((item, idx) => (
-          <li key={item.listEntryId || item.uri || item.cid || `hashtag-${idx}`}>
+          <li key={item.listEntryId || `${item.uri || item.cid || 'hashtag'}-${idx}`}>
             <SkeetItem
               item={item}
               onReply={openReplyComposer}
@@ -153,6 +153,7 @@ export default function HashtagSearchPane () {
               onViewMedia={openMediaPreview}
               onSelect={selectThreadFromItem ? ((selected) => selectThreadFromItem(selected || item)) : undefined}
               onEngagementChange={handleEngagementChange}
+              disableHashtagMenu
             />
           </li>
         ))}
@@ -162,58 +163,55 @@ export default function HashtagSearchPane () {
 
   if (!open) return null
 
-  const renderTabs = () => (
-    <div className='flex flex-wrap gap-2'>
-      {HASHTAG_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type='button'
-          onClick={() => setActiveTab(tab.id)}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            activeTab === tab.id ? 'bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:text-foreground'
-          }`}
-          aria-current={activeTab === tab.id ? 'page' : undefined}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  )
-
-  const baseTitle = label || query
-  const headerTitle = baseTitle
-    ? (baseTitle.startsWith('#') ? baseTitle : `#${baseTitle}`)
-    : 'Hashtag'
+  const normalizedLabel = (label || query || '').replace(/^#/, '')
+  const normalizedDescription = description.trim()
+  const isUserScoped = normalizedDescription.startsWith('@')
+  const headerTitle = normalizedLabel
+    ? `#${normalizedLabel} – ${isUserScoped ? 'Posts des Nutzers ansehen' : 'Posts ansehen'}`
+    : 'Hashtags – Posts ansehen'
+  const headerSubtitle = isUserScoped ? normalizedDescription : 'Von allen Nutzern'
 
   return (
-    <div className='flex h-full min-h-[400px] flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-background shadow-soft p-3 sm:p-4'>
-      <DetailPaneHeader
-        eyebrow='Hashtag'
-        title={headerTitle}
-        subtitle={description}
-        onBack={handleClose}
-      >
-        {renderTabs()}
-      </DetailPaneHeader>
-
-      <div className='flex-1 overflow-hidden rounded-[20px] border border-border/60 bg-background-subtle/30'>
-        <div className='h-full overflow-y-auto px-4 py-4' ref={scrollContainerRef}>
-          {loading ? (
-            <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
-              Suche läuft…
-            </div>
-          ) : null}
-          {error ? <p className='text-sm text-red-600'>{error}</p> : null}
-          {!loading && !error ? (
-            postsList || <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
-          ) : null}
-          {cursor ? (
-            <div ref={loadMoreTriggerRef} className='py-4 text-center text-xs text-foreground-muted'>
-              {loadingMore ? 'Lade…' : 'Mehr Ergebnisse werden automatisch geladen…'}
-            </div>
-          ) : null}
+    <BskyDetailPane
+      header={{
+        title: headerTitle,
+        subtitle: headerSubtitle,
+        onBack: handleClose,
+      }}
+      registerLayoutHeader={registerLayoutHeader}
+      renderHeaderInLayout={renderHeaderInLayout}
+    >
+      <div className='h-full overflow-y-auto px-4 py-4 space-y-4' ref={scrollContainerRef}>
+        <div className='flex flex-wrap gap-2'>
+          {HASHTAG_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type='button'
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeTab === tab.id ? 'bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:text-foreground'
+              }`}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+        {loading ? (
+          <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
+            Suche läuft…
+          </div>
+        ) : null}
+        {error ? <p className='text-sm text-red-600'>{error}</p> : null}
+        {!loading && !error ? (
+          postsList || <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
+        ) : null}
+        {cursor ? (
+          <div ref={loadMoreTriggerRef} className='py-4 text-center text-xs text-foreground-muted'>
+            {loadingMore ? 'Lade…' : 'Mehr Ergebnisse werden automatisch geladen…'}
+          </div>
+        ) : null}
       </div>
-    </div>
+    </BskyDetailPane>
   )
 }

@@ -242,7 +242,7 @@ function buildShareUrl (item) {
   }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false }) {
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -522,14 +522,15 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           ) : null}
         </div>
       </header>
-      <p className='mt-3 text-sm text-foreground'>
+      <div className='mt-3 text-sm text-foreground'>
         <RichText
           text={text}
           facets={item?.raw?.post?.record?.facets}
           className='whitespace-pre-wrap break-words'
           hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+          disableHashtagMenu={disableHashtagMenu}
         />
-      </p>
+      </div>
 
       {quoted ? (
         <div

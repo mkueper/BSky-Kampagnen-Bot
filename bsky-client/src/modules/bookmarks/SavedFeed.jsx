@@ -81,26 +81,6 @@ export default function SavedFeed ({ isActive = true }) {
     return () => el.removeEventListener('scroll', onScroll)
   }, [loadMore, isActive])
 
-  if (loading) {
-    return (
-      <div className='space-y-3' data-component='BskySavedFeed' data-state='loading' role='status' aria-live='polite'>
-        <ul className='space-y-3'>
-          <li><SkeetItemSkeleton /></li>
-          <li><SkeetItemSkeleton /></li>
-          <li><SkeetItemSkeleton /></li>
-        </ul>
-      </div>
-    )
-  }
-
-  if (error) {
-    return <p className='text-sm text-red-600'>Fehler: {error}</p>
-  }
-
-  if (items.length === 0) {
-    return <p className='text-sm text-muted-foreground'>Keine gespeicherten Beiträge gefunden.</p>
-  }
-
   const handleEngagementChange = useCallback((targetId, patch = {}) => {
     if (!targetId) return
     setItems((prev) => {
@@ -131,6 +111,26 @@ export default function SavedFeed ({ isActive = true }) {
       return baseList
     })
   }, [])
+
+  if (loading) {
+    return (
+      <div className='space-y-3' data-component='BskySavedFeed' data-state='loading' role='status' aria-live='polite'>
+        <ul className='space-y-3'>
+          <li><SkeetItemSkeleton /></li>
+          <li><SkeetItemSkeleton /></li>
+          <li><SkeetItemSkeleton /></li>
+        </ul>
+      </div>
+    )
+  }
+
+  if (error) {
+    return <p className='text-sm text-red-600'>Fehler: {error}</p>
+  }
+
+  if (items.length === 0) {
+    return <p className='text-sm text-muted-foreground'>Keine gespeicherten Beiträge gefunden.</p>
+  }
 
   return (
     <ul className='space-y-3' data-component='BskySavedFeed'>

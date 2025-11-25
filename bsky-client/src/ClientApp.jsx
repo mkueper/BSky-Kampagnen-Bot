@@ -17,6 +17,8 @@ import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
 import BlockListView from './modules/settings/BlockListView.jsx'
 import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
 import HashtagSearchPane from './modules/search/HashtagSearchPane.jsx'
+import { SearchProvider } from './modules/search/SearchContext.jsx'
+import SearchHeader from './modules/search/SearchHeader.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -190,7 +192,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     </>
   ) : null
 
-  const headerContent = useMemo(() => {
+  const baseHeaderContent = useMemo(() => {
     if (threadState.active) {
       return (
         <ThreadHeader
@@ -239,7 +241,14 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (section === 'blocks') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-base font-semibold text-foreground'>Blockliste</p>
+          <p className='text-base font-semibold text-foreground'>Persönliche Blockliste</p>
+        </div>
+      )
+    }
+    if (section === 'saved') {
+      return (
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <p className='text-base font-semibold text-foreground'>Gespeicherte Beiträge</p>
         </div>
       )
     }
@@ -324,6 +333,35 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     (hashtagSearch?.open && hashtagPane)
   )
 
+  const isSearchSection = section === 'search'
+  if (isSearchSection) {
+    return (
+      <>
+        <SearchProvider>
+          <BskyClientLayout
+            activeSection={section}
+            notificationsUnread={notificationsUnread}
+            onSelectSection={handleSelectSection}
+            onOpenCompose={openComposer}
+            headerContent={<SearchHeader />}
+            topBlock={topBlock}
+            scrollTopForceVisible={scrollTopForceVisible}
+            onScrollTopActivate={handleScrollTopActivate}
+            detailPane={detailPane}
+            detailPaneActive={detailPaneActive}
+          >
+            <div className='space-y-6'>
+              <Suspense fallback={<SectionFallback label='Suche' />}>
+                <SearchViewLazy />
+              </Suspense>
+            </div>
+          </BskyClientLayout>
+        </SearchProvider>
+        <Modals />
+      </>
+    )
+  }
+
   return (
     <>
       <BskyClientLayout
@@ -331,7 +369,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         notificationsUnread={notificationsUnread}
         onSelectSection={handleSelectSection}
         onOpenCompose={openComposer}
-        headerContent={headerContent}
+        headerContent={baseHeaderContent}
         topBlock={topBlock}
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
@@ -363,16 +401,6 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
     )
   }
 
-  if (section === 'search') {
-    return (
-      <div className='space-y-6'>
-        <Suspense fallback={<SectionFallback label='Suche' />}>
-          <SearchViewLazy />
-        </Suspense>
-      </div>
-    )
-  }
-
   if (section === 'notifications') {
     return (
       <div className='space-y-6'>
@@ -395,7 +423,7 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
     return (
       <div className='space-y-6'>
         <Suspense fallback={<SectionFallback label='Profil' />}>
-          <ProfileViewLazy />
+          <ProfileViewLazy showHeroBackButton={false} />
         </Suspense>
       </div>
     )

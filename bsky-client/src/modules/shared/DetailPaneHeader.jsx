@@ -10,25 +10,20 @@ export default function DetailPaneHeader ({
   backLabel = 'Zurück',
   actions = null,
   children = null,
-  className = ''
+  className = '',
+  wrapInCard = true
 }) {
-  return (
-    <header
-      className={clsx(
-        'sticky top-0 z-20 mb-4 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4',
-        className
-      )}
-      data-component='DetailPaneHeader'
-    >
+  const headerInner = (
+    <>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div className='flex min-w-0 flex-1 items-center gap-3'>
           <button
             type='button'
             onClick={onBack}
             aria-label={backLabel}
-            className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background text-foreground transition hover:border-foreground/70'
+            className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
           >
-            <ArrowLeftIcon className='h-5 w-5' />
+            <ArrowLeftIcon className='h-4 w-4' />
           </button>
           <div className='min-w-0 flex-1'>
             {eyebrow ? (
@@ -53,6 +48,26 @@ export default function DetailPaneHeader ({
           {children}
         </div>
       ) : null}
+    </>
+  )
+
+  if (!wrapInCard) {
+    return (
+      <div className={clsx('flex flex-col gap-3', className)}>
+        {headerInner}
+      </div>
+    )
+  }
+
+  return (
+    <header
+      className={clsx(
+        'sticky top-0 z-20 mb-4 rounded-2xl border border-border bg-background-elevated/80 px-3 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4',
+        className
+      )}
+      data-component='DetailPaneHeader'
+    >
+      {headerInner}
     </header>
   )
 }
@@ -65,5 +80,6 @@ DetailPaneHeader.propTypes = {
   backLabel: PropTypes.string,
   actions: PropTypes.node,
   children: PropTypes.node,
-  className: PropTypes.string
+  className: PropTypes.string,
+  wrapInCard: PropTypes.bool
 }

@@ -55,9 +55,6 @@ export default function BlockListView () {
           <p className='text-base font-semibold text-foreground'>Blockliste</p>
           <p className='text-sm text-foreground-muted'>Alle Accounts, die du aktuell blockierst.</p>
         </div>
-        <Button variant='secondary' onClick={handleReload} disabled={loading}>
-          Neu laden
-        </Button>
       </div>
 
       {error ? (

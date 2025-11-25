@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useState } from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
 import { PlusIcon, SunIcon, MoonIcon, ShadowIcon, Half2Icon } from '@radix-ui/react-icons'
@@ -89,6 +89,7 @@ export default function BskyClientLayout ({
 }) {
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
+  const [detailLayoutHeader, setDetailLayoutHeader] = useState(null)
   const {
     currentThemeConfig,
     nextThemeLabel,
@@ -171,7 +172,27 @@ export default function BskyClientLayout ({
   })
   const hasDetailPane = Boolean(detailPane)
   const isPaneExclusive = hasDetailPane && detailPaneActive
-  const showHeaderContent = Boolean(headerContent) && !isPaneExclusive
+
+  useEffect(() => {
+    if (!isPaneExclusive) {
+      setDetailLayoutHeader(null)
+    }
+  }, [isPaneExclusive])
+
+  const registerDetailLayoutHeader = useCallback((node) => {
+    setDetailLayoutHeader(node)
+  }, [])
+
+  const detailPaneNode = useMemo(() => {
+    if (!detailPane || !isValidElement(detailPane)) return detailPane
+    return cloneElement(detailPane, {
+      registerLayoutHeader: registerDetailLayoutHeader,
+      renderHeaderInLayout: isPaneExclusive
+    })
+  }, [detailPane, registerDetailLayoutHeader, isPaneExclusive])
+
+  const effectiveHeaderContent = isPaneExclusive ? detailLayoutHeader : headerContent
+  const showHeaderContent = Boolean(effectiveHeaderContent)
   const showTopBlock = Boolean(topBlock) && !isPaneExclusive
   const contentWrapperClassName = clsx(
     hasDetailPane ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8' : '',
@@ -209,7 +230,7 @@ export default function BskyClientLayout ({
             data-component='BskyTimelineHeader'
             ref={setHeaderRef}
           >
-            {headerContent}
+            {effectiveHeaderContent}
           </header>
         ) : null}
 
@@ -236,7 +257,7 @@ export default function BskyClientLayout ({
             >
               {children}
             </main>
-            {detailPane ? (
+            {detailPaneNode ? (
               <section
                 className={clsx(
                   'mt-0 xl:mt-0',
@@ -245,7 +266,7 @@ export default function BskyClientLayout ({
                 )}
                 data-component='BskyThreadPane'
               >
-                {detailPane}
+                {detailPaneNode}
               </section>
             ) : null}
           </div>

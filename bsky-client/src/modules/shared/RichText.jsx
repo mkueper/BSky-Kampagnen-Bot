@@ -151,8 +151,12 @@ function normalizeSegmentsWithHashtags (segments) {
   })
 }
 
-export default function RichText ({ text = '', facets, className = '', hashtagContext = null }) {
+export default function RichText ({ text = '', facets, className = '', hashtagContext = null, disableHashtagMenu = false }) {
   const dispatch = useAppDispatch()
+  const stopInteraction = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
 
   if (!text) {
     return <span className={className}>{text}</span>
@@ -205,6 +209,19 @@ export default function RichText ({ text = '', facets, className = '', hashtagCo
           )
         }
         if (segment.isHashtag) {
+          if (disableHashtagMenu) {
+            return (
+              <span
+                key={`hashtag-${index}-${segment.text}`}
+                className='text-primary'
+                onClick={stopInteraction}
+                onMouseDown={stopInteraction}
+                onPointerDown={stopInteraction}
+              >
+                {segment.text}
+              </span>
+            )
+          }
           return (
             <HashtagMenu
               key={`hashtag-${index}-${segment.text}`}
@@ -259,14 +276,14 @@ function HashtagMenu ({ hashtag, display, onNavigate, context }) {
 
   const showPosts = useCallback(() => {
     if (!label) return
-    onNavigate({ query: label, label, description: `${label}-Posts ansehen`, tab: 'top' })
+    onNavigate({ query: label, label, description: '', tab: 'top' })
     setMenuOpen(false)
   }, [label, onNavigate])
 
   const showAuthorPosts = useCallback(() => {
     if (!label || !authorHandle) return
     const authorQuery = `from:${authorHandle} ${label}`
-    onNavigate({ query: authorQuery, label, description: `${label}-Posts des Nutzers ansehen`, tab: 'top' })
+    onNavigate({ query: authorQuery, label, description: `@${authorHandle}`, tab: 'top' })
     setMenuOpen(false)
   }, [authorHandle, label, onNavigate])
 

@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import SearchView from './SearchView.jsx'
+import SearchHeader from './SearchHeader.jsx'
+import { SearchProvider } from './SearchContext.jsx'
 
 const { searchBskyMock, selectThreadFromItemMock } = vi.hoisted(() => ({
   searchBskyMock: vi.fn(),
@@ -55,6 +57,13 @@ vi.mock('../../hooks/useClientConfig', () => ({
   useClientConfig: () => ({ clientConfig: null })
 }))
 
+const renderSearchView = () => render(
+  <SearchProvider>
+    <SearchHeader />
+    <SearchView />
+  </SearchProvider>
+)
+
 class IntersectionObserverMock {
   observe () {}
   unobserve () {}
@@ -92,7 +101,7 @@ describe('SearchView', () => {
     })
 
     const user = userEvent.setup()
-    render(<SearchView />)
+    renderSearchView()
 
     await user.type(
       screen.getByPlaceholderText('Nach Posts oder Personen suchen…'),
@@ -122,7 +131,7 @@ describe('SearchView', () => {
       cursor: null
     })
     const user = userEvent.setup()
-    render(<SearchView />)
+    renderSearchView()
 
     await user.type(
       screen.getByPlaceholderText('Nach Posts oder Personen suchen…'),

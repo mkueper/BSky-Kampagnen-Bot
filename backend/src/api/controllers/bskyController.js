@@ -414,13 +414,27 @@ async function getTimeline(req, res) {
   const tabConfig = TIMELINE_TABS[requestedTab] || TIMELINE_TABS.following
 
   try {
-
     let data = null
+    const resolveFeedGenerator = async (uri) => {
+      try {
+        return await bsky.getFeedGenerator(uri, { limit, cursor })
+      } catch (innerError) {
+        log.warn('timeline feed generator failed, fallback to timeline', {
+          tab: requestedTab,
+          feedUri: uri,
+          error: innerError?.message || innerError?.toString()
+        })
+        return null
+      }
+    }
+
     if (feedUri) {
-      data = await bsky.getFeedGenerator(feedUri, { limit, cursor })
+      data = await resolveFeedGenerator(feedUri)
     } else if (tabConfig.type === 'feed' && tabConfig.feedUri) {
-      data = await bsky.getFeedGenerator(tabConfig.feedUri, { limit, cursor })
-    } else {
+      data = await resolveFeedGenerator(tabConfig.feedUri)
+    }
+
+    if (!data) {
       data = await bsky.getTimeline({ limit, cursor })
     }
 
