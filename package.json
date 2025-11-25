@@ -30,7 +30,7 @@
     "build:frontend": "cross-env npm_config_workspaces=true npm run build --workspace dashboard",
     "build:bsky-client": "cross-env npm_config_workspaces=true npm run build --workspace bsky-client",
     "build:shared-ui": "cross-env npm_config_workspaces=true npm run build --workspace packages/shared-ui",
-    "build:all": "npm run build:backend && npm run build:bsky-client && npm run build:frontend && npm run build:shared-ui && npm run build --workspace packages/media-pickers",
+    "build:all": "node scripts/build-all.js",
     "build:electron": "npm run build:frontend && electron-builder -l AppImage",
     "build:electron:win": "npm run build:frontend && electron-builder -w nsis",
     "pack:electron": "npm run build:frontend && electron-builder --dir -l AppImage",
@@ -66,7 +66,7 @@
     "tools:hash-password": "node scripts/hashPassword.js"
   },
   "dependencies": {
-    "@atproto/api": "^0.18.1",
+    "@atproto/api": "^0.18.3",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
@@ -83,23 +83,23 @@
     "undici": "^7.13.0"
   },
   "devDependencies": {
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.0.13",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^39.2.3",
     "electron-builder": "^26.0.12",
-    "eslint": "^9.37.0",
+    "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^6.1.1",
-    "jsdom": "^27.0.0",
-    "nodemon": "^3.1.10",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "jsdom": "^27.0.1",
+    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.46.0",
-    "vitest": "^3.2.4",
-    "wait-on": "^9.0.1"
+    "typescript-eslint": "^8.48.0",
+    "vitest": "^4.0.13",
+    "wait-on": "^9.0.3"
   },
   "private": true,
   "_moduleAliases": {

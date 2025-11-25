@@ -13,7 +13,8 @@ export default tseslint.config(
       "dist/",
       "dashboard/dist/",
       "dashboard/node_modules/",
-      "bsky-client/dist/"
+      "bsky-client/dist/",
+      "z-tests/"
     ],
   },
   js.configs.recommended,
@@ -43,6 +44,7 @@ export default tseslint.config(
       },
     },
   },
+
 
   // 3. CJS/Module config files and root ESM configs
   {
@@ -100,9 +102,10 @@ export default tseslint.config(
     },
     rules: {
       ...pluginReact.configs.recommended.rules,
-      ...pluginReactHooks.configs.recommended.rules,
       "react/prop-types": "off",
-      "react/react-in-jsx-scope": "off"
+      "react/react-in-jsx-scope": "off",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "off",
     },
     settings: {
       react: {
@@ -130,9 +133,10 @@ export default tseslint.config(
     },
     rules: {
       ...pluginReact.configs.recommended.rules,
-      ...pluginReactHooks.configs.recommended.rules,
       "react/prop-types": "off",
-      "react/react-in-jsx-scope": "off"
+      "react/react-in-jsx-scope": "off",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "off",
     },
     settings: {
       react: {

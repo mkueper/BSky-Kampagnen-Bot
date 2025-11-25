@@ -20,15 +20,7 @@ function PublishedSkeetList({
   formatTime,
   getItemRef,
 }) {
-  if (skeets.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Noch keine veröffentlichten Skeets.</p>
-        <p className="mt-2">Sobald Beiträge live sind, erscheinen sie hier mit allen Kennzahlen.</p>
-      </div>
-    );
-  }
-
+  const isEmpty = skeets.length === 0;
   const shouldVirtualize = skeets.length > 25;
   const scrollParentSelector = useCallback(() => {
     if (typeof document === "undefined") return null;
@@ -239,6 +231,15 @@ function PublishedSkeetList({
     },
     [getItemRef, measureRef]
   );
+
+  if (isEmpty) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
+        <p className="font-medium text-foreground">Noch keine veröffentlichten Skeets.</p>
+        <p className="mt-2">Sobald Beiträge live sind, erscheinen sie hier mit allen Kennzahlen.</p>
+      </div>
+    );
+  }
 
   if (!shouldVirtualize || !virtualReady) {
     return renderStaticList();

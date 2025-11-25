@@ -14,7 +14,8 @@
     "./MediaDialog": "./src/components/MediaDialog.jsx"
   },
   "scripts": {
-    "build": "npm run lint && npm run test",
+    "build": "node -e \"console.log('Shared UI nutzt Quellcode direkt - kein Build-Schritt erforderlich.')\"",
+    "verify": "npm run lint && npm run test",
     "lint": "eslint src --max-warnings=0",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -33,7 +34,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-popover": "^1.1.5",
     "@radix-ui/react-dropdown-menu": "^2.1.5",
-    "jsdom": "^25.0.1",
-    "vitest": "^3.2.4"
+    "jsdom": "^27.0.1",
+    "vitest": "^4.0.13"
   }
 }

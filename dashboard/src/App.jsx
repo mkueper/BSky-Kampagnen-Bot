@@ -753,11 +753,9 @@ function DashboardApp ({ session, onLogout }) {
     )
   } else if (activeView === 'bsky-client') {
     content = (
-      <Card padding='p-2'>
-        <Suspense fallback={<p className='p-6 text-sm text-foreground-muted'>Bluesky Client wird geladen…</p>}>
-          <BskyClientAppLazy onNavigateDashboard={() => navigate('overview')} />
-        </Suspense>
-      </Card>
+      <Suspense fallback={null}>
+        <BskyClientAppLazy onNavigateDashboard={() => navigate('overview')} />
+      </Suspense>
     )
   } else if (activeView === 'about') {
     content = (

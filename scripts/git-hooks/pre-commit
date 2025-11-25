@@ -13,5 +13,77 @@ if ! npm run --silent changelog:lint; then
   exit 1
 fi
 
-exit 0
+# Ermittele gestagte Dateien, um gezielt Builds zu triggern
+mapfile -t changed_files < <(git diff --cached --name-only --diff-filter=ACMRT)
 
+if [ "${#changed_files[@]}" -eq 0 ]; then
+  echo "[pre-commit] Keine gestagten Dateien – keine Builds notwendig."
+  exit 0
+fi
+
+needs_backend=0
+needs_dashboard=0
+needs_bsky_client=0
+needs_shared_ui=0
+needs_media_pickers=0
+
+for file in "${changed_files[@]}"; do
+  case "$file" in
+    backend/*)
+      needs_backend=1
+      ;;
+    dashboard/*)
+      needs_dashboard=1
+      ;;
+    bsky-client/*)
+      needs_bsky_client=1
+      ;;
+    packages/shared-ui/*)
+      needs_shared_ui=1
+      ;;
+    packages/media-pickers/*)
+      needs_media_pickers=1
+      ;;
+    package.json|package-lock.json|tsconfig*.json|vitest.config.mjs|eslint.config.mjs|scripts/build-all.js|scripts/git-hooks/pre-commit)
+      # Globale Dateien beeinflussen mehrere Workspaces -> alles bauen
+      needs_backend=1
+      needs_dashboard=1
+      needs_bsky_client=1
+      needs_shared_ui=1
+      needs_media_pickers=1
+      ;;
+  esac
+done
+
+run_step() {
+  local label="$1"
+  shift
+  echo "[pre-commit] Baue ${label} …"
+  if ! "$@"; then
+    echo "[pre-commit] ${label} fehlgeschlagen. Commit abgebrochen."
+    exit 1
+  fi
+}
+
+if [ "$needs_backend" -eq 1 ]; then
+  run_step "Backend" npm run --silent build:backend
+fi
+
+if [ "$needs_bsky_client" -eq 1 ]; then
+  run_step "Bsky-Client" npm run build:bsky-client
+fi
+
+if [ "$needs_dashboard" -eq 1 ]; then
+  run_step "Dashboard" npm run build:frontend
+fi
+
+if [ "$needs_shared_ui" -eq 1 ]; then
+  run_step "Shared UI" npm run build --workspace packages/shared-ui
+fi
+
+if [ "$needs_media_pickers" -eq 1 ]; then
+  run_step "Media-Pickers" npm run build --workspace packages/media-pickers
+fi
+
+echo "[pre-commit] Alle erforderlichen Builds erfolgreich."
+exit 0

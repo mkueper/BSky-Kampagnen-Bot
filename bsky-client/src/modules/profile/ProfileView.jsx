@@ -1,7 +1,15 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { fetchProfile, fetchProfileFeed, fetchProfileLikes } from '../shared/api/bsky'
-import { Card, Button, ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
+import {
+  Card,
+  Button,
+  ScrollTopButton,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem
+} from '@bsky-kampagnen-bot/shared-ui'
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import SkeetItem from '../timeline/SkeetItem.jsx'
@@ -15,7 +23,10 @@ import {
   MagnifyingGlassIcon,
   RocketIcon,
   ListBulletIcon,
-  InfoCircledIcon
+  InfoCircledIcon,
+  SpeakerModerateIcon,
+  CrossCircledIcon,
+  ExclamationTriangleIcon
 } from '@radix-ui/react-icons'
 
 const numberFormatter = new Intl.NumberFormat('de-DE')
@@ -108,7 +119,10 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
     { label: 'Link zum Profil kopieren', icon: Link2Icon, onSelect: copyProfileLink, disabled: !baseProfileUrl },
     { label: 'Posts durchsuchen', icon: MagnifyingGlassIcon, disabled: true },
     { label: 'Zu Startpaketen hinzufügen', icon: RocketIcon, disabled: true },
-    { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true }
+    { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true, dividerAfter: true },
+    { label: 'Account stummschalten', icon: SpeakerModerateIcon, disabled: true },
+    { label: 'Account blockieren', icon: CrossCircledIcon, disabled: true },
+    { label: 'Account melden', icon: ExclamationTriangleIcon, disabled: true }
   ]), [baseProfileUrl, copyProfileLink])
 
   const isFollowing = Boolean(profile.viewer?.following)
@@ -270,34 +284,15 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
 
 function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassName = '', menuItems: customMenuItems }) {
   const [open, setOpen] = useState(false)
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    const handleInteraction = (event) => {
-      // Menü bei Klick ausserhalb oder Escape-Taste schliessen
-      if (
-        (event.type === 'pointerdown' && containerRef.current && !containerRef.current.contains(event.target)) ||
-        (event.type === 'keydown' && event.key === 'Escape')
-      ) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', handleInteraction)
-    document.addEventListener('keydown', handleInteraction)
-    return () => {
-      document.removeEventListener('pointerdown', handleInteraction)
-      document.removeEventListener('keydown', handleInteraction)
-    }
-  }, [])
 
   const defaultMenuItems = useMemo(() => ([
     { label: 'Link zum Profil kopieren', icon: Link2Icon, disabled: true },
-    { label: 'Posts durchsuchen', icon: MagnifyingGlassIcon, disabled: true },
+    { label: 'Posts durchsuchen', icon: MagnifyingGlassIcon, disabled: true, dividerAfter: true },
     { label: 'Zu Startpaketen hinzufügen', icon: RocketIcon, disabled: true },
-    { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true },
-    { label: 'Account stummschalten', disabled: true },
-    { label: 'Account blockieren', disabled: true },
-    { label: 'Account melden', disabled: true }
+    { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true, dividerAfter: true },
+    { label: 'Account stummschalten', icon: SpeakerModerateIcon, disabled: true },
+    { label: 'Account blockieren', icon: CrossCircledIcon, disabled: true },
+    { label: 'Account melden', icon: ExclamationTriangleIcon, disabled: true }
   ]), [])
 
   const menuItems = Array.isArray(customMenuItems) && customMenuItems.length > 0 ? customMenuItems : defaultMenuItems
@@ -316,75 +311,69 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
   }
 
   return (
-    <div ref={containerRef} className='relative'>
-      <button
-        type='button'
-        aria-label='Weitere Aktionen'
-        title='Aktionen'
-        className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-70'}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <DotsHorizontalIcon className='h-4 w-4' />
-      </button>
-      {open ? (
-        <div className='absolute right-0 top-full z-30 mt-2 w-60 rounded-2xl border border-border bg-background shadow-soft'>
-          <div className='py-1'>
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-              <button
-                    key={item.label}
-                    type='button'
-                    disabled={item.disabled}
-                    onClick={() => handleMenuItemClick(item)}
-                    className='flex w-full items-center justify-between px-3 py-2 text-sm text-foreground hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-60'
-                  >
-                    <span className='flex items-center gap-2'>
-                      {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
-                      <span>{item.label}</span>
-                    </span>
-                  </button>
-              )
-            })}
-          </div>
-          {relationBadges.some((badge) => !badge.hidden) ? (
-            <div className='border-t border-border/60'>
-              <p className='px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>Beziehung</p>
-              <div className='flex flex-wrap gap-1 px-3 pb-2'>
-                {relationBadges.filter((badge) => !badge.hidden).map((badge, index) => (
-                  <span
-                    key={`${badge.label}-${index}`}
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      badge.tone === 'destructive'
-                        ? 'bg-destructive/10 text-destructive'
-                        : badge.tone === 'warning'
-                          ? 'bg-amber-100 text-amber-800'
-                          : badge.tone === 'muted'
-                            ? 'bg-background-subtle text-foreground-muted'
-                            : 'bg-border/70 text-foreground'
-                    }`}
-                  >
-                    {badge.label}
-                  </span>
-                ))}
-              </div>
+    <InlineMenu open={open} onOpenChange={setOpen}>
+      <InlineMenuTrigger asChild>
+        <button
+          type='button'
+          aria-label='Weitere Aktionen'
+          title='Aktionen'
+          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-70'}
+        >
+          <DotsHorizontalIcon className='h-4 w-4' />
+        </button>
+      </InlineMenuTrigger>
+      <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
+        <div className='py-1'>
+          {menuItems.map((item, index) => (
+            <div key={`${item.label}-${index}`}>
+              <InlineMenuItem
+                icon={item.icon}
+                disabled={item.disabled}
+                onSelect={() => handleMenuItemClick(item)}
+              >
+                {item.label}
+              </InlineMenuItem>
+              {item.dividerAfter ? <div className='my-1 border-t border-border/60' /> : null}
             </div>
-          ) : null}
-          {labels.length > 0 ? (
-            <div className='border-t border-border/60'>
-              <p className='px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>Labels</p>
-              <div className='max-h-48 overflow-y-auto'>
-                {labels.map((label, index) => (
-                  <div key={`${label?.identifier || label?.val || index}-${index}`} className='px-3 py-1 text-sm text-foreground'>
-                    {label?.val || label?.identifier || 'Label'}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          ))}
         </div>
-      ) : null}
-    </div>
+        {relationBadges.some((badge) => !badge.hidden) ? (
+          <div className='border-t border-border/60'>
+            <p className='px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>Beziehung</p>
+            <div className='flex flex-wrap gap-1 px-3 pb-2'>
+              {relationBadges.filter((badge) => !badge.hidden).map((badge, index) => (
+                <span
+                  key={`${badge.label}-${index}`}
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    badge.tone === 'destructive'
+                      ? 'bg-destructive/10 text-destructive'
+                      : badge.tone === 'warning'
+                        ? 'bg-amber-100 text-amber-800'
+                        : badge.tone === 'muted'
+                          ? 'bg-background-subtle text-foreground-muted'
+                          : 'bg-border/70 text-foreground'
+                  }`}
+                >
+                  {badge.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {labels.length > 0 ? (
+          <div className='border-t border-border/60'>
+            <p className='px-3 py-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>Labels</p>
+            <div className='max-h-48 overflow-y-auto'>
+              {labels.map((label, index) => (
+                <div key={`${label?.identifier || label?.val || index}-${index}`} className='px-3 py-1 text-sm text-foreground'>
+                  {label?.val || label?.identifier || 'Label'}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </InlineMenuContent>
+    </InlineMenu>
   )
 }
 

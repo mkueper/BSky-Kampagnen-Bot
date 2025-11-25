@@ -33,8 +33,8 @@ Schnelle Referenz zu allen wichtigen CLI-Befehlen. Die Skripte befinden sich in 
 | `npm run build:backend` | Placeholder (Backend benötigt keinen Build). |
 | `npm run build:frontend` | Dashboard-Production-Build (Workspace). |
 | `npm run build:bsky-client` | Bsky-Client-Build (Workspace). |
-| `npm run build:shared-ui` | Lint + Tests für das Shared-UI-Paket (Workspace). |
-| `npm run build:all` | Fasst Backend, Bsky-Client, Dashboard, Shared-UI & Media-Pickers zusammen. |
+| `npm run build:shared-ui` | Platzhalter: gibt nur einen Hinweis aus (Shared UI wird direkt aus `src/` konsumiert). |
+| `npm run build:all` | Fasst Backend, Bsky-Client, Dashboard, Shared-UI & Media-Pickers zusammen und zeigt am Ende eine Erfolgsübersicht. |
 | `npm run build:electron` / `build:electron:win` | Electron-Build (Linux/Windows). |
 | `npm run pack:electron` | Electron im Pack-Modus (dir). |
 | `npm run docker:build` / `docker:bundle` | Docker Compose Build & Bundle-Skript. |

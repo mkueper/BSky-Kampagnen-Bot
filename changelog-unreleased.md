@@ -13,6 +13,7 @@
 - **Improvement:** Das Kontextmenü eines Skeets orientiert sich an der offiziellen Bluesky-App („Übersetzen“, „Mehr/Weniger davon anzeigen“, „Thread/Wörter stummschalten“, „Post ausblenden“, „Account stummschalten/blockieren“, „Post melden“).
 - **Improvement:** Die Suche liest die konfigurierbaren Advanced-Prefixes vom Backend; sobald ein solcher Filter (`from:`, `mention:`, `domain:` …) verwendet wird, bleiben nur noch die Tabs „Top“ und „Neueste“ aktiv.
 - **Improvement:** Suchtreffer öffnen jetzt das Thread-Lesefenster wie in der Timeline; `SearchView.test.jsx` stellt sicher, dass sowohl direkte Treffer als auch Fallbacks zuverlässig das ausgewählte Skeet übernehmen.
+- **Refactor UI:** Das Profilmenü nutzt das gemeinsame Radix-basierte `InlineMenu` aus dem Shared-UI. Alle Aktionen (Link kopieren, Posts durchsuchen, Startpakete/Listen, Account stummschalten/blockieren/melden) erscheinen in einem konsistenten Menü mit Divider.
 - **Feature:** Thread-Ansicht, Profilviewer und Hashtag-Suche laufen jetzt als rechte Content-Panes im `BskyClientLayout` (Header mit Zurück/Aktualisieren statt Modals). So bleibt der restliche Bereich sichtbar, selbst auf kleineren Screens reiht sich das Pane einfach unter dem Hauptinhalt ein.
 - **Feature:** Navigationspunkt „Blockliste“ (Sidebar & Mobile) zeigt alle Accounts, die du blockierst; die Karten enthalten Profil-Link und „Mehr laden“-Pagination über den neuen Backend-Proxy.
 - **Feature:** Hashtags im RichText öffnen per Linksklick ein Menü mit Aktionen wie „#…-Posts ansehen“; die Treffer erscheinen anschließend in einem eigenen Modal (Tabs „Top/Neueste“), das die bestehenden Timeline-Komponenten inkl. Reply/Quote/Media-Lightbox nutzt.
@@ -40,6 +41,12 @@
 
 ### Docs
 - **Refactor UI:** README & `.env.sample` bereinigt (QuickComposer-Variablen gestrichen).
+- **Improvement:** `docs/scripts.md` beschreibt das neue `build:all`-Aggregationsskript samt Zusammenfassungsausgabe.
+
+### Build / Tooling
+- **Refactor:** `npm run build:all` ruft alle Workspace-Builds zentral über `scripts/build-all.js` auf und zeigt eine farbcodierte Zusammenfassung je Schritt.
+- **Improvement:** Der Pre-Commit-Hook führt das Changelog-Lint aus und baut nur jene Workspaces, in denen gestagte Änderungen liegen. Globale Dateien (z. B. `package.json`) triggern automatisch alle Builds.
+- **Bugfix:** Dashboard nutzt wieder Tailwind 3.x inkl. klassischer PostCSS-Konfiguration; die großen Utility-Verluste durch v4 sind damit behoben, und der Bluesky-Client läuft im Dashboard ohne zusätzliches Card-Layout oder Fallback-Text.
 
 ## 2025-11-22
 

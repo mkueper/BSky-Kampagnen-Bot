@@ -119,6 +119,7 @@ function ThreadForm ({
   onSuggestMoveToSkeets
 }) {
   const { config: clientConfig } = useClientConfig()
+  const theme = useTheme()
   const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
   const defaultScheduledAt = useMemo(() => {
     const parts = getDefaultDateParts(timeZone)
@@ -587,7 +588,6 @@ function ThreadForm ({
     await doSubmitThread()
   }
 
-  const theme = useTheme()
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
       <div className='grid gap-6 lg:grid-cols-2'>
