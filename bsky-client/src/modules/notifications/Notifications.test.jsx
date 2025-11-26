@@ -4,12 +4,15 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SWRConfig } from 'swr'
 import Notifications, { NotificationCard } from './Notifications.jsx'
 import { AppProvider } from '../../context/AppContext.jsx'
+import { I18nProvider } from '../../i18n/I18nProvider.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
     wrapper: ({ children }) => (
       <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, revalidateOnFocus: false }}>
-        <AppProvider>{children}</AppProvider>
+        <I18nProvider initialLocale='de'>
+          <AppProvider>{children}</AppProvider>
+        </I18nProvider>
       </SWRConfig>
     ),
     ...options
@@ -196,7 +199,7 @@ describe('NotificationCard interactions', () => {
     const handleSelect = vi.fn()
     const handleMarkRead = vi.fn()
 
-    render(
+    renderWithProviders(
       <NotificationCard
         item={item}
         onSelectItem={handleSelect}
@@ -218,7 +221,7 @@ describe('NotificationCard interactions', () => {
     const handleReply = vi.fn()
     const handleQuote = vi.fn()
 
-    render(
+    renderWithProviders(
       <NotificationCard
         item={item}
         onReply={handleReply}
@@ -238,7 +241,7 @@ describe('NotificationCard interactions', () => {
     const author = { displayName: 'Custom Author', handle: 'custom', did: 'did:custom' }
     const item = createNotification({ id: 'profile-1', author })
 
-    render(<NotificationCard item={item} />)
+    renderWithProviders(<NotificationCard item={item} />)
 
     await user.click(screen.getByRole('button', { name: author.displayName }))
 
@@ -266,7 +269,7 @@ describe('NotificationCard interactions', () => {
     const item = createNotification({ id: 'media-1', subject: subjectWithImage })
     const handleViewMedia = vi.fn()
 
-    render(<NotificationCard item={item} onViewMedia={handleViewMedia} />)
+    renderWithProviders(<NotificationCard item={item} onViewMedia={handleViewMedia} />)
 
     await user.click(screen.getByAltText('Preview Alt'))
 
@@ -298,7 +301,7 @@ describe('NotificationCard interactions', () => {
     const item = createNotification({ id: 'media-video', subject: subjectWithVideo })
     const handleViewMedia = vi.fn()
 
-    render(<NotificationCard item={item} onViewMedia={handleViewMedia} />)
+    renderWithProviders(<NotificationCard item={item} onViewMedia={handleViewMedia} />)
 
     await user.click(screen.getByRole('button', { name: 'Video öffnen' }))
 
@@ -329,7 +332,7 @@ describe('NotificationCard interactions', () => {
     }
     const handleViewMedia = vi.fn()
 
-    render(
+    renderWithProviders(
       <NotificationCard
         item={replyWithImage}
         onViewMedia={handleViewMedia}
@@ -345,7 +348,7 @@ describe('NotificationCard interactions', () => {
 
   it('zeigt System-Hinweise für app.bsky.notification Gründe an', () => {
     const item = createNotification({ id: 'system-1', reason: 'app.bsky.notification.moderation#alert' })
-    render(<NotificationCard item={item} />)
+    renderWithProviders(<NotificationCard item={item} />)
     expect(screen.getByText('System (moderation alert)')).toBeVisible()
     expect(screen.getByText('Systembenachrichtigung von Bluesky.')).toBeVisible()
   })
@@ -358,7 +361,7 @@ describe('NotificationCard interactions', () => {
       ...createNotification({ id: 'reply-error', reason: 'reply', text: 'Reply text' }),
       reason: 'reply'
     }
-    render(<NotificationCard item={item} />)
+    renderWithProviders(<NotificationCard item={item} />)
     expect(screen.getByText('Aktion fehlgeschlagen')).toBeVisible()
   })
 })

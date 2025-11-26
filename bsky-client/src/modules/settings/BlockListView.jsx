@@ -2,12 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import { Button, Card, fetchBlocks } from '../shared'
 import { useAppDispatch } from '../../context/AppContext'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const PAGE_SIZE = 50
 
 export default function BlockListView () {
   const dispatch = useAppDispatch()
   const [reloadTick, setReloadTick] = useState(0)
+  const { t } = useTranslation()
 
   const getBlocksKey = useCallback((pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.cursor) return null
@@ -69,27 +71,27 @@ export default function BlockListView () {
     <div className='space-y-5' data-component='BskyBlockListView'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <p className='text-base font-semibold text-foreground'>Blockliste</p>
-          <p className='text-sm text-foreground-muted'>Alle Accounts, die du aktuell blockierst.</p>
+          <p className='text-base font-semibold text-foreground'>{t('blocks.title', 'Blockliste')}</p>
+          <p className='text-sm text-foreground-muted'>{t('blocks.subtitle', 'Alle Accounts, die du aktuell blockierst.')}</p>
         </div>
       </div>
 
       {error ? (
         <Card padding='p-4' className='border border-red-200 bg-red-50 text-sm text-red-700'>
-          <p className='font-semibold'>Fehler beim Laden deiner Blockliste.</p>
-          <p className='mt-1'>{error?.message || 'Blockliste konnte nicht geladen werden.'}</p>
+          <p className='font-semibold'>{t('blocks.errorTitle', 'Fehler beim Laden deiner Blockliste.')}</p>
+          <p className='mt-1'>{error?.message || t('blocks.errorBody', 'Blockliste konnte nicht geladen werden.')}</p>
           <Button className='mt-3' variant='primary' size='pill' onClick={handleReload}>
-            Erneut versuchen
+            {t('common.actions.retry', 'Erneut versuchen')}
           </Button>
         </Card>
       ) : null}
 
       {isLoadingInitial && !hasBlocks ? (
-        <p className='text-sm text-foreground-muted'>Blockliste wird geladen…</p>
+        <p className='text-sm text-foreground-muted'>{t('blocks.loading', 'Blockliste wird geladen…')}</p>
       ) : null}
 
       {!isLoadingInitial && !isLoading && !error && !hasBlocks ? (
-        <p className='text-sm text-foreground-muted'>Du hast aktuell keine Accounts blockiert.</p>
+        <p className='text-sm text-foreground-muted'>{t('blocks.empty', 'Du hast aktuell keine Accounts blockiert.')}</p>
       ) : null}
 
       <div className='space-y-3'>
@@ -124,7 +126,7 @@ export default function BlockListView () {
       {hasMore ? (
         <div className='flex justify-center pt-2'>
           <Button variant='secondary' onClick={handleLoadMore} disabled={isLoadingMore}>
-            {isLoadingMore ? 'Lädt…' : 'Mehr laden'}
+            {isLoadingMore ? t('blocks.loadingMore', 'Lädt…') : t('blocks.loadMore', 'Mehr laden')}
           </Button>
         </div>
       ) : null}

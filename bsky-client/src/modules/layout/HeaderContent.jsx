@@ -3,8 +3,11 @@ import PropTypes from 'prop-types'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { HorizontalScrollContainer } from './index.js'
 import { Button } from '../shared/index.js'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
-export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title = 'Thread-Ansicht', actions = null }) {
+export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title, actions = null }) {
+  const { t } = useTranslation()
+  const resolvedTitle = title || t('layout.thread.title', 'Thread-Ansicht')
   return (
     <div className='flex flex-wrap items-center justify-between gap-3' data-component='BskyThreadHeader'>
       <div className='flex items-center gap-3'>
@@ -12,11 +15,11 @@ export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title =
           type='button'
           className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
           onClick={onClose}
-          aria-label='Zurueck zur Timeline'
+          aria-label={t('layout.thread.back', 'Zurück zur Timeline')}
         >
           <ArrowLeftIcon className='h-4 w-4' />
         </button>
-        <p className='truncate text-base font-semibold text-foreground'>{title}</p>
+        <p className='truncate text-base font-semibold text-foreground'>{resolvedTitle}</p>
       </div>
       {actions ? (
         <div className='flex flex-wrap items-center gap-2'>
@@ -42,9 +45,11 @@ export function TimelineHeader ({
   pinnedTabs = [],
   feedMenuOpen = false,
   onToggleFeedMenu,
-  onCloseFeedMenu
+  onCloseFeedMenu,
+  isRefreshing = false
 }) {
   const menuRef = useRef(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (!feedMenuOpen) return undefined
@@ -86,20 +91,30 @@ export function TimelineHeader ({
           )
         })}
       </HorizontalScrollContainer>
-      <Button
-        type='button'
-        variant='secondary'
-        size='pill'
-        onClick={() => onToggleFeedMenu?.()}
-        aria-expanded={feedMenuOpen}
-      >
-        Feeds
-      </Button>
+      <div className='flex items-center gap-2'>
+        <span
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition-opacity ${
+            isRefreshing ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-hidden={!isRefreshing}
+        >
+          <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
+        </span>
+        <Button
+          type='button'
+          variant='secondary'
+          size='pill'
+          onClick={() => onToggleFeedMenu?.()}
+          aria-expanded={feedMenuOpen}
+        >
+          {t('layout.timeline.feedButton', 'Feeds')}
+        </Button>
+      </div>
       {feedMenuOpen ? (
         <div className='absolute right-0 top-full z-20 mt-3 w-[min(320px,80vw)] rounded-2xl border border-border bg-background p-3 text-sm shadow-soft'>
-          <p className='font-semibold text-foreground'>Gepinnte Feeds</p>
+          <p className='font-semibold text-foreground'>{t('layout.timeline.pinnedFeeds', 'Gepinnte Feeds')}</p>
           {pinnedTabs.length === 0 ? (
-            <p className='mt-2 text-sm text-foreground-muted'>Noch keine Pins vorhanden.</p>
+            <p className='mt-2 text-sm text-foreground-muted'>{t('layout.timeline.noPins', 'Noch keine Pins vorhanden.')}</p>
           ) : (
             <div className='mt-3 space-y-2'>
               {pinnedTabs.map((tab) => (
@@ -117,7 +132,7 @@ export function TimelineHeader ({
               ))}
             </div>
           )}
-          <p className='mt-3 text-xs text-foreground-muted'>Feed-Manager ueber die Seitenleiste oeffnen.</p>
+          <p className='mt-3 text-xs text-foreground-muted'>{t('layout.timeline.feedManagerHint', 'Feed-Manager über die Seitenleiste öffnen.')}</p>
         </div>
       ) : null}
     </div>
@@ -140,12 +155,14 @@ TimelineHeader.propTypes = {
   })),
   feedMenuOpen: PropTypes.bool,
   onToggleFeedMenu: PropTypes.func,
-  onCloseFeedMenu: PropTypes.func
+  onCloseFeedMenu: PropTypes.func,
+  isRefreshing: PropTypes.bool
 }
 TimelineHeader.defaultProps = {
   tabs: [],
   pinnedTabs: [],
   feedMenuOpen: false,
   onToggleFeedMenu: undefined,
-  onCloseFeedMenu: undefined
+  onCloseFeedMenu: undefined,
+  isRefreshing: false
 }

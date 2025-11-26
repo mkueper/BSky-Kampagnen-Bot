@@ -3,12 +3,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SWRConfig } from 'swr'
 import Timeline from './Timeline.jsx'
 import { AppProvider } from '../../context/AppContext.jsx'
+import { I18nProvider } from '../../i18n/I18nProvider.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
     wrapper: ({ children }) => (
       <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, revalidateOnFocus: false }}>
-        <AppProvider>{children}</AppProvider>
+        <I18nProvider initialLocale='de'>
+          <AppProvider>{children}</AppProvider>
+        </I18nProvider>
       </SWRConfig>
     ),
     ...options

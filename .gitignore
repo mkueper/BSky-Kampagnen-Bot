@@ -25,7 +25,7 @@ threadwriter/src-tauri/gen/
 *.sqlite
 logs/
 false/
-Codex-Regeln.md
+Codex-Vereinbarungen.md
 z-tests/
 Info.txt
 :electron

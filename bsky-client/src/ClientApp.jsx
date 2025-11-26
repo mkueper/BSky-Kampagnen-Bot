@@ -12,7 +12,9 @@ import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
+import { MixerHorizontalIcon } from '@radix-ui/react-icons'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
+import { useTranslation } from './i18n/I18nProvider.jsx'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
 import BlockListView from './modules/settings/BlockListView.jsx'
@@ -88,6 +90,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const previousSectionRef = useRef(section)
@@ -151,8 +154,33 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     []
   )
 
-  const refreshTimeline = useCallback(() => dispatch({ type: 'REFRESH_TIMELINE' }), [dispatch])
+  const scrollTimelineToTop = useCallback(() => {
+    const el = getScrollContainer()
+    if (!el) return
+    el.scrollTop = 0
+    dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
+  }, [getScrollContainer, dispatch])
+
+  const [timelinePaneRefreshing, setTimelinePaneRefreshing] = useState(false)
+  const [shouldScrollAfterRefresh, setShouldScrollAfterRefresh] = useState(false)
+  const [notificationTab, setNotificationTab] = useState('all')
+  const [notificationTabRefreshKey, setNotificationTabRefreshKey] = useState(0)
+  const [notificationPaneRefreshing, setNotificationPaneRefreshing] = useState(false)
+
+  const refreshTimeline = useCallback(() => {
+    setShouldScrollAfterRefresh(true)
+    setTimelinePaneRefreshing(true)
+    dispatch({ type: 'REFRESH_TIMELINE' })
+  }, [dispatch])
   const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
+
+  const handleTimelineRefreshStateChange = useCallback((state) => {
+    setTimelinePaneRefreshing(state)
+    if (!state && shouldScrollAfterRefresh) {
+      scrollTimelineToTop()
+      setShouldScrollAfterRefresh(false)
+    }
+  }, [shouldScrollAfterRefresh, scrollTimelineToTop])
 
   useEffect(() => {
     sectionRef.current = section
@@ -194,24 +222,10 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
     dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: '' })
     dispatch({ type: 'SET_TIMELINE_SOURCE', payload: nextSource })
+    setShouldScrollAfterRefresh(false)
+    scrollTimelineToTop()
     closeFeedMenu()
-  }, [threadState.active, closeThread, timelineSource, refreshTimeline, dispatch, closeFeedMenu])
-
-  const scrollTimelineToTop = useCallback(() => {
-    const el = getScrollContainer()
-    if (!el) return
-    try {
-      el.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch {
-      if (el.scrollTop < 120) {
-        dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
-      }
-      el.scrollTop = 0
-    }
-  }, [getScrollContainer, dispatch])
-
-  const [notificationTab, setNotificationTab] = useState('all')
-  const [notificationTabRefreshKey, setNotificationTabRefreshKey] = useState(0)
+  }, [threadState.active, closeThread, timelineSource, refreshTimeline, dispatch, closeFeedMenu, scrollTimelineToTop])
 
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {
@@ -259,28 +273,49 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
           feedMenuOpen={feedMenuOpen}
           onToggleFeedMenu={toggleFeedMenu}
           onCloseFeedMenu={closeFeedMenu}
+          isRefreshing={timelinePaneRefreshing}
         />
       )
     }
     if (section === 'notifications') {
       return (
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-base font-semibold text-foreground'>Mitteilungen</p>
-          <div className='flex items-center gap-2'>
-            {['all', 'mentions'].map((tab) => (
+        <div className='flex flex-wrap items-center gap-3'>
+          <p className='text-base font-semibold text-foreground'>{t('layout.headers.notifications', 'Mitteilungen')}</p>
+          <div className='flex flex-1 items-center justify-center'>
+            <div className='inline-flex items-center gap-4'>
+              {['all', 'mentions'].map((tab) => (
+                <button
+                  key={tab}
+                  type='button'
+                  onClick={() => handleNotificationTabSelect(tab)}
+                  className={`rounded-full px-5 py-2 text-sm font-medium transition ${
+                    notificationTab === tab
+                      ? 'border border-foreground bg-foreground text-background shadow-soft'
+                      : 'border border-transparent bg-background-subtle text-foreground hover:border-foreground/40'
+                  }`}
+                >
+                  {tab === 'all'
+                    ? t('layout.notifications.tabAll', 'Alle')
+                    : t('layout.notifications.tabMentions', 'Erwähnungen')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className='flex items-center justify-end min-w-[48px]'>
+            {notificationPaneRefreshing ? (
+              <span className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border'>
+                <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
+              </span>
+            ) : (
               <button
-                key={tab}
                 type='button'
-                onClick={() => handleNotificationTabSelect(tab)}
-                className={`rounded-full border px-3 py-1 text-sm ${
-                  notificationTab === tab
-                    ? 'border-foreground bg-foreground text-background'
-                    : 'border-border bg-background text-foreground hover:border-foreground/40'
-                }`}
+                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                title={t('layout.notifications.configure', 'Filter konfigurieren')}
+                aria-label={t('layout.notifications.configure', 'Filter konfigurieren')}
               >
-                {tab === 'all' ? 'Alle' : 'Erwähnungen'}
+                <MixerHorizontalIcon className='h-5 w-5' />
               </button>
-            ))}
+            )}
           </div>
         </div>
       )
@@ -288,14 +323,14 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (section === 'blocks') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-base font-semibold text-foreground'>Persönliche Blockliste</p>
+          <p className='text-base font-semibold text-foreground'>{t('layout.headers.blocks', 'Persönliche Blockliste')}</p>
         </div>
       )
     }
     if (section === 'saved') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-base font-semibold text-foreground'>Gespeicherte Beiträge</p>
+          <p className='text-base font-semibold text-foreground'>{t('layout.headers.saved', 'Gespeicherte Beiträge')}</p>
         </div>
       )
     }
@@ -317,7 +352,10 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     closeThread,
     notificationsUnread,
     notificationTab,
-    handleNotificationTabSelect
+    handleNotificationTabSelect,
+    timelinePaneRefreshing,
+    notificationPaneRefreshing,
+    t
   ])
 
   const topBlock = null
@@ -343,8 +381,14 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       refreshNotifications()
     }
     if (id === 'home') {
-      if (threadState.active) closeThread({ force: true })
-      else if (section === 'home') refreshTimeline()
+      if (threadState.active) {
+        closeThread({ force: true })
+      } else if (section === 'home') {
+        scrollTimelineToTop()
+        refreshTimeline()
+      } else {
+        scrollTimelineToTop()
+      }
       dispatch({ type: 'SET_SECTION', payload: 'home' })
       pushSectionRoute('home')
       return
@@ -428,6 +472,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         <MainContent
           notificationTab={notificationTab}
           notificationTabRefreshKey={notificationTabRefreshKey}
+          onNotificationRefreshStateChange={setNotificationPaneRefreshing}
+          onTimelineRefreshStateChange={handleTimelineRefreshStateChange}
         />
       </BskyClientLayout>
       <Modals />
@@ -435,7 +481,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   )
 }
 
-function MainContent ({ notificationTab, notificationTabRefreshKey }) {
+function MainContent ({ notificationTab, notificationTabRefreshKey, onNotificationRefreshStateChange, onTimelineRefreshStateChange }) {
   const { section } = useAppState()
   const dispatch = useAppDispatch()
 
@@ -445,7 +491,7 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
   if (section === 'home') {
     return (
       <div className='space-y-6'>
-        <Timeline isActive />
+        <Timeline isActive onRefreshStateChange={onTimelineRefreshStateChange} />
       </div>
     )
   }
@@ -454,7 +500,11 @@ function MainContent ({ notificationTab, notificationTabRefreshKey }) {
     return (
       <div className='space-y-6'>
         <Suspense fallback={<NotificationsFallback />}>
-          <NotificationsLazy activeTab={notificationTab} manualRefreshTick={notificationTabRefreshKey} />
+          <NotificationsLazy
+            activeTab={notificationTab}
+            manualRefreshTick={notificationTabRefreshKey}
+            onRefreshStateChange={onNotificationRefreshStateChange}
+          />
         </Suspense>
       </div>
     )

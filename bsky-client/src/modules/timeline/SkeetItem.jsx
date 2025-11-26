@@ -36,6 +36,7 @@ import {
   InlineMenuItem
 } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
 
@@ -243,6 +244,7 @@ function buildShareUrl (item) {
 }
 
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false }) {
+  const { t } = useTranslation()
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -261,12 +263,14 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     return {
       src,
       thumb: external.thumb || src,
-      alt: external.title ? `GIF: ${external.title}` : 'GIF',
+      alt: external.title
+        ? t('skeet.media.gifAltTitle', 'GIF: {title}', { title: external.title })
+        : t('skeet.media.gifAlt', 'GIF'),
       title: external.title || '',
       domain: external.domain,
       originalUrl: external.uri
     }
-  }, [external])
+  }, [external, t])
   const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
   const replyCountStat = Number(
     item?.stats?.replyCount ??
@@ -276,10 +280,12 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     0
   )
   const contextLabel = useMemo(() => extractReasonContext(item), [item])
-  const quotedAuthorLabel = quoted ? (quoted.author?.displayName || quoted.author?.handle || 'Unbekannt') : ''
+  const quotedAuthorLabel = quoted
+    ? (quoted.author?.displayName || quoted.author?.handle || t('skeet.quote.authorUnknown', 'Unbekannt'))
+    : ''
   const quotedAuthorMissing = quoted ? !(quoted.author?.displayName || quoted.author?.handle) : false
   const quotedStatusMessage = quoted && quoted.status && quoted.status !== 'ok'
-    ? (quoted.statusMessage || 'Der Original-Beitrag kann nicht angezeigt werden.')
+    ? t(`skeet.quote.status.${quoted.status}`, quoted.statusMessage || t('skeet.quote.status.unavailable', 'Der Original-Beitrag kann nicht angezeigt werden.'))
     : ''
   const quoteClickable = !quotedStatusMessage && quoted?.uri && typeof onSelect === 'function'
   const { config } = useCardConfig()
@@ -428,9 +434,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }, [optionsOpen])
 
-  const copyToClipboard = async (value, successMessage = 'Kopiert') => {
+  const copyToClipboard = async (value, successMessage = t('skeet.actions.copySuccess', 'Kopiert')) => {
     if (!value) return
-    const fallback = () => window.prompt('Zum Kopieren', value)
+    const fallback = () => window.prompt(t('skeet.actions.copyPrompt', 'Zum Kopieren'), value)
     try {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(value)
@@ -445,32 +451,32 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   }
 
   const showPlaceholder = (label) => {
-    setFeedbackMessage(`${label} ist noch nicht verfügbar.`)
+    setFeedbackMessage(t('skeet.actions.placeholder', '{label} ist noch nicht verfügbar.', { label }))
     window.setTimeout(() => setFeedbackMessage(''), 2400)
   }
 
   const menuActions = useMemo(() => [
     {
-      label: 'Übersetzen',
+      label: t('skeet.actions.translate', 'Übersetzen'),
       icon: MagicWandIcon,
       action: () => {
         const target = encodeURIComponent(text || '')
-        if (!target) { showPlaceholder('Übersetzung'); return }
+        if (!target) { showPlaceholder(t('skeet.actions.translate', 'Übersetzen')); return }
         const lang = (navigator?.language || 'en').split('-')[0] || 'en'
         const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
         window.open(url, '_blank', 'noopener,noreferrer')
       }
     },
-    { label: 'Post-Text kopieren', icon: CopyIcon, action: () => copyToClipboard(String(text || ''), 'Text kopiert') },
-    { label: 'Mehr davon anzeigen', icon: FaceIcon, action: () => showPlaceholder('Mehr davon anzeigen') },
-    { label: 'Weniger davon anzeigen', icon: FaceIcon, action: () => showPlaceholder('Weniger davon anzeigen') },
-    { label: 'Thread stummschalten', icon: SpeakerOffIcon, action: () => showPlaceholder('Thread stummschalten') },
-    { label: 'Wörter und Tags stummschalten', icon: MixerVerticalIcon, action: () => showPlaceholder('Wörter und Tags stummschalten') },
-    { label: 'Post für mich ausblenden', icon: EyeClosedIcon, action: () => showPlaceholder('Post ausblenden') },
-    { label: 'Account stummschalten', icon: SpeakerModerateIcon, action: () => showPlaceholder('Account stummschalten') },
-    { label: 'Account blockieren', icon: ScissorsIcon, action: () => showPlaceholder('Account blockieren') },
-    { label: 'Post melden', icon: ExclamationTriangleIcon, action: () => showPlaceholder('Melden') }
-  ], [text])
+    { label: t('skeet.actions.copyText', 'Post-Text kopieren'), icon: CopyIcon, action: () => copyToClipboard(String(text || ''), t('skeet.actions.copyTextSuccess', 'Text kopiert')) },
+    { label: t('skeet.actions.showMore', 'Mehr davon anzeigen'), icon: FaceIcon, action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')) },
+    { label: t('skeet.actions.showLess', 'Weniger davon anzeigen'), icon: FaceIcon, action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')) },
+    { label: t('skeet.actions.muteThread', 'Thread stummschalten'), icon: SpeakerOffIcon, action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')) },
+    { label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'), icon: MixerVerticalIcon, action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')) },
+    { label: t('skeet.actions.hidePost', 'Post für mich ausblenden'), icon: EyeClosedIcon, action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')) },
+    { label: t('skeet.actions.muteAccount', 'Account stummschalten'), icon: SpeakerModerateIcon, action: () => showPlaceholder(t('skeet.actions.muteAccount', 'Account stummschalten')) },
+    { label: t('skeet.actions.blockAccount', 'Account blockieren'), icon: ScissorsIcon, action: () => showPlaceholder(t('skeet.actions.blockAccount', 'Account blockieren')) },
+    { label: t('skeet.actions.reportPost', 'Post melden'), icon: ExclamationTriangleIcon, action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')) }
+  ], [text, t])
 
   const handleProfileClick = (event) => {
     event.preventDefault()
@@ -564,9 +570,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               )}
               <div className='min-w-0 flex-1'>
                 <p className='truncate text-sm font-semibold text-foreground'>{quotedAuthorLabel}</p>
-                {quotedAuthorMissing ? (
-                  <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
-                ) : null}
+                    {quotedAuthorMissing ? (
+                      <p className='text-xs text-foreground-muted'>{t('skeet.quote.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}</p>
+                    ) : null}
                 {quoted.author?.handle ? (
                   <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
                 ) : null}
@@ -595,7 +601,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               className='group block cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
               onClick={(event) => handleMediaPreview(event, images[0].mediaIndex ?? 0)}
               onKeyDown={(event) => handleMediaKeyDown(event, images[0].mediaIndex ?? 0)}
-              aria-label='Bild vergrößert anzeigen'
+              aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
             >
               <img
                 src={images[0].src}
@@ -625,7 +631,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   className='cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
                   onClick={(event) => handleMediaPreview(event, im.mediaIndex ?? idx)}
                   onKeyDown={(event) => handleMediaKeyDown(event, im.mediaIndex ?? idx)}
-                  aria-label='Bild vergrößert anzeigen'
+                  aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
                 >
                   <img
                     src={im.src}
@@ -671,8 +677,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     handleMediaPreview(event, video.mediaIndex ?? 0)
                   }
                 }}
-                title='Video öffnen'
-                aria-label='Video öffnen'
+                title={t('skeet.media.videoOpen', 'Video öffnen')}
+                aria-label={t('skeet.media.videoOpen', 'Video öffnen')}
               >
                 <div
                   className='relative w-full overflow-hidden rounded-xl'
@@ -687,7 +693,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     />
                   ) : (
                     <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
-                      <span className='text-sm uppercase tracking-wide'>Video</span>
+                      <span className='text-sm uppercase tracking-wide'>{t('skeet.media.videoLabel', 'Video')}</span>
                     </div>
                   )}
                   <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
@@ -720,7 +726,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               >
                 {gifPreview.thumb ? (
                   <div className='relative h-20 w-28 shrink-0'>
-                    <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>GIF</span>
+                    <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
+                      {t('skeet.media.gifBadge', 'GIF')}
+                    </span>
                     <img
                       src={gifPreview.thumb}
                       alt=''
@@ -735,7 +743,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
                   ) : null}
                   <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
-                  <p className='mt-2 text-xs font-semibold text-primary'>Klicken zum Anzeigen</p>
+                  <p className='mt-2 text-xs font-semibold text-primary'>
+                    {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                  </p>
                 </div>
               </button>
               {gifPreview.originalUrl ? (
@@ -805,7 +815,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             <button
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
-              title='Antworten'
+              title={t('skeet.actions.reply', 'Antworten')}
               onClick={() => {
                 if (typeof onReply === 'function') {
                   clearError()
@@ -836,7 +846,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               type='button'
               className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
               style={likeStyle}
-              title='Gefällt mir'
+              title={t('skeet.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
               onClick={handleToggleLike}
@@ -853,7 +863,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             type='button'
             className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
             style={bookmarkStyle}
-            title={isBookmarked ? 'Gespeichert' : 'Merken'}
+            title={isBookmarked ? t('skeet.actions.bookmarkRemove', 'Gespeichert') : t('skeet.actions.bookmarkAdd', 'Merken')}
                 aria-pressed={isBookmarked}
                 disabled={bookmarking}
                 onClick={handleToggleBookmark}
@@ -869,8 +879,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   <button
                     type='button'
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
-                    title='Teilen'
-                    aria-label='Beitrag teilen'
+                    title={t('skeet.actions.share', 'Teilen')}
+                    aria-label={t('skeet.actions.shareAria', 'Beitrag teilen')}
                   >
                     <Share2Icon className='h-4 w-4' />
                   </button>
@@ -881,11 +891,11 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       icon={CopyIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
-                        copyToClipboard(shareUrl, 'Link zum Post kopiert')
+                        copyToClipboard(shareUrl, t('skeet.share.linkCopied', 'Link zum Post kopiert'))
                         setShareMenuOpen(false)
                       }}
                     >
-                      Link zum Post kopieren
+                      {t('skeet.share.copyLink', 'Link zum Post kopieren')}
                     </InlineMenuItem>
                     <InlineMenuItem
                       icon={ExternalLinkIcon}
@@ -896,27 +906,27 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                         setShareMenuOpen(false)
                       }}
                     >
-                      In Kampagnen-Bot öffnen
+                      {t('skeet.share.openInApp', 'In Kampagnen-Bot öffnen')}
                     </InlineMenuItem>
                     <InlineMenuItem
                       icon={Link2Icon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
-                        showPlaceholder('Direktnachricht')
+                        showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
                         setShareMenuOpen(false)
                       }}
                     >
-                      Per Direktnachricht senden
+                      {t('skeet.share.directMessageAction', 'Per Direktnachricht senden')}
                     </InlineMenuItem>
                     <InlineMenuItem
                       icon={CodeIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
-                        showPlaceholder('Embed')
+                        showPlaceholder(t('skeet.share.embed', 'Embed'))
                         setShareMenuOpen(false)
                       }}
                     >
-                      Post einbetten
+                      {t('skeet.share.embedAction', 'Post einbetten')}
                     </InlineMenuItem>
                   </div>
                 </InlineMenuContent>
@@ -926,7 +936,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   <button
                     type='button'
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-                    aria-label='Mehr Optionen'
+                    aria-label={t('skeet.actions.moreOptions', 'Mehr Optionen')}
                   >
                     <DotsHorizontalIcon className='h-5 w-5' />
                   </button>

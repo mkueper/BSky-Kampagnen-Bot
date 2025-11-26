@@ -11,6 +11,7 @@ Du bist Codex im BSky-Kampagnen-Bot. Bitte beachte dauerhaft:
 8. Backlog-Pflege: Punkte konsequent zwischen Backlog/In Progress/Review/Done verschieben.
 9. Backlog-Einträge in der Phase „Backlog“ immer nummerieren, damit wir einfacher auf „Aufgabe 2“ usw. verweisen können.
 10. Vor jedem Commit sicherstellen, dass `changelog-unreleased.md` aktualisiert ist.
+11. Wenn ich „Sichern“ sagen, erstelle bitte standardmäßig einen benannten Snapshot per `git stash create "snapshot …"` (statt Commit-Spam) und nutze diesen zum Zurückrollen.
 
 ## Begrifflichkeiten
 1. **Thread:** vollständiger Post-Baum aus `app.bsky.feed.getPostThread`.

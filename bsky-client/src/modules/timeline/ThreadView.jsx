@@ -7,6 +7,7 @@ import { useComposer } from '../../hooks/useComposer'
 import { buildAuthorTimeline } from './threadUtils'
 import { Button } from '../shared'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
@@ -102,6 +103,7 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
   const { selectThreadFromItem, closeThread, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
   const { openReplyComposer, openQuoteComposer } = useComposer()
+  const { t } = useTranslation()
 
   const { error, data, active, viewMode = 'full' } = state || {}
   const parents = Array.isArray(data?.parents) ? data.parents : []
@@ -178,7 +180,9 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
   const focusAuthorName = focus?.author?.displayName || focus?.author?.handle || ''
   const focusAuthorHandle = formatHandle(focus?.author?.handle || '')
   const focusAuthorDid = focus?.author?.did || '@'
-  const headerTitle = focusAuthorName ? `Thread von ${focusAuthorName}` : 'Thread von'
+  const headerTitle = focusAuthorName
+    ? t('timeline.thread.titleWithName', 'Thread von {name}', { name: focusAuthorName })
+    : t('timeline.thread.titleFallback', 'Thread')
   const headerSubtitle = focusAuthorHandle || focusAuthorDid
   const headerActions = (
     <>
@@ -188,7 +192,7 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
         disabled={!state.isAuthorThread}
         onClick={handleUnroll}
       >
-        Unroll
+        {t('timeline.thread.actions.unroll', 'Unroll')}
       </Button>
       <Button
         variant='secondary'
@@ -196,7 +200,7 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
         onClick={handleReload}
         disabled={state.loading}
       >
-        Aktualisieren
+        {t('timeline.thread.actions.refresh', 'Aktualisieren')}
       </Button>
     </>
   )
@@ -232,7 +236,9 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
         })}
       </div>
     ) : (
-      <p className='text-sm text-foreground-muted'>Keine Beiträge des Autors gefunden.</p>
+      <p className='text-sm text-foreground-muted'>
+        {t('timeline.thread.noAuthorPosts', 'Keine Beiträge des Autors gefunden.')}
+      </p>
     )
   )
 
@@ -259,7 +265,9 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
         ) : null}
         {showBranchPanel ? (
           <section className='mt-6 space-y-3 border-t border-border/60 pt-4'>
-            <p className='text-sm font-semibold text-foreground'>Verzweigungen</p>
+            <p className='text-sm font-semibold text-foreground'>
+              {t('timeline.thread.branches.title', 'Verzweigungen')}
+            </p>
             {branchCandidates.map((branch) => (
               <button
                 key={branch.listEntryId || branch.uri || branch.cid}
@@ -267,14 +275,18 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
                 className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle'
                 onClick={() => selectThreadFromItem?.(branch)}
               >
-                <p className='text-sm font-semibold text-foreground'>{branch.author?.displayName || branch.author?.handle || 'Unbekannt'}</p>
+                <p className='text-sm font-semibold text-foreground'>
+                  {branch.author?.displayName || branch.author?.handle || t('timeline.thread.branches.unknown', 'Unbekannt')}
+                </p>
                 {branch.author?.handle ? (
                   <p className='text-xs text-foreground-muted'>@{branch.author.handle}</p>
                 ) : null}
                 {branch.snippet ? (
                   <p className='mt-2 text-sm text-foreground line-clamp-3'>{branch.snippet}</p>
                 ) : (
-                  <p className='mt-2 text-xs text-foreground-muted'>Kein Text verfügbar.</p>
+                  <p className='mt-2 text-xs text-foreground-muted'>
+                    {t('timeline.thread.branches.noText', 'Kein Text verfügbar.')}
+                  </p>
                 )}
               </button>
             ))}

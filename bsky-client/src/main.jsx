@@ -6,24 +6,27 @@ import { fetcher } from './lib/fetcher'
 import { AppProvider } from './context/AppContext'
 import { ToastProvider } from '@bsky-kampagnen-bot/shared-ui'
 import { HashRouter } from 'react-router-dom'
+import { I18nProvider } from './i18n/I18nProvider.jsx'
 
 const rootEl = document.getElementById('root')
 const root = createRoot(rootEl)
 root.render(
   <React.StrictMode>
     <ToastProvider>
-      <SWRConfig value={{
-        fetcher,
-        dedupingInterval: 1000,
-        focusThrottleInterval: 2000,
-        errorRetryCount: 2
-      }}>
-        <HashRouter>
-          <AppProvider>
-            <ClientApp />
-          </AppProvider>
-        </HashRouter>
-      </SWRConfig>
+      <I18nProvider initialLocale='de'>
+        <SWRConfig value={{
+          fetcher,
+          dedupingInterval: 1000,
+          focusThrottleInterval: 2000,
+          errorRetryCount: 2
+        }}>
+          <HashRouter>
+            <AppProvider>
+              <ClientApp />
+            </AppProvider>
+          </HashRouter>
+        </SWRConfig>
+      </I18nProvider>
     </ToastProvider>
   </React.StrictMode>
 )

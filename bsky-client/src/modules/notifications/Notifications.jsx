@@ -9,6 +9,7 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 
 
@@ -33,79 +34,92 @@ function getNotificationId (entry) {
 
 const REASON_COPY = {
   like: {
-    label: 'Like',
-    description: ({ subjectType = 'Beitrag', additionalCount = 0, reason = 'like' } = {}) => {
+    labelKey: 'notifications.reason.like.label',
+    defaultLabel: 'Like',
+    description: ({ subjectLabel = 'Beitrag', additionalCount = 0, reason = 'like', t }) => {
       const viaRepost = reason === 'like-via-repost'
-      const target = viaRepost ? 'deinen Repost' : `deinen ${subjectType}`
+      const target = viaRepost
+        ? t('notifications.reason.like.targetRepost', 'deinen Repost')
+        : t('notifications.reason.like.targetSubject', 'deinen {subjectType}', { subjectType: subjectLabel })
       if (additionalCount > 0) {
-        return `und ${additionalCount} weitere haben ${target} mit „Gefällt mir“ markiert.`
+        return t('notifications.reason.like.multi', 'und {count} weitere haben {target} mit „Gefällt mir“ markiert.', { count: additionalCount, target })
       }
-      return `gefällt ${target}.`
+      return t('notifications.reason.like.single', 'gefällt {target}.', { target })
     }
   },
   repost: {
-    label: 'Repost',
-    description: ({ subjectType = 'Beitrag', additionalCount = 0, reason = 'repost' } = {}) => {
+    labelKey: 'notifications.reason.repost.label',
+    defaultLabel: 'Repost',
+    description: ({ subjectLabel = 'Beitrag', additionalCount = 0, reason = 'repost', t }) => {
       const viaRepost = reason === 'repost-via-repost'
-      const action = viaRepost ? 'deinen Repost erneut geteilt' : `deinen ${subjectType} erneut geteilt`
+      const action = viaRepost
+        ? t('notifications.reason.repost.actionRepost', 'deinen Repost erneut geteilt')
+        : t('notifications.reason.repost.actionSubject', 'deinen {subjectType} erneut geteilt', { subjectType: subjectLabel })
       if (additionalCount > 0) {
-        return `und ${additionalCount} weitere haben ${action}.`
+        return t('notifications.reason.repost.multi', 'und {count} weitere haben {action}.', { count: additionalCount, action })
       }
-      return `hat ${action}.`
+      return t('notifications.reason.repost.single', 'hat {action}.', { action })
     }
   },
   follow: {
-    label: 'Follow',
-    description: ({ additionalCount = 0 } = {}) => {
+    labelKey: 'notifications.reason.follow.label',
+    defaultLabel: 'Follow',
+    description: ({ additionalCount = 0, t }) => {
       if (additionalCount > 0) {
-        return `und ${additionalCount} weitere folgen dir jetzt.`
+        return t('notifications.reason.follow.multi', 'und {count} weitere folgen dir jetzt.', { count: additionalCount })
       }
-      return 'folgt dir jetzt.'
+      return t('notifications.reason.follow.single', 'folgt dir jetzt.')
     }
   },
   reply: {
-    label: 'Reply',
-    description: () => 'hat auf deinen Beitrag geantwortet.'
+    labelKey: 'notifications.reason.reply.label',
+    defaultLabel: 'Reply',
+    description: ({ subjectLabel = 'Beitrag', t }) => t('notifications.reason.reply.single', 'hat auf deinen {subjectType} geantwortet.', { subjectType: subjectLabel })
   },
   mention: {
-    label: 'Mention',
-    description: () => 'hat dich in einem Beitrag erwähnt.'
+    labelKey: 'notifications.reason.mention.label',
+    defaultLabel: 'Mention',
+    description: ({ subjectLabel = 'Beitrag', t }) => t('notifications.reason.mention.single', 'hat dich in einem {subjectType} erwähnt.', { subjectType: subjectLabel })
   },
   quote: {
-    label: 'Quote',
-    description: ({ subjectType = 'Beitrag', additionalCount = 0 } = {}) => {
+    labelKey: 'notifications.reason.quote.label',
+    defaultLabel: 'Quote',
+    description: ({ subjectLabel = 'Beitrag', additionalCount = 0, t }) => {
       if (additionalCount > 0) {
-        return `und ${additionalCount} weitere haben deinen ${subjectType} zitiert.`
+        return t('notifications.reason.quote.multi', 'und {count} weitere haben deinen {subjectType} zitiert.', { count: additionalCount, subjectType: subjectLabel })
       }
-      return `hat deinen ${subjectType} zitiert.`
+      return t('notifications.reason.quote.single', 'hat deinen {subjectType} zitiert.', { subjectType: subjectLabel })
     }
   },
   'subscribed-post': {
-    label: 'Subscribed Post',
-    description: () => 'hat einen abonnierten Beitrag veröffentlicht.'
+    labelKey: 'notifications.reason.subscribedPost.label',
+    defaultLabel: 'Subscribed Post',
+    description: ({ t }) => t('notifications.reason.subscribedPost.single', 'hat einen abonnierten Beitrag veröffentlicht.')
   }
 }
 
 REASON_COPY['like-via-repost'] = {
   ...REASON_COPY.like,
-  label: 'Like via Repost'
+  labelKey: 'notifications.reason.likeViaRepost.label',
+  defaultLabel: 'Like via Repost'
 }
 REASON_COPY['repost-via-repost'] = {
   ...REASON_COPY.repost,
-  label: 'Repost via Repost'
+  labelKey: 'notifications.reason.repostViaRepost.label',
+  defaultLabel: 'Repost via Repost'
 }
 
 function isViaRepostReason (reason) {
   return reason === 'like-via-repost' || reason === 'repost-via-repost'
 }
 
-function formatAppBskyReason (reason) {
+function formatAppBskyReason (reason, t) {
   if (!reason || !reason.startsWith(APP_BSKY_REASON_PREFIX)) return null
   const slug = reason.slice(APP_BSKY_REASON_PREFIX.length)
   const readable = slug.replace(/[.#]/g, ' ').trim() || 'System'
   return {
-    label: `System (${readable})`,
-    description: () => 'Systembenachrichtigung von Bluesky.'
+    label: t('notifications.reason.system.label', 'System ({name})', { name: readable }),
+    description: () => t('notifications.reason.system.description', 'Systembenachrichtigung von Bluesky.')
   }
 }
 
@@ -115,11 +129,11 @@ function isPostUri (value) {
 
 function resolveSubjectType (subject) {
   const record = subject?.raw?.post?.record || subject?.record || null
-  if (!record) return 'Beitrag'
-  if (record?.reply) return 'Antwort'
+  if (!record) return 'post'
+  if (record?.reply) return 'reply'
   const embedType = record?.embed?.$type || record?.embed?.record?.$type || ''
-  if (embedType.includes('record')) return 'Repost'
-  return 'Beitrag'
+  if (embedType.includes('record')) return 'repost'
+  return 'post'
 }
 
 function extractSubjectPreview (subject) {
@@ -337,6 +351,7 @@ function buildReplyTarget (notification) {
 
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
   const {
     author = {},
     reason = 'unknown',
@@ -347,13 +362,23 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   } = item || {}
 
   const subjectType = useMemo(() => resolveSubjectType(subject), [subject])
-  const reasonInfo = REASON_COPY[reason] || formatAppBskyReason(reason) || {
-    label: 'Aktivität',
-    description: () => 'hat eine Aktion ausgeführt.'
+  const subjectLabel = useMemo(() => {
+    const defaults = { post: 'Beitrag', reply: 'Antwort', repost: 'Repost' }
+    const fallback = defaults[subjectType] || defaults.post
+    return t(`notifications.subject.${subjectType}`, fallback)
+  }, [subjectType, t])
+  const reasonInfo = REASON_COPY[reason] || formatAppBskyReason(reason, t) || {
+    label: t('notifications.reason.activity.label', 'Aktivität'),
+    description: () => t('notifications.reason.activity.description', 'hat eine Aktion ausgeführt.')
   }
+  const reasonLabel = reasonInfo.labelKey
+    ? t(reasonInfo.labelKey, reasonInfo.defaultLabel)
+    : reasonInfo.label || reasonInfo.defaultLabel || ''
   const reasonDescription = typeof reasonInfo.description === 'function'
-    ? reasonInfo.description({ subjectType, reason, additionalCount: item?.additionalCount || 0 })
-    : reasonInfo.description
+    ? reasonInfo.description({ subjectLabel, subjectType, reason, additionalCount: item?.additionalCount || 0, t })
+    : (reasonInfo.descriptionKey
+        ? t(reasonInfo.descriptionKey, reasonInfo.description || '')
+        : (reasonInfo.description || ''))
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
@@ -372,11 +397,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     hasLiked,
     hasReposted,
     busy,
-    refreshing,
     error: actionError,
     toggleLike,
     toggleRepost,
-    refresh,
     clearError,
   } = useBskyEngagement({
     uri: item?.uri,
@@ -437,8 +460,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [onSelectSubject, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
   const authorDisplayName = author.displayName || author.handle || ''
-  const authorLabel = authorDisplayName || 'Unbekannt'
-  const authorFallbackHint = authorDisplayName ? '' : 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.'
+  const fallbackAuthorLabel = t('notifications.card.authorUnknown', 'Unbekannt')
+  const authorLabel = authorDisplayName || author?.handle || fallbackAuthorLabel
+  const authorFallbackHint = authorDisplayName ? '' : t('notifications.card.authorMissing', 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.')
   const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
 
   const openProfileViewer = useCallback(() => {
@@ -504,8 +528,8 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
             ) : (
               <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
             )}
-            <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted'>
-              {reasonInfo.label}
+            <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted ml-auto'>
+              {reasonLabel}
             </span>
           </div>
           {authorFallbackHint ? (
@@ -552,7 +576,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
             <button
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
-              title='Antworten'
+              title={t('notifications.card.actions.reply', 'Antworten')}
               onClick={() => {
                 if (typeof onReply === 'function') {
                   const target = buildReplyTarget(item)
@@ -584,7 +608,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               type='button'
               className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
               style={likeStyle}
-              title='Gefällt mir'
+              title={t('notifications.card.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
               onClick={toggleLike}
@@ -595,14 +619,6 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 <HeartIcon className='h-5 w-5' />
               )}
               <span className='tabular-nums'>{likeCount}</span>
-            </button>
-            <button
-              type='button'
-              className={`ml-auto inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 text-xs hover:bg-background-subtle ${refreshing ? 'opacity-60' : ''}`}
-              onClick={refresh}
-              disabled={refreshing}
-            >
-              {refreshing ? 'Aktualisiere…' : 'Aktualisieren'}
             </button>
           </footer>
           {actionError ? (
@@ -616,6 +632,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
   const dispatch = useAppDispatch()
+  const { t } = useTranslation()
   const { config } = useCardConfig()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
@@ -626,11 +643,18 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   const showQuoted = isViaRepostReason(reason)
   const quoted = showQuoted ? extractQuotedPost(subject) : null
   const quotedAuthorLabel = quoted?.author
-    ? (quoted.author.displayName || quoted.author.handle || 'Unbekannt')
+    ? (quoted.author.displayName || quoted.author.handle || t('notifications.card.authorUnknown', 'Unbekannt'))
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
   const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget || subject)
   const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
+  const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
+  const videoBadgeLabel = t('notifications.preview.videoLabel', 'Video')
+  const originalPostLabel = t('notifications.preview.originalPost', 'Originaler Beitrag')
+  const quotedAuthorMissingLabel = t('notifications.preview.quoted.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')
+  const quotedStatusMessage = quoted?.status
+    ? t(`notifications.preview.quoted.status.${quoted.status}`, quoted?.statusMessage || '')
+    : (quoted?.statusMessage || '')
 
   const handleSelectSubject = useCallback((event) => {
     if (!canOpenSubject) return
@@ -702,10 +726,10 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
               onClick={openSubjectAuthor}
               className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
             >
-              {author.displayName || author.handle || 'Profil'}
+              {author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}
             </button>
           ) : (
-            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || 'Profil'}</p>
+            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}</p>
           )}
           {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
         </div>
@@ -759,8 +783,8 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                 }
               }}
               className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-              aria-label='Video öffnen'
-              title='Video öffnen'
+              aria-label={videoOpenLabel}
+              title={videoOpenLabel}
             >
               <div
                 className='relative w-full overflow-hidden rounded-xl'
@@ -781,7 +805,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                   />
                 ) : (
                   <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
-                    <span className='text-sm uppercase tracking-wide'>Video</span>
+                    <span className='text-sm uppercase tracking-wide'>{videoBadgeLabel}</span>
                   </div>
                 )}
               </div>
@@ -809,7 +833,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       ) : null}
       {quoted ? (
         <div className='space-y-1'>
-          <p className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>Originaler Beitrag</p>
+          <p className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>{originalPostLabel}</p>
           <div
             className={`rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground ${
               canOpenQuoted ? 'cursor-pointer transition hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' : ''
@@ -824,7 +848,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             }) : undefined}
           >
             {quoted.status !== 'ok' ? (
-              <p className='text-xs text-foreground-muted'>{quoted.statusMessage}</p>
+              <p className='text-xs text-foreground-muted'>{quotedStatusMessage}</p>
             ) : (
               <div className='space-y-2'>
                 <div className='flex items-center gap-3'>
@@ -836,7 +860,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                   <div className='min-w-0'>
                     <p className='truncate text-sm font-semibold text-foreground'>{quotedAuthorLabel}</p>
                     {quotedAuthorMissing ? (
-                      <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                      <p className='text-xs text-foreground-muted'>{quotedAuthorMissingLabel}</p>
                     ) : null}
                     {quoted.author?.handle ? (
                       <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
@@ -863,6 +887,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
 
 function ReplyMediaPreview ({ media = [], onViewMedia }) {
   const { config } = useCardConfig()
+  const { t } = useTranslation()
   const handleMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
     if (!Array.isArray(media) || media.length === 0) return
@@ -911,6 +936,8 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
     const videoIndex = media.indexOf(firstVideo)
     const singleMax = config?.singleMax ?? 256
     const ratio = parseAspectRatioValue(firstVideo.aspectRatio) || (16 / 9)
+    const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
+    const videoBadgeLabel = t('notifications.preview.videoLabel', 'Video')
     return (
       <button
         type='button'
@@ -921,8 +948,8 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
           }
         }}
         className='relative block w-full overflow-hidden rounded-xl bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-        aria-label='Video öffnen'
-        title='Video öffnen'
+        aria-label={videoOpenLabel}
+        title={videoOpenLabel}
       >
         <div
           className='relative w-full overflow-hidden rounded-xl'
@@ -943,7 +970,7 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
             />
           ) : (
             <div className='flex h-full w-full items-center justify-center bg-gradient-to-br from-black/80 to-gray-800 text-white'>
-              <span className='text-sm uppercase tracking-wide'>Video</span>
+              <span className='text-sm uppercase tracking-wide'>{videoBadgeLabel}</span>
             </div>
           )}
         </div>
@@ -957,7 +984,8 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
   return null
 }
 
-export default function Notifications ({ activeTab = 'all', manualRefreshTick = 0 }) {
+export default function Notifications ({ activeTab = 'all', manualRefreshTick = 0, onRefreshStateChange = () => {} }) {
+  const { t } = useTranslation()
   const { notificationsRefreshTick: refreshKey } = useAppState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
@@ -965,8 +993,10 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
 
   const [retryTick, setRetryTick] = useState(0)
+  const [manualRefreshing, setManualRefreshing] = useState(false)
   const loadMoreTriggerRef = useRef(null)
   const [unreadCount, setUnreadCount] = useState(0)
+  const prevManualRefreshTickRef = useRef(manualRefreshTick)
   const syncUnread = useCallback((count) => {
     setUnreadCount(count)
     dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })
@@ -975,10 +1005,10 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
   const getNotificationsKey = useCallback((pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.cursor) return null
     const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
-    return ['bsky-notifications', activeTab, refreshKey, manualRefreshTick, retryTick, cursor]
-  }, [activeTab, refreshKey, manualRefreshTick, retryTick])
+    return ['bsky-notifications', activeTab, refreshKey, retryTick, cursor]
+  }, [activeTab, refreshKey, retryTick])
 
-  const fetchNotificationsPage = useCallback(async ([, filter, _refresh, _manual, _retry, cursor]) => {
+  const fetchNotificationsPage = useCallback(async ([, filter, _refresh, _retry, cursor]) => {
     const { items: notifications, cursor: nextCursor, unreadCount } = await fetchNotificationsApi({
       cursor: cursor || undefined,
       markSeen: filter === 'all' && !cursor,
@@ -1013,6 +1043,23 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
   const hasMore = Boolean(lastPage?.cursor)
   const isLoadingInitial = isLoading && pages.length === 0
   const isLoadingMore = !isLoadingInitial && isValidating && hasMore
+  const isSoftRefreshing = !isLoadingInitial && isValidating && !isLoadingMore
+
+  useEffect(() => {
+    if (prevManualRefreshTickRef.current === manualRefreshTick) return
+    prevManualRefreshTickRef.current = manualRefreshTick
+    setManualRefreshing(true)
+    mutate()
+      .catch(() => {})
+      .finally(() => {
+        setManualRefreshing(false)
+      })
+  }, [manualRefreshTick, mutate])
+
+  useEffect(() => {
+    const nextState = isSoftRefreshing || manualRefreshing
+    onRefreshStateChange(nextState)
+  }, [isSoftRefreshing, manualRefreshing, onRefreshStateChange])
 
   useEffect(() => {
     const firstUnread = pages[0]?.unreadCount
@@ -1101,18 +1148,19 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     )
   }
   if (error) {
+    const fallback = t('notifications.status.loadError', 'Mitteilungen konnten nicht geladen werden.')
     return (
       <div className='space-y-3'>
-        <p className='text-sm text-red-600'>{error?.message || 'Mitteilungen konnten nicht geladen werden.'}</p>
+        <p className='text-sm text-red-600'>{error?.message || fallback}</p>
         <Button variant='secondary' size='pill' onClick={() => setRetryTick(v => v + 1)}>
-          Erneut versuchen
+          {t('common.actions.retry', 'Erneut versuchen')}
         </Button>
       </div>
     )
   }
 
   if (mergedItems.length === 0) {
-    return <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
+    return <p className='text-sm text-muted-foreground'>{t('notifications.status.empty', 'Keine Mitteilungen gefunden.')}</p>
   }
 
   return (
@@ -1140,7 +1188,9 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
           ref={loadMoreTriggerRef}
           className='py-4 text-center text-sm text-foreground-muted'
         >
-          {isLoadingMore ? 'Lade…' : 'Weitere Mitteilungen werden automatisch geladen…'}
+          {isLoadingMore
+            ? t('notifications.status.loading', 'Lade…')
+            : t('notifications.status.autoLoading', 'Weitere Mitteilungen werden automatisch geladen…')}
         </div>
       ) : null}
     </section>

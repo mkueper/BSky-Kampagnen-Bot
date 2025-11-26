@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { buildAuthorTimeline } from './threadUtils'
 import { RichText } from '../shared'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 function extractImages (item) {
   const embed = item?.raw?.post?.embed || item?.embed || {}
@@ -41,6 +42,7 @@ export default function AuthorThreadUnrollModal () {
   const dispatch = useAppDispatch()
   const { threadState, threadUnroll } = useAppState()
   const { openMediaPreview } = useMediaLightbox()
+  const { t } = useTranslation()
 
   const { data } = threadState || {}
   const authorTimeline = useMemo(() => buildAuthorTimeline(data), [data])
@@ -62,9 +64,11 @@ export default function AuthorThreadUnrollModal () {
             className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
             onClick={handleClose}
           >
-            Zurück
+            {t('timeline.unrollModal.back', 'Zurück')}
           </button>
-          <p className='text-sm font-semibold text-foreground'>Autor-Thread lesen</p>
+          <p className='text-sm font-semibold text-foreground'>
+            {t('timeline.unrollModal.title', 'Autor-Thread lesen')}
+          </p>
         </header>
         <div className='flex-1 overflow-y-auto px-4 py-6 sm:px-6'>
           {author ? (

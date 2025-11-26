@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import SearchView from './SearchView.jsx'
 import SearchHeader from './SearchHeader.jsx'
 import { SearchProvider } from './SearchContext.jsx'
+import { I18nProvider } from '../../i18n/I18nProvider.jsx'
 
 const { searchBskyMock, selectThreadFromItemMock } = vi.hoisted(() => ({
   searchBskyMock: vi.fn(),
@@ -58,10 +59,12 @@ vi.mock('../../hooks/useClientConfig', () => ({
 }))
 
 const renderSearchView = () => render(
-  <SearchProvider>
-    <SearchHeader />
-    <SearchView />
-  </SearchProvider>
+  <I18nProvider initialLocale='de'>
+    <SearchProvider>
+      <SearchHeader />
+      <SearchView />
+    </SearchProvider>
+  </I18nProvider>
 )
 
 class IntersectionObserverMock {

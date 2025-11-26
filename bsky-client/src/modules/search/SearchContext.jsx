@@ -4,9 +4,9 @@ import { searchBsky } from '../shared'
 import { useClientConfig } from '../../hooks/useClientConfig'
 
 const SEARCH_TABS = [
-  { id: 'top', label: 'Top' },
-  { id: 'latest', label: 'Neueste' },
-  { id: 'people', label: 'Personen' }
+  { id: 'top', label: 'Top', labelKey: 'search.tabs.top' },
+  { id: 'latest', label: 'Neueste', labelKey: 'search.tabs.latest' },
+  { id: 'people', label: 'Personen', labelKey: 'search.tabs.people' }
 ]
 const DEFAULT_ADVANCED_PREFIXES = ['from:', 'mention:', 'mentions:', 'domain:']
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'

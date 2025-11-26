@@ -7,10 +7,11 @@ import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useAppDispatch, useAppState } from '../../context/AppContext'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const HASHTAG_TABS = [
-  { id: 'top', label: 'Top' },
-  { id: 'latest', label: 'Neueste' }
+  { id: 'top', label: 'Top', labelKey: 'search.tabs.top' },
+  { id: 'latest', label: 'Neueste', labelKey: 'search.tabs.latest' }
 ]
 
 const PAGE_SIZE = 20
@@ -21,6 +22,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
   const { selectThreadFromItem } = useThread()
   const { openReplyComposer, openQuoteComposer } = useComposer()
   const { openMediaPreview } = useMediaLightbox()
+  const { t } = useTranslation()
 
   const open = Boolean(hashtagSearch?.open && hashtagSearch?.query)
   const query = hashtagSearch?.query?.trim() || ''
@@ -184,9 +186,13 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
   const normalizedDescription = description.trim()
   const isUserScoped = normalizedDescription.startsWith('@')
   const headerTitle = normalizedLabel
-    ? `#${normalizedLabel} – ${isUserScoped ? 'Posts des Nutzers ansehen' : 'Posts ansehen'}`
-    : 'Hashtags – Posts ansehen'
-  const headerSubtitle = isUserScoped ? normalizedDescription : 'Von allen Nutzern'
+    ? t(
+      isUserScoped ? 'search.hashtag.titleUser' : 'search.hashtag.titleAll',
+      isUserScoped ? '#{tag} – Posts des Nutzers ansehen' : '#{tag} – Posts ansehen',
+      { tag: normalizedLabel }
+    )
+    : t('search.hashtag.titleFallback', 'Hashtags – Posts ansehen')
+  const headerSubtitle = isUserScoped ? normalizedDescription : t('search.hashtag.subtitleAll', 'Von allen Nutzern')
 
   return (
     <BskyDetailPane
@@ -210,24 +216,24 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
               }`}
               aria-current={activeTab === tab.id ? 'page' : undefined}
             >
-              {tab.label}
+              {t(tab.labelKey || 'search.tabs.fallback', tab.label)}
             </button>
           ))}
         </div>
         {isLoadingInitial ? (
           <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
-            Suche läuft…
+            {t('common.status.searching', 'Suche läuft…')}
           </div>
         ) : error && items.length === 0 ? (
           <div className='space-y-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
-            <p className='font-semibold'>Fehler beim Laden der Hashtag-Suche.</p>
-            <p>{errorMessage || 'Suche fehlgeschlagen.'}</p>
+            <p className='font-semibold'>{t('search.hashtag.errorHeading', 'Fehler beim Laden der Hashtag-Suche.')}</p>
+            <p>{errorMessage || t('search.hashtag.errorBody', 'Suche fehlgeschlagen.')}</p>
             <button
               type='button'
               onClick={handleRetryInitial}
               className='rounded-full border border-red-300 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 transition hover:bg-red-100'
             >
-              Erneut versuchen
+              {t('common.actions.retry', 'Erneut versuchen')}
             </button>
           </div>
         ) : postsList ? (
@@ -235,14 +241,14 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
             {postsList}
             {showInlineError ? (
               <div className='space-y-2 rounded-xl border border-border/70 bg-background-subtle p-3'>
-                <p className='text-sm text-destructive'>{errorMessage || 'Weitere Ergebnisse konnten nicht geladen werden.'}</p>
+                <p className='text-sm text-destructive'>{errorMessage || t('common.errors.loadMoreFailed', 'Weitere Ergebnisse konnten nicht geladen werden.')}</p>
                 <button
                   type='button'
                   onClick={() => setSize(size + 1)}
                   disabled={isLoadingMore}
                   className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle disabled:opacity-60'
                 >
-                  Erneut versuchen
+                  {t('common.actions.retry', 'Erneut versuchen')}
                 </button>
               </div>
             ) : null}
@@ -251,12 +257,14 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
                 ref={loadMoreTriggerRef}
                 className='py-4 text-center text-sm text-foreground-muted'
               >
-                {isLoadingMore ? 'Lade…' : 'Weitere Ergebnisse werden automatisch geladen…'}
+                {isLoadingMore
+                  ? t('common.status.loading', 'Lade…')
+                  : t('common.status.autoLoading', 'Weitere Ergebnisse werden automatisch geladen…')}
               </div>
             ) : null}
           </>
         ) : (
-          <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
+          <p className='text-sm text-foreground-muted'>{t('common.status.noResults', 'Keine Ergebnisse gefunden.')}</p>
         )}
       </div>
     </BskyDetailPane>

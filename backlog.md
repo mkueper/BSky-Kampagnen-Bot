@@ -3,18 +3,26 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-1. Internationalisierung vorbereiten: Texte zentral auslagern (z. B. i18n-Dateien) und UI-Komponenten darauf umstellen.
-2. Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und ggf. in `app-customization.json` ergänzen.
-3. Zentrale SWR-Einstellungen (Error-Boundaries/Logging) ergänzen und an globale `SWRConfig` anbinden.
-4. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
-5. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
-6. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
-7. Action-Typen/String-Konstanten zentral definieren (z. B. `actions.js`) und überall nur noch diese Konstanten verwenden.
-8.  Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
-9.  Im eigenen Profil (oder der Profil-Viewer-Ansicht) soll ein Klick auf das eigene Profil nicht erneut den Viewer öffnen (self-view verhindern).
-10. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
+1. Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und ggf. in `app-customization.json` ergänzen.
+2. Zentrale SWR-Einstellungen (Error-Boundaries/Logging) ergänzen und an globale `SWRConfig` anbinden.
+3. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
+4. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
+5. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
+6. Action-Typen/String-Konstanten zentral definieren (z. B. `actions.js`) und überall nur noch diese Konstanten verwenden.
+7.  Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
+8.  Im eigenen Profil (oder der Profil-Viewer-Ansicht) soll ein Klick auf das eigene Profil nicht erneut den Viewer öffnen (self-view verhindern).
+9. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
+
+## Feature-Kandidaten
+1. Notifications-Filter: Konfigurationsbutton im Header mit echtem Filter-Overlay und speicherbarer Auswahl.
+2. Chat-Pane: Chat-Ansicht inkl. Routing, Feed, Composer und Integration ins Layout.
+3. Feeds-Sektion: Eigene Pane für Feed-Management/Explorer (Routing + Filter).
+4. Listen-Verwaltung: Pane für das Anzeigen/Erstellen von Listen (inkl. Detailansichten).
+5. Einstellungen erweitern: Konfigurationsbereich für weitere Optionen (z. B. Sprache, Notification-Filter, Experiment-Flags).
+6. Einheitlicher Ladeindikator: Spinner-Slots in allen Pane-Headern anzeigen (auch beim initialen Laden), damit Refresh-Status und Skeletons konsistent erkennbar bleiben.
 
 ## In Progress
+1. Internationalisierung vorbereiten: Texte zentral auslagern (z. B. i18n-Dateien) und UI-Komponenten darauf umstellen.
 
 ## Bugs
 1. NAV-Badge für ungelesene Notifications aktualisiert sich erst nach dem Öffnen des Mitteilungs-Panels.

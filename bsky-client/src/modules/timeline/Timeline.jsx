@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
@@ -7,15 +7,17 @@ import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const PAGE_SIZE = 20
 
-export default function Timeline ({ renderMode, isActive = true }) {
+export default function Timeline ({ renderMode, isActive = true, onRefreshStateChange = () => {} }) {
   const { timelineTab: tab, timelineSource: source, refreshTick: refreshKey } = useAppState()
   const dispatch = useAppDispatch()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
   const { selectThreadFromItem: onSelectPost } = useThread()
+  const { t } = useTranslation()
 
   const onLoadingChange = useCallback((loading) => {
     dispatch({ type: 'SET_TIMELINE_LOADING', payload: loading })
@@ -45,10 +47,10 @@ export default function Timeline ({ renderMode, isActive = true }) {
   const getTimelineKey = useCallback((pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.cursor) return null
     const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
-    return ['bsky-timeline', timelineSource.feedUri || null, timelineSource.tab || null, refreshKey, cursor]
-  }, [timelineSource.feedUri, timelineSource.tab, refreshKey])
+    return ['bsky-timeline', timelineSource.feedUri || null, timelineSource.tab || null, cursor]
+  }, [timelineSource.feedUri, timelineSource.tab])
 
-  const fetchTimelinePage = useCallback(async ([, feedUri, tabParam, _refreshKey, cursor]) => {
+  const fetchTimelinePage = useCallback(async ([, feedUri, tabParam, cursor]) => {
     const params = {
       cursor: cursor || undefined,
       limit: PAGE_SIZE
@@ -68,7 +70,8 @@ export default function Timeline ({ renderMode, isActive = true }) {
     size,
     setSize,
     mutate,
-    isLoading
+    isLoading,
+    isValidating
   } = useSWRInfinite(getTimelineKey, fetchTimelinePage, {
     revalidateFirstPage: false
   })
@@ -96,10 +99,13 @@ export default function Timeline ({ renderMode, isActive = true }) {
     return flatten
   }, [definedPages])
 
+  const [manualRefreshing, setManualRefreshing] = useState(false)
+  const refreshRef = useRef(refreshKey)
   const lastPage = definedPages[definedPages.length - 1] || null
   const isReachingEnd = Boolean(lastPage) && !lastPage.cursor
   const isLoadingInitialData = isLoading && definedPages.length === 0
   const isLoadingMore = isLoadingInitialData || (size > 0 && data && typeof data[size - 1] === 'undefined')
+  const isSoftRefreshing = !isLoadingInitialData && !isLoadingMore && isValidating
   const hasMore = !isReachingEnd
 
   const loadMore = useCallback(async () => {
@@ -175,6 +181,19 @@ export default function Timeline ({ renderMode, isActive = true }) {
     onTopItemChange?.(mergedItems[0])
   }, [mergedItems, onTopItemChange])
 
+  useEffect(() => {
+    if (refreshRef.current === refreshKey) return
+    refreshRef.current = refreshKey
+    setManualRefreshing(true)
+    mutate()
+      .catch(() => {})
+      .finally(() => setManualRefreshing(false))
+  }, [refreshKey, mutate])
+
+  useEffect(() => {
+    onRefreshStateChange(isSoftRefreshing || manualRefreshing)
+  }, [isSoftRefreshing, manualRefreshing, onRefreshStateChange])
+
   if (isLoadingInitialData) {
     return (
       <div className='space-y-3' data-component='BskyTimeline' data-state='loading' role='status' aria-live='polite'>
@@ -186,8 +205,21 @@ export default function Timeline ({ renderMode, isActive = true }) {
       </div>
     )
   }
-  if (error) return <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='error'>Fehler: {error?.message || String(error)}</p>
-  if (mergedItems.length === 0) return <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>Keine Einträge gefunden.</p>
+  if (error) {
+    const errorText = error?.message || (typeof error === 'string' ? error : String(error))
+    return (
+      <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='error'>
+        {t('timeline.status.error', 'Fehler: {message}', { message: errorText })}
+      </p>
+    )
+  }
+  if (mergedItems.length === 0) {
+    return (
+      <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>
+        {t('timeline.status.empty', 'Keine Einträge gefunden.')}
+      </p>
+    )
+  }
   return (
     <ul className='space-y-3' data-component='BskyTimeline' data-tab={tab}>
       {mergedItems.map((it, idx) => (
@@ -204,10 +236,14 @@ export default function Timeline ({ renderMode, isActive = true }) {
         </li>
       ))}
       {!isLoadingInitialData && isLoadingMore ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>Mehr laden…</li>
+        <li className='py-3 text-center text-xs text-foreground-muted'>
+          {t('timeline.status.loadingMore', 'Mehr laden…')}
+        </li>
       ) : null}
       {!hasMore && mergedItems.length > 0 ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>Ende erreicht</li>
+        <li className='py-3 text-center text-xs text-foreground-muted'>
+          {t('timeline.status.endReached', 'Ende erreicht')}
+        </li>
       ) : null}
     </ul>
   )

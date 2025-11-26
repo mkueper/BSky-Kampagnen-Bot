@@ -7,6 +7,7 @@ import { Button, MediaLightbox, Card } from '../shared';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
+import { useTranslation } from '../../i18n/I18nProvider.jsx';
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard } = useAppState();
@@ -22,6 +23,7 @@ export function Modals() {
     reorderPinnedFeeds,
     closeFeedManager
   } = useFeedPicker();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (feedManagerOpen) {
@@ -36,11 +38,21 @@ export function Modals() {
         onClose={() => {
           closeComposer();
         }}
-        title={replyTarget ? 'Antworten' : (quoteTarget ? 'Post zitieren' : 'Neuer Post')}
+        title={
+          replyTarget
+            ? t('compose.titleReply', 'Antworten')
+            : (quoteTarget
+                ? t('compose.titleQuote', 'Post zitieren')
+                : t('compose.titleNew', 'Neuer Post'))
+        }
         actions={
           <div className='flex items-center gap-2'>
-            <Button variant='secondary' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })}>Abbrechen</Button>
-            <Button form='bsky-composer-form' type='submit' variant='primary'>Posten</Button>
+            <Button variant='secondary' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })}>
+              {t('compose.cancel', 'Abbrechen')}
+            </Button>
+            <Button form='bsky-composer-form' type='submit' variant='primary'>
+              {t('compose.submit', 'Posten')}
+            </Button>
           </div>
         }
       >
@@ -58,14 +70,20 @@ export function Modals() {
         <div className='fixed inset-0 z-50 flex items-center justify-center'>
           <div className='absolute inset-0 bg-black/40 backdrop-blur-sm' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })} aria-hidden='true' />
           <Card as='div' padding='p-5' className='relative z-50 w-[min(520px,92vw)] shadow-card'>
-            <h4 className='text-lg font-semibold text-foreground'>Entwurf verwerfen</h4>
-            <p className='mt-2 text-sm text-foreground-muted'>Bist du sicher, dass du diesen Entwurf verwerfen moechtest?</p>
+            <h4 className='text-lg font-semibold text-foreground'>{t('compose.discardTitle', 'Entwurf verwerfen')}</h4>
+            <p className='mt-2 text-sm text-foreground-muted'>
+              {t('compose.discardMessage', 'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?')}
+            </p>
             <div className='mt-4 flex items-center justify-end gap-2'>
-              <Button variant='secondary' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}>Abbrechen</Button>
+              <Button variant='secondary' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}>
+                {t('compose.cancel', 'Abbrechen')}
+              </Button>
               <Button variant='primary' onClick={() => {
                 dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false });
                 closeComposer();
-              }}>Verwerfen</Button>
+              }}>
+                {t('compose.discardConfirm', 'Verwerfen')}
+              </Button>
             </div>
           </Card>
         </div>

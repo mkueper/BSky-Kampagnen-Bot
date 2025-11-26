@@ -6,6 +6,7 @@ import SkeetItemSkeleton from '../timeline/SkeetItemSkeleton.jsx'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const PAGE_SIZE = 20
 
@@ -13,6 +14,7 @@ export default function SavedFeed ({ isActive = true }) {
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
   const { selectThreadFromItem: onSelectPost } = useThread()
+  const { t } = useTranslation()
 
   const variant = useMemo(() => {
     try {
@@ -145,11 +147,12 @@ export default function SavedFeed ({ isActive = true }) {
   }
 
   if (error) {
-    return <p className='text-sm text-red-600'>Fehler: {error?.message || String(error)}</p>
+    const message = error?.message || String(error)
+    return <p className='text-sm text-red-600'>{t('saved.status.error', 'Fehler: {message}', { message })}</p>
   }
 
   if (mergedItems.length === 0) {
-    return <p className='text-sm text-muted-foreground'>Keine gespeicherten Beiträge gefunden.</p>
+    return <p className='text-sm text-muted-foreground'>{t('saved.status.empty', 'Keine gespeicherten Beiträge gefunden.')}</p>
   }
 
   return (
@@ -168,10 +171,10 @@ export default function SavedFeed ({ isActive = true }) {
         </li>
       ))}
       {isLoadingMore ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>Mehr laden…</li>
+        <li className='py-3 text-center text-xs text-foreground-muted'>{t('saved.status.loadingMore', 'Mehr laden…')}</li>
       ) : null}
       {!hasMore ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>Ende erreicht</li>
+        <li className='py-3 text-center text-xs text-foreground-muted'>{t('saved.status.endReached', 'Ende erreicht')}</li>
       ) : null}
     </ul>
   )

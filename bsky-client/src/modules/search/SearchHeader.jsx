@@ -1,6 +1,7 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button } from '../shared'
 import { useSearchContext } from './SearchContext.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 export default function SearchHeader () {
   const {
@@ -11,11 +12,12 @@ export default function SearchHeader () {
     activeTab,
     setActiveTab
   } = useSearchContext()
+  const { t } = useTranslation()
 
   return (
     <div className='space-y-4' data-component='BskySearchHeader'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
-        <p className='text-base font-semibold text-foreground'>Suche</p>
+        <p className='text-base font-semibold text-foreground'>{t('search.header.title', 'Suche')}</p>
       </div>
 
       <form
@@ -28,12 +30,12 @@ export default function SearchHeader () {
             type='search'
             value={draftQuery}
             onChange={(event) => setDraftQuery(event.target.value)}
-            placeholder='Nach Posts oder Personen suchen…'
+            placeholder={t('search.header.placeholder', 'Nach Posts oder Personen suchen…')}
             className='flex-1 bg-transparent text-sm outline-none'
           />
         </div>
         <Button type='submit' variant='primary' size='pill' disabled={!draftQuery.trim()}>
-          Suchen
+          {t('search.header.submit', 'Suchen')}
         </Button>
       </form>
 
@@ -48,7 +50,7 @@ export default function SearchHeader () {
             }`}
             aria-current={activeTab === tab.id ? 'page' : undefined}
           >
-            {tab.label}
+            {t(tab.labelKey || 'search.tabs.fallback', tab.label)}
           </button>
         ))}
       </div>

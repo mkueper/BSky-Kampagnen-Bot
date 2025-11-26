@@ -5,6 +5,7 @@ import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useSearchContext } from './SearchContext.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 export default function SearchView () {
   const {
@@ -24,6 +25,7 @@ export default function SearchView () {
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
   const loadMoreTriggerRef = useRef(null)
+  const { t } = useTranslation()
 
   const isPostsTab = activeTab === 'top' || activeTab === 'latest'
 
@@ -111,7 +113,7 @@ export default function SearchView () {
                 rel='noopener noreferrer'
                 className='inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background-subtle'
               >
-                Profil ansehen
+                {t('common.actions.viewProfile', 'Profil ansehen')}
               </a>
             </Card>
           </li>
@@ -122,11 +124,11 @@ export default function SearchView () {
 
   const recentSearchesContent = useMemo(() => {
     if (!recentSearches.length) {
-      return <p className='text-sm text-foreground-muted'>Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.</p>
+      return <p className='text-sm text-foreground-muted'>{t('search.recent.empty', 'Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.')}</p>
     }
     return (
       <div className='space-y-3'>
-        <p className='text-sm font-semibold text-foreground'>Letzte Suchanfragen</p>
+        <p className='text-sm font-semibold text-foreground'>{t('search.recent.title', 'Letzte Suchanfragen')}</p>
         <div className='flex flex-wrap gap-2'>
           {recentSearches.map((term) => (
             <button
@@ -150,15 +152,16 @@ export default function SearchView () {
     if (loading) {
       return (
         <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
-          Suche läuft…
+          {t('common.status.searching', 'Suche läuft…')}
         </div>
       )
     }
     if (error) {
-      return <p className='text-sm text-red-600'>{error}</p>
+      const errorText = error?.message || (typeof error === 'string' ? error : '')
+      return <p className='text-sm text-red-600'>{errorText || t('common.errors.generic', 'Es ist ein Fehler aufgetreten.')}</p>
     }
     if (!items.length) {
-      return <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
+      return <p className='text-sm text-foreground-muted'>{t('common.status.noResults', 'Keine Ergebnisse gefunden.')}</p>
     }
     if (isPostsTab) return postsContent
     if (activeTab === 'people') return peopleContent
@@ -174,7 +177,9 @@ export default function SearchView () {
             ref={loadMoreTriggerRef}
             className='py-4 text-center text-sm text-foreground-muted'
           >
-            {loadingMore ? 'Lade…' : 'Weitere Ergebnisse werden automatisch geladen…'}
+            {loadingMore
+              ? t('common.status.loading', 'Lade…')
+              : t('common.status.autoLoading', 'Weitere Ergebnisse werden automatisch geladen…')}
           </div>
         ) : null}
       </div>

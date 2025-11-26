@@ -5,6 +5,7 @@ import { PlusIcon, SunIcon, MoonIcon, ShadowIcon, Half2Icon } from '@radix-ui/re
 import clsx from 'clsx'
 import { useThemeMode } from '../../hooks/useThemeMode'
 import { useLayout } from '../../context/LayoutContext'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'blocks', 'dashboard']
 const MOBILE_NAV_HEIGHT = 72
@@ -22,6 +23,7 @@ const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.ma
   : false)
 
 function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeToggle = null, interactionsLocked = false }) {
+  const { t } = useTranslation()
   const items = NAV_ITEMS.filter((item) => MOBILE_NAV_IDS.includes(item.id))
   const ThemeToggleIcon = themeToggle?.Icon || null
   return (
@@ -40,12 +42,16 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeTogg
           const disabled = Boolean(item.disabled) || interactionsLocked
           const showBadge = item.id === 'notifications' && notificationsUnread > 0
           const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread)
+          const baseLabel = t(item.labelKey, item.defaultLabel)
+          const label = showBadge
+            ? t('nav.notificationsWithCount', '{label} ({count} neu)', { label: baseLabel, count: badgeLabel })
+            : baseLabel
           return (
             <button
               key={item.id}
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
-              aria-label={item.label}
+              aria-label={label}
               aria-current={isActive ? 'page' : undefined}
               disabled={disabled}
               className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${isActive ? 'bg-background-subtle text-primary shadow-soft' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -63,7 +69,7 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeTogg
           <button
             type='button'
             onClick={themeToggle.onToggle}
-            aria-label={`Theme wechseln – ${themeToggle.nextLabel}`}
+            aria-label={t('nav.themeSwitch', `Theme wechseln – ${themeToggle.nextLabel || ''}`, { label: themeToggle.nextLabel || '' })}
             className='relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary'
           >
             {ThemeToggleIcon ? <ThemeToggleIcon className='h-5 w-5' /> : null}
