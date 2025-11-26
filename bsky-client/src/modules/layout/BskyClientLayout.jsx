@@ -160,19 +160,16 @@ export default function BskyClientLayout ({
   const bottomPaddingValue = isMobile ? '16px' : undefined
   const isProfileSection = activeSection === 'profile'
   const scrollContainerClassName = clsx(
-    'flex-1 min-h-0',
+    'flex-1 min-h-0 h-full',
     isProfileSection
       ? 'overflow-y-auto p-[2px] sm:p-2'
       : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
   )
   const mainClassName = clsx({
     'flex h-full w-full min-h-0 justify-center': isProfileSection,
-    'space-y-5 sm:space-y-8': !isProfileSection,
-    '': !isProfileSection && !isMobile
+    'space-y-5 sm:space-y-8': !isProfileSection && !isMobile
   })
-  const mainSectionClassName = clsx('min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden', {
-    'pb-3': !isMobile
-  })
+  const mainSectionClassName = clsx('min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden')
   const hasDetailPane = Boolean(detailPane)
   const isPaneExclusive = hasDetailPane && detailPaneActive
 

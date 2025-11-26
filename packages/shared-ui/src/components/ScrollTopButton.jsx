@@ -19,6 +19,19 @@ function cn(...parts) {
  * - variant: 'elevated' | 'primary' (default 'primary')
  * - children: optional custom content (defaults to ChevronUpIcon)
  */
+const hasScrollableOverflow = (node) => {
+  if (!node) return false;
+  return node.scrollHeight - node.clientHeight > 2;
+};
+
+const getWindowScrollTop = () => {
+  if (typeof window === "undefined") return 0;
+  if (typeof document !== "undefined" && document.documentElement) {
+    return window.scrollY ?? document.documentElement.scrollTop ?? 0;
+  }
+  return window.scrollY ?? 0;
+};
+
 export default function ScrollTopButton({
   containerId = "app-scroll-container",
   threshold = 400,
@@ -71,24 +84,29 @@ export default function ScrollTopButton({
   useEffect(() => {
     if (typeof window === "undefined") return () => {};
     const container = document.getElementById(containerId);
-    const scrollTarget = container || window;
 
-    const handleScroll = () => {
-      const y = container ? container.scrollTop : window.scrollY;
+    const updateVisibility = () => {
+      const useContainerScroll = hasScrollableOverflow(container);
+      const y = useContainerScroll && container ? container.scrollTop : getWindowScrollTop();
       setInternalVisible(y > threshold);
     };
 
-    handleScroll();
-    scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+    updateVisibility();
+    if (container) container.addEventListener("scroll", updateVisibility, { passive: true });
+    window.addEventListener("scroll", updateVisibility, { passive: true });
 
-    updateOffsets();
-    const onResize = () => updateOffsets();
+    const runOffsets = () => {
+      updateOffsets();
+      updateVisibility();
+    };
+    runOffsets();
+    const onResize = () => runOffsets();
     window.addEventListener("resize", onResize);
 
     let ro;
     try {
       if (container && "ResizeObserver" in window) {
-        ro = new ResizeObserver(updateOffsets);
+        ro = new ResizeObserver(runOffsets);
         ro.observe(container);
       }
     } catch (e) {
@@ -96,7 +114,8 @@ export default function ScrollTopButton({
     }
 
     return () => {
-      scrollTarget.removeEventListener("scroll", handleScroll);
+      if (container) container.removeEventListener("scroll", updateVisibility);
+      window.removeEventListener("scroll", updateVisibility);
       window.removeEventListener("resize", onResize);
       try { ro && container && ro.unobserve(container); } catch (e) { console.error(e); }
     };
@@ -107,8 +126,12 @@ export default function ScrollTopButton({
 
   const scrollToTop = () => {
     const container = document.getElementById(containerId);
-    if (container) container.scrollTo({ top: 0, behavior: "smooth" });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
+    const useContainerScroll = hasScrollableOverflow(container);
+    if (useContainerScroll && container) {
+      container.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleClick = () => {
