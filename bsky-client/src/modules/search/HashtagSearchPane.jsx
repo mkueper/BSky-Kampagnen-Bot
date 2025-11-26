@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useSWRInfinite from 'swr/infinite'
 import { searchBsky } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
@@ -11,6 +12,8 @@ const HASHTAG_TABS = [
   { id: 'top', label: 'Top' },
   { id: 'latest', label: 'Neueste' }
 ]
+
+const PAGE_SIZE = 20
 
 export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { hashtagSearch } = useAppState()
@@ -26,13 +29,8 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
   const defaultTab = hashtagSearch?.tab === 'latest' ? 'latest' : 'top'
 
   const [activeTab, setActiveTab] = useState(defaultTab)
-  const [items, setItems] = useState([])
-  const [cursor, setCursor] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState('')
   const [reloadTick, setReloadTick] = useState(0)
-  const searchSignatureRef = useRef('')
+  const [errorMessage, setErrorMessage] = useState('')
   const loadMoreTriggerRef = useRef(null)
   const scrollContainerRef = useRef(null)
 
@@ -42,9 +40,6 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
 
   useEffect(() => {
     if (!open) {
-      setItems([])
-      setCursor(null)
-      setError('')
       setActiveTab('top')
       setReloadTick(0)
       return
@@ -53,55 +48,65 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
     setReloadTick((tick) => tick + 1)
   }, [open, defaultTab, query])
 
-  useEffect(() => {
-    if (!open || !query || reloadTick === 0) return
-    let ignore = false
-    setLoading(true)
-    setError('')
-    setItems([])
-    setCursor(null)
-    const signature = `${query}::${activeTab}::${reloadTick}`
-    searchSignatureRef.current = signature
-    searchBsky({ query, type: activeTab })
-      .then(({ items: nextItems, cursor: nextCursor }) => {
-        if (ignore || searchSignatureRef.current !== signature) return
-        setItems(nextItems)
-        setCursor(nextCursor)
-      })
-      .catch((err) => {
-        if (ignore || searchSignatureRef.current !== signature) return
-        setError(err?.message || 'Suche fehlgeschlagen.')
-      })
-      .finally(() => {
-        if (!ignore && searchSignatureRef.current === signature) {
-          setLoading(false)
-        }
-      })
-    return () => {
-      ignore = true
-    }
+  const getHashtagKey = useCallback((pageIndex, previousPageData) => {
+    if (!open || !query) return null
+    if (pageIndex > 0 && (!previousPageData || !previousPageData.cursor)) return null
+    const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
+    return ['hashtag-search', query, activeTab, reloadTick, cursor]
   }, [open, query, activeTab, reloadTick])
 
-  const loadMore = useCallback(async () => {
-    if (!open || !cursor || loading || loadingMore) return
-    const requestSignature = searchSignatureRef.current
-    setLoadingMore(true)
-    try {
-      const { items: nextItems, cursor: nextCursor } = await searchBsky({ query, type: activeTab, cursor })
-      if (searchSignatureRef.current !== requestSignature) return
-      setItems((prev) => [...prev, ...nextItems])
-      setCursor(nextCursor)
-    } catch (err) {
-      if (searchSignatureRef.current !== requestSignature) return
-      setError(err?.message || 'Weitere Ergebnisse konnten nicht geladen werden.')
-    } finally {
-      setLoadingMore(false)
+  const fetchHashtagPage = useCallback(async ([, currentQuery, tab, _reload, cursor]) => {
+    const { items: nextItems, cursor: nextCursor } = await searchBsky({
+      query: currentQuery,
+      type: tab,
+      cursor: cursor || undefined
+    })
+    return {
+      items: nextItems,
+      cursor: nextCursor || null
     }
-  }, [open, cursor, loading, loadingMore, query, activeTab])
+  }, [])
+
+  const {
+    data,
+    error,
+    size,
+    setSize,
+    mutate,
+    isLoading,
+    isValidating
+  } = useSWRInfinite(getHashtagKey, fetchHashtagPage, {
+    revalidateFirstPage: false
+  })
+
+  useEffect(() => {
+    setErrorMessage(error?.message || '')
+  }, [error])
+
+  const pages = useMemo(() => (Array.isArray(data) ? data.filter(Boolean) : []), [data])
+  const items = useMemo(() => {
+    if (!pages.length) return []
+    return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
+  }, [pages])
+
+  const lastPage = pages[pages.length - 1] || null
+  const hasMore = Boolean(lastPage?.cursor)
+  const isLoadingInitial = isLoading && pages.length === 0
+  const isLoadingMore = !isLoadingInitial && isValidating && hasMore
+  const showInlineError = Boolean(error && items.length > 0)
+
+  const handleRetryInitial = useCallback(() => {
+    setReloadTick((tick) => tick + 1)
+  }, [])
+
+  const loadMore = useCallback(async () => {
+    if (!open || !hasMore || isLoadingInitial || isLoadingMore) return
+    await setSize(size + 1)
+  }, [open, hasMore, isLoadingInitial, isLoadingMore, setSize, size])
 
   useEffect(() => {
     const root = scrollContainerRef.current
-    if (!open || !cursor || !root || !loadMoreTriggerRef.current) return undefined
+    if (!open || !hasMore || !root || !loadMoreTriggerRef.current) return undefined
     const observer = new IntersectionObserver((entries) => {
       if (entries[0]?.isIntersecting) {
         loadMore()
@@ -113,32 +118,44 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
     const target = loadMoreTriggerRef.current
     observer.observe(target)
     return () => observer.unobserve(target)
-  }, [open, cursor, loadMore])
+  }, [open, hasMore, loadMore])
 
   const handleEngagementChange = useCallback((targetId, patch = {}) => {
     if (!targetId) return
-    setItems((prev) => prev.map((entry) => {
-      const entryId = entry.listEntryId || entry.uri || entry.cid
-      if (entryId !== targetId) return entry
-      const nextStats = { ...(entry.stats || {}) }
-      if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
-      if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
-      const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
-      const nextViewer = { ...baseViewer }
-      if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
-      if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
-      if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
-      const nextRaw = entry.raw ? { ...entry.raw } : null
-      if (nextRaw?.post) nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
-      else if (nextRaw?.item) nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
-      return {
-        ...entry,
-        stats: nextStats,
-        viewer: nextViewer,
-        raw: nextRaw || entry.raw
-      }
-    }))
-  }, [])
+    mutate((previousPages) => {
+      if (!Array.isArray(previousPages)) return previousPages
+      let changed = false
+      const updated = previousPages.map((page) => {
+        if (!page || !Array.isArray(page.items)) return page
+        let pageChanged = false
+        const nextItems = page.items.map((entry) => {
+          const entryId = entry.listEntryId || entry.uri || entry.cid
+          if (entryId !== targetId) return entry
+          pageChanged = true
+          changed = true
+          const nextStats = { ...(entry.stats || {}) }
+          if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
+          if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
+          const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
+          const nextViewer = { ...baseViewer }
+          if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
+          if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
+          if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
+          const nextRaw = entry.raw ? { ...entry.raw } : null
+          if (nextRaw?.post) nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
+          else if (nextRaw?.item) nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
+          return {
+            ...entry,
+            stats: nextStats,
+            viewer: nextViewer,
+            raw: nextRaw || entry.raw
+          }
+        })
+        return pageChanged ? { ...page, items: nextItems } : page
+      })
+      return changed ? updated : previousPages
+    }, false)
+  }, [mutate])
 
   const postsList = useMemo(() => {
     if (!items || items.length === 0) return null
@@ -176,7 +193,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
       header={{
         title: headerTitle,
         subtitle: headerSubtitle,
-        onBack: handleClose,
+        onBack: handleClose
       }}
       registerLayoutHeader={registerLayoutHeader}
       renderHeaderInLayout={renderHeaderInLayout}
@@ -197,20 +214,50 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
             </button>
           ))}
         </div>
-        {loading ? (
+        {isLoadingInitial ? (
           <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
             Suche läuft…
           </div>
-        ) : null}
-        {error ? <p className='text-sm text-red-600'>{error}</p> : null}
-        {!loading && !error ? (
-          postsList || <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
-        ) : null}
-        {cursor ? (
-          <div ref={loadMoreTriggerRef} className='py-4 text-center text-xs text-foreground-muted'>
-            {loadingMore ? 'Lade…' : 'Mehr Ergebnisse werden automatisch geladen…'}
+        ) : error && items.length === 0 ? (
+          <div className='space-y-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+            <p className='font-semibold'>Fehler beim Laden der Hashtag-Suche.</p>
+            <p>{errorMessage || 'Suche fehlgeschlagen.'}</p>
+            <button
+              type='button'
+              onClick={handleRetryInitial}
+              className='rounded-full border border-red-300 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-red-700 transition hover:bg-red-100'
+            >
+              Erneut versuchen
+            </button>
           </div>
-        ) : null}
+        ) : postsList ? (
+          <>
+            {postsList}
+            {showInlineError ? (
+              <div className='space-y-2 rounded-xl border border-border/70 bg-background-subtle p-3'>
+                <p className='text-sm text-destructive'>{errorMessage || 'Weitere Ergebnisse konnten nicht geladen werden.'}</p>
+                <button
+                  type='button'
+                  onClick={() => setSize(size + 1)}
+                  disabled={isLoadingMore}
+                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle disabled:opacity-60'
+                >
+                  Erneut versuchen
+                </button>
+              </div>
+            ) : null}
+            {hasMore ? (
+              <div
+                ref={loadMoreTriggerRef}
+                className='py-4 text-center text-sm text-foreground-muted'
+              >
+                {isLoadingMore ? 'Lade…' : 'Weitere Ergebnisse werden automatisch geladen…'}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className='text-sm text-foreground-muted'>Keine Ergebnisse gefunden.</p>
+        )}
       </div>
     </BskyDetailPane>
   )

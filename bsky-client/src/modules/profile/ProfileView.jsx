@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
-import { fetchProfile, fetchProfileFeed, fetchProfileLikes } from '../shared/api/bsky'
+import { fetchProfile } from '../shared/api/bsky'
 import {
   Card,
   Button,
@@ -13,7 +13,6 @@ import {
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import SkeetItem from '../timeline/SkeetItem.jsx'
-import { hasVideoMedia } from './utils.js'
 import {
   ArrowLeftIcon,
   ChatBubbleIcon,
@@ -31,46 +30,6 @@ import {
 
 const numberFormatter = new Intl.NumberFormat('de-DE')
 const PROFILE_SCROLL_CONTAINER_ID = 'bsky-profile-scroll-container'
-
-function createInitialFeedState () {
-  return {
-    posts: {
-      items: [],
-      cursor: null,
-      error: '',
-      status: 'idle',
-      lastUpdatedAt: null
-    },
-    replies: {
-      items: [],
-      cursor: null,
-      error: '',
-      status: 'idle',
-      lastUpdatedAt: null
-    },
-    media: {
-      items: [],
-      cursor: null,
-      error: '',
-      status: 'idle',
-      lastUpdatedAt: null
-    },
-    videos: {
-      items: [],
-      cursor: null,
-      error: '',
-      status: 'idle',
-      lastUpdatedAt: null
-    },
-    likes: {
-      items: [],
-      cursor: null,
-      error: '',
-      status: 'idle',
-      lastUpdatedAt: null
-    }
-  }
-}
 
 function formatNumber (value) {
   const num = Number(value || 0)
@@ -390,12 +349,10 @@ export default function ProfileView ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
-  const [feeds, setFeeds] = useState(() => createInitialFeedState())
   const [tabsStuck, setTabsStuck] = useState(false)
   const containerRef = useRef(null)
   const tabsWrapperRef = useRef(null)
   const tabsSentinelRef = useRef(null)
-  const feedRequestRef = useRef({})
   const isMountedRef = useRef(true)
 
   useEffect(() => {
@@ -440,8 +397,6 @@ export default function ProfileView ({
       setLoading(true)
       setError('')
       setProfile(null)
-      setFeeds(createInitialFeedState())
-      feedRequestRef.current = {}
       setActiveTab('posts')
       try {
         const data = await fetchProfile(actor)
@@ -463,7 +418,6 @@ export default function ProfileView ({
     return () => { ignore = true }
   }, [actor])
 
-  // Effekt zum Laden der Feed-Daten für den aktiven Tab
   const isOwnProfile = useMemo(() => {
     if (!profile || !me) return false
     return me.did === profile.did
@@ -471,73 +425,6 @@ export default function ProfileView ({
   const isBlockedBy = Boolean(profile?.viewer?.blockedBy)
   const isBlocking = Boolean(profile?.viewer?.blocking)
   const isInteractionBlocked = isBlockedBy || isBlocking
-
-  useEffect(() => {
-    if (!profile || !profile.did) return
-    if (activeTab === 'likes' && !isOwnProfile) return
-    const currentFeed = feeds[activeTab]
-    if (!currentFeed) return
-    if (currentFeed.status !== 'idle') return
-    if (isInteractionBlocked) return
-
-    const tabId = activeTab
-    const filterMap = {
-      posts: 'posts_no_replies',
-      replies: 'posts_with_replies',
-      media: 'posts_with_media',
-      videos: 'posts_with_media'
-    }
-    const requestId = Symbol(`profile-feed-${tabId}`)
-    feedRequestRef.current[tabId] = requestId
-
-    setFeeds(prev => ({
-      ...prev,
-      [tabId]: { ...prev[tabId], status: 'loading', error: '' }
-    }))
-
-    const actorTarget = tabId === 'likes'
-      ? (profile.handle || profile.did)
-      : profile.did
-    const fetchCurrent = tabId === 'likes'
-      ? fetchProfileLikes({ actor: actorTarget, limit: 20 })
-      : fetchProfileFeed({ actor: actorTarget, limit: 20, filter: filterMap[tabId] })
-
-    fetchCurrent
-      .then(({ items: nextItemsRaw, cursor: nextCursor }) => {
-        if (!isMountedRef.current) return
-        if (feedRequestRef.current[tabId] !== requestId) return
-        let normalized = nextItemsRaw
-        if (tabId === 'replies') {
-          normalized = nextItemsRaw.filter(entry => entry?.raw?.post?.record?.reply?.parent)
-        } else if (tabId === 'videos') {
-          normalized = nextItemsRaw.filter(hasVideoMedia)
-        }
-
-        setFeeds(prev => {
-          const next = {
-            ...prev,
-            [tabId]: {
-              ...prev[tabId],
-              items: normalized,
-              cursor: nextCursor,
-              status: 'success',
-              error: '',
-              lastUpdatedAt: Date.now()
-            }
-          }
-          return next
-        })
-      })
-      .catch((err) => {
-        if (!isMountedRef.current) return
-        if (feedRequestRef.current[tabId] !== requestId) return
-        const message = err?.message || 'Beiträge konnten nicht geladen werden.'
-        setFeeds(prev => ({
-          ...prev,
-          [tabId]: { ...prev[tabId], status: 'error', error: message }
-        }))
-      })
-  }, [profile, activeTab, feeds])
 
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
@@ -668,8 +555,6 @@ export default function ProfileView ({
             actor={profile.did}
             actorHandle={profile.handle || ''}
             activeTab={activeTab}
-            feedData={feeds[activeTab]}
-            setFeeds={setFeeds}
             scrollContainerRef={containerRef}
           />
         )

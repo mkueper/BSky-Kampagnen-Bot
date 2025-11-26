@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import useSWRInfinite from 'swr/infinite'
 import { searchBsky } from '../shared'
 import { useClientConfig } from '../../hooks/useClientConfig'
 
@@ -35,11 +36,7 @@ function useProvideSearchContext () {
   const [draftQuery, setDraftQuery] = useState('')
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('top')
-  const [items, setItems] = useState([])
-  const [cursor, setCursor] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [recentSearches, setRecentSearches] = useState([])
   const searchSignatureRef = useRef('')
 
@@ -145,32 +142,52 @@ function useProvideSearchContext () {
     }
   }, [draftQuery, query])
 
+  const getSearchKey = useCallback((pageIndex, previousPageData) => {
+    if (!hasQuery) return null
+    if (pageIndex > 0 && (!previousPageData || !previousPageData.cursor)) return null
+    const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
+    return ['bsky-search', normalizedQuery, activeTab, cursor]
+  }, [hasQuery, normalizedQuery, activeTab])
+
+  const fetchSearchPage = useCallback(async ([, currentQuery, tab, cursor]) => {
+    const { items, cursor: nextCursor } = await searchBsky({
+      query: currentQuery,
+      type: tab,
+      cursor: cursor || undefined
+    })
+    return {
+      items,
+      cursor: nextCursor || null
+    }
+  }, [])
+
+  const {
+    data,
+    error,
+    size,
+    setSize,
+    mutate,
+    isLoading,
+    isValidating
+  } = useSWRInfinite(getSearchKey, fetchSearchPage, {
+    revalidateFirstPage: false
+  })
+
   useEffect(() => {
-    if (!hasQuery) {
-      setItems([])
-      setCursor(null)
-      setError('')
-      return
-    }
-    let ignore = false
-    async function fetchResults () {
-      setLoading(true)
-      setError('')
-      try {
-        const { items: nextItems, cursor: nextCursor } = await searchBsky({ query, type: activeTab })
-        if (!ignore) {
-          setItems(nextItems)
-          setCursor(nextCursor)
-        }
-      } catch (err) {
-        if (!ignore) setError(err?.message || 'Suche fehlgeschlagen.')
-      } finally {
-        if (!ignore) setLoading(false)
-      }
-    }
-    fetchResults()
-    return () => { ignore = true }
-  }, [query, activeTab, hasQuery])
+    setErrorMessage(error?.message || '')
+  }, [error])
+
+  const pages = useMemo(() => (Array.isArray(data) ? data.filter(Boolean) : []), [data])
+  const mergedItems = useMemo(() => {
+    if (!pages.length) return []
+    return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
+  }, [pages])
+
+  const lastPage = pages[pages.length - 1] || null
+  const cursor = hasQuery ? (lastPage?.cursor || null) : null
+  const hasMore = hasQuery && Boolean(cursor)
+  const loading = hasQuery && (isLoading && pages.length === 0)
+  const loadingMore = hasQuery && !loading && isValidating && hasMore
 
   useEffect(() => {
     const signature = `${query}::${activeTab}`
@@ -186,46 +203,46 @@ function useProvideSearchContext () {
   }, [draftQuery, rememberSearch])
 
   const loadMore = useCallback(async () => {
-    if (!cursor || loading || loadingMore || !hasQuery) return
-    const requestSignature = searchSignatureRef.current
-    setLoadingMore(true)
-    try {
-      const { items: nextItems, cursor: nextCursor } = await searchBsky({ query, type: activeTab, cursor })
-      if (searchSignatureRef.current !== requestSignature) return
-      setItems(prev => [...prev, ...nextItems])
-      setCursor(nextCursor)
-    } catch (err) {
-      if (searchSignatureRef.current !== requestSignature) return
-      setError(err?.message || 'Weitere Ergebnisse konnten nicht geladen werden.')
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [cursor, loading, loadingMore, hasQuery, query, activeTab])
+    if (!hasQuery || !hasMore || loading || loadingMore) return
+    await setSize(size + 1)
+  }, [hasQuery, hasMore, loading, loadingMore, setSize, size])
 
   const handleEngagementChange = useCallback((targetId, patch = {}) => {
     if (!targetId) return
-    setItems((prev) => prev.map((entry) => {
-      const entryId = entry.listEntryId || entry.uri || entry.cid
-      if (entryId !== targetId) return entry
-      const nextStats = { ...(entry.stats || {}) }
-      if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
-      if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
-      const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
-      const nextViewer = { ...baseViewer }
-      if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
-      if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
-      if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
-      const nextRaw = entry.raw ? { ...entry.raw } : null
-      if (nextRaw?.post) nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
-      else if (nextRaw?.item) nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
-      return {
-        ...entry,
-        stats: nextStats,
-        viewer: nextViewer,
-        raw: nextRaw || entry.raw
-      }
-    }))
-  }, [])
+    mutate((previousPages) => {
+      if (!Array.isArray(previousPages)) return previousPages
+      let changed = false
+      const updated = previousPages.map((page) => {
+        if (!page || !Array.isArray(page.items)) return page
+        let pageChanged = false
+        const nextItems = page.items.map((entry) => {
+          const entryId = entry.listEntryId || entry.uri || entry.cid
+          if (entryId !== targetId) return entry
+          pageChanged = true
+          changed = true
+          const nextStats = { ...(entry.stats || {}) }
+          if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
+          if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
+          const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
+          const nextViewer = { ...baseViewer }
+          if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
+          if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
+          if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
+          const nextRaw = entry.raw ? { ...entry.raw } : null
+          if (nextRaw?.post) nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
+          else if (nextRaw?.item) nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
+          return {
+            ...entry,
+            stats: nextStats,
+            viewer: nextViewer,
+            raw: nextRaw || entry.raw
+          }
+        })
+        return pageChanged ? { ...page, items: nextItems } : page
+      })
+      return changed ? updated : previousPages
+    }, false)
+  }, [mutate])
 
   return {
     draftQuery,
@@ -235,11 +252,11 @@ function useProvideSearchContext () {
     setActiveTab,
     availableTabs,
     hasQuery,
-    items,
+    items: hasQuery ? mergedItems : [],
     cursor,
     loading,
     loadingMore,
-    error,
+    error: errorMessage,
     recentSearches,
     handleSelectRecent,
     loadMore,

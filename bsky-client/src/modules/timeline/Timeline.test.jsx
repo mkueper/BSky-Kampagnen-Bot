@@ -1,11 +1,16 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SWRConfig } from 'swr'
 import Timeline from './Timeline.jsx'
 import { AppProvider } from '../../context/AppContext.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
-    wrapper: AppProvider,
+    wrapper: ({ children }) => (
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, revalidateOnFocus: false }}>
+        <AppProvider>{children}</AppProvider>
+      </SWRConfig>
+    ),
     ...options
   })
 }
@@ -29,9 +34,11 @@ describe('Timeline', () => {
     })
   })
 
-  it('renders skeleton placeholders while the first page loads', () => {
+  it('renders skeleton placeholders while the first page loads', async () => {
     fetchTimelineMock.mockReturnValue(new Promise(() => {}))
-    renderWithProviders(<Timeline />)
+    await act(async () => {
+      renderWithProviders(<Timeline />)
+    })
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
@@ -42,7 +49,9 @@ describe('Timeline', () => {
       cursor: null
     })
 
-    renderWithProviders(<Timeline />)
+    await act(async () => {
+      renderWithProviders(<Timeline />)
+    })
 
     await waitFor(() => {
       expect(screen.getByTestId('skeet-item')).toHaveTextContent('at://example/post1')

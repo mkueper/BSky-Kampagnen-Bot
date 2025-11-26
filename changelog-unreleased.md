@@ -1,5 +1,11 @@
 # Unreleased Notes
 
+## 2025-11-26
+
+### Client
+- **Refactor:** Timeline, Notifications, Saved Feed, Blockliste, Profil-Feeds sowie Suche/Hashtag-Pane nutzen jetzt `useSWRInfinite`. Paging, Engagement-Updates und Scrolltrigger laufen dadurch konsistent über den SWR-Cache; die bestehenden Tests kapseln ihre Requests über einen lokalen `SWRConfig`.
+- **Improvement:** Der Client wird global über einen `SWRConfig`-Wrapper konfiguriert (`src/main.jsx`). Fetcher, Deduping-Intervall, Focus-Throttle und Retry-Count greifen damit einheitlich für alle Hooks.
+
 ## 2025-11-24
 
 ### Backend

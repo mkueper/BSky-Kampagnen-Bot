@@ -1,45 +1,62 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import useSWRInfinite from 'swr/infinite'
 import { Button, Card, fetchBlocks } from '../shared'
 import { useAppDispatch } from '../../context/AppContext'
 
+const PAGE_SIZE = 50
+
 export default function BlockListView () {
   const dispatch = useAppDispatch()
-  const [blocks, setBlocks] = useState([])
-  const [cursor, setCursor] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState('')
+  const [reloadTick, setReloadTick] = useState(0)
 
-  const loadBlocks = useCallback(async ({ withCursor, append = false } = {}) => {
-    if (!append) {
-      setLoading(true)
-      setError('')
-    }
-    try {
-      const { blocks: nextBlocks, cursor: nextCursor } = await fetchBlocks({ cursor: withCursor })
-      setBlocks(prev => append ? [...prev, ...nextBlocks] : nextBlocks)
-      setCursor(nextCursor)
-    } catch (err) {
-      setError(err?.message || 'Blockliste konnte nicht geladen werden.')
-    } finally {
-      if (append) setLoadingMore(false)
-      else setLoading(false)
+  const getBlocksKey = useCallback((pageIndex, previousPageData) => {
+    if (previousPageData && !previousPageData.cursor) return null
+    const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
+    return ['bsky-blocks', reloadTick, cursor]
+  }, [reloadTick])
+
+  const fetchBlocksPage = useCallback(async ([, _reload, cursor]) => {
+    const { blocks, cursor: nextCursor } = await fetchBlocks({
+      cursor: cursor || undefined,
+      limit: PAGE_SIZE
+    })
+    return {
+      items: blocks,
+      cursor: nextCursor || null
     }
   }, [])
 
-  useEffect(() => {
-    loadBlocks()
-  }, [loadBlocks])
+  const {
+    data,
+    error,
+    size,
+    setSize,
+    isLoading,
+    isValidating
+  } = useSWRInfinite(getBlocksKey, fetchBlocksPage, {
+    revalidateFirstPage: false
+  })
+
+  const pages = useMemo(() => (Array.isArray(data) ? data.filter(Boolean) : []), [data])
+  const blocks = useMemo(() => {
+    if (!pages.length) return []
+    return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
+  }, [pages])
+
+  const lastPage = pages[pages.length - 1] || null
+  const hasMore = Boolean(lastPage?.cursor)
+  const isLoadingInitial = isLoading && pages.length === 0
+  const isLoadingMore = !isLoadingInitial && isValidating && hasMore
 
   const handleReload = useCallback(() => {
-    loadBlocks()
-  }, [loadBlocks])
+    setReloadTick((tick) => tick + 1)
+    setSize(1)
+  }, [setSize])
 
   const handleLoadMore = useCallback(() => {
-    if (!cursor || loadingMore) return
-    setLoadingMore(true)
-    loadBlocks({ withCursor: cursor, append: true })
-  }, [cursor, loadingMore, loadBlocks])
+    if (!hasMore || isLoadingInitial || isLoadingMore) return
+    setSize(size + 1)
+  }, [hasMore, isLoadingInitial, isLoadingMore, setSize, size])
 
   const handleOpenProfile = useCallback((actor) => {
     if (!actor) return
@@ -60,18 +77,18 @@ export default function BlockListView () {
       {error ? (
         <Card padding='p-4' className='border border-red-200 bg-red-50 text-sm text-red-700'>
           <p className='font-semibold'>Fehler beim Laden deiner Blockliste.</p>
-          <p className='mt-1'>{error}</p>
+          <p className='mt-1'>{error?.message || 'Blockliste konnte nicht geladen werden.'}</p>
           <Button className='mt-3' variant='primary' size='pill' onClick={handleReload}>
             Erneut versuchen
           </Button>
         </Card>
       ) : null}
 
-      {loading && !hasBlocks ? (
+      {isLoadingInitial && !hasBlocks ? (
         <p className='text-sm text-foreground-muted'>Blockliste wird geladen…</p>
       ) : null}
 
-      {!loading && !error && !hasBlocks ? (
+      {!isLoadingInitial && !isLoading && !error && !hasBlocks ? (
         <p className='text-sm text-foreground-muted'>Du hast aktuell keine Accounts blockiert.</p>
       ) : null}
 
@@ -104,10 +121,10 @@ export default function BlockListView () {
         ))}
       </div>
 
-      {cursor ? (
+      {hasMore ? (
         <div className='flex justify-center pt-2'>
-          <Button variant='secondary' onClick={handleLoadMore} disabled={loadingMore}>
-            {loadingMore ? 'Lädt…' : 'Mehr laden'}
+          <Button variant='secondary' onClick={handleLoadMore} disabled={isLoadingMore}>
+            {isLoadingMore ? 'Lädt…' : 'Mehr laden'}
           </Button>
         </div>
       ) : null}

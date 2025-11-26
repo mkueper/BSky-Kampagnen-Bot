@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
+import useSWRInfinite from 'swr/infinite'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
@@ -963,11 +964,6 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
 
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [cursor, setCursor] = useState(null)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [retryTick, setRetryTick] = useState(0)
   const loadMoreTriggerRef = useRef(null)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -976,60 +972,59 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })
   }, [dispatch])
 
-  const hasMore = useMemo(() => Boolean(cursor), [cursor])
+  const getNotificationsKey = useCallback((pageIndex, previousPageData) => {
+    if (previousPageData && !previousPageData.cursor) return null
+    const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
+    return ['bsky-notifications', activeTab, refreshKey, manualRefreshTick, retryTick, cursor]
+  }, [activeTab, refreshKey, manualRefreshTick, retryTick])
 
-  const fetchPage = useCallback(async ({ withCursor, markSeen = false, filter = 'all' } = {}) => {
+  const fetchNotificationsPage = useCallback(async ([, filter, _refresh, _manual, _retry, cursor]) => {
     const { items: notifications, cursor: nextCursor, unreadCount } = await fetchNotificationsApi({
-      cursor: withCursor,
-      markSeen,
-      filter,
+      cursor: cursor || undefined,
+      markSeen: filter === 'all' && !cursor,
+      filter
     })
-    return { notifications, cursor: nextCursor, unreadCount }
+    return {
+      items: notifications,
+      cursor: nextCursor || null,
+      unreadCount
+    }
   }, [])
 
+  const {
+    data,
+    error,
+    size,
+    setSize,
+    mutate,
+    isLoading,
+    isValidating
+  } = useSWRInfinite(getNotificationsKey, fetchNotificationsPage, {
+    revalidateFirstPage: false
+  })
+
+  const pages = useMemo(() => (Array.isArray(data) ? data.filter(Boolean) : []), [data])
+  const mergedItems = useMemo(() => {
+    if (!pages.length) return []
+    return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
+  }, [pages])
+
+  const lastPage = pages[pages.length - 1] || null
+  const hasMore = Boolean(lastPage?.cursor)
+  const isLoadingInitial = isLoading && pages.length === 0
+  const isLoadingMore = !isLoadingInitial && isValidating && hasMore
+
   useEffect(() => {
-    let ignore = false
-    async function loadInitial () {
-      setLoading(true)
-      setError('')
-      try {
-        const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({
-          markSeen: activeTab === 'all',
-          filter: activeTab
-        })
-        if (!ignore) {
-          setItems(notifications)
-          setCursor(nextCursor)
-          syncUnread(unreadCount)
-        }
-      } catch (err) {
-        if (!ignore) setError(err?.message || 'Mitteilungen konnten nicht geladen werden.')
-      } finally {
-        if (!ignore) setLoading(false)
-      }
+    const firstUnread = pages[0]?.unreadCount
+    if (typeof firstUnread === 'number') {
+      syncUnread(firstUnread)
     }
-    loadInitial()
-    return () => {
-      ignore = true
-    }
-  }, [refreshKey, retryTick, fetchPage, activeTab, manualRefreshTick])
+  }, [pages, syncUnread])
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return
-    setLoadingMore(true)
-    try {
-      const { notifications, cursor: nextCursor, unreadCount } = await fetchPage({ withCursor: cursor, filter: activeTab })
-      setItems(prev => [...prev, ...notifications])
-      setCursor(nextCursor)
-      if (typeof unreadCount === 'number') {
-        syncUnread(unreadCount)
-      }
-    } catch (err) {
-      console.error('Notifications loadMore failed', err)
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [cursor, fetchPage, hasMore, loadingMore, activeTab, syncUnread])
+    if (isLoadingInitial || isLoadingMore || !hasMore) return
+    await setSize(size + 1)
+  }, [hasMore, isLoadingInitial, isLoadingMore, setSize, size])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead) return
@@ -1037,15 +1032,24 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     const targetId = getNotificationId(notification)
     if (!targetId) return
 
-    setItems(prev =>
-      prev.map(entry => {
-        const entryId = getNotificationId(entry)
-        if (entryId === targetId) {
-          return entry.isRead ? entry : { ...entry, isRead: true }
-        }
-        return entry
+    mutate((previousPages) => {
+      if (!Array.isArray(previousPages)) return previousPages
+      let changed = false
+      const updated = previousPages.map((page) => {
+        if (!page || !Array.isArray(page.items)) return page
+        let pageChanged = false
+        const nextItems = page.items.map((entry) => {
+          const entryId = getNotificationId(entry)
+          if (entryId !== targetId) return entry
+          if (entry.isRead) return entry
+          pageChanged = true
+          changed = true
+          return { ...entry, isRead: true }
+        })
+        return pageChanged ? { ...page, items: nextItems } : page
       })
-    )
+      return changed ? updated : previousPages
+    }, false)
 
     setUnreadCount(current => {
       if (current <= 0) return 0
@@ -1077,18 +1081,16 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     }
   }, [hasMore, loadMore])
 
-
-
   useEffect(() => {
     if (activeTab !== 'mentions') return
-    if (loading || loadingMore) return
+    if (isLoadingInitial || isLoadingMore) return
     if (!hasMore) return
     const MIN_BUFFER = 8
-    if (items.length >= MIN_BUFFER) return
+    if (mergedItems.length >= MIN_BUFFER) return
     loadMore()
-  }, [activeTab, items.length, hasMore, loadMore, loading, loadingMore])
+  }, [activeTab, hasMore, loadMore, mergedItems.length, isLoadingInitial, isLoadingMore])
 
-  if (loading) {
+  if (isLoadingInitial) {
     return (
       <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
         <NotificationCardSkeleton />
@@ -1101,7 +1103,7 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
   if (error) {
     return (
       <div className='space-y-3'>
-        <p className='text-sm text-red-600'>{error}</p>
+        <p className='text-sm text-red-600'>{error?.message || 'Mitteilungen konnten nicht geladen werden.'}</p>
         <Button variant='secondary' size='pill' onClick={() => setRetryTick(v => v + 1)}>
           Erneut versuchen
         </Button>
@@ -1109,14 +1111,14 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     )
   }
 
-  if (items.length === 0) {
+  if (mergedItems.length === 0) {
     return <p className='text-sm text-muted-foreground'>Keine Mitteilungen gefunden.</p>
   }
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
-        {items.map((item, idx) => {
+        {mergedItems.map((item, idx) => {
           const itemId = getNotificationId(item)
           return (
             <li key={itemId || `notification-${idx}`}>
@@ -1138,7 +1140,7 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
           ref={loadMoreTriggerRef}
           className='py-4 text-center text-sm text-foreground-muted'
         >
-          {loadingMore ? 'Lade…' : 'Weitere Mitteilungen werden automatisch geladen…'}
+          {isLoadingMore ? 'Lade…' : 'Weitere Mitteilungen werden automatisch geladen…'}
         </div>
       ) : null}
     </section>

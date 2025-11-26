@@ -1,12 +1,17 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SWRConfig } from 'swr'
 import Notifications, { NotificationCard } from './Notifications.jsx'
 import { AppProvider } from '../../context/AppContext.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
-    wrapper: AppProvider,
+    wrapper: ({ children }) => (
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0, revalidateOnFocus: false }}>
+        <AppProvider>{children}</AppProvider>
+      </SWRConfig>
+    ),
     ...options
   })
 }
@@ -127,7 +132,11 @@ describe('Notifications', () => {
       unreadCount: 2
     })
 
-    const { container } = renderWithProviders(<Notifications activeTab='all' />)
+    let container
+    await act(async () => {
+      const rendered = renderWithProviders(<Notifications activeTab='all' />)
+      container = rendered.container
+    })
 
     await waitFor(() => {
       expect(container.querySelectorAll('[data-component="BskyNotificationCard"]').length).toBe(2)
@@ -158,7 +167,11 @@ describe('Notifications', () => {
         unreadCount: 0
       })
 
-    const { container } = renderWithProviders(<Notifications activeTab='mentions' />)
+    let container
+    await act(async () => {
+      const rendered = renderWithProviders(<Notifications activeTab='mentions' />)
+      container = rendered.container
+    })
 
     // Wait for both fetches to complete
     await waitFor(() => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2), { timeout: 2000 })
