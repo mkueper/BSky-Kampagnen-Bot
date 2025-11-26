@@ -27,7 +27,7 @@ export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: ViewHorizontalIcon },
 ];
 
-export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null }) {
+export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null, interactionsLocked = false }) {
   const ThemeToggleIcon = themeToggle?.Icon || null;
   return (
     <nav
@@ -42,7 +42,7 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
-          const disabled = Boolean(item.disabled);
+          const disabled = Boolean(item.disabled) || interactionsLocked;
           const showBadge = item.id === 'notifications' && notificationsUnread > 0;
           const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread);
           const label = showBadge ? `${item.label} (${badgeLabel} neu)` : item.label;
@@ -111,9 +111,11 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
         <div className="pt-2">
           <button
             type="button"
-            onClick={onCompose}
+            onClick={interactionsLocked ? undefined : onCompose}
             className="inline-flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:w-full lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            disabled={interactionsLocked}
             aria-label="Neuer Post"
+            aria-disabled={interactionsLocked || undefined}
             data-nav-item="compose"
             title="Neuer Post"
           >

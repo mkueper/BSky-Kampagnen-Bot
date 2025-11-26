@@ -3,15 +3,15 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-1. NAV-Interaktionen sperren, wenn Detail-Panes (z. B. ContentPane) außerhalb der Hauptrouten geöffnet sind.
-2. Skeet-/Thread-Planung: Vorschaukarten visuell an Timeline angleichen und Outline für lange Threads bereitstellen.
-3. Internationalisierung vorbereiten: Texte zentral auslagern (z. B. i18n-Dateien) und UI-Komponenten darauf umstellen.
-4. Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und ggf. in `app-customization.json` ergänzen.
-5. Zentrale SWR-Einstellungen (Error-Boundaries/Logging) ergänzen und an globale `SWRConfig` anbinden.
-6. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
-7. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
-8. Action-Typen/String-Konstanten zentral definieren (z. B. `actions.js`) und überall nur noch diese Konstanten verwenden.
-7. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
+1. Internationalisierung vorbereiten: Texte zentral auslagern (z. B. i18n-Dateien) und UI-Komponenten darauf umstellen.
+2. Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und ggf. in `app-customization.json` ergänzen.
+3. Zentrale SWR-Einstellungen (Error-Boundaries/Logging) ergänzen und an globale `SWRConfig` anbinden.
+4. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
+5. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
+6. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
+7. Action-Typen/String-Konstanten zentral definieren (z. B. `actions.js`) und überall nur noch diese Konstanten verwenden.
+8.  Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
+9.  Im eigenen Profil (oder der Profil-Viewer-Ansicht) soll ein Klick auf das eigene Profil nicht erneut den Viewer öffnen (self-view verhindern).
 
 ## In Progress
 
@@ -19,17 +19,19 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 1. NAV-Badge für ungelesene Notifications aktualisiert sich erst nach dem Öffnen des Mitteilungs-Panels.
 
 ## Review
-1. Pane-Routing über Hash/URL verankern, sodass Home/Mitteilungen/Saved/Blocks/Suche auch nach Refresh auf der korrekten Ansicht landen.
-2. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
-3. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
-4. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
-5. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
+1. Pane-Routing über `react-router-dom` (HashRouter) weiter ausbauen (Nested Routes, Direktaufrufe für zukünftige Chats/Feeds).
+2. NAV-Interaktionen sperren, wenn Detail-Panes (z. B. ContentPane) außerhalb der Hauptrouten geöffnet sind.
+3. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
+4. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
+5. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
+6. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
 
 ## Done
 
 ### 2025-11-26
 - einen globalen SWRConfig Wrapper (z. B. in src/main.jsx) einführen, damit wir Default-Fetcher/Fehlerlogging zentral steuern können
-- 
+- NAV-Interaktionen sperren, wenn Detail-Panes (z. B. ContentPane) außerhalb der Hauptrouten geöffnet sind.
+  
 ### 2025-11-25
 - Thread-Lesefenster (Inline-Pane) ohne Reaktionen, Inhalte über `app.bsky.feed.getPostThread` laden, Text/Medien `user-select: none`.
 - Thread-Unroll: „Unroll“-Button inklusive Modal zeigt bei eigenen Threads den Autor-Verlauf ohne Fremdantworten.

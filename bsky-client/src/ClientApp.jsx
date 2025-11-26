@@ -46,22 +46,6 @@ const ROUTE_SECTION_MAP = Object.entries(SECTION_ROUTE_MAP).reduce((acc, [sectio
   return acc
 }, {})
 
-const getPathFromHash = () => {
-  if (typeof window === 'undefined') return '/'
-  const hash = window.location.hash || ''
-  const normalized = hash.replace(/^#/, '')
-  return normalized ? (normalized.startsWith('/') ? normalized : `/${normalized}`) : '/'
-}
-
-const setHashPath = (path) => {
-  if (typeof window === 'undefined') return
-  const normalized = path.startsWith('/') ? path : `/${path}`
-  const nextHash = normalized === '/' ? '#' : `#${normalized.slice(1)}`
-  if (window.location.hash !== nextHash) {
-    window.location.hash = nextHash
-  }
-}
-
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
   return { default: module.SearchView ?? module.default }
@@ -104,8 +88,16 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
-  const [currentPath, setCurrentPath] = useState(() => getPathFromHash())
+  const location = useLocation()
+  const navigate = useNavigate()
   const previousSectionRef = useRef(section)
+  const pushSectionRoute = useCallback((nextSection) => {
+    const targetPath = SECTION_ROUTE_MAP[nextSection] || '/'
+    if (location.pathname !== targetPath) {
+      navigate(targetPath, { replace: false })
+    }
+  }, [location.pathname, navigate])
+  const sectionRef = useRef(section)
 
   const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
@@ -163,29 +155,16 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
 
   useEffect(() => {
-    setCurrentPath(getPathFromHash())
-    if (typeof window === 'undefined') return undefined
-    const handleHashChange = () => {
-      setCurrentPath(getPathFromHash())
-    }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
+    sectionRef.current = section
+  }, [section])
 
   useEffect(() => {
-    const nextSection = ROUTE_SECTION_MAP[currentPath] || 'home'
-    if (nextSection !== section) {
+    const normalizedPath = location.pathname || '/'
+    const nextSection = ROUTE_SECTION_MAP[normalizedPath] || 'home'
+    if (nextSection !== sectionRef.current) {
       dispatch({ type: 'SET_SECTION', payload: nextSection })
     }
-  }, [currentPath, section, dispatch])
-
-  useEffect(() => {
-    const targetPath = SECTION_ROUTE_MAP[section] || '/'
-    if (currentPath !== targetPath) {
-      setHashPath(targetPath)
-      setCurrentPath(targetPath)
-    }
-  }, [section, currentPath])
+  }, [location.pathname, dispatch])
 
   useEffect(() => {
     refreshFeedPicker({ force: true })
@@ -367,6 +346,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       if (threadState.active) closeThread({ force: true })
       else if (section === 'home') refreshTimeline()
       dispatch({ type: 'SET_SECTION', payload: 'home' })
+      pushSectionRoute('home')
       return
     }
     if (id === 'profile') {
@@ -379,7 +359,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (threadState.active) closeThread({ force: true })
     dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
     dispatch({ type: 'SET_SECTION', payload: id, actor })
-  }, [closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshNotifications, refreshTimeline, section, threadState.active, me])
+    pushSectionRoute(id)
+  }, [closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshNotifications, refreshTimeline, section, threadState.active, me, pushSectionRoute])
 
   const scrollTopForceVisible = section === 'home' && timelineHasNew
 

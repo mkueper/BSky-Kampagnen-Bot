@@ -21,7 +21,7 @@ const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.ma
   ? window.matchMedia('(max-width: 768px)').matches
   : false)
 
-function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeToggle = null }) {
+function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeToggle = null, interactionsLocked = false }) {
   const items = NAV_ITEMS.filter((item) => MOBILE_NAV_IDS.includes(item.id))
   const ThemeToggleIcon = themeToggle?.Icon || null
   return (
@@ -37,7 +37,7 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeTogg
         {items.map((item) => {
           const Icon = item.icon
           const isActive = activeSection === item.id
-          const disabled = Boolean(item.disabled)
+          const disabled = Boolean(item.disabled) || interactionsLocked
           const showBadge = item.id === 'notifications' && notificationsUnread > 0
           const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread)
           return (
@@ -127,11 +127,14 @@ export default function BskyClientLayout ({
     return () => mq.removeEventListener('change', handleChange)
   }, [])
 
-  const handleSelect = useCallback((section) => {
+  const navInteractionsLocked = Boolean(detailPaneActive)
+
+  const handleSelect = useCallback((section, options = {}) => {
+    if (navInteractionsLocked && !options?.force) return
     if (typeof onSelectSection === 'function') {
       onSelectSection(section)
     }
-  }, [onSelectSection])
+  }, [onSelectSection, navInteractionsLocked])
 
   const handleOpenCompose = useCallback(() => {
     if (typeof onOpenCompose === 'function') {
@@ -217,6 +220,7 @@ export default function BskyClientLayout ({
             onSelect={handleSelect}
             onCompose={handleOpenCompose}
             themeToggle={themeToggleProps}
+            interactionsLocked={navInteractionsLocked}
           />
         </aside>
       ) : null}
@@ -308,6 +312,7 @@ export default function BskyClientLayout ({
             notificationsUnread={notificationsUnread}
             onSelect={handleSelect}
             themeToggle={themeToggleProps}
+            interactionsLocked={navInteractionsLocked}
           />
         ) : null}
       </section>

@@ -5,6 +5,7 @@ import { SWRConfig } from 'swr'
 import { fetcher } from './lib/fetcher'
 import { AppProvider } from './context/AppContext'
 import { ToastProvider } from '@bsky-kampagnen-bot/shared-ui'
+import { HashRouter } from 'react-router-dom'
 
 const rootEl = document.getElementById('root')
 const root = createRoot(rootEl)
@@ -17,9 +18,11 @@ root.render(
         focusThrottleInterval: 2000,
         errorRetryCount: 2
       }}>
-        <AppProvider>
-          <ClientApp />
-        </AppProvider>
+        <HashRouter>
+          <AppProvider>
+            <ClientApp />
+          </AppProvider>
+        </HashRouter>
       </SWRConfig>
     </ToastProvider>
   </React.StrictMode>
