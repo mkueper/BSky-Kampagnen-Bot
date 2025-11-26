@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
@@ -27,6 +29,23 @@ const STATIC_TIMELINE_TABS = [
   { id: 'mutuals', label: 'Mutuals', type: 'feed', value: 'mutuals', feedUri: null, origin: 'official' },
   { id: 'best-of-follows', label: 'Best of Follows', type: 'feed', value: 'best-of-follows', feedUri: null, origin: 'official' }
 ]
+
+const SECTION_ROUTE_MAP = {
+  home: '/',
+  search: '/search',
+  notifications: '/notifications',
+  saved: '/saved',
+  blocks: '/blocks',
+  settings: '/settings',
+  lists: '/lists',
+  feeds: '/feeds',
+  chat: '/chat'
+}
+
+const ROUTE_SECTION_MAP = Object.entries(SECTION_ROUTE_MAP).reduce((acc, [sectionId, path]) => {
+  acc[path] = sectionId
+  return acc
+}, {})
 
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
@@ -70,6 +89,9 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const previousSectionRef = useRef(section)
 
   const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
@@ -127,8 +149,31 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
 
   useEffect(() => {
+    const normalizedPath = location.pathname || '/'
+    const nextSection = ROUTE_SECTION_MAP[normalizedPath] || 'home'
+    if (nextSection !== section) {
+      dispatch({ type: 'SET_SECTION', payload: nextSection })
+    }
+  }, [location.pathname, section, dispatch])
+
+  useEffect(() => {
+    const targetPath = SECTION_ROUTE_MAP[section]
+    if (!targetPath) return
+    if (location.pathname !== targetPath) {
+      navigate(targetPath, { replace: false })
+    }
+  }, [section, location.pathname, navigate])
+
+  useEffect(() => {
     refreshFeedPicker({ force: true })
   }, [refreshFeedPicker])
+
+  useEffect(() => {
+    if (section === 'notifications' && previousSectionRef.current !== 'notifications') {
+      refreshNotifications()
+    }
+    previousSectionRef.current = section
+  }, [section, refreshNotifications])
 
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
@@ -292,7 +337,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       refreshFeedPicker({ force: true })
       return
     }
-    if (id === 'notifications') {
+    if (id === 'notifications' && section === 'notifications') {
       refreshNotifications()
     }
     if (id === 'home') {

@@ -5,6 +5,7 @@
 ### Client
 - **Refactor:** Timeline, Notifications, Saved Feed, Blockliste, Profil-Feeds sowie Suche/Hashtag-Pane nutzen jetzt `useSWRInfinite`. Paging, Engagement-Updates und Scrolltrigger laufen dadurch konsistent über den SWR-Cache; die bestehenden Tests kapseln ihre Requests über einen lokalen `SWRConfig`.
 - **Improvement:** Der Client wird global über einen `SWRConfig`-Wrapper konfiguriert (`src/main.jsx`). Fetcher, Deduping-Intervall, Focus-Throttle und Retry-Count greifen damit einheitlich für alle Hooks.
+- **Feature:** `react-router-dom` (HashRouter) steuert nun die Navigation. Home, Mitteilungen, Gespeichert, Blockliste, Suche und Einstellungen synchronisieren sich mit der URL, sodass direkte Aufrufe/Refreshes zuverlässig auf der richtigen Ansicht landen.
 
 ## 2025-11-24
 
