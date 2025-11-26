@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
@@ -47,6 +46,22 @@ const ROUTE_SECTION_MAP = Object.entries(SECTION_ROUTE_MAP).reduce((acc, [sectio
   return acc
 }, {})
 
+const getPathFromHash = () => {
+  if (typeof window === 'undefined') return '/'
+  const hash = window.location.hash || ''
+  const normalized = hash.replace(/^#/, '')
+  return normalized ? (normalized.startsWith('/') ? normalized : `/${normalized}`) : '/'
+}
+
+const setHashPath = (path) => {
+  if (typeof window === 'undefined') return
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  const nextHash = normalized === '/' ? '#' : `#${normalized.slice(1)}`
+  if (window.location.hash !== nextHash) {
+    window.location.hash = nextHash
+  }
+}
+
 const SearchViewLazy = lazy(async () => {
   const module = await import('./modules/search/index.js')
   return { default: module.SearchView ?? module.default }
@@ -89,8 +104,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
-  const location = useLocation()
-  const navigate = useNavigate()
+  const [currentPath, setCurrentPath] = useState(() => getPathFromHash())
   const previousSectionRef = useRef(section)
 
   const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
@@ -149,20 +163,29 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
 
   useEffect(() => {
-    const normalizedPath = location.pathname || '/'
-    const nextSection = ROUTE_SECTION_MAP[normalizedPath] || 'home'
+    setCurrentPath(getPathFromHash())
+    if (typeof window === 'undefined') return undefined
+    const handleHashChange = () => {
+      setCurrentPath(getPathFromHash())
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
+    const nextSection = ROUTE_SECTION_MAP[currentPath] || 'home'
     if (nextSection !== section) {
       dispatch({ type: 'SET_SECTION', payload: nextSection })
     }
-  }, [location.pathname, section, dispatch])
+  }, [currentPath, section, dispatch])
 
   useEffect(() => {
-    const targetPath = SECTION_ROUTE_MAP[section]
-    if (!targetPath) return
-    if (location.pathname !== targetPath) {
-      navigate(targetPath, { replace: false })
+    const targetPath = SECTION_ROUTE_MAP[section] || '/'
+    if (currentPath !== targetPath) {
+      setHashPath(targetPath)
+      setCurrentPath(targetPath)
     }
-  }, [section, location.pathname, navigate])
+  }, [section, currentPath])
 
   useEffect(() => {
     refreshFeedPicker({ force: true })

@@ -19,7 +19,7 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 1. NAV-Badge für ungelesene Notifications aktualisiert sich erst nach dem Öffnen des Mitteilungs-Panels.
 
 ## Review
-1. Routing in `ClientApp.jsx` auf `react-router-dom` umstellen, sodass Pane-Wechsel URL-basiert funktionieren.
+1. Pane-Routing über Hash/URL verankern, sodass Home/Mitteilungen/Saved/Blocks/Suche auch nach Refresh auf der korrekten Ansicht landen.
 2. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
 3. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
 4. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
