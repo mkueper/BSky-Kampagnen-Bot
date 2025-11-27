@@ -65,7 +65,8 @@
       "*.mjs": "javascript",
       "*.cjs": "javascript",
       "*.css": "tailwindcss"
-    }
+    },
+    "vscodeTodo.enableWideView": false
   },
   // Debug/Run Konfigurationen
   "launch": {

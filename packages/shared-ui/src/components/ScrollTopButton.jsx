@@ -43,6 +43,7 @@ export default function ScrollTopButton({
   className,
   variant = "primary",
   forceVisible = false,
+  manualScroll = false,
   onActivate,
   children,
 }) {
@@ -135,7 +136,9 @@ export default function ScrollTopButton({
   };
 
   const handleClick = () => {
-    scrollToTop();
+    if (!manualScroll) {
+      scrollToTop();
+    }
     if (typeof onActivate === "function") {
       onActivate();
     }

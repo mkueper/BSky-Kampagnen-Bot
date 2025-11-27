@@ -14,8 +14,8 @@ import {
   defaultProfileViewerState,
   threadInitialState,
   threadReducer,
-  timelineInitialState,
-  timelineReducer
+  listViewInitialState,
+  listViewReducer
 } from './reducers/index.js';
 
 
@@ -24,8 +24,7 @@ const AppDispatchContext = createContext();
 
 const initialState = {
   section: 'home',
-
-  ...timelineInitialState,
+  ...listViewInitialState,
   ...composerInitialState,
   ...notificationsInitialState,
   ...profileInitialState,
@@ -138,14 +137,9 @@ function appReducer(state, action) {
   // For other actions, combine results from sliced reducers.
   // Note: The 'unknown action' error from the original reducer is removed for simplicity,
   // as each action is now passed to multiple reducer slices.
-  const timeline = timelineReducer({
-    timelineTab: state.timelineTab,
-    timelineSource: state.timelineSource,
-    refreshTick: state.refreshTick,
-    timelineTopUri: state.timelineTopUri,
-    timelineHasNew: state.timelineHasNew,
-    timelineLoading: state.timelineLoading,
-    timelineReady: state.timelineReady,
+  const listView = listViewReducer({
+    activeListKey: state.activeListKey,
+    lists: state.lists
   }, action);
 
   const composer = composerReducer({
@@ -173,7 +167,7 @@ function appReducer(state, action) {
 
   const finalState = {
     ...state,
-    ...timeline,
+    ...listView,
     ...composer,
     ...notifications,
     ...feed,

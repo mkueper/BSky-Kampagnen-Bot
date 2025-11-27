@@ -42,8 +42,7 @@ async function uploadTemp(req, res) {
     let buffer;
     try {
       buffer = Buffer.from(base64Payload, 'base64');
-      // eslint-disable-next-line no-unused-vars
-    } catch (err) {
+    } catch {
       return res.status(400).json({ error: 'Ungültige Datei.' });
     }
     if (!buffer || buffer.length === 0) {

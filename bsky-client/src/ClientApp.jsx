@@ -1,3 +1,14 @@
+/**
+ * ListView-Quick-Reminder:
+ * - Neuer Feed = neuer key + Meta in getTimelineListMeta/getNotificationListMeta.
+ * - kind/label/route/supportsPolling/supportsRefresh sauber setzen.
+ * - listService: data.type/mode/filter so auswerten, dass Fetch klar definiert ist.
+ * - Initial-Load: Beim ersten Aktivieren (!list || !list.loaded) -> refreshListByKey(key, { scrollAfter: true }).
+ * - Kein Auto-Reload beim Tab-Wechsel, nur bei Refresh/Home/LoadMore.
+ * - Polling setzt nur hasNew, lädt aber nichts automatisch nach.
+ * - ScrollToTop/Home: refresh + harter Scroll nach oben, wenn supportsRefresh === true.
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
@@ -5,16 +16,16 @@ import { useThread } from './hooks/useThread'
 import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
-import { useClientConfig } from './hooks/useClientConfig'
-import { useTimelineAutoRefresh } from './hooks/useTimelineAutoRefresh'
+import { useListPolling } from './hooks/useListPolling'
 import { useNotificationPolling } from './hooks/useNotificationPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
-import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
+import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { MixerHorizontalIcon } from '@radix-ui/react-icons'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
 import { useTranslation } from './i18n/I18nProvider.jsx'
+import { runListRefresh } from './modules/listView/listService.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
 import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
 import BlockListView from './modules/settings/BlockListView.jsx'
@@ -78,13 +89,9 @@ const NotificationsFallback = () => (
 export default function BskyClientApp ({ onNavigateDashboard }) {
   const {
     section,
-    timelineTab,
-    timelineSource,
-    refreshTick,
-    notificationsRefreshTick,
-    timelineTopUri,
+    activeListKey,
+    lists,
     notificationsUnread,
-    timelineHasNew,
     me,
     profileViewer,
     hashtagSearch
@@ -101,6 +108,13 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     }
   }, [location.pathname, navigate])
   const sectionRef = useRef(section)
+  const activeList = activeListKey ? lists?.[activeListKey] : null
+  const timelineKeyRef = useRef(activeList?.kind === 'timeline' ? activeList.key : 'discover')
+  useEffect(() => {
+    if (activeList?.kind === 'timeline' && activeList?.key) {
+      timelineKeyRef.current = activeList.key
+    }
+  }, [activeList?.kind, activeList?.key])
 
   const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
@@ -111,18 +125,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     openFeedManager
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
-  const { clientConfig } = useClientConfig()
 
-  const timelineSourceFeedUri = timelineSource?.feedUri || null
-  const timelineSourceId = timelineSource?.id || timelineTab
-  const timelineQueryParams = useMemo(() => {
-    if (timelineSourceFeedUri && timelineSource?.origin === 'pinned') {
-      return { feedUri: timelineSourceFeedUri }
-    }
-    return { tab: timelineSourceId }
-  }, [timelineSourceFeedUri, timelineSourceId, timelineSource?.origin])
-
-  useTimelineAutoRefresh(section, timelineTopUri, timelineQueryParams, dispatch)
+  useListPolling(lists, dispatch)
   useNotificationPolling(dispatch)
 
   const officialTabs = STATIC_TIMELINE_TABS
@@ -130,18 +134,99 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   const pinnedTabs = useMemo(() => {
     return (feedPicker?.pinned || [])
       .filter((entry) => entry.type === 'feed')
-      .map((entry) => ({
-        id: entry.id,
-        label: entry.displayName || entry.feedUri || 'Feed',
-        feedUri: entry.feedUri || entry.value,
-        value: entry.feedUri || entry.value,
-        type: 'feed',
-        pinned: true,
-        origin: 'pinned'
-      }))
-  }, [feedPicker?.pinned])
+      .map((entry) => {
+        const listState = lists?.[entry.id]
+        return {
+          id: entry.id,
+          label: entry.displayName || entry.feedUri || 'Feed',
+          feedUri: entry.feedUri || entry.value,
+          value: entry.feedUri || entry.value,
+          type: 'feed',
+          pinned: true,
+          origin: 'pinned',
+          hasNew: Boolean(listState?.hasNew)
+        }
+      })
+  }, [feedPicker?.pinned, lists])
 
-  const timelineTabs = officialTabs
+  const timelineTabs = useMemo(() => {
+    return officialTabs.map((tab) => {
+      const listState = lists?.[tab.id]
+      return {
+        ...tab,
+        hasNew: Boolean(listState?.hasNew)
+      }
+    })
+  }, [officialTabs, lists])
+
+  const allTimelineTabs = useMemo(() => [...timelineTabs, ...pinnedTabs], [timelineTabs, pinnedTabs])
+
+  const findTimelineTabByKey = useCallback((key) => {
+    return allTimelineTabs.find((tab) => tab?.id === key)
+  }, [allTimelineTabs])
+
+  const getTimelineListMeta = useCallback((keyOrTab) => {
+    const tabInfo = typeof keyOrTab === 'string' ? findTimelineTabByKey(keyOrTab) : keyOrTab
+    if (!tabInfo) return null
+    return {
+      key: tabInfo.id,
+      kind: tabInfo.origin === 'pinned' ? 'custom' : 'timeline',
+      label: tabInfo.label,
+      route: '/',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: {
+        type: 'timeline',
+        tab: tabInfo.origin === 'pinned' ? null : (tabInfo.value || tabInfo.id),
+        feedUri: tabInfo.feedUri || null
+      }
+    }
+  }, [findTimelineTabByKey])
+
+  const getNotificationListMeta = useCallback((key) => {
+    const filter = key === 'notifs:mentions' ? 'mentions' : 'all'
+    return {
+      key,
+      kind: 'notifications',
+      label: filter === 'mentions' ? 'Mentions' : 'Notifications',
+      route: '/notifications',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: { type: 'notifications', filter }
+    }
+  }, [])
+
+  const getScrollContainer = useCallback(
+    () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
+    []
+  )
+
+  const scrollActiveListToTop = useCallback(() => {
+    const el = getScrollContainer()
+    if (!el) return
+    el.scrollTop = 0
+  }, [getScrollContainer])
+
+  const refreshListByKey = useCallback(async (key, options = {}) => {
+    if (!key) return
+    const isNotification = key.startsWith('notifs:')
+    const meta = isNotification ? getNotificationListMeta(key) : getTimelineListMeta(key)
+    if (!meta) return
+    const listState = lists?.[key] || meta
+    try {
+      await runListRefresh({
+        list: { ...meta, ...(listState || {}) },
+        dispatch,
+        meta
+      })
+    } catch (error) {
+      console.error('Failed to refresh list', key, error)
+    } finally {
+      if (options.scrollAfter) {
+        scrollActiveListToTop()
+      }
+    }
+  }, [dispatch, getNotificationListMeta, getTimelineListMeta, lists, scrollActiveListToTop])
 
   const toggleFeedMenu = useCallback(() => {
     setFeedMenuOpen((prev) => !prev)
@@ -149,42 +234,23 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 
   const closeFeedMenu = useCallback(() => setFeedMenuOpen(false), [])
 
-  const getScrollContainer = useCallback(
-    () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
-    []
-  )
-
-  const scrollTimelineToTop = useCallback(() => {
-    const el = getScrollContainer()
-    if (!el) return
-    el.scrollTop = 0
-    dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
-  }, [getScrollContainer, dispatch])
-
-  const [timelinePaneRefreshing, setTimelinePaneRefreshing] = useState(false)
-  const [shouldScrollAfterRefresh, setShouldScrollAfterRefresh] = useState(false)
   const [notificationTab, setNotificationTab] = useState('all')
-  const [notificationTabRefreshKey, setNotificationTabRefreshKey] = useState(0)
-  const [notificationPaneRefreshing, setNotificationPaneRefreshing] = useState(false)
+  const notificationListKey = notificationTab === 'mentions' ? 'notifs:mentions' : 'notifs:all'
+  const timelinePaneRefreshing = Boolean(lists?.[timelineKeyRef.current]?.isRefreshing)
+  const notificationPaneRefreshing = Boolean(lists?.[notificationListKey]?.isRefreshing)
 
-  const refreshTimeline = useCallback(() => {
-    setShouldScrollAfterRefresh(true)
-    setTimelinePaneRefreshing(true)
-    dispatch({ type: 'REFRESH_TIMELINE' })
-  }, [dispatch])
-  const refreshNotifications = useCallback(() => dispatch({ type: 'REFRESH_NOTIFICATIONS' }), [dispatch])
-
-  const handleTimelineRefreshStateChange = useCallback((state) => {
-    setTimelinePaneRefreshing(state)
-    if (!state && shouldScrollAfterRefresh) {
-      scrollTimelineToTop()
-      setShouldScrollAfterRefresh(false)
-    }
-  }, [shouldScrollAfterRefresh, scrollTimelineToTop])
 
   useEffect(() => {
     sectionRef.current = section
   }, [section])
+
+  useEffect(() => {
+    if (section === 'home') {
+      dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
+    } else if (section === 'notifications') {
+      dispatch({ type: 'SET_ACTIVE_LIST', payload: notificationListKey })
+    }
+  }, [section, notificationListKey, dispatch])
 
   useEffect(() => {
     const normalizedPath = location.pathname || '/'
@@ -200,42 +266,46 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 
   useEffect(() => {
     if (section === 'notifications' && previousSectionRef.current !== 'notifications') {
-      refreshNotifications()
+      refreshListByKey(notificationListKey)
     }
     previousSectionRef.current = section
-  }, [section, refreshNotifications])
+  }, [section, refreshListByKey, notificationListKey])
 
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
-    const nextSource = tabInfo.feedUri && tabInfo.origin === 'pinned'
-      ? { id: tabInfo.id, kind: 'feed', label: tabInfo.label, feedUri: tabInfo.feedUri, origin: 'pinned' }
-      : { id: tabInfo.value || tabInfo.id, kind: tabInfo.type || 'official', label: tabInfo.label, feedUri: null, origin: tabInfo.origin || 'official' }
-    const sameSource =
-      timelineSource?.id === nextSource.id &&
-      (timelineSource?.feedUri || null) === (nextSource.feedUri || null)
-
+    const meta = getTimelineListMeta(tabInfo)
+    if (!meta) return
+    const nextKey = meta.key
+    const existingList = lists?.[nextKey]
     if (threadState.active) closeThread({ force: true })
-    if (sameSource) {
-      refreshTimeline()
+    closeFeedMenu()
+    if (timelineKeyRef.current === nextKey) {
+      refreshListByKey(nextKey, { scrollAfter: true })
       return
     }
-    dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
-    dispatch({ type: 'SET_TIMELINE_TOP_URI', payload: '' })
-    dispatch({ type: 'SET_TIMELINE_SOURCE', payload: nextSource })
-    setShouldScrollAfterRefresh(false)
-    scrollTimelineToTop()
-    closeFeedMenu()
-  }, [threadState.active, closeThread, timelineSource, refreshTimeline, dispatch, closeFeedMenu, scrollTimelineToTop])
+    timelineKeyRef.current = nextKey
+    dispatch({ type: 'LIST_SET_REFRESHING', payload: { key: nextKey, value: false, meta } })
+    dispatch({ type: 'SET_ACTIVE_LIST', payload: nextKey })
+    if (section !== 'home') {
+      dispatch({ type: 'SET_SECTION', payload: 'home' })
+      pushSectionRoute('home')
+    }
+    scrollActiveListToTop()
+    if (!existingList || !existingList.loaded) {
+      refreshListByKey(nextKey, { scrollAfter: true })
+    }
+  }, [getTimelineListMeta, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, lists])
 
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {
       if (prev === tabId) {
-        setNotificationTabRefreshKey((tick) => tick + 1)
+        const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
+        refreshListByKey(key, { scrollAfter: true })
         return prev
       }
       return tabId
     })
-  }, [])
+  }, [refreshListByKey])
 
   const threadActions = threadState.active ? (
     <>
@@ -266,7 +336,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (section === 'home') {
       return (
         <TimelineHeader
-          timelineTab={timelineSource?.id || timelineTab}
+          timelineTab={timelineKeyRef.current}
           tabs={timelineTabs}
           onSelectTab={handleTimelineTabSelect}
           pinnedTabs={pinnedTabs}
@@ -294,9 +364,18 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
                       : 'border border-transparent bg-background-subtle text-foreground hover:border-foreground/40'
                   }`}
                 >
-                  {tab === 'all'
-                    ? t('layout.notifications.tabAll', 'Alle')
-                    : t('layout.notifications.tabMentions', 'Erwähnungen')}
+                  <span className='inline-flex items-center gap-2'>
+                    <span>
+                      {tab === 'all'
+                        ? t('layout.notifications.tabAll', 'Alle')
+                        : t('layout.notifications.tabMentions', 'Erwähnungen')}
+                    </span>
+                    {tab !== notificationTab && (tab === 'mentions'
+                      ? lists?.['notifs:mentions']?.hasNew
+                      : lists?.['notifs:all']?.hasNew) ? (
+                      <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.notifications.newItems', 'Neue Einträge')} />
+                    ) : null}
+                  </span>
                 </button>
               ))}
             </div>
@@ -339,8 +418,6 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     section,
     threadState.active,
     threadState.loading,
-    timelineSource,
-    timelineTab,
     timelineTabs,
     handleTimelineTabSelect,
     reloadThread,
@@ -349,20 +426,16 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     feedMenuOpen,
     toggleFeedMenu,
     closeFeedMenu,
-    closeThread,
     notificationsUnread,
     notificationTab,
     handleNotificationTabSelect,
     timelinePaneRefreshing,
     notificationPaneRefreshing,
+    lists,
     t
   ])
 
   const topBlock = null
-
-  useEffect(() => {
-    dispatch({ type: 'SET_TIMELINE_READY', payload: false })
-  }, [timelineTab, dispatch])
 
   const handleSelectSection = useCallback((id, actor = null) => {
     if (id === 'dashboard') {
@@ -377,20 +450,27 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       refreshFeedPicker({ force: true })
       return
     }
-    if (id === 'notifications' && section === 'notifications') {
-      refreshNotifications()
+    if (id === 'notifications') {
+      if (threadState.active) closeThread({ force: true })
+      dispatch({ type: 'SET_SECTION', payload: 'notifications' })
+      pushSectionRoute('notifications')
+      if (section === 'notifications') {
+        refreshListByKey(notificationListKey, { scrollAfter: true })
+      } else {
+        refreshListByKey(notificationListKey)
+      }
+      return
     }
     if (id === 'home') {
       if (threadState.active) {
         closeThread({ force: true })
-      } else if (section === 'home') {
-        scrollTimelineToTop()
-        refreshTimeline()
-      } else {
-        scrollTimelineToTop()
       }
-      dispatch({ type: 'SET_SECTION', payload: 'home' })
-      pushSectionRoute('home')
+      if (section !== 'home') {
+        dispatch({ type: 'SET_SECTION', payload: 'home' })
+        pushSectionRoute('home')
+      }
+      dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
+      refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
       return
     }
     if (id === 'profile') {
@@ -401,20 +481,23 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       }
     }
     if (threadState.active) closeThread({ force: true })
-    dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })
     dispatch({ type: 'SET_SECTION', payload: id, actor })
     pushSectionRoute(id)
-  }, [closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshNotifications, refreshTimeline, section, threadState.active, me, pushSectionRoute])
+  }, [closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey])
 
-  const scrollTopForceVisible = section === 'home' && timelineHasNew
+  const scrollTopForceVisible = Boolean(activeList?.hasNew)
 
   const handleScrollTopActivate = useCallback(() => {
-    if (section !== 'home') return
-    if (timelineHasNew) {
-      scrollTimelineToTop()
-      refreshTimeline()
+    if (!activeList?.key) {
+      scrollActiveListToTop()
+      return
     }
-  }, [section, timelineHasNew, scrollTimelineToTop, refreshTimeline])
+    if (activeList.supportsRefresh && activeList.hasNew) {
+      refreshListByKey(activeList.key, { scrollAfter: true })
+    } else {
+      scrollActiveListToTop()
+    }
+  }, [activeList, refreshListByKey, scrollActiveListToTop])
 
   const threadPane = threadState.active ? <ThreadView /> : null
   const profilePane = profileViewer?.open ? <ProfileViewerPane /> : null
@@ -471,9 +554,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
       >
         <MainContent
           notificationTab={notificationTab}
-          notificationTabRefreshKey={notificationTabRefreshKey}
-          onNotificationRefreshStateChange={setNotificationPaneRefreshing}
-          onTimelineRefreshStateChange={handleTimelineRefreshStateChange}
+          notificationListKey={notificationListKey}
+          timelineListKey={timelineKeyRef.current}
         />
       </BskyClientLayout>
       <Modals />
@@ -481,17 +563,12 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   )
 }
 
-function MainContent ({ notificationTab, notificationTabRefreshKey, onNotificationRefreshStateChange, onTimelineRefreshStateChange }) {
+function MainContent ({ notificationTab, notificationListKey, timelineListKey }) {
   const { section } = useAppState()
-  const dispatch = useAppDispatch()
-
-  const { clientConfig } = useClientConfig()
-  const refreshTimeline = useCallback(() => dispatch({ type: 'REFRESH_TIMELINE' }), [dispatch])
-
   if (section === 'home') {
     return (
       <div className='space-y-6'>
-        <Timeline isActive onRefreshStateChange={onTimelineRefreshStateChange} />
+        <Timeline listKey={timelineListKey} isActive />
       </div>
     )
   }
@@ -501,9 +578,8 @@ function MainContent ({ notificationTab, notificationTabRefreshKey, onNotificati
       <div className='space-y-6'>
         <Suspense fallback={<NotificationsFallback />}>
           <NotificationsLazy
+            listKey={notificationListKey}
             activeTab={notificationTab}
-            manualRefreshTick={notificationTabRefreshKey}
-            onRefreshStateChange={onNotificationRefreshStateChange}
           />
         </Suspense>
       </div>

@@ -85,7 +85,10 @@ export default tseslint.config(
 
   // 6. Frontend/Dashboard specific config (React)
   {
-    files: ["dashboard/src/**/*.{js,jsx}"],
+    files: [
+      "dashboard/src/**/*.{js,jsx}",
+      "bsky-client/src/**/*.{js,jsx}"
+    ],
     languageOptions: {
       globals: {
         ...globals.browser,

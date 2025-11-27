@@ -68,6 +68,7 @@ export function TimelineHeader ({
       <HorizontalScrollContainer className='max-w-full flex-1'>
         {tabs.map(tab => {
           const isActive = timelineTab === tab.id
+          const showBadge = !isActive && tab.hasNew
           return (
             <button
               key={tab.id}
@@ -83,6 +84,11 @@ export function TimelineHeader ({
             >
               <span className='inline-flex items-center gap-1'>
                 <span>{tab.label}</span>
+                {showBadge ? (
+                  <span className='inline-flex h-2 w-2 items-center justify-center'>
+                    <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.timeline.newItems', 'Neue Elemente')} />
+                  </span>
+                ) : null}
                 {tab.pinned ? (
                   <span className='text-xs font-semibold uppercase tracking-wide text-primary'>Pin</span>
                 ) : null}
@@ -144,6 +150,7 @@ TimelineHeader.propTypes = {
   tabs: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.string.isRequired,
     label: PropTypes.string.isRequired,
+    hasNew: PropTypes.bool,
     pinned: PropTypes.bool,
     feedUri: PropTypes.string
   })),

@@ -276,11 +276,12 @@ export async function fetchTimeline({ tab, feedUri, cursor, limit } = {}) {
   };
 }
 
-export async function fetchNotifications({ cursor, markSeen, filter } = {}) {
+export async function fetchNotifications({ cursor, markSeen, filter, limit } = {}) {
   const params = createSearchParams();
   if (cursor) params.set('cursor', cursor);
   if (markSeen) params.set('markSeen', 'true');
   if (filter) params.set('filter', filter);
+  if (typeof limit === 'number') params.set('limit', String(limit));
   const query = params.toString();
   const data = await requestJson(`/api/bsky/notifications${query ? `?${query}` : ''}`);
   return {

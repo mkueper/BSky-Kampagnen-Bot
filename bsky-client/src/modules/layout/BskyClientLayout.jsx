@@ -287,15 +287,17 @@ export default function BskyClientLayout ({
             />
           ) : null}
           {!isPaneExclusive ? (
-            <ScrollTopButton
-              containerId='bsky-scroll-container'
-              position='bottom-left'
-              variant='primary'
-              forceVisible={scrollTopForceVisible}
-              onActivate={onScrollTopActivate}
-              offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
-              horizontalOffset={isMobile ? 12 : 16}
-            />
+          <ScrollTopButton
+            containerId='bsky-scroll-container'
+            position='bottom-left'
+            variant='primary'
+            threshold={300}
+            forceVisible={scrollTopForceVisible}
+            manualScroll
+            onActivate={onScrollTopActivate}
+            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
+            horizontalOffset={isMobile ? 12 : 16}
+          />
           ) : null}
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (

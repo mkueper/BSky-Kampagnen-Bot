@@ -15,11 +15,11 @@ export function useThemeMode({
     
     if (typeof window === 'undefined') return resolvedDefault
 
-    // eslint-disable-next-line no-undef
+   // -----------
     const stored = window.localStorage.getItem('theme')
     if (stored && themeList.includes(stored)) return stored
 
-    // eslint-disable-next-line no-undef
+   // -----------
     const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
     //const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
     // Fallback auf 'dark' nur, wenn es auch existiert
@@ -31,14 +31,14 @@ export function useThemeMode({
   const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
     
     if (typeof window === 'undefined') return false
-    // eslint-disable-next-line no-undef
+   // -----------
     const stored = window.localStorage.getItem('theme')
     return Boolean(stored && themeList.includes(stored))
   })
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    // eslint-disable-next-line no-undef
+   // -----------
     const root = document.documentElement
     const resolvedTheme = themeList.includes(theme) ? theme : resolvedDefault
     const settings = themeConfig[resolvedTheme] || {}
@@ -51,18 +51,18 @@ export function useThemeMode({
     root.dataset.theme = resolvedTheme
     root.style.colorScheme = settings.colorScheme ?? 'light'
     if (userHasExplicitTheme) {
-      // eslint-disable-next-line no-undef
+     // -----------
       window.localStorage.setItem('theme', resolvedTheme)
     } else {
-      // eslint-disable-next-line no-undef
+     // -----------
       window.localStorage.removeItem('theme')
     }
   }, [theme, themeList, themeConfig, resolvedDefault, userHasExplicitTheme])
 
   useEffect(() => {
-    // eslint-disable-next-line no-undef
+   // -----------
     if (typeof window?.matchMedia !== 'function') return undefined
-    // eslint-disable-next-line no-undef
+   // -----------
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     const listener = event => {
       if (!userHasExplicitTheme) {

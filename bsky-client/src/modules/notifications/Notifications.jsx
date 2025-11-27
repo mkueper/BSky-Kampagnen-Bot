@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import useSWRInfinite from 'swr/infinite'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, fetchNotifications as fetchNotificationsApi, RichText, RepostMenuButton } from '../shared'
+import { Button, Card, useBskyEngagement, RichText, RepostMenuButton } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -10,7 +9,7 @@ import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-
+import { runListRefresh, runListLoadMore } from '../listView/listService.js'
 
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
@@ -984,127 +983,84 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
   return null
 }
 
-export default function Notifications ({ activeTab = 'all', manualRefreshTick = 0, onRefreshStateChange = () => {} }) {
+export default function Notifications ({ activeTab = 'all', listKey = 'notifs:all' }) {
   const { t } = useTranslation()
-  const { notificationsRefreshTick: refreshKey } = useAppState()
+  const { lists, notificationsUnread } = useAppState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
 
+  const list = listKey ? lists?.[listKey] : null
+  const items = useMemo(() => (Array.isArray(list?.items) ? list.items : []), [list?.items])
   const [retryTick, setRetryTick] = useState(0)
-  const [manualRefreshing, setManualRefreshing] = useState(false)
+  const [error, setError] = useState(null)
   const loadMoreTriggerRef = useRef(null)
-  const [unreadCount, setUnreadCount] = useState(0)
-  const prevManualRefreshTickRef = useRef(manualRefreshTick)
-  const syncUnread = useCallback((count) => {
-    setUnreadCount(count)
-    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: count })
+  const updateUnread = useCallback((count) => {
+    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: Math.max(0, count || 0) })
   }, [dispatch])
 
-  const getNotificationsKey = useCallback((pageIndex, previousPageData) => {
-    if (previousPageData && !previousPageData.cursor) return null
-    const cursor = pageIndex === 0 ? null : previousPageData?.cursor || null
-    return ['bsky-notifications', activeTab, refreshKey, retryTick, cursor]
-  }, [activeTab, refreshKey, retryTick])
-
-  const fetchNotificationsPage = useCallback(async ([, filter, _refresh, _retry, cursor]) => {
-    const { items: notifications, cursor: nextCursor, unreadCount } = await fetchNotificationsApi({
-      cursor: cursor || undefined,
-      markSeen: filter === 'all' && !cursor,
-      filter
-    })
-    return {
-      items: notifications,
-      cursor: nextCursor || null,
-      unreadCount
-    }
-  }, [])
-
-  const {
-    data,
-    error,
-    size,
-    setSize,
-    mutate,
-    isLoading,
-    isValidating
-  } = useSWRInfinite(getNotificationsKey, fetchNotificationsPage, {
-    revalidateFirstPage: false
-  })
-
-  const pages = useMemo(() => (Array.isArray(data) ? data.filter(Boolean) : []), [data])
-  const mergedItems = useMemo(() => {
-    if (!pages.length) return []
-    return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
-  }, [pages])
-
-  const lastPage = pages[pages.length - 1] || null
-  const hasMore = Boolean(lastPage?.cursor)
-  const isLoadingInitial = isLoading && pages.length === 0
-  const isLoadingMore = !isLoadingInitial && isValidating && hasMore
-  const isSoftRefreshing = !isLoadingInitial && isValidating && !isLoadingMore
+  const isLoadingInitial = !list || !list.loaded
+  const isLoadingMore = Boolean(list?.isLoadingMore)
+  const hasMore = Boolean(list?.cursor)
 
   useEffect(() => {
-    if (prevManualRefreshTickRef.current === manualRefreshTick) return
-    prevManualRefreshTickRef.current = manualRefreshTick
-    setManualRefreshing(true)
-    mutate()
-      .catch(() => {})
-      .finally(() => {
-        setManualRefreshing(false)
+    setError(null)
+  }, [listKey, retryTick])
+
+  useEffect(() => {
+    if (!listKey || !list || !list.data) return
+    if (list.loaded && retryTick === 0) return
+    if (list.isRefreshing) return
+    let cancelled = false
+    runListRefresh({ list, dispatch })
+      .then((page) => {
+        if (!cancelled && typeof page?.unreadCount === 'number') {
+          updateUnread(page.unreadCount)
+        }
+        if (!cancelled && retryTick !== 0) {
+          setRetryTick(0)
+        }
       })
-  }, [manualRefreshTick, mutate])
-
-  useEffect(() => {
-    const nextState = isSoftRefreshing || manualRefreshing
-    onRefreshStateChange(nextState)
-  }, [isSoftRefreshing, manualRefreshing, onRefreshStateChange])
-
-  useEffect(() => {
-    const firstUnread = pages[0]?.unreadCount
-    if (typeof firstUnread === 'number') {
-      syncUnread(firstUnread)
-    }
-  }, [pages, syncUnread])
+      .catch((err) => {
+        if (!cancelled) setError(err)
+      })
+    return () => { cancelled = true }
+  }, [listKey, list, dispatch, retryTick, updateUnread])
 
   const loadMore = useCallback(async () => {
-    if (isLoadingInitial || isLoadingMore || !hasMore) return
-    await setSize(size + 1)
-  }, [hasMore, isLoadingInitial, isLoadingMore, setSize, size])
+    if (!list || isLoadingInitial || isLoadingMore || !hasMore) return
+    try {
+      await runListLoadMore({ list, dispatch })
+    } catch (err) {
+      console.error('Failed to load more notifications', err)
+    }
+  }, [list, dispatch, hasMore, isLoadingInitial, isLoadingMore])
 
   const handleMarkRead = useCallback((notification) => {
-    if (!notification || notification.isRead) return
-
+    if (!notification || notification.isRead || !list) return
     const targetId = getNotificationId(notification)
     if (!targetId) return
-
-    mutate((previousPages) => {
-      if (!Array.isArray(previousPages)) return previousPages
-      let changed = false
-      const updated = previousPages.map((page) => {
-        if (!page || !Array.isArray(page.items)) return page
-        let pageChanged = false
-        const nextItems = page.items.map((entry) => {
-          const entryId = getNotificationId(entry)
-          if (entryId !== targetId) return entry
-          if (entry.isRead) return entry
-          pageChanged = true
-          changed = true
-          return { ...entry, isRead: true }
-        })
-        return pageChanged ? { ...page, items: nextItems } : page
-      })
-      return changed ? updated : previousPages
-    }, false)
-
-    setUnreadCount(current => {
-      if (current <= 0) return 0
-      const next = current - 1
-      dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: next })
-      return next
+    const updated = (list.items || []).map((entry) => {
+      const entryId = getNotificationId(entry)
+      if (entryId !== targetId) return entry
+      if (entry.isRead) return entry
+      return { ...entry, isRead: true }
     })
-  }, [dispatch])
+    dispatch({
+      type: 'LIST_LOADED',
+      payload: {
+        key: listKey,
+        items: updated,
+        cursor: list.cursor,
+        topId: list.topId,
+        meta: { data: list.data },
+        keepHasNew: true
+      }
+    })
+    const nextUnread = Math.max(0, (notificationsUnread || 0) - 1)
+    updateUnread(nextUnread)
+  }, [dispatch, list, listKey, notificationsUnread, updateUnread])
 
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return
@@ -1133,9 +1089,9 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     if (isLoadingInitial || isLoadingMore) return
     if (!hasMore) return
     const MIN_BUFFER = 8
-    if (mergedItems.length >= MIN_BUFFER) return
+    if (items.length >= MIN_BUFFER) return
     loadMore()
-  }, [activeTab, hasMore, loadMore, mergedItems.length, isLoadingInitial, isLoadingMore])
+  }, [activeTab, hasMore, loadMore, items.length, isLoadingInitial, isLoadingMore])
 
   if (isLoadingInitial) {
     return (
@@ -1159,14 +1115,14 @@ export default function Notifications ({ activeTab = 'all', manualRefreshTick = 
     )
   }
 
-  if (mergedItems.length === 0) {
+  if (items.length === 0) {
     return <p className='text-sm text-muted-foreground'>{t('notifications.status.empty', 'Keine Mitteilungen gefunden.')}</p>
   }
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
       <ul className='space-y-3'>
-        {mergedItems.map((item, idx) => {
+        {items.map((item, idx) => {
           const itemId = getNotificationId(item)
           return (
             <li key={itemId || `notification-${idx}`}>
