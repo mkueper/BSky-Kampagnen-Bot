@@ -7,6 +7,7 @@ import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { runListRefresh, runListLoadMore } from '../listView/listService.js'
+import { VirtualizedList } from '../listView/VirtualizedList.jsx'
 
 export default function Timeline ({ listKey = 'discover', renderMode, isActive = true }) {
   const { lists } = useAppState()
@@ -140,9 +141,13 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
   }
 
   return (
-    <ul className='space-y-3' data-component='BskyTimeline' data-tab={listKey}>
-      {items.map((it, idx) => (
-        <li key={it.listEntryId || it.uri || it.cid || `timeline-${idx}`}>
+    <>
+      <VirtualizedList
+        className='space-y-3'
+        data-component='BskyTimeline'
+        data-tab={listKey}
+        items={items}
+        renderItem={(it) => (
           <SkeetItem
             item={it}
             variant={variant}
@@ -152,18 +157,18 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
             onViewMedia={onViewMedia}
             onEngagementChange={handleEngagementChange}
           />
-        </li>
-      ))}
+        )}
+      />
       {isLoadingMore ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>
+        <div className='py-3 text-center text-xs text-foreground-muted'>
           {t('timeline.status.loadingMore', 'Mehr laden…')}
-        </li>
+        </div>
       ) : null}
       {!hasMore && items.length > 0 ? (
-        <li className='py-3 text-center text-xs text-foreground-muted'>
+        <div className='py-3 text-center text-xs text-foreground-muted'>
           {t('timeline.status.endReached', 'Ende erreicht')}
-        </li>
+        </div>
       ) : null}
-    </ul>
+    </>
   )
 }

@@ -10,6 +10,7 @@ import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { runListRefresh, runListLoadMore } from '../listView/listService.js'
+import { VirtualizedList } from '../listView/VirtualizedList.jsx'
 
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
@@ -1017,7 +1018,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       .then((page) => {
         if (!cancelled && typeof page?.unreadCount === 'number') {
           updateUnread(page.unreadCount)
-        }
+        }hasMore
         if (!cancelled && retryTick !== 0) {
           setRetryTick(0)
         }
@@ -1069,9 +1070,10 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       : null
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0]
-      if (entry?.isIntersecting) {
-        loadMore()
-      }
+      if (!entry?.isIntersecting) return
+      if (!hasMore) return
+      if (isLoadingMore) return
+      loadMore()
     }, {
       root,
       rootMargin: '200px 0px 200px 0px'
@@ -1082,7 +1084,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       if (target) observer.unobserve(target)
       observer.disconnect()
     }
-  }, [hasMore, loadMore])
+  }, [hasMore, isLoadingMore, loadMore])
 
   useEffect(() => {
     if (activeTab !== 'mentions') return
@@ -1121,24 +1123,21 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
 
   return (
     <section className='space-y-4' data-component='BskyNotifications'>
-      <ul className='space-y-3'>
-        {items.map((item, idx) => {
-          const itemId = getNotificationId(item)
-          return (
-            <li key={itemId || `notification-${idx}`}>
-              <NotificationCard
-                item={item}
-                onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
-                onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
-                onReply={onReply}
-                onQuote={onQuote}
-                onMarkRead={handleMarkRead}
-                onViewMedia={onViewMedia}
-              />
-            </li>
-          )
-        })}
-      </ul>
+      <VirtualizedList
+        className='space-y-3'
+        items={items}
+        renderItem={(item) => (
+          <NotificationCard
+            item={item}
+            onSelectItem={onSelectPost ? ((selected) => onSelectPost(selected || item)) : undefined}
+            onSelectSubject={onSelectPost ? ((subject) => onSelectPost(subject)) : undefined}
+            onReply={onReply}
+            onQuote={onQuote}
+            onMarkRead={handleMarkRead}
+            onViewMedia={onViewMedia}
+          />
+        )}
+      />
       {hasMore ? (
         <div
           ref={loadMoreTriggerRef}
