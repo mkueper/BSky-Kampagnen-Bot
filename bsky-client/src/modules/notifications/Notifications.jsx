@@ -1,3 +1,4 @@
+import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, RichText, RepostMenuButton } from '../shared'
@@ -997,6 +998,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   const [retryTick, setRetryTick] = useState(0)
   const [error, setError] = useState(null)
   const loadMoreTriggerRef = useRef(null)
+  const initialSyncRef = useRef(false)
   const updateUnread = useCallback((count) => {
     dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: Math.max(0, count || 0) })
   }, [dispatch])
@@ -1010,16 +1012,22 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   }, [listKey, retryTick])
 
   useEffect(() => {
+    initialSyncRef.current = false
+  }, [listKey])
+
+  useEffect(() => {
     if (!listKey || !list || !list.data) return
-    if (list.loaded && retryTick === 0) return
+    if (list.loaded && retryTick === 0 && initialSyncRef.current) return
     if (list.isRefreshing) return
     let cancelled = false
     runListRefresh({ list, dispatch })
       .then((page) => {
-        if (!cancelled && typeof page?.unreadCount === 'number') {
+        if (cancelled) return
+        initialSyncRef.current = true
+        if (typeof page?.unreadCount === 'number') {
           updateUnread(page.unreadCount)
-        }hasMore
-        if (!cancelled && retryTick !== 0) {
+        }
+        if (retryTick !== 0) {
           setRetryTick(0)
         }
       })
@@ -1126,6 +1134,9 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       <VirtualizedList
         className='space-y-3'
         items={items}
+        itemHeight={200}
+        virtualizationThreshold={100}
+        overscan={4}
         renderItem={(item) => (
           <NotificationCard
             item={item}

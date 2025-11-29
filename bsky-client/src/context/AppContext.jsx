@@ -1,4 +1,4 @@
-// This file defines the AppContext for the BskyClient application.
+import React from 'react'
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import {
   composerInitialState,

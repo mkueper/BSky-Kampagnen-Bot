@@ -147,6 +147,9 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
         data-component='BskyTimeline'
         data-tab={listKey}
         items={items}
+        itemHeight={220}
+        virtualizationThreshold={100}
+        overscan={4}
         renderItem={(it) => (
           <SkeetItem
             item={it}

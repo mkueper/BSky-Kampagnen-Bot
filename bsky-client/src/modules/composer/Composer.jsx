@@ -156,7 +156,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       }
       try {
         el.focus()
-        console.log('[Composer] focus set in uploadTempMedia', { hasSelection: typeof el.selectionStart === 'number' })
+        // console.log('[Composer] focus set in uploadTempMedia', { hasSelection: typeof el.selectionStart === 'number' })
       } catch (err) {
         console.warn('[Composer] focus failed in uploadTempMedia', err)
       }
@@ -177,7 +177,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         }
         try {
           el.focus()
-          console.log('[Composer] focus set in handleLocalFile', { pending: pendingMedia.length })
+          //console.log('[Composer] focus set in handleLocalFile', { pending: pendingMedia.length })
         } catch (err) {
           console.warn('[Composer] focus failed in handleLocalFile', err)
         }

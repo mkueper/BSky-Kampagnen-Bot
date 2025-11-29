@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 
+const LAST_VIEW_KEY = 'dashboard:lastView'
+
 function resolveViewFromLocation (validViews, fallback) {
   if (typeof window === 'undefined') return fallback
+  try {
+    const stored = window.localStorage.getItem(LAST_VIEW_KEY)
+    if (stored && validViews.has(stored)) return stored
+  } catch (err) {
+      console.error('Fehler in resolveViewFromLocation aufgetreten', err)
+    /* ignore storage errors */
+  }
   try {
     const params = new URLSearchParams(window.location.search)
     const paramView = params.get('view')
@@ -57,6 +66,13 @@ export function useViewState ({
 
   useEffect(() => {
     syncUrl(activeView)
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(LAST_VIEW_KEY, activeView)
+      } catch {
+        /* ignore storage errors */
+      }
+    }
   }, [activeView, syncUrl])
 
   useEffect(() => {

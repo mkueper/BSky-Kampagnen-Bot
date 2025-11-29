@@ -31,6 +31,7 @@ export const NAV_ITEMS = [
 export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null, interactionsLocked = false }) {
   const ThemeToggleIcon = themeToggle?.Icon || null;
   const { t } = useTranslation();
+  const normalizedUnread = Number.isFinite(notificationsUnread) ? notificationsUnread : 0;
   return (
     <nav
       className="flex h-full w-full flex-col items-start gap-2"
@@ -45,8 +46,8 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
           const Icon = item.icon;
           const isActive = active === item.id;
           const disabled = Boolean(item.disabled) || interactionsLocked;
-          const showBadge = item.id === 'notifications' && notificationsUnread > 0;
-          const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread);
+          const showBadge = item.id === 'notifications' && normalizedUnread > 0;
+          const badgeLabel = normalizedUnread > 30 ? '30+' : String(normalizedUnread);
           const baseLabel = t(item.labelKey, item.defaultLabel);
           const label = showBadge
             ? t('nav.notificationsWithCount', '{label} ({count} neu)', { label: baseLabel, count: badgeLabel })

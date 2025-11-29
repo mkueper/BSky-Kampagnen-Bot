@@ -96,6 +96,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     profileViewer,
     hashtagSearch
   } = useAppState()
+  console.log('[BskyClientApp] section', section, 'notificationsUnread', notificationsUnread, 'activeListKey', activeListKey)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
   const location = useLocation()
@@ -214,11 +215,17 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (!meta) return
     const listState = lists?.[key] || meta
     try {
-      await runListRefresh({
+      const page = await runListRefresh({
         list: { ...meta, ...(listState || {}) },
         dispatch,
         meta
       })
+      if (page && typeof page.unreadCount === 'number') {
+        dispatch({
+          type: 'SET_NOTIFICATIONS_UNREAD',
+          payload: Math.max(0, page.unreadCount)
+        })
+      }
     } catch (error) {
       console.error('Failed to refresh list', key, error)
     } finally {

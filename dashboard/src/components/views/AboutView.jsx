@@ -4,7 +4,6 @@ export default function AboutView () {
   const project = 'BSky Kampagnen Bot'
   const author = 'Michael Küper'
   const assistant_1 = 'S.A.R.A.H (OpenAI ChatGPT-5)'
-  const assistant_2 = 'G.I.D.E.O.N. (Google Gemini Assistant)'
 
   return (
     <div className='space-y-6'>
@@ -26,12 +25,6 @@ export default function AboutView () {
           {assistant_1 && (
             <li>
               <span className='font-medium text-foreground'>{assistant_1}</span>{' '}
-              – Agentische Unterstützung & Code‑Assistenz
-            </li>
-          )}
-          {assistant_2 && (
-            <li>
-              <span className='font-medium text-foreground'>{assistant_2}</span>{' '}
               – Agentische Unterstützung & Code‑Assistenz
             </li>
           )}

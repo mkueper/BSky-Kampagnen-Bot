@@ -11,7 +11,10 @@ export function useNotificationPolling (dispatch) {
 
   useEffect(() => {
     if (typeof data?.unreadCount === 'number') {
-      dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: data.unreadCount })
+      dispatch({
+        type: 'SET_NOTIFICATIONS_UNREAD',
+        payload: Math.max(0, data.unreadCount)
+      })
     }
   }, [data, dispatch])
 }
