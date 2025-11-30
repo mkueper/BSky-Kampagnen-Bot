@@ -17,6 +17,7 @@ const Reply = require("./replyModel")(sequelize, DataTypes);
 const ThreadSkeetMedia = require("./threadSkeetMediaModel")(sequelize, DataTypes);
 const SkeetMedia = require("./skeetMediaModel")(sequelize, DataTypes);
 const Setting = require("./settingModel")(sequelize, DataTypes);
+const PostSendLog = require("./postSendLogModel")(sequelize, DataTypes);
 
 // --- Relationen ---
 // Ein Thread besteht aus vielen Skeets (z. B. Post-Reihen).
@@ -39,5 +40,7 @@ ThreadSkeetMedia.belongsTo(ThreadSkeet, { foreignKey: 'threadSkeetId', as: 'segm
 ThreadSkeet.hasMany(ThreadSkeetMedia, { foreignKey: 'threadSkeetId', as: 'media' });
 SkeetMedia.belongsTo(Skeet, { foreignKey: 'skeetId', as: 'skeet' });
 Skeet.hasMany(SkeetMedia, { foreignKey: 'skeetId', as: 'media' });
+Skeet.hasMany(PostSendLog, { foreignKey: 'skeetId', as: 'sendLogs' });
+PostSendLog.belongsTo(Skeet, { foreignKey: 'skeetId', as: 'skeet' });
 
-module.exports = { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply, Setting, ThreadSkeetMedia, SkeetMedia };
+module.exports = { sequelize, Thread, ThreadSkeet, SkeetReaction, Skeet, Reply, Setting, ThreadSkeetMedia, SkeetMedia, PostSendLog };

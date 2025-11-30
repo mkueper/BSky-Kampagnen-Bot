@@ -69,7 +69,7 @@ const resolvePort = () => {
     }
   }
 
-  return 3000;
+ return 3000;
 };
 
 module.exports = {
@@ -89,6 +89,14 @@ module.exports = {
    */
   TIME_ZONE:
     process.env.TIME_ZONE || process.env.VITE_TIME_ZONE || "Europe/Berlin",
+  /**
+   * Gnadenzeitraum für überfällige Skeets (in Minuten).
+   * Skeets, deren scheduledAt deutlich vor "jetzt" liegt, werden beim
+   * Scheduler-Start in den Status "pending_manual" verschoben, damit sie
+   * nicht ungefragt nachgefeuert werden.
+   */
+  SCHEDULER_GRACE_WINDOW_MINUTES:
+    toNumber(process.env.SCHEDULER_GRACE_WINDOW_MINUTES, 10),
   /**
    * Fallback‑Locale für serverseitige Formatierungen.
    * Reihenfolge: `LOCALE` → `VITE_LOCALE` → "de-DE".

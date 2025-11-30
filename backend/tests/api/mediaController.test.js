@@ -23,7 +23,7 @@ describe('mediaController.addMedia', () => {
 
     // inject fake models module as controllers resolve '../models'
     const path = require('path');
-    const modelsPath = path.join(__dirname, '../data/models/index.js');
+    const modelsPath = path.join(__dirname, '../../src/data/models/index.js');
     const fake = {
       Thread: {
         findByPk: vi.fn(async (id) => ({ id, segments: [{ id: 11, sequence: 0 }] })),
@@ -39,8 +39,8 @@ describe('mediaController.addMedia', () => {
     require.cache[modelsPath] = { id: modelsPath, filename: modelsPath, loaded: true, exports: fake };
 
     // finally require the controller under test
-    delete require.cache[require.resolve('../api/controllers/mediaController')];
-    mediaController = require('../api/controllers/mediaController');
+    delete require.cache[require.resolve('../../src/api/controllers/mediaController')];
+    mediaController = require('../../src/api/controllers/mediaController');
   });
 
   it('rejects unsupported MIME type with 400', async () => {

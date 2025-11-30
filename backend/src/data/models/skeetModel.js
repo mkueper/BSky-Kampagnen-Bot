@@ -29,6 +29,25 @@ module.exports = (sequelize, DataTypes) => {
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       content: { type: DataTypes.TEXT, allowNull: false },
+      /**
+       * Status-Semantik (STRING, kein ENUM):
+       * - draft         – Entwurf im Dashboard (noch nicht aktiv für den Scheduler)
+       * - scheduled     – normal geplant, kann automatisch gepostet werden
+       * - sent          – erfolgreich gesendet
+       * - pending_manual – war fällig, als der Scheduler nicht aktiv war → benötigt manuelle Freigabe
+       * - skipped       – vom User verworfen
+       * - error         – Veröffentlichung fehlgeschlagen (optional)
+       */
+      status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "scheduled",
+      },
+      pendingReason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null,
+      },
       scheduledAt: { type: DataTypes.DATE, allowNull: true }, // <= jetzt nullable
       postUri: { type: DataTypes.STRING },
       likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },

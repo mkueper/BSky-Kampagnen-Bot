@@ -1,5 +1,5 @@
-const blueskyProfile = require('./bluesky/blueskyProfile');
-const mastodonProfile = require('./mastodon/mastodonProfile');
+const blueskyProfile = require('../../src/platforms/bluesky/blueskyProfile');
+const mastodonProfile = require('../../src/platforms/mastodon/mastodonProfile');
 
 describe('Platform profiles', () => {
   describe('BlueskyProfile.validate', () => {

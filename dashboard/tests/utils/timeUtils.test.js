@@ -1,7 +1,19 @@
+/**
+ * Testgruppe: timeUtils.test.js
+ *
+ * Diese Tests überprüfen:
+ * - Beschreibungen für unterschiedliche Wiederholungsarten
+ * - Fallback-Zeitberechnung (getDefaultDateParts)
+ * - Zusammenspiel mit formatTime-Mock
+ *
+ * Kontext:
+ * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
+ * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
+ */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { getRepeatDescription, getDefaultDateParts } from '../timeUtils.js'
+import { getRepeatDescription, getDefaultDateParts } from '../../src/utils/timeUtils.js'
 
-vi.mock('../formatTime.js', () => ({
+vi.mock('../../src/utils/formatTime.js', () => ({
   formatTime: vi.fn(() => '10:00')
 }))
 

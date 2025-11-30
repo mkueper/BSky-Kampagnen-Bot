@@ -9,7 +9,7 @@
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("@config");
-const { Skeet, Thread, ThreadSkeet } = require("@data/models");
+const { Skeet, Thread, ThreadSkeet, PostSendLog } = require("@data/models");
 const { sendPost } = require("./postService");
 const events = require("./events");
 const settingsService = require("./settingsService");
@@ -24,6 +24,8 @@ const RETRY_DELAY_MS = 60 * 1000;
 let task = null;
 //let lastScheduleConfig = null;
 let lastEngagementRunAt = 0;
+const GRACE_WINDOW_MINUTES = Number(config.SCHEDULER_GRACE_WINDOW_MINUTES || 10);
+const MAX_ERROR_MESSAGE_LENGTH = 500;
 
 /**
  * Normalisiert beliebige persistierte Plattformlisten (Array oder JSON-String)
@@ -58,6 +60,36 @@ function normalizeTargetPlatforms(raw) {
 function getTargetPlatforms(skeet) {
   const normalized = normalizeTargetPlatforms(skeet?.targetPlatforms);
   return normalized.length > 0 ? normalized : ["bluesky"];
+}
+
+async function logPostSendAttempt({
+  skeetId,
+  platform,
+  status,
+  postedAt,
+  postUri = null,
+  errorCode = null,
+  errorMessage = null,
+}) {
+  try {
+    const attemptCount = await PostSendLog.count({ where: { skeetId } });
+    await PostSendLog.create({
+      skeetId,
+      platform,
+      status,
+      postedAt,
+      postUri: postUri || null,
+      errorCode: errorCode || null,
+      errorMessage: errorMessage
+        ? String(errorMessage).slice(0, MAX_ERROR_MESSAGE_LENGTH)
+        : null,
+      attempt: attemptCount + 1,
+    });
+  } catch (error) {
+    log.warn("Konnte PostSendLog nicht speichern", {
+      error: error?.message || String(error),
+    });
+  }
 }
 
 /**
@@ -126,6 +158,73 @@ function calculateNextScheduledAt(skeet) {
 }
 
 /**
+ * Berechnet den nächsten Wiederholungstermin nach einem frei wählbaren
+ * Bezugszeitpunkt. Nutzt den ursprünglich geplanten `scheduledAt`‑Wert als
+ * Startpunkt und iteriert so lange vorwärts, bis ein Termin in der Zukunft
+ * (>= fromDate) gefunden wurde.
+ *
+ * Wird u. a. von der Pending‑API genutzt, um für wiederkehrende Skeets nach
+ * manuellem Eingreifen den nächsten regulären Slot zu bestimmen.
+ *
+ * @param {object} skeet
+ * @param {Date} [fromDate=new Date()]
+ * @returns {Date|null}
+ */
+function getNextScheduledAt(skeet, fromDate = new Date()) {
+  if (!skeet || !skeet.repeat || skeet.repeat === "none") {
+    return null;
+  }
+
+  const from =
+    fromDate instanceof Date ? new Date(fromDate.getTime()) : new Date(fromDate);
+  if (Number.isNaN(from.getTime())) {
+    return null;
+  }
+
+  const baseRaw = skeet.scheduledAt || from;
+  const base =
+    baseRaw instanceof Date ? new Date(baseRaw.getTime()) : new Date(baseRaw);
+  if (Number.isNaN(base.getTime())) {
+    return null;
+  }
+
+  let current = base;
+  let next = null;
+  // Sicherheitsgrenze gegen Endlosschleifen (z. B. fehlerhafte Konfiguration)
+  let safety = 366;
+
+  while (safety > 0) {
+    safety -= 1;
+
+    switch (skeet.repeat) {
+      case "daily":
+        next = addDaysKeepingTime(current, 1);
+        break;
+      case "weekly":
+        next = computeNextWeekly(current, skeet.repeatDayOfWeek);
+        break;
+      case "monthly":
+        next = computeNextMonthly(current, skeet.repeatDayOfMonth);
+        break;
+      default:
+        return null;
+    }
+
+    if (!next || Number.isNaN(next.getTime())) {
+      return null;
+    }
+
+    if (next > from) {
+      return next;
+    }
+
+    current = next;
+  }
+
+  return null;
+}
+
+/**
  * Sorgt dafür, dass `platformResults` als bearbeitbares Objekt vorliegt.
  */
 function ensureResultsObject(raw) {
@@ -147,6 +246,53 @@ function ensureResultsObject(raw) {
   }
 
   return {};
+}
+
+/**
+ * Markiert überfällige Skeets beim Start als "pending_manual", damit sie
+ * nicht automatisch nachgeholt werden.
+ */
+async function markMissedSkeetsPending(now = new Date()) {
+  const minutes = Number.isFinite(GRACE_WINDOW_MINUTES) && GRACE_WINDOW_MINUTES >= 0
+    ? GRACE_WINDOW_MINUTES
+    : 10;
+  const cutoff = new Date(now.getTime() - minutes * 60 * 1000);
+
+  try {
+    const overdue = await Skeet.findAll({
+      attributes: ["id"],
+      where: {
+        status: "scheduled",
+        isThreadPost: false,
+        scheduledAt: { [Op.lt]: cutoff },
+      },
+    });
+
+    if (!overdue.length) {
+      log.info("Scheduler-Startup: keine überfälligen Skeets gefunden", {
+        cutoff: cutoff.toISOString(),
+        graceMinutes: minutes,
+      });
+      return;
+    }
+
+    const ids = overdue.map((s) => s.id);
+    await Skeet.update(
+      { status: "pending_manual", pendingReason: "missed_while_offline" },
+      { where: { id: { [Op.in]: ids } } }
+    );
+
+    log.info("Scheduler-Startup: Skeets in pending_manual verschoben", {
+      count: ids.length,
+      cutoff: cutoff.toISOString(),
+      graceMinutes: minutes,
+    });
+    log.debug("Scheduler-Startup: IDs in pending_manual", { ids });
+  } catch (error) {
+    log.error("Fehler beim Markieren überfälliger Skeets als pending_manual", {
+      error: error?.message || String(error),
+    });
+  }
 }
 
 /**
@@ -191,6 +337,14 @@ async function dispatchSkeet(skeet) {
         failedAt: new Date().toISOString(),
       };
       log.error(envError);
+      await logPostSendAttempt({
+        skeetId: current.id,
+        platform: platformId,
+        status: "skipped",
+        postedAt: new Date(),
+        postUri: null,
+        errorMessage: envError,
+      });
       continue;
     }
 
@@ -221,22 +375,53 @@ async function dispatchSkeet(skeet) {
         results[platformId] = resultEntry;
         successOrder.push({ platformId, uri: res.uri || "", postedAt });
         log.info("Skeet veröffentlicht", { id: current.id, platform: platformId, uri: res.uri || "" });
+        await logPostSendAttempt({
+          skeetId: current.id,
+          platform: platformId,
+          status: "success",
+          postedAt,
+          postUri: res.uri || null,
+          errorCode: null,
+          errorMessage: null,
+        });
       } else {
+        const errorMessage = res.error || "Unbekannter Fehler";
+        const failedAt = new Date();
         results[platformId] = {
           status: "failed",
-          error: res.error || "Unbekannter Fehler",
-          failedAt: new Date().toISOString(),
+          error: errorMessage,
+          failedAt: failedAt.toISOString(),
           attempts: res.attempts || 1,
         };
-        log.error("Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: res.error || "Unbekannter Fehler" });
+        log.error("Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: errorMessage });
+        await logPostSendAttempt({
+          skeetId: current.id,
+          platform: platformId,
+          status: "failed",
+          postedAt: failedAt,
+          postUri: null,
+          errorCode: null,
+          errorMessage,
+        });
       }
     } catch (unexpected) {
+      const failedAt = new Date();
+      const errorMessage = unexpected?.message || String(unexpected);
       results[platformId] = {
         status: "failed",
-        error: unexpected?.message || String(unexpected),
-        failedAt: new Date().toISOString(),
+        error: errorMessage,
+        failedAt: failedAt.toISOString(),
       };
-      log.error("Unerwarteter Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: unexpected?.message || String(unexpected) });
+      log.error("Unerwarteter Fehler beim Senden eines Skeets", { id: current.id, platform: platformId, error: errorMessage });
+      await logPostSendAttempt({
+        skeetId: current.id,
+        platform: platformId,
+        status: "failed",
+        postedAt: failedAt,
+        postUri: null,
+        errorCode: unexpected?.code ? String(unexpected.code) : null,
+        errorMessage,
+      });
     }
   }
 
@@ -266,17 +451,28 @@ async function dispatchSkeet(skeet) {
   if (current.repeat === "none") {
     if (allSent) {
       updates.scheduledAt = null;
+      updates.status = "sent";
+      updates.pendingReason = null;
     } else {
       updates.scheduledAt = new Date(Date.now() + RETRY_DELAY_MS);
     }
   } else {
+    // Wiederkehrende Skeets bleiben im Status "scheduled"
+    if (current.status !== "scheduled") {
+      updates.status = "scheduled";
+    }
+    if (allSent) {
+      updates.pendingReason = null;
+    }
     updates.scheduledAt = nextRun ?? new Date(Date.now() + RETRY_DELAY_MS);
   }
 
   await current.update(updates);
   try {
     // UI informieren (Statuswechsel von geplant -> veröffentlicht/verschoben)
-    const status = current.repeat === 'none' ? (allSent ? 'published' : 'scheduled') : 'scheduled';
+    const status = current.repeat === 'none'
+      ? (allSent ? 'published' : 'scheduled')
+      : 'scheduled';
     events.emit('skeet:updated', { id: current.id, status });
   } catch { /* ignore SSE emit error */ }
 }
@@ -289,6 +485,7 @@ async function processDueSkeets(now = new Date()) {
 
   const dueSkeets = await Skeet.findAll({
     where: {
+      status: "scheduled",
       scheduledAt: { [Op.ne]: null, [Op.lte]: now },
       isThreadPost: false,
       [Op.or]: [{ repeat: "none", postUri: null }, { repeat: { [Op.ne]: "none" } }],
@@ -333,9 +530,14 @@ async function processDueSkeets(now = new Date()) {
 
           if (current.repeat === "none") {
             updates.scheduledAt = null;
+            updates.status = "sent";
+            updates.pendingReason = null;
           } else {
             const nextRun = calculateNextScheduledAt(current);
             updates.scheduledAt = nextRun ?? null;
+            if (current.status !== "scheduled") {
+              updates.status = "scheduled";
+            }
           }
 
           await current.update(updates);
@@ -679,6 +881,13 @@ async function applySchedulerTask() {
   //lastScheduleConfig = { schedule, timeZone };
   log.info("Scheduler aktiv", { cron: schedule, timezone: timeZone || "system" });
 
+  // Beim Start einmalig überfällige Skeets in pending_manual verschieben
+  await markMissedSkeetsPending().catch((error) => {
+    log.error("Startup-Scan (überfällige Skeets) fehlgeschlagen", {
+      error: error?.message || String(error),
+    });
+  });
+
   await Promise.all([
     processDueSkeets().catch((error) => {
       log.error("Initialer Scheduler-Lauf (Skeets) fehlgeschlagen", { error: error?.message || String(error) });
@@ -776,4 +985,5 @@ module.exports = {
   computeNextWeekly,
   computeNextMonthly,
   calculateNextScheduledAt,
+   getNextScheduledAt,
 };

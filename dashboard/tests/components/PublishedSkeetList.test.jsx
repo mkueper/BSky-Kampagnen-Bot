@@ -1,6 +1,18 @@
+/**
+ * Testgruppe: PublishedSkeetList.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Rendering der veröffentlichten Skeet-Liste ohne Virtualisierung
+ * - Virtualisierung für lange Listen inklusive ResizeObserver
+ * - Aufräumen des DOM zwischen den Szenarien
+ *
+ * Kontext:
+ * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
+ * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
+ */
 import { describe, expect, it, beforeAll, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
-import PublishedSkeetList from '../PublishedSkeetList'
+import PublishedSkeetList from '../../src/components/PublishedSkeetList'
 
 class ResizeObserverMock {
   constructor (cb) {

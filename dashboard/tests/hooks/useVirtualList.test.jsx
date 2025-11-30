@@ -1,6 +1,18 @@
+/**
+ * Testgruppe: useVirtualList.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Fallback-State bei deaktivierter Virtualisierung
+ * - Messung und Berechnung virtueller Elemente via ResizeObserver
+ * - Rücksetzen des Ready-Status, wenn der Hook deaktiviert wird
+ *
+ * Kontext:
+ * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
+ * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
+ */
 import { describe, it, beforeAll, afterEach, expect } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { useVirtualList } from '../useVirtualList'
+import { useVirtualList } from '../../src/hooks/useVirtualList'
 
 class ResizeObserverMock {
   constructor (callback) {

@@ -3,9 +3,21 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SWRConfig } from 'swr'
-import Notifications, { NotificationCard } from './Notifications.jsx'
-import { AppProvider } from '../../context/AppContext.jsx'
-import { I18nProvider } from '../../i18n/I18nProvider.jsx'
+/**
+ * Testgruppe: Notifications.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Laden und Rendern der Notifications-Liste inkl. Tabs
+ * - Mentions-/All-Tabs, Buffer-Fetch und User-Interaktionen
+ * - Integration mit AppContext, I18nProvider und Engagement-Mocks
+ *
+ * Kontext:
+ * Teil der vereinheitlichten Teststruktur des bsky-client.
+ * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
+ */
+import Notifications, { NotificationCard } from '../../src/modules/notifications/Notifications.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
@@ -33,20 +45,20 @@ const { fetchNotificationsMock, mockDispatch, engagementOverrides } =
     engagementOverrides: { current: null }
   }))
 
-vi.mock('../../context/AppContext', async importOriginal => {
+vi.mock('../../src/context/AppContext', async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
     useAppDispatch: () => mockDispatch
   }
 })
-vi.mock('../../context/CardConfigContext.jsx', () => ({
+vi.mock('../../src/context/CardConfigContext.jsx', () => ({
   useCardConfig: () => ({
     config: { singleMax: 256 }
   })
 }))
 
-vi.mock('../shared', () => {
+vi.mock('../../src/modules/shared', () => {
   const buildEngagement = () => ({
     likeCount: 0,
     repostCount: 0,

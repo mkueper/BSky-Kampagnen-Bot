@@ -1,24 +1,36 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import SearchView from './SearchView.jsx'
-import SearchHeader from './SearchHeader.jsx'
-import { SearchProvider } from './SearchContext.jsx'
-import { I18nProvider } from '../../i18n/I18nProvider.jsx'
+/**
+ * Testgruppe: SearchView.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Suchvorgänge mit Header + Result-Liste
+ * - Auswahl eines Resultats und Thread-Selection
+ * - Laden weiterer Seiten inkl. IntersectionObserver
+ *
+ * Kontext:
+ * Teil der vereinheitlichten Teststruktur des bsky-client.
+ * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
+ */
+import SearchView from '../../src/modules/search/SearchView.jsx'
+import SearchHeader from '../../src/modules/search/SearchHeader.jsx'
+import { SearchProvider } from '../../src/modules/search/SearchContext.jsx'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 
 const { searchBskyMock, selectThreadFromItemMock } = vi.hoisted(() => ({
   searchBskyMock: vi.fn(),
   selectThreadFromItemMock: vi.fn()
 }))
 
-vi.mock('../shared', () => ({
+vi.mock('../../src/modules/shared', () => ({
   Button: ({ children, ...props }) => <button {...props}>{children}</button>,
   Card: ({ children, ...props }) => <div {...props}>{children}</div>,
   RichText: ({ text }) => <span>{text}</span>,
   searchBsky: searchBskyMock
 }))
 
-vi.mock('../timeline/SkeetItem.jsx', () => ({
+vi.mock('../../src/modules/timeline/SkeetItem.jsx', () => ({
   __esModule: true,
   default: ({ item, onSelect }) => {
     const hasCustomPayload = Object.prototype.hasOwnProperty.call(item, '__mockSelectPayload')
@@ -35,26 +47,26 @@ vi.mock('../timeline/SkeetItem.jsx', () => ({
   }
 }))
 
-vi.mock('../../hooks/useThread', () => ({
+vi.mock('../../src/hooks/useThread', () => ({
   useThread: () => ({
     selectThreadFromItem: selectThreadFromItemMock
   })
 }))
 
-vi.mock('../../hooks/useComposer', () => ({
+vi.mock('../../src/hooks/useComposer', () => ({
   useComposer: () => ({
     openReplyComposer: vi.fn(),
     openQuoteComposer: vi.fn()
   })
 }))
 
-vi.mock('../../hooks/useMediaLightbox', () => ({
+vi.mock('../../src/hooks/useMediaLightbox', () => ({
   useMediaLightbox: () => ({
     openMediaPreview: vi.fn()
   })
 }))
 
-vi.mock('../../hooks/useClientConfig', () => ({
+vi.mock('../../src/hooks/useClientConfig', () => ({
   useClientConfig: () => ({ clientConfig: null })
 }))
 

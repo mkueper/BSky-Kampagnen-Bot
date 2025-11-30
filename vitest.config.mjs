@@ -19,7 +19,10 @@ export default defineConfig({
       ['backend/tests/**', 'node']
     ],
     globals: true,
-    setupFiles: [new URL('./tests/setup.alias.js', import.meta.url).pathname]
+    setupFiles: [
+      new URL('./tests/setup.alias.js', import.meta.url).pathname,
+      new URL('./backend/tests/setupTestDb.mjs', import.meta.url).pathname
+    ]
   },
   resolve: {
     alias: {

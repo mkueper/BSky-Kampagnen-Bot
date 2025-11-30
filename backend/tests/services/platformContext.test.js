@@ -1,4 +1,4 @@
-const { validatePlatformEnv } = require('./platformContext');
+const { validatePlatformEnv } = require('../../src/core/services/platformContext');
 
 describe('platformContext.validatePlatformEnv', () => {
   it('requires Bluesky identifier and appPassword', () => {

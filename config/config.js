@@ -22,6 +22,12 @@ const configs = ENVIRONMENTS.reduce((acc, name) => {
   return acc;
 }, {});
 
+configs.test = {
+  dialect: "sqlite",
+  storage: ":memory:",
+  logging: false,
+};
+
 module.exports = {
   ...configs,
   [env]: configs[env] ?? createConfig(env),

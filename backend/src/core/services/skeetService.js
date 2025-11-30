@@ -1,4 +1,4 @@
-const { Skeet, SkeetMedia } = require('../../data/models');
+const { Skeet, SkeetMedia, PostSendLog } = require('../../data/models');
 const config = require('../../config');
 const { parseDatetimeLocal, DATETIME_LOCAL_REGEX } = require('../../utils/timezone');
 const { createLogger } = require('../../utils/logging');
@@ -9,6 +9,7 @@ const { ALLOWED_PLATFORMS } = require('../../constants/platforms');
 const { deletePost } = require('./postService');
 const events = require('./events');
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('./platformContext');
+const schedulerService = require('./scheduler');
 
 function emitSkeetEvent(eventName, payload) {
   try {
@@ -400,6 +401,137 @@ async function restoreSkeet(id) {
   return skeet;
 }
 
+async function findPendingManualSkeetOrThrow(id) {
+  const skeet = await Skeet.findByPk(id);
+  if (!skeet) {
+    const error = new Error('Skeet nicht gefunden.');
+    error.status = 404;
+    throw error;
+  }
+  if (skeet.deletedAt) {
+    const error = new Error('Skeet wurde gelöscht.');
+    error.status = 404;
+    throw error;
+  }
+  if (skeet.status !== 'pending_manual') {
+    const error = new Error('Skeet ist nicht im Status pending_manual.');
+    error.status = 400;
+    throw error;
+  }
+  return skeet;
+}
+
+async function listPendingSkeets() {
+  const skeets = await Skeet.findAll({
+    where: { status: 'pending_manual' },
+    order: [["scheduledAt", "ASC"], ["createdAt", "DESC"]],
+  });
+  return skeets.map((s) => s.toJSON());
+}
+
+async function publishPendingSkeetOnce(id) {
+  const skeet = await findPendingManualSkeetOrThrow(id);
+
+  if (skeet.repeat === 'none') {
+    // Einmaliger Skeet: jetzt einmalig veröffentlichen (wie publish-now)
+    await schedulerService.publishSkeetNow(id);
+    const fresh = await Skeet.findByPk(id);
+    if (!fresh) {
+      const error = new Error('Skeet wurde während der Veröffentlichung entfernt.');
+      error.status = 404;
+      throw error;
+    }
+    emitSkeetEvent('skeet:updated', { id: fresh.id, status: 'sent' });
+    return fresh;
+  }
+
+  // Wiederkehrender Skeet: verpasste Ausführung jetzt nachholen, Turnus aktiv lassen
+  await schedulerService.publishSkeetNow(id);
+  const fresh = await Skeet.findByPk(id);
+  if (!fresh) {
+    const error = new Error('Skeet wurde während der Veröffentlichung entfernt.');
+    error.status = 404;
+    throw error;
+  }
+
+  // Sicherstellen, dass Status/pendingReason konsistent sind
+  if (fresh.status !== 'scheduled' || fresh.pendingReason) {
+    await fresh.update({ status: 'scheduled', pendingReason: null });
+  }
+
+  emitSkeetEvent('skeet:updated', { id: fresh.id, status: 'scheduled' });
+  return fresh;
+}
+
+async function discardPendingSkeet(id) {
+  const skeet = await findPendingManualSkeetOrThrow(id);
+
+  if (skeet.repeat === 'none') {
+    await skeet.update({
+      status: 'skipped',
+      pendingReason: 'discarded_by_user',
+      scheduledAt: null,
+    });
+    emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'skipped' });
+    return skeet;
+  }
+
+  // Wiederkehrender Skeet: verpasste Ausführung fällt aus, Turnus weiterführen
+  const now = new Date();
+  const nextAt = schedulerService.getNextScheduledAt(skeet, now);
+  if (!nextAt) {
+    const error = new Error('Konnte den nächsten Wiederholungstermin nicht bestimmen.');
+    error.status = 400;
+    throw error;
+  }
+
+  await skeet.update({
+    status: 'scheduled',
+    pendingReason: null,
+    scheduledAt: nextAt,
+  });
+  emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'scheduled' });
+  return skeet;
+}
+
+async function getSkeetSendHistory(id, { limit = 50, offset = 0 } = {}) {
+  const skeetId = Number(id);
+  const target = await Skeet.findByPk(skeetId);
+  if (!target) {
+    const error = new Error('Skeet nicht gefunden.');
+    error.status = 404;
+    throw error;
+  }
+
+  const parsedLimit = Number.isFinite(Number(limit)) && Number(limit) >= 0 ? Number(limit) : 50;
+  const parsedOffset = Number.isFinite(Number(offset)) && Number(offset) >= 0 ? Number(offset) : 0;
+
+  const logs = await PostSendLog.findAll({
+    where: { skeetId: target.id },
+    order: [
+      ['postedAt', 'DESC'],
+      ['createdAt', 'DESC'],
+    ],
+    limit: parsedLimit,
+    offset: parsedOffset,
+  });
+
+  return logs.map((log) => {
+    const entry = log.toJSON();
+    return {
+      id: entry.id,
+      status: entry.status,
+      platform: entry.platform,
+      postedAt: entry.postedAt,
+      postUri: entry.postUri,
+      errorCode: entry.errorCode,
+      errorMessage: entry.errorMessage,
+      attempt: entry.attempt,
+      createdAt: entry.createdAt,
+    };
+  });
+}
+
 module.exports = {
   listSkeets,
   createSkeet,
@@ -411,4 +543,8 @@ module.exports = {
   ensurePlatforms: ensureTargetPlatforms,
   parseOptionalDate,
   buildSkeetAttributes,
+  listPendingSkeets,
+  publishPendingSkeetOnce,
+  discardPendingSkeet,
+  getSkeetSendHistory,
 };

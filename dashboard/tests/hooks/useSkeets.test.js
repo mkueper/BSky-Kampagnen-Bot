@@ -1,9 +1,21 @@
+/**
+ * Testgruppe: useSkeets.test.js
+ *
+ * Diese Tests überprüfen:
+ * - Parsing von Zielplattformen aus Arrays/Strings
+ * - Parsing von platformResults inklusive Fehlerbehandlung
+ * - Ableitung von Retry-Intervallen aus Response-Headern
+ *
+ * Kontext:
+ * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
+ * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
+ */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import {
   parseTargetPlatforms,
   parsePlatformResults,
   extractRetryAfterMs
-} from '../useSkeets.js'
+} from '../../src/hooks/useSkeets.js'
 
 describe('parseTargetPlatforms', () => {
   let warnSpy

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-const { countGraphemesSync } = require('./graphemes.js');
+const { countGraphemesSync } = require('../../src/utils/graphemes.js');
 
 describe('countGraphemesSync', () => {
   it('should count simple ASCII characters correctly', () => {

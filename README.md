@@ -26,6 +26,16 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 
 > Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
+### Pending-Skeet-Logik (Downtime-Schutz)
+
+Die Pending-Skeet-Logik stellt sicher, dass während eines Scheduler-Ausfalls keine alten Posts schlagartig nachgeholt werden. Stattdessen wechseln überfällige Einträge in den Status `pending_manual`, bis ein Mensch entscheidet, wie es weitergeht.
+
+- **Statusbedeutung**: `scheduled` (= regulär geplant), `pending_manual` (= verpasst, wartet auf Freigabe), `sent` (= erfolgreich veröffentlicht) und `skipped` (= bewusst verworfen). Optional kommen `draft` und `error` hinzu, werden hier aber nicht automatisch gesetzt.
+- **Warum kein Auto-Nachholen?** Überfällige Skeets könnten bei plötzlich wieder funktionierendem Scheduler zu Spam-Spitzen führen oder veraltete Inhalte posten. Daher werden sie eingefroren und verlangen eine bewusste Entscheidung.
+- **Wiederkehrende Skeets**: Auch Repeater landen beim Start im Pending-Status. Erst nach manueller Entscheidung laufen sie weiter, damit keine Kaskade alter Wiederholungen ausgelöst wird.
+- **Manuelle Optionen**: „Publish Once“ postet den Eintrag sofort (bei Repeatern inklusive Neuplanung des nächsten Termins); „Discard“ entfernt den fälligen Slot (`repeat = 'none'` endgültig, Repeater springen direkt zum nächsten regulären Termin).
+- **Testabdeckung**: Die Dateien in `backend/tests/backend/…` prüfen Statusübergänge, Terminberechnungen und API-Verhalten, sodass Downtime-Szenarien reproduzierbar und spam-sicher bleiben.
+
 ---
 
 ## Schnellstart (lokale Entwicklung)
@@ -226,6 +236,7 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 - **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
 - **Client-Tests:** `npm run test --workspace bsky-client` führt die Vitest-Suite (React Testing Library) für den integrierten Bluesky-Client aus; für den Watch-Modus steht `npm run test:watch --workspace bsky-client` zur Verfügung.
 - **Dashboard-Tests:** `npm run test --workspace dashboard` deckt die UI-spezifische Vitest-Suite (Hooks + Komponenten) ab, u. a. Virtualisierung der Skeet-/Thread-Listen sowie die neuen Lazy-Boundaries.
+- **Backend-Tests:** laufen gegen eine In-Memory-SQLite-DB (`sequelize.sync({ force: true })`) und werden über `npm test -- backend/tests/**/*.test.{js,ts}` ausgeführt. Das Schema wird je Lauf frisch aufgebaut.
 - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
  - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.

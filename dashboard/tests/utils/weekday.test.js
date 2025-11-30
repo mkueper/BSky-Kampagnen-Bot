@@ -1,5 +1,17 @@
+/**
+ * Testgruppe: weekday.test.js
+ *
+ * Diese Tests überprüfen:
+ * - Berechnung der Wochentagsreihenfolge je nach Locale
+ * - Lokalisierte Labels für Wochentage (kurz/lang)
+ * - Konsistentes Verhalten der Utils bei unterschiedlichen Eingaben
+ *
+ * Kontext:
+ * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
+ * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
+ */
 import { describe, expect, it } from 'vitest'
-import { weekdayOrder, weekdayLabel } from '../weekday.js'
+import { weekdayOrder, weekdayLabel } from '../../src/utils/weekday.js'
 
 describe('weekdayOrder', () => {
   it('starts on Monday for de-DE locales', () => {

@@ -1,8 +1,20 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+/**
+ * Testgruppe: ProfilePosts.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Rendering der Profil-Posts mit Skeletons und Fehlermeldungen
+ * - Tabwechsel (Posts, Replies, Likes) und API-Aufrufe
+ * - IntersectionObserver-Trigger zum Nachladen weiterer Items
+ *
+ * Kontext:
+ * Teil der vereinheitlichten Teststruktur des bsky-client.
+ * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
+ */
 import { SWRConfig } from 'swr'
-import ProfilePosts from './ProfilePosts.jsx'
-import { AppProvider } from '../../context/AppContext.jsx'
+import ProfilePosts from '../../src/modules/profile/ProfilePosts.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
@@ -20,11 +32,11 @@ const { fetchProfileFeedMock, fetchProfileLikesMock } = vi.hoisted(() => ({
   fetchProfileLikesMock: vi.fn()
 }))
 
-vi.mock('../timeline/SkeetItem.jsx', () => ({
+vi.mock('../../src/modules/timeline/SkeetItem.jsx', () => ({
   default: () => <div data-testid='skeet-item'>item</div>
 }))
 
-vi.mock('../shared/api/bsky', () => ({
+vi.mock('../../src/modules/shared/api/bsky', () => ({
   fetchProfileFeed: (...args) => fetchProfileFeedMock(...args),
   fetchProfileLikes: (...args) => fetchProfileLikesMock(...args),
   fetchProfile: vi.fn()

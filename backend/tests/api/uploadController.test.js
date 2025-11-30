@@ -1,6 +1,6 @@
 const { describe, it, expect } = global;
 
-const uploadController = require('../api/controllers/uploadController');
+const uploadController = require('../../src/api/controllers/uploadController');
 
 function mockRes() {
   const res = {};

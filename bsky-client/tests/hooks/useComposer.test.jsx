@@ -1,8 +1,20 @@
 import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { AppProvider, useAppState } from '../context/AppContext.jsx'
-import { useComposer } from './useComposer.js'
+/**
+ * Testgruppe: useComposer.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Öffnen des Reply-Composers inkl. State-Updates
+ * - Normalisierung von Quote-Quellen vor dem Öffnen
+ * - Reset/Schließen des Composers und Ziel-Targets
+ *
+ * Kontext:
+ * Teil der vereinheitlichten Teststruktur des bsky-client.
+ * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
+ */
+import { AppProvider, useAppState } from '../../src/context/AppContext.jsx'
+import { useComposer } from '../../src/hooks/useComposer.js'
 
 const wrapper = ({ children }) => (
   <AppProvider>{children}</AppProvider>

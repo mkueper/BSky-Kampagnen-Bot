@@ -4,6 +4,7 @@ const router = express.Router();
 
 const skeetRoutes = require('./skeetRoutes');
 const threadRoutes = require('./threadRoutes');
+const pendingSkeetRoutes = require('./pendingSkeetRoutes');
 const bskyController = require("@api/controllers/bskyController");
 const settingsController = require("@api/controllers/settingsController");
 const engagementController = require("@api/controllers/engagementController");
@@ -21,6 +22,7 @@ const { sseHandler } = require("@core/services/events");
 
 router.use('/skeets', skeetRoutes);
 router.use('/threads', threadRoutes);
+router.use('/pending-skeets', pendingSkeetRoutes);
 
 // Tenor GIF proxy
 router.get("/tenor/featured", tenorController.featured);

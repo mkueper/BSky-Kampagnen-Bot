@@ -1,9 +1,21 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+/**
+ * Testgruppe: Timeline.test.jsx
+ *
+ * Diese Tests überprüfen:
+ * - Rendering des Timeline-Feed mit Skeletons
+ * - Anzeige von Items nach erfolgreichem Fetch
+ * - Integration mit AppContext & I18nProvider
+ *
+ * Kontext:
+ * Teil der vereinheitlichten Teststruktur des bsky-client.
+ * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
+ */
 import { SWRConfig } from 'swr'
-import Timeline from './Timeline.jsx'
-import { AppProvider } from '../../context/AppContext.jsx'
-import { I18nProvider } from '../../i18n/I18nProvider.jsx'
+import Timeline from '../../src/modules/timeline/Timeline.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 
 const renderWithProviders = (ui, options) => {
   return render(ui, {
@@ -20,11 +32,11 @@ const renderWithProviders = (ui, options) => {
 
 const fetchTimelineMock = vi.fn()
 
-vi.mock('../shared', () => ({
+vi.mock('../../src/modules/shared', () => ({
   fetchTimeline: (...args) => fetchTimelineMock(...args)
 }))
 
-vi.mock('./SkeetItem.jsx', () => ({
+vi.mock('../../src/modules/timeline/SkeetItem.jsx', () => ({
   default: ({ item }) => <div data-testid='skeet-item'>{item?.uri || 'item'}</div>
 }))
 
