@@ -6,7 +6,7 @@ export default defineConfig({
     include: [
       'backend/src/**/*.test.{js,ts,jsx,tsx}',
       'backend/tests/**/*.test.{js,ts,jsx,tsx}',
-      'bsky-client/src/**/*.test.{js,ts,jsx,tsx}',
+      'bsky-client/**/*.test.{js,ts,jsx,tsx}',
       'dashboard/src/**/*.test.{js,ts,jsx,tsx}'
       //'tests/**/*.test.{js,ts,jsx,tsx}',
     ],

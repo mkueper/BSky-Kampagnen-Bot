@@ -483,6 +483,8 @@ async function dispatchSkeet(skeet) {
 async function processDueSkeets(now = new Date()) {
   const discardMode = Boolean(config.DISCARD_MODE);
 
+  console.log("[Scheduler] Tick @", now.toISOString());
+  
   const dueSkeets = await Skeet.findAll({
     where: {
       status: "scheduled",
@@ -493,6 +495,17 @@ async function processDueSkeets(now = new Date()) {
     order: [["scheduledAt", "ASC"]],
     limit: MAX_BATCH_SIZE,
   });
+
+  console.log(
+    "[Scheduler] Tick – fällige Skeets:",
+    dueSkeets.map((s) => ({
+      id: s.id,
+      repeat: s.repeat,
+      status: s.status,
+      scheduledAt: s.scheduledAt,
+      pendingReason: s.pendingReason,
+    }))
+  );
 
   for (const skeet of dueSkeets) {
     try {

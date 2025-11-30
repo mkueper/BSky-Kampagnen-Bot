@@ -146,7 +146,7 @@ function DashboardApp ({ session, onLogout }) {
     validViews: VALID_VIEWS,
     needsCredentials
   })
-  console.log('[DashboardApp] activeView', activeView)
+  //console.log('[DashboardApp] activeView', activeView)
   const {
     currentThemeConfig,
     nextThemeLabel,

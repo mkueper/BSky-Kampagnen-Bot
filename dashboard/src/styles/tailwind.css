@@ -92,6 +92,73 @@
   }
 }
 
+@layer components {
+  .skeet-meta-column {
+    @apply mt-4 flex w-full flex-col items-start gap-4 text-left
+      lg:mt-0 lg:w-56 lg:flex-shrink-0 pl-5
+  }
+  
+  .skeet-history {
+    @apply pt-1;
+  }
+
+  .skeet-history-title {
+    @apply text-[11px] uppercase tracking-[0.3em] text-foreground-subtle;
+  }
+
+  .skeet-history-empty {
+    @apply mt-2 text-xs text-foreground-muted;
+  }
+
+  .skeet-history-list {
+    @apply mt-3 flex flex-col gap-3;
+  }
+
+  .skeet-history-item {
+    @apply flex items-start gap-3;
+  }
+
+  .skeet-history-axis {
+    @apply flex h-2.5 w-2.5 flex-shrink-0 items-center justify-center rounded-full bg-background;
+  }
+
+  .skeet-history-dot {
+    @apply h-2 w-2 rounded-full bg-primary;
+  }
+
+  .skeet-history-card {
+    @apply flex-1 text-xs text-foreground;
+  }
+
+  .skeet-history-date {
+    @apply font-medium text-foreground;
+  }
+
+  .skeet-history-status {
+    @apply mt-0.5 flex items-center gap-2 font-medium;
+  }
+
+  .skeet-history-status-success {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .skeet-history-status-error {
+    @apply text-destructive;
+  }
+
+  .skeet-history-status-neutral {
+    @apply text-foreground-muted;
+  }
+
+  .skeet-history-platform {
+    @apply mt-0.5 uppercase tracking-[0.2em] text-[10px] text-foreground-subtle;
+  }
+
+  .skeet-history-error {
+    @apply mt-1 text-[11px] text-destructive;
+  }
+}
+
 @layer utilities {
   .scrollbar-preview {
     scrollbar-width: thin;

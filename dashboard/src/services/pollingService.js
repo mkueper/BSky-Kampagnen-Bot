@@ -10,7 +10,7 @@ export function createPollingController({
   onData,                  // (source, payload) => void  // z.B. UI/DB-Update
   isRelevantView,          // () => bool  // z.B. true nur auf Dashboard
   getNow = () => Date.now(),
-  log = (...args) => console.debug('[poll]', ...args),
+  // log = (...args) => console.debug('[poll]', ...args),
 
   // Konfiguration
   activeIntervalMs = 8_000,   // aktiv (sichtbar + fokussiert + Interaktion)
@@ -84,11 +84,11 @@ export function createPollingController({
     clearTimer();
     const delay = nextDelayMs();
     if (delay <= 0) {
-      log('paused (no timer)');
+      // log('paused (no timer)');
       return;
     }
     timerId = setTimeout(tick, delay);
-    log('scheduled', { mode: currentMode(), delay });
+    // log('scheduled', { mode: currentMode(), delay });
   }
 
   function clearTimer() {
@@ -132,11 +132,11 @@ export function createPollingController({
 
       resetBackoff();
     } catch (err) {
-      log('tick error', err);
+      // log('tick error', err);
       const ra = err && Number.isFinite(err.retryAfterMs) ? err.retryAfterMs : null;
       if (ra != null) {
         backoffMs = clamp(ra, backoffStartMs, backoffMaxMs);
-        log('apply retry-after backoff', { backoffMs });
+        // log('apply retry-after backoff', { backoffMs });
       } else {
         increaseBackoff();
       }
@@ -162,11 +162,11 @@ export function createPollingController({
       }
       resetBackoff();
     } catch (e) {
-      log('triggerNow error', e);
+      // log('triggerNow error', e);
       const ra = e && Number.isFinite(e.retryAfterMs) ? e.retryAfterMs : null;
       if (ra != null) {
         backoffMs = clamp(ra, backoffStartMs, backoffMaxMs);
-        log('apply retry-after backoff', { backoffMs });
+        // log('apply retry-after backoff', { backoffMs });
       } else {
         increaseBackoff();
       }
@@ -220,7 +220,7 @@ export function createPollingController({
       // Wenn ein anderer Tab schlägt, gib Master-Rolle ab
       if (isMaster && lastForeignBeat > lastBeat) {
         isMaster = false;
-        log('lost master to', msg.tabId);
+        // log('lost master to', msg.tabId);
         schedule();
       }
     } else if (msg.type === 'claim') {
@@ -242,10 +242,10 @@ export function createPollingController({
       setTimeout(() => {
         if (getNow() - lastForeignBeat > heartbeatMs * 1.2) {
           isMaster = true;
-          log('became master');
+          // log('became master');
         } else {
           isMaster = false;
-          log('another master present');
+          // log('another master present');
         }
         resolve(isMaster);
       }, heartbeatMs * 1.3);
@@ -295,7 +295,7 @@ export function createPollingController({
     }
 
     try { bc && bc.close(); } catch (e) { console.error(e); }
-    log('stopped');
+    // log('stopped');
   }
 
   // Öffentliche Steuerfunktionen, die von außen verwendet werden können.

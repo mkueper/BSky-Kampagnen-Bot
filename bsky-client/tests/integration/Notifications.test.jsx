@@ -45,11 +45,17 @@ const { fetchNotificationsMock, mockDispatch, engagementOverrides } =
     engagementOverrides: { current: null }
   }))
 
+const dispatchMode = vi.hoisted(() => ({ useReal: false }))
+
 vi.mock('../../src/context/AppContext', async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
-    useAppDispatch: () => mockDispatch
+    useAppDispatch: () => (
+      dispatchMode.useReal
+        ? original.useAppDispatch()
+        : mockDispatch
+    )
   }
 })
 vi.mock('../../src/context/CardConfigContext.jsx', () => ({
@@ -158,6 +164,7 @@ beforeEach(() => {
   fetchNotificationsMock.mockReset()
   mockDispatch.mockReset()
   engagementOverrides.current = null
+  dispatchMode.useReal = false
   vi.spyOn(window, 'fetch').mockResolvedValue({
     ok: true,
     json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
@@ -227,36 +234,49 @@ describe('Notifications', () => {
         unreadCount: 0
       })
 
+    dispatchMode.useReal = true
     let container
-    await act(async () => {
-      const rendered = renderWithProviders(
-        <Notifications activeTab='mentions' />
+    try {
+      await act(async () => {
+        const rendered = renderWithProviders(
+          <Notifications activeTab='mentions' listKey='notifs:mentions' />
+        )
+        container = rendered.container
+      })
+
+      // First fetch
+      await waitFor(
+        () => expect(fetchNotificationsMock).toHaveBeenCalledTimes(1),
+        { timeout: 2000 }
       )
-      container = rendered.container
-    })
+      expect(fetchNotificationsMock.mock.calls[0][0]).toMatchObject({
+        markSeen: false,
+        filter: 'mentions'
+      })
 
-    // Wait for fetch to complete
-    await waitFor(
-      () => expect(fetchNotificationsMock).toHaveBeenCalledTimes(1),
-      { timeout: 2000 }
-    )
+      // Auto-buffer fetch
+      await waitFor(
+        () => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2),
+        { timeout: 2000 }
+      )
+      expect(fetchNotificationsMock.mock.calls[1][0]).toMatchObject({
+        cursor: 'cursor-1',
+        markSeen: false,
+        filter: 'mentions'
+      })
 
-    // Check the call
-    expect(fetchNotificationsMock).toHaveBeenCalledTimes(1)
-    expect(fetchNotificationsMock.mock.calls[0][0]).toMatchObject({
-      markSeen: false,
-      filter: 'mentions'
-    })
-
-    // Check the rendered output
-    await waitFor(() => {
-      expect(
-        container.querySelectorAll('[data-component="BskyNotificationCard"]')
-          .length
-      ).toBe(6)
-    })
-    expect(screen.getByText('Mention Body')).toBeVisible()
-    expect(screen.getByText('More mention 0')).toBeVisible()
+      // Check the rendered output
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll('[data-component="BskyNotificationCard"]')
+            .length
+        ).toBe(6)
+      })
+      expect(screen.getByText('Mention Body')).toBeVisible()
+      expect(screen.getByText('More mention 0')).toBeVisible()
+    } finally {
+      dispatchMode.useReal = false
+    }
   })
 })
 

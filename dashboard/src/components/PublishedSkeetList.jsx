@@ -132,71 +132,73 @@ function PublishedSkeetList({
               )}
             </div>
           ) : (
-            <div className="space-y-4">
-              <ContentWithLinkPreview
-                content={skeet.content}
-                mediaCount={Array.isArray(skeet.media) ? skeet.media.length : 0}
-                className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words"
-              />
-              {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {skeet.media.slice(0, 4).map((m, idx) => (
-                    <div key={m.id || idx} className="relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle">
-                      <img src={m.previewUrl || ''} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
-                    </div>
-                  ))}
+            <div className="">
+              <div className="space-y-4">
+                <ContentWithLinkPreview
+                  content={skeet.content}
+                  mediaCount={Array.isArray(skeet.media) ? skeet.media.length : 0}
+                  className="text-base font-medium leading-relaxed text-foreground whitespace-pre-wrap break-words"
+                />
+                {Array.isArray(skeet.media) && skeet.media.length > 0 ? (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {skeet.media.slice(0, 4).map((m, idx) => (
+                      <div key={m.id || idx} className="relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle">
+                        <img src={m.previewUrl || ''} alt={m.altText || `Bild ${idx + 1}`} className="absolute inset-0 h-full w-full object-contain" loading="lazy" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {skeet.targetPlatforms?.length > 0 && (
+                  <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
+                    {skeet.targetPlatforms.join(" • ")}
+                  </p>
+                )}
+                {skeet.postedAt && (
+                  <p className="text-sm text-foreground-muted">
+                    Gesendet am <span className="font-medium text-foreground">{formatTime(skeet.postedAt)}</span>
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  {canFetchReactions ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => onFetchReactions(skeet.id)}
+                      disabled={isFetchingReactions}
+                    >
+                      {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
+                    </Button>
+                  ) : null}
+                  {canRetract ? (
+                    <Button
+                      variant="warning"
+                      onClick={() => onRetract?.(skeet)}
+                    >
+                      Zurückziehen
+                    </Button>
+                  ) : null}
+                  <p className="text-sm text-foreground-muted">
+                    Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
+                  </p>
                 </div>
-              ) : null}
-              {skeet.targetPlatforms?.length > 0 && (
-                <p className="text-xs uppercase tracking-[0.25em] text-foreground-subtle">
-                  {skeet.targetPlatforms.join(" • ")}
-                </p>
-              )}
-              {skeet.postedAt && (
-                <p className="text-sm text-foreground-muted">
-                  Gesendet am <span className="font-medium text-foreground">{formatTime(skeet.postedAt)}</span>
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
-                {canFetchReactions ? (
-                  <Button
-                    variant="primary"
-                    onClick={() => onFetchReactions(skeet.id)}
-                    disabled={isFetchingReactions}
-                  >
-                    {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
-                  </Button>
-                ) : null}
-                {canRetract ? (
-                  <Button
-                    variant="warning"
-                    onClick={() => onRetract?.(skeet)}
-                  >
-                    Zurückziehen
-                  </Button>
-                ) : null}
-                <p className="text-sm text-foreground-muted">
-                  Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
-                </p>
-              </div>
 
-              {Object.keys(reactions).length > 0 ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {Object.entries(reactions).map(([platformId, stats]) => (
-                    <div key={platformId} className="rounded-2xl border border-border bg-background-subtle/80 p-4 text-sm">
-                      <p className="font-medium text-foreground">
-                        {platformLabels[platformId] || platformId}
-                      </p>
-                      <p className="mt-1 text-foreground-muted">Likes {stats.likes} · Reposts {stats.reposts}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {reactionErrors ? (
-                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                  Fehler: {Object.values(reactionErrors).join(", ")}
-                </div>
-              ) : null}
+                {Object.keys(reactions).length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {Object.entries(reactions).map(([platformId, stats]) => (
+                      <div key={platformId} className="rounded-2xl border border-border bg-background-subtle/80 p-4 text-sm">
+                        <p className="font-medium text-foreground">
+                          {platformLabels[platformId] || platformId}
+                        </p>
+                        <p className="mt-1 text-foreground-muted">Likes {stats.likes} · Reposts {stats.reposts}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {reactionErrors ? (
+                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                    Fehler: {Object.values(reactionErrors).join(", ")}
+                  </div>
+                ) : null}
+              </div>
             </div>
           )}
         </div>
