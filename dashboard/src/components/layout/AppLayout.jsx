@@ -23,7 +23,8 @@ function AppLayout({
   children,
   showScrollTop = true,
   headerHidden = false,
-  mobileMenuExtras = null
+  mobileMenuExtras = null,
+  navFooter = null
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // Desktop: collapsed main navigation state (default visible)
@@ -140,8 +141,9 @@ function AppLayout({
               </div>
             </div>
 
-            <nav className="flex flex-1 flex-col gap-2">
-              {navItems.map((item) => {
+            <div className="flex flex-1 flex-col">
+              <nav className="flex flex-1 flex-col gap-2">
+                {navItems.map((item) => {
                 const { id, label, icon: Icon, children } = item;
                 const hasChildren = Array.isArray(children) && children.length > 0;
                 const isChildActive = hasChildren ? children.some((child) => child.id === activeView) : false;
@@ -207,8 +209,14 @@ function AppLayout({
                     ) : null}
                   </div>
                 );
-              })}
-            </nav>
+                })}
+              </nav>
+              {navFooter ? (
+                <div className="mt-6 border-t border-border pt-4">
+                  {navFooter}
+                </div>
+              ) : null}
+            </div>
 {mobileMenuExtras ? (
   <div className="mt-6 border-t border-border pt-4 md:hidden">
     {mobileMenuExtras}

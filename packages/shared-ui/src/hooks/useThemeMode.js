@@ -1,0 +1,87 @@
+import { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react'
+
+export function useThemeMode ({
+  themes,
+  themeConfig,
+  defaultTheme
+}) {
+  console.log('themeMode', themeConfig)
+  const themeList = useMemo(() => (Array.isArray(themes) && themes.length > 0 ? themes : ['light']), [themes])
+
+  const resolvedDefault = useMemo(() => {
+    if (themeList.includes(defaultTheme)) return defaultTheme || themeList[0]
+    return themeList[0]
+  }, [themeList, defaultTheme])
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return resolvedDefault
+    const stored = window.localStorage.getItem('theme')
+    if (stored && themeList.includes(stored)) return stored
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
+    if (prefersDark && themeList.includes('dark')) return 'dark'
+    return resolvedDefault
+  })
+
+  const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const stored = window.localStorage.getItem('theme')
+    return Boolean(stored && themeList.includes(stored))
+  })
+
+  useLayoutEffect(() => {
+    if (typeof document === 'undefined') return
+    const root = document.documentElement
+    const resolvedTheme = themeList.includes(theme) ? theme : resolvedDefault
+    const settings = themeConfig[resolvedTheme] || {}
+
+    themeList.forEach(t => root.classList.remove(t))
+    root.classList.add(resolvedTheme)
+    root.classList.toggle('dark', settings.isDark ?? (resolvedTheme !== 'light'))
+
+    root.dataset.theme = resolvedTheme
+    root.style.colorScheme = settings.colorScheme ?? 'light'
+    if (userHasExplicitTheme) {
+      window.localStorage.setItem('theme', resolvedTheme)
+    } else {
+      window.localStorage.removeItem('theme')
+    }
+  }, [theme, themeList, themeConfig, resolvedDefault, userHasExplicitTheme])
+
+  useEffect(() => {
+    if (typeof window?.matchMedia !== 'function') return undefined
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const listener = event => {
+      if (!userHasExplicitTheme) {
+        setTheme(event.matches && themeList.includes('dark') ? 'dark' : resolvedDefault)
+      }
+    }
+    media.addEventListener('change', listener)
+    return () => media.removeEventListener('change', listener)
+  }, [userHasExplicitTheme, resolvedDefault, themeList])
+
+  const currentTheme = themeList.includes(theme) ? theme : resolvedDefault
+  const currentThemeConfig = themeConfig[currentTheme] || {}
+  const nextTheme = themeList[(themeList.indexOf(currentTheme) + 1) % themeList.length]
+  const nextThemeConfig = themeConfig[nextTheme] || {}
+  const nextThemeLabel = nextThemeConfig?.label ?? 'Theme wechseln'
+  const ThemeIcon = currentThemeConfig.icon
+
+  const toggleTheme = useCallback(() => {
+    setUserHasExplicitTheme(true)
+    const currentIndex = themeList.indexOf(currentTheme)
+    const nextIndex = (currentIndex + 1) % themeList.length
+    setTheme(themeList[nextIndex])
+  }, [currentTheme, themeList])
+
+  return {
+    theme: currentTheme,
+    currentThemeConfig,
+    nextTheme,
+    nextThemeConfig,
+    nextThemeLabel,
+    ThemeIcon,
+    toggleTheme,
+    setTheme,
+    setUserHasExplicitTheme
+  }
+}

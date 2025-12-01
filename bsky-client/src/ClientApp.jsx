@@ -96,7 +96,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     profileViewer,
     hashtagSearch
   } = useAppState()
-  console.log('[BskyClientApp] section', section, 'notificationsUnread', notificationsUnread, 'activeListKey', activeListKey)
+  //console.log('[BskyClientApp] section', section, 'notificationsUnread', notificationsUnread, 'activeListKey', activeListKey)
   const dispatch = useAppDispatch()
   const { t } = useTranslation()
   const location = useLocation()

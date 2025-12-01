@@ -4,8 +4,10 @@ export { default as Card } from './components/Card.jsx'
 export { default as Modal } from './components/Modal.jsx'
 export { default as MediaDialog } from './components/MediaDialog.jsx'
 export { default as ScrollTopButton } from './components/ScrollTopButton.jsx'
+export { default as ThemeToggle } from './components/ThemeToggle.jsx'
 export { ToastProvider } from './components/ToastProvider.jsx'
 export { useToast } from './hooks/useToast.js'
+export { useThemeMode } from "./hooks/useThemeMode"
 export {
   InlineMenu,
   InlineMenuTrigger,

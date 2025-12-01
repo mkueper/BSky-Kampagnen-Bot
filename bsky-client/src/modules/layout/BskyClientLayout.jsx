@@ -1,50 +1,107 @@
-import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
-import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon, SunIcon, MoonIcon, ShadowIcon, Half2Icon } from '@radix-ui/react-icons'
+import { ScrollTopButton, ThemeToggle } from '@bsky-kampagnen-bot/shared-ui'
+import {
+  PlusIcon,
+  SunIcon,
+  MoonIcon,
+  ShadowIcon,
+  Half2Icon
+} from '@radix-ui/react-icons'
 import clsx from 'clsx'
 import { useThemeMode } from '../../hooks/useThemeMode'
 import { useLayout } from '../../context/LayoutContext'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
-const MOBILE_NAV_IDS = ['home', 'search', 'chat', 'notifications', 'profile', 'blocks', 'dashboard']
+const MOBILE_NAV_IDS = [
+  'home',
+  'search',
+  'chat',
+  'notifications',
+  'profile',
+  'blocks',
+  'dashboard'
+]
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
 const THEME_SEQUENCE = ['light', 'dim', 'dark', 'midnight']
 const THEME_CONFIG = {
-  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon, colors: { background: 'hsl(240 10% 99%)', foreground: 'hsl(240 10% 3.9%)' } },
-  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon, colors: { background: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 96.1%)' } },
-  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon, colors: { background: 'hsl(240 5.9% 10%)', foreground: 'hsl(240 5% 96.1%)' } },
-  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: Half2Icon, colors: { background: 'hsl(240 10% 3.9%)', foreground: 'hsl(240 5% 96.1%)' } }
+  light: {
+    label: 'Hell',
+    colorScheme: 'light',
+    icon: SunIcon,
+    colors: { background: 'hsl(240 10% 99%)', foreground: 'hsl(240 10% 3.9%)' }
+  },
+  dim: {
+    label: 'Gedimmt',
+    colorScheme: 'dark',
+    icon: ShadowIcon,
+    colors: {
+      background: 'hsl(240 3.7% 15.9%)',
+      foreground: 'hsl(240 5% 96.1%)'
+    }
+  },
+  dark: {
+    label: 'Dunkel',
+    colorScheme: 'dark',
+    icon: MoonIcon,
+    colors: { background: 'hsl(240 5.9% 10%)', foreground: 'hsl(240 5% 96.1%)' }
+  },
+  midnight: {
+    label: 'Mitternacht',
+    colorScheme: 'dark',
+    icon: Half2Icon,
+    colors: { background: 'hsl(240 10% 3.9%)', foreground: 'hsl(240 5% 96.1%)' }
+  }
 }
 
-const computeIsMobile = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-  ? window.matchMedia('(max-width: 768px)').matches
-  : false)
+const computeIsMobile = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 768px)').matches
+    : false
 
-function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeToggle = null, interactionsLocked = false }) {
+function MobileNavBar ({
+  activeSection,
+  notificationsUnread,
+  onSelect,
+  themeToggle = null,
+  interactionsLocked = false
+}) {
   const { t } = useTranslation()
-  const items = NAV_ITEMS.filter((item) => MOBILE_NAV_IDS.includes(item.id))
-  const ThemeToggleIcon = themeToggle?.Icon || null
+  const items = NAV_ITEMS.filter(item => MOBILE_NAV_IDS.includes(item.id))
   return (
     <nav
       className='pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4'
-      style={{ paddingBottom: `calc(var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))` }}
+      style={{
+        paddingBottom: `calc(var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
+      }}
       aria-label='Mobile Navigation'
     >
       <div
         className='pointer-events-auto mx-auto flex w-full max-w-xl items-center justify-between gap-2 rounded-full border border-border bg-background-elevated/80 px-3 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60'
         style={{ minHeight: 'var(--bottom-nav-height)' }}
       >
-        {items.map((item) => {
+        {items.map(item => {
           const Icon = item.icon
           const isActive = activeSection === item.id
           const disabled = Boolean(item.disabled) || interactionsLocked
-          const showBadge = item.id === 'notifications' && notificationsUnread > 0
-          const badgeLabel = notificationsUnread > 30 ? '30+' : String(notificationsUnread)
+          const showBadge =
+            item.id === 'notifications' && notificationsUnread > 0
+          const badgeLabel =
+            notificationsUnread > 30 ? '30+' : String(notificationsUnread)
           const baseLabel = t(item.labelKey, item.defaultLabel)
           const label = showBadge
-            ? t('nav.notificationsWithCount', '{label} ({count} neu)', { label: baseLabel, count: badgeLabel })
+            ? t('nav.notificationsWithCount', '{label} ({count} neu)', {
+                label: baseLabel,
+                count: badgeLabel
+              })
             : baseLabel
           return (
             <button
@@ -54,7 +111,9 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeTogg
               aria-label={label}
               aria-current={isActive ? 'page' : undefined}
               disabled={disabled}
-              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${isActive ? 'bg-background-subtle text-primary shadow-soft' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${
+                isActive ? 'bg-background-subtle text-primary shadow-soft' : ''
+              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {Icon ? <Icon className='h-5 w-5' /> : null}
               {showBadge ? (
@@ -66,14 +125,11 @@ function MobileNavBar ({ activeSection, notificationsUnread, onSelect, themeTogg
           )
         })}
         {themeToggle ? (
-          <button
-            type='button'
-            onClick={themeToggle.onToggle}
-            aria-label={t('nav.themeSwitch', `Theme wechseln – ${themeToggle.nextLabel || ''}`, { label: themeToggle.nextLabel || '' })}
-            className='relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary'
-          >
-            {ThemeToggleIcon ? <ThemeToggleIcon className='h-5 w-5' /> : null}
-          </button>
+          <ThemeToggle
+            {...themeToggle}
+            variant='icon'
+            className='border-none bg-transparent text-foreground hover:text-primary'
+          />
         ) : null}
       </div>
     </nav>
@@ -93,6 +149,7 @@ export default function BskyClientLayout ({
   scrollTopForceVisible = false,
   onScrollTopActivate
 }) {
+  const { t } = useTranslation()
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
   const [detailLayoutHeader, setDetailLayoutHeader] = useState(null)
@@ -110,19 +167,30 @@ export default function BskyClientLayout ({
   const ThemeIcon = ActiveThemeIcon || SunIcon
   const { setHeaderRef } = useLayout()
   const themeToggleProps = {
-    label: currentThemeConfig?.label || 'Theme',
+    icon: ThemeIcon,
+    label: t('nav.themeButton', 'Theme'),
+    modeLabel: currentThemeConfig?.label || '—',
     nextLabel: nextThemeLabel,
-    nextConfig: nextThemeConfig,
+    nextColor: nextThemeConfig?.colors?.background,
+    nextBorderColor: nextThemeConfig?.colors?.foreground,
     onToggle: toggleThemeMode,
-    Icon: ThemeIcon
+    ariaLabel: t(
+      'nav.themeSwitch',
+      `Theme wechseln – ${nextThemeLabel || ''}`,
+      { label: nextThemeLabel || '' }
+    )
   }
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    )
+      return undefined
 
     const mq = window.matchMedia('(max-width: 768px)')
 
-    const handleChange = (event) => {
+    const handleChange = event => {
       const isNowMobile = event.matches
       setIsMobile(isNowMobile)
       setNavVisible(!isNowMobile)
@@ -135,12 +203,15 @@ export default function BskyClientLayout ({
 
   const navInteractionsLocked = Boolean(detailPaneActive)
 
-  const handleSelect = useCallback((section, options = {}) => {
-    if (navInteractionsLocked && !options?.force) return
-    if (typeof onSelectSection === 'function') {
-      onSelectSection(section)
-    }
-  }, [onSelectSection, navInteractionsLocked])
+  const handleSelect = useCallback(
+    (section, options = {}) => {
+      if (navInteractionsLocked && !options?.force) return
+      if (typeof onSelectSection === 'function') {
+        onSelectSection(section)
+      }
+    },
+    [onSelectSection, navInteractionsLocked]
+  )
 
   const handleOpenCompose = useCallback(() => {
     if (typeof onOpenCompose === 'function') {
@@ -178,7 +249,9 @@ export default function BskyClientLayout ({
     'flex h-full w-full min-h-0 justify-center': isProfileSection,
     'space-y-5 sm:space-y-8': !isProfileSection && !isMobile
   })
-  const mainSectionClassName = clsx('min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden')
+  const mainSectionClassName = clsx(
+    'min-w-0 min-h-0 flex-1 flex flex-col overflow-hidden'
+  )
   const hasDetailPane = Boolean(detailPane)
   const isPaneExclusive = hasDetailPane && detailPaneActive
 
@@ -188,7 +261,7 @@ export default function BskyClientLayout ({
     }
   }, [isPaneExclusive])
 
-  const registerDetailLayoutHeader = useCallback((node) => {
+  const registerDetailLayoutHeader = useCallback(node => {
     setDetailLayoutHeader(node)
   }, [])
 
@@ -200,11 +273,15 @@ export default function BskyClientLayout ({
     })
   }, [detailPane, registerDetailLayoutHeader, isPaneExclusive])
 
-  const effectiveHeaderContent = isPaneExclusive ? detailLayoutHeader : headerContent
+  const effectiveHeaderContent = isPaneExclusive
+    ? detailLayoutHeader
+    : headerContent
   const showHeaderContent = Boolean(effectiveHeaderContent)
   const showTopBlock = Boolean(topBlock) && !isPaneExclusive
   const contentWrapperClassName = clsx(
-    hasDetailPane ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8' : '',
+    hasDetailPane
+      ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8'
+      : '',
     hasDetailPane ? 'mt-0' : ''
   )
 
@@ -230,10 +307,7 @@ export default function BskyClientLayout ({
           />
         </aside>
       ) : null}
-      <section
-        className={mainSectionClassName}
-        data-component='BskyLayoutMain'
-      >
+      <section className={mainSectionClassName} data-component='BskyLayoutMain'>
         {showHeaderContent ? (
           <header
             className='sticky top-0 z-10 mb-2 rounded-2xl border border-border bg-background-elevated/80 px-2 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'
@@ -257,7 +331,10 @@ export default function BskyClientLayout ({
           id='bsky-scroll-container'
           className={scrollContainerClassName}
           data-component='BskyScrollContainer'
-          style={{ scrollbarGutter: 'stable', paddingBottom: bottomPaddingValue }}
+          style={{
+            scrollbarGutter: 'stable',
+            paddingBottom: bottomPaddingValue
+          }}
         >
           <div className={contentWrapperClassName}>
             <main
@@ -271,7 +348,9 @@ export default function BskyClientLayout ({
               <section
                 className={clsx(
                   'mt-0 xl:mt-0',
-                  !detailPaneActive ? 'xl:mt-0 xl:sticky xl:top-4 xl:self-start' : '',
+                  !detailPaneActive
+                    ? 'xl:mt-0 xl:sticky xl:top-4 xl:self-start'
+                    : '',
                   detailPaneActive ? 'w-full' : ''
                 )}
                 data-component='BskyThreadPane'
@@ -287,17 +366,17 @@ export default function BskyClientLayout ({
             />
           ) : null}
           {!isPaneExclusive ? (
-          <ScrollTopButton
-            containerId='bsky-scroll-container'
-            position='bottom-left'
-            variant='primary'
-            threshold={300}
-            forceVisible={scrollTopForceVisible}
-            manualScroll
-            onActivate={onScrollTopActivate}
-            offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
-            horizontalOffset={isMobile ? 12 : 16}
-          />
+            <ScrollTopButton
+              containerId='bsky-scroll-container'
+              position='bottom-left'
+              variant='primary'
+              threshold={300}
+              forceVisible={scrollTopForceVisible}
+              manualScroll
+              onActivate={onScrollTopActivate}
+              offset={isMobile ? MOBILE_NAV_HEIGHT + MOBILE_NAV_GAP + 16 : 16}
+              horizontalOffset={isMobile ? 12 : 16}
+            />
           ) : null}
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (
@@ -305,7 +384,11 @@ export default function BskyClientLayout ({
               type='button'
               onClick={handleOpenCompose}
               className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-              style={isMobile ? { bottom: mobileNavReservedSpace } : { bottom: '20px' }}
+              style={
+                isMobile
+                  ? { bottom: mobileNavReservedSpace }
+                  : { bottom: '20px' }
+              }
               aria-label='Neuer Skeet'
               title='Neuen Skeet posten'
             >

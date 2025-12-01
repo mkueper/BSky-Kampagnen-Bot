@@ -12,6 +12,7 @@ import {
   PlusIcon,
   SlashIcon
 } from '@radix-ui/react-icons';
+import { ThemeToggle } from '@bsky-kampagnen-bot/shared-ui';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
 
 export const NAV_ITEMS = [
@@ -29,7 +30,6 @@ export const NAV_ITEMS = [
 ];
 
 export default function SidebarNav({ active, onSelect, onCompose, notificationsUnread = 0, themeToggle = null, interactionsLocked = false }) {
-  const ThemeToggleIcon = themeToggle?.Icon || null;
   const { t } = useTranslation();
   const normalizedUnread = Number.isFinite(notificationsUnread) ? notificationsUnread : 0;
   return (
@@ -88,30 +88,20 @@ export default function SidebarNav({ active, onSelect, onCompose, notificationsU
         </div>
 
         {themeToggle ? (
-          <div className="pt-2 w-full">
-            <button
-              type="button"
-              onClick={themeToggle.onToggle}
-              className="inline-flex h-12 w-12 lg:h-auto lg:w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background-subtle lg:px-4 lg:py-3 text-sm text-foreground transition hover:bg-background"
-              aria-label={t('nav.themeSwitch', `Theme wechseln – nächstes: ${themeToggle.nextLabel || ''}`, { label: themeToggle.nextLabel || '' })}
-              title={t('nav.themeSwitch', `Theme wechseln – nächstes: ${themeToggle.nextLabel || ''}`, { label: themeToggle.nextLabel || '' })}
-            >
-              {ThemeToggleIcon ? <ThemeToggleIcon className="h-6 w-5" /> : null}
-              <span className="hidden lg:inline truncate">{t('nav.themeButton', 'Theme')}</span>
-              <span className="hidden lg:inline text-xs text-foreground-muted">
-                {themeToggle.label}
-              </span>
-              {themeToggle?.nextConfig?.colors && (
-                <span
-                  className="hidden lg:inline-block h-4 w-4 rounded-full ml-auto"
-                  style={{
-                    backgroundColor: themeToggle.nextConfig.colors.background,
-                    border: `2px solid ${themeToggle.nextConfig.colors.background}`
-                  }}
-                  aria-hidden="true"
-                />
-              )}
-            </button>
+          <div className="pt-2 w-full space-y-2">
+            <div className="hidden lg:block">
+              <ThemeToggle
+                {...themeToggle}
+                className="w-full"
+              />
+            </div>
+            <div className="lg:hidden flex justify-center">
+              <ThemeToggle
+                {...themeToggle}
+                variant="icon"
+                className="h-12 w-12 border-none bg-transparent text-foreground hover:text-primary"
+              />
+            </div>
           </div>
         ) : null}
         <div className="pt-2">

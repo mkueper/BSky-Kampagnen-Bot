@@ -11,10 +11,9 @@ import {
   SunIcon,
   UploadIcon,
   ViewHorizontalIcon,
-  InfoCircledIcon,
-  ExitIcon
+  InfoCircledIcon
 } from '@radix-ui/react-icons'
-import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card, ThemeToggle } from '@bsky-kampagnen-bot/shared-ui'
 import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
@@ -111,10 +110,10 @@ const HEADER_TITLES = {
 // Theme-Konfiguration – liefert Icon, Label und Farbschema für die Theme-Umschaltung.
 const THEMES = ['light', 'dim', 'dark', 'midnight']
 const THEME_CONFIG = {
-  light: { label: 'Helles Theme', colorScheme: 'light', icon: SunIcon },
-  dim: { label: 'Gedimmtes Theme', colorScheme: 'dark', icon: ShadowIcon },
-  dark: { label: 'Dunkles Theme', colorScheme: 'dark', icon: MoonIcon },
-  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: ShadowIcon }
+  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon, previewColor: '#e2e8f0' },
+  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon, previewColor: '#0f172a' },
+  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon, previewColor: '#94a3b8' },
+  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: ShadowIcon, previewColor: '#020617' }
 }
 const DEFAULT_THEME = THEMES[0]
 
@@ -149,6 +148,7 @@ function DashboardApp ({ session, onLogout }) {
   //console.log('[DashboardApp] activeView', activeView)
   const {
     currentThemeConfig,
+    nextTheme,
     nextThemeLabel,
     ThemeIcon: HookThemeIcon,
     toggleTheme
@@ -158,6 +158,14 @@ function DashboardApp ({ session, onLogout }) {
     defaultTheme: DEFAULT_THEME
   })
   const ThemeIcon = HookThemeIcon || SunIcon
+  const themeToggleProps = {
+    icon: ThemeIcon,
+    modeLabel: currentThemeConfig?.label ?? 'Theme',
+    nextLabel: nextThemeLabel,
+    nextColor: THEME_CONFIG[nextTheme]?.previewColor,
+    onToggle: toggleTheme,
+    ariaLabel: `Theme wechseln - nächstes: ${nextThemeLabel}`
+  }
   const [editingSkeet, setEditingSkeet] = useState(null)
   const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
   const plannedListScrollRef = useRef(null)
@@ -530,40 +538,8 @@ function DashboardApp ({ session, onLogout }) {
     ? 'Threads importieren'
     : 'Skeets importieren'
 
-  const desktopThemeButton = (
-    <Button
-      variant='ghost'
-      size='icon'
-      className='hidden sm:inline-flex'
-      onClick={toggleTheme}
-      aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-      title={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-    >
-      <ThemeIcon className='h-4 w-4' />
-      <span className='sr-only'>
-        Aktuelles Theme: {currentThemeConfig?.label}
-      </span>
-    </Button>
-  )
-
-  const desktopLogoutButton = (
-    <Button
-      variant='ghost'
-      size='icon'
-      className='hidden sm:inline-flex'
-      onClick={handleLogoutClick}
-      disabled={logoutPending}
-      title={`Abmelden (${sessionUsername})`}
-      aria-label='Abmelden'
-    >
-      <ExitIcon className='h-4 w-4' />
-      <span className='sr-only'>Vom Dashboard abmelden</span>
-    </Button>
-  )
-
   const headerActions = (
     <>
-      {desktopThemeButton}
       {(activeView === 'skeets-overview' ||
         activeView === 'threads-overview') && (
         <>
@@ -598,26 +574,19 @@ function DashboardApp ({ session, onLogout }) {
         />
         </>
       )}
-      {desktopLogoutButton}
     </>
   )
 
-  const mobileMenuExtras = (
-    <div className={`flex flex-col gap-3 ${isBskyClientView ? '' : 'md:hidden'}`}>
+  const navFooter = (
+    <div className='flex flex-col gap-3'>
+      <ThemeToggle
+        {...themeToggleProps}
+        className='w-full'
+      />
       <Button
         type='button'
         variant='outline'
-        className='flex w-full items-center justify-between text-sm font-semibold'
-        onClick={toggleTheme}
-        aria-label={`Theme wechseln - nächstes: ${nextThemeLabel}`}
-      >
-        <span>Theme wechseln</span>
-        <ThemeIcon className='h-4 w-4 shrink-0' />
-      </Button>
-      <Button
-        type='button'
-        variant='secondary'
-        className='w-full justify-center'
+        className='w-full justify-center text-sm font-semibold'
         onClick={handleLogoutClick}
         disabled={logoutPending}
       >
@@ -823,7 +792,7 @@ function DashboardApp ({ session, onLogout }) {
       headerTitle={headerTitle}
       headerActions={headerActions}
       headerHidden={isBskyClientView}
-      mobileMenuExtras={mobileMenuExtras}
+      navFooter={navFooter}
       showScrollTop={activeView !== 'bsky-client'}
     >
       {content}
