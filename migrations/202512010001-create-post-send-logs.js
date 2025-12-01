@@ -20,30 +20,56 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
       },
+
+      // NEU: Event-Typ (send oder delete)
+      eventType: {
+        type: Sequelize.STRING,
+        allowNull: false, // 'send' oder 'delete', Validierung im Model
+      },
+
+      // NEU: vereinfachter Status (success oder failed)
       status: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: false, // 'success' oder 'failed', Validierung im Model
       },
+
       postedAt: {
         type: Sequelize.DATE,
         allowNull: false,
       },
-      errorCode: {
-        type: Sequelize.STRING,
-        allowNull: true,
-      },
-      errorMessage: {
-        type: Sequelize.TEXT,
-        allowNull: true,
-      },
+
       postUri: {
         type: Sequelize.STRING,
         allowNull: true,
       },
+
+      // NEU: optionale CID (z.B. für ATProto)
+      postCid: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+
       attempt: {
         type: Sequelize.INTEGER,
         allowNull: true,
       },
+
+      // NEU: zusammengeführtes Fehlerfeld
+      error: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+
+      // NEU: optionale Snapshots (aktuell noch ungenutzt)
+      contentSnapshot: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      mediaSnapshot: {
+        type: Sequelize.JSON,
+        allowNull: true,
+      },
+
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
@@ -61,4 +87,3 @@ module.exports = {
     await queryInterface.dropTable("PostSendLogs");
   },
 };
-

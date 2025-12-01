@@ -8,6 +8,7 @@
  */
 module.exports = (sequelize, DataTypes) => {
   const ALLOWED_PLATFORMS = ["bluesky", "mastodon"];
+  const SCHEDULE_REQUIRED_STATUSES = new Set(["scheduled", "pending_manual", "draft", "error"]);
 
   const normalizePlatforms = (value) => {
     if (Array.isArray(value)) {
@@ -75,7 +76,9 @@ module.exports = (sequelize, DataTypes) => {
       paranoid: true,
       validate: {
         scheduledRequirement() {
-          if (this.repeat === "none" && !this.scheduledAt && !this.postUri) {
+          const rawStatus = typeof this.status === 'string' ? this.status : 'scheduled';
+          const requiresSchedule = SCHEDULE_REQUIRED_STATUSES.has(rawStatus);
+          if (requiresSchedule && this.repeat === "none" && !this.scheduledAt && !this.postUri) {
             throw new Error("scheduledAt ist erforderlich, wenn repeat = 'none' ist.");
           }
         },

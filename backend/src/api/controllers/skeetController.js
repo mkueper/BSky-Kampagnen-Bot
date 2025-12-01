@@ -110,11 +110,22 @@ async function retractSkeet(req, res) {
   const { id } = req.params;
   try {
     const platforms = Array.isArray(req.body?.platforms) ? req.body.platforms : undefined;
-    const result = await skeetService.retractSkeet(id, { platforms });
-    res.json(result);
+    if (platforms && platforms.length > 0) {
+      const result = await skeetService.retractSkeet(id, { platforms });
+      res.json(result);
+      return;
+    }
+    const summary = await skeetService.retractSkeetCompletely(id);
+    res.json(summary);
   } catch (error) {
     const message = error?.message || 'Fehler beim Entfernen des Skeets.';
-    const status = error?.status || (message.includes('nicht gefunden') ? 404 : message.includes('keine veröffentlichten Plattformdaten') ? 400 : 500);
+    const status = error?.status || (
+      message.includes('nicht gefunden')
+        ? 404
+        : (message.includes('keine veröffentlichten Plattformdaten') || message.includes('Zielplattformen'))
+          ? 400
+          : 500
+    );
     res.status(status).json({ error: message });
   }
 }

@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Skeet, SkeetMedia, PostSendLog } = require('../../data/models');
 const config = require('../../config');
 const { parseDatetimeLocal, DATETIME_LOCAL_REGEX } = require('../../utils/timezone');
@@ -100,6 +101,159 @@ function markResultAsDeleted(entry = {}, identifiers = {}) {
   next.error = null;
   next.metrics = { likes: 0, reposts: 0 };
   return next;
+}
+
+const PLATFORM_STATES = {
+  ONLINE: 'online',
+  DELETED: 'deleted',
+  DELETE_FAILED: 'delete_failed',
+  SEND_FAILED: 'send_failed',
+  UNKNOWN: 'unknown'
+};
+
+const SKEET_DELETION_STATUS = {
+  NONE: 'none',
+  PARTIAL: 'partial',
+  FULL: 'full'
+};
+
+function derivePlatformStateFromLog(log) {
+  if (!log) return PLATFORM_STATES.UNKNOWN;
+  if (log.eventType === 'send') {
+    return log.status === 'success' ? PLATFORM_STATES.ONLINE : PLATFORM_STATES.SEND_FAILED;
+  }
+  if (log.eventType === 'delete') {
+    return log.status === 'success' ? PLATFORM_STATES.DELETED : PLATFORM_STATES.DELETE_FAILED;
+  }
+  return PLATFORM_STATES.UNKNOWN;
+}
+
+async function deriveSkeetPlatformStates(skeetId, targetPlatforms = []) {
+  const platforms = Array.from(new Set((targetPlatforms || []).filter(Boolean)));
+  if (platforms.length === 0) {
+    return {};
+  }
+  const logs = await PostSendLog.findAll({
+    where: {
+      skeetId,
+      platform: { [Op.in]: platforms }
+    },
+    order: [
+      ['postedAt', 'DESC'],
+      ['createdAt', 'DESC']
+    ]
+  });
+
+  const states = {};
+  platforms.forEach((platform) => {
+    states[platform] = PLATFORM_STATES.UNKNOWN;
+  });
+
+  for (const log of logs) {
+    if (!(log.platform in states)) continue;
+    if (states[log.platform] !== PLATFORM_STATES.UNKNOWN) continue;
+    states[log.platform] = derivePlatformStateFromLog(log);
+  }
+
+  return states;
+}
+
+function deriveSkeetDeletionStatus(platformStates = {}) {
+  const entries = Object.keys(platformStates);
+  if (entries.length === 0) {
+    return SKEET_DELETION_STATUS.NONE;
+  }
+
+  const allDeleted = entries.every((platform) => platformStates[platform] === PLATFORM_STATES.DELETED);
+  if (allDeleted) {
+    return SKEET_DELETION_STATUS.FULL;
+  }
+
+  const needsAttention = entries.some((platform) =>
+    platformStates[platform] === PLATFORM_STATES.ONLINE ||
+    platformStates[platform] === PLATFORM_STATES.DELETE_FAILED
+  );
+  if (needsAttention) {
+    return SKEET_DELETION_STATUS.PARTIAL;
+  }
+
+  return SKEET_DELETION_STATUS.NONE;
+}
+
+async function fetchLatestSuccessfulSendLog(skeetId, platform) {
+  return PostSendLog.findOne({
+    where: {
+      skeetId,
+      platform,
+      eventType: 'send',
+      status: 'success'
+    },
+    order: [
+      ['postedAt', 'DESC'],
+      ['createdAt', 'DESC']
+    ]
+  });
+}
+
+async function resolveDeleteIdentifiers(skeet, platformId, results = {}) {
+  const sendLog = await fetchLatestSuccessfulSendLog(skeet.id, platformId);
+  if (sendLog && (sendLog.postUri || sendLog.postCid)) {
+    return {
+      uri: sendLog.postUri || null,
+      statusId: results[platformId]?.statusId || null,
+      cid: sendLog.postCid || null
+    };
+  }
+
+  const entry = results[platformId] || {};
+  const fallbackUri = entry.uri || (platformId === 'bluesky' ? skeet.postUri : null);
+  const statusId = entry.statusId || null;
+
+  if (!fallbackUri && !statusId) {
+    return null;
+  }
+
+  return {
+    uri: fallbackUri || null,
+    statusId,
+    cid: entry.cid || null
+  };
+}
+
+async function logPlatformEvent({
+  skeetId,
+  platform,
+  eventType,
+  status,
+  postUri = null,
+  postCid = null,
+  error = null,
+  contentSnapshot = null,
+  mediaSnapshot = null,
+  postedAt = new Date()
+}) {
+  try {
+    await PostSendLog.create({
+      skeetId,
+      platform,
+      eventType,
+      status,
+      postUri,
+      postCid,
+      error,
+      contentSnapshot,
+      mediaSnapshot,
+      postedAt
+    });
+  } catch (err) {
+    log.warn('Konnte PostSendLog nicht schreiben', {
+      skeetId,
+      platform,
+      eventType,
+      status,
+      error: err?.message || String(err)
+    });
+  }
 }
 
 function parseOptionalDate(value) {
@@ -386,6 +540,144 @@ async function retractSkeet(id, options = {}) {
   };
 }
 
+async function retractSkeetCompletely(id) {
+  ensurePlatforms();
+
+  const skeet = await Skeet.findByPk(id, { paranoid: false });
+  if (!skeet) {
+    const error = new Error('Skeet nicht gefunden.');
+    error.status = 404;
+    throw error;
+  }
+  if (skeet.deletedAt) {
+    const error = new Error('Der Skeet befindet sich bereits im Papierkorb.');
+    error.status = 400;
+    throw error;
+  }
+
+  const results = parsePlatformResults(skeet.platformResults);
+  const targetPlatforms = collectTargetPlatformsForRemoval(skeet, results).filter((platformId) =>
+    ALLOWED_PLATFORMS.includes(platformId)
+  );
+  if (targetPlatforms.length === 0) {
+    const error = new Error('Für diesen Skeet liegen keine Zielplattformen vor.');
+    error.status = 400;
+    throw error;
+  }
+
+  const platformStatesBefore = await deriveSkeetPlatformStates(skeet.id, targetPlatforms);
+  const deleteResults = {};
+  const updatedResults = { ...results };
+  let anySuccess = false;
+
+  for (const platformId of targetPlatforms) {
+    const stateBefore = platformStatesBefore[platformId] || PLATFORM_STATES.UNKNOWN;
+    if (![PLATFORM_STATES.ONLINE, PLATFORM_STATES.DELETE_FAILED].includes(stateBefore)) {
+      deleteResults[platformId] = 'skipped';
+      continue;
+    }
+
+    const platformEnv = resolvePlatformEnv(platformId);
+    const envError = validatePlatformEnv(platformId, platformEnv);
+    if (envError) {
+      deleteResults[platformId] = 'failed';
+      await logPlatformEvent({
+        skeetId: skeet.id,
+        platform: platformId,
+        eventType: 'delete',
+        status: 'failed',
+        error: envError
+      });
+      continue;
+    }
+
+    const identifiers = await resolveDeleteIdentifiers(skeet, platformId, updatedResults);
+    if (!identifiers) {
+      deleteResults[platformId] = 'failed';
+      await logPlatformEvent({
+        skeetId: skeet.id,
+        platform: platformId,
+        eventType: 'delete',
+        status: 'failed',
+        error: 'Keine Remote-ID gefunden.'
+      });
+      continue;
+    }
+
+    try {
+      const response = await deletePost(platformId, { uri: identifiers.uri, statusId: identifiers.statusId }, platformEnv);
+      if (response.ok) {
+        anySuccess = true;
+        updatedResults[platformId] = markResultAsDeleted(updatedResults[platformId], identifiers);
+        deleteResults[platformId] = 'success';
+        await logPlatformEvent({
+          skeetId: skeet.id,
+          platform: platformId,
+          eventType: 'delete',
+          status: 'success',
+          postUri: identifiers.uri || null,
+          postCid: identifiers.cid || null
+        });
+      } else {
+        deleteResults[platformId] = 'failed';
+        await logPlatformEvent({
+          skeetId: skeet.id,
+          platform: platformId,
+          eventType: 'delete',
+          status: 'failed',
+          postUri: identifiers.uri || null,
+          postCid: identifiers.cid || null,
+          error: response.error || 'Unbekannter Fehler'
+        });
+      }
+    } catch (error) {
+      deleteResults[platformId] = 'failed';
+      await logPlatformEvent({
+        skeetId: skeet.id,
+        platform: platformId,
+        eventType: 'delete',
+        status: 'failed',
+        postUri: identifiers.uri || null,
+        postCid: identifiers.cid || null,
+        error: error?.message || String(error)
+      });
+    }
+  }
+
+  if (anySuccess) {
+    const updatePayload = {
+      platformResults: updatedResults,
+      likesCount: 0,
+      repostsCount: 0,
+    };
+
+    if (skeet.repeat === 'none') {
+      updatePayload.postUri = null;
+      updatePayload.postedAt = null;
+      updatePayload.scheduledAt = null;
+    }
+
+    await skeet.update(updatePayload);
+    emitSkeetEvent('skeet:updated', { id: skeet.id });
+  }
+
+  const platformStatesAfter = await deriveSkeetPlatformStates(skeet.id, targetPlatforms);
+  const skeetDeletionStatus = deriveSkeetDeletionStatus(platformStatesAfter);
+
+  if (skeetDeletionStatus === SKEET_DELETION_STATUS.FULL && !skeet.deletedAt) {
+    await skeet.update({ status: 'deleted' });
+    await skeet.destroy();
+    emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'deleted', trashed: true });
+  }
+
+  return {
+    platformStatesBefore,
+    deleteResults,
+    platformStatesAfter,
+    skeetDeletionStatus,
+  };
+}
+
 async function restoreSkeet(id) {
   const skeet = await Skeet.findByPk(id, { paranoid: false });
   if (!skeet) {
@@ -520,13 +812,16 @@ async function getSkeetSendHistory(id, { limit = 50, offset = 0 } = {}) {
     const entry = log.toJSON();
     return {
       id: entry.id,
+      eventType: entry.eventType,
       status: entry.status,
       platform: entry.platform,
       postedAt: entry.postedAt,
       postUri: entry.postUri,
-      errorCode: entry.errorCode,
-      errorMessage: entry.errorMessage,
+      postCid: entry.postCid,
+      error: entry.error,
       attempt: entry.attempt,
+      contentSnapshot: entry.contentSnapshot,
+      mediaSnapshot: entry.mediaSnapshot,
       createdAt: entry.createdAt,
     };
   });
@@ -547,4 +842,7 @@ module.exports = {
   publishPendingSkeetOnce,
   discardPendingSkeet,
   getSkeetSendHistory,
+  deriveSkeetPlatformStates,
+  deriveSkeetDeletionStatus,
+  retractSkeetCompletely,
 };
