@@ -7,13 +7,14 @@ Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es 
 ## 1. Anmeldung und Grundaufbau
 
 1. Öffne das Dashboard unter der bereitgestellten Adresse (Standard: `http://localhost:3000`).
-2. Beim ersten Start prüft das Backend, ob Bluesky-Zugangsdaten vorhanden sind. Fehlen sie, leitet das Dashboard automatisch zur **Konfiguration → Zugangsdaten** um, bis die Credentials gespeichert wurden.
-3. Die Oberfläche besteht aus:
+2. Beim ersten Aufruf erscheint – sofern `AUTH_*` in `.env` gesetzt sind – eine Login-Seite. Nach erfolgreicher Anmeldung (Admin-Login über `AUTH_USERNAME`/`AUTH_PASSWORD_HASH`) wird ein httpOnly/SameSite=Lax-Session-Cookie gesetzt und das Dashboard freigeschaltet.
+3. Das Backend prüft zusätzlich, ob Bluesky-Zugangsdaten vorhanden sind. Fehlen sie, leitet das Dashboard automatisch zur **Konfiguration → Zugangsdaten** um, bis die Credentials gespeichert wurden.
+4. Die Oberfläche besteht aus:
    - einer linken Navigation (Tabs),
    - dem Hauptbereich rechts,
    - einer Kopfzeile mit Schnellaktionen (Theme-Schalter, Export/Import, Kontextaktionen).
 
-> Tipp: Der Theme-Schalter rotiert zwischen *Light*, *Dark* und *Midnight*. Eigene Einstellungen werden im Local Storage gespeichert.
+> Tipp: Der Theme-Schalter rotiert zwischen vier Modi (*light*, *dim*, *dark*, *midnight*). Die Auswahl wird persistent gespeichert und kann systemweite Dark-Mode-Präferenzen berücksichtigen.
 
 ---
 
@@ -31,7 +32,7 @@ Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es 
   - Tabs für *Scheduler & Retries*, *Dashboard-Polling* und *Zugangsdaten*.
 - **Über Kampagnenbot** – Release-Hinweise, Tastenkürzel, Links zur Dokumentation.
 
-Alle Ansichten reagieren auf Server-Sent Events (SSE). Das Dashboard aktualisiert Listen automatisch, sobald der Agent Ereignisse wie `skeet:updated` oder `thread:updated` auslöst. Fallback-Polling lässt sich unter **Konfiguration → Dashboard-Polling** feinjustieren.
+Alle Ansichten reagieren primär auf Server-Sent Events (SSE). Das Dashboard aktualisiert Listen automatisch, sobald das Backend Ereignisse wie `skeet:updated` oder `thread:updated` auslöst; Polling dient nur noch als Fallback und lässt sich unter **Konfiguration → Dashboard-Polling** feinjustieren.
 
 ---
 
@@ -47,7 +48,7 @@ Alle Ansichten reagieren auf Server-Sent Events (SSE). Das Dashboard aktualisier
 ### 3.2 Bearbeiten, Status & Schnellaktionen
 - Über das Stift-Icon lässt sich ein Skeet anpassen. Bereits veröffentlichte Skeets können aus dem Dashboard heraus erneut geplant oder auf Plattformen zurückgezogen werden.
 - Der Button **Jetzt veröffentlichen** umgeht den Scheduler und sendet sofort (praktisch für Last-Minute-Posts).
-- Plattform-Badges zeigen den jeweiligen Status (`pending`, `sent`, `failed`, `deleted`, `partial`) und liefern Tooltips mit Fehlermeldungen oder URIs.
+- Plattform-Badges zeigen den jeweiligen Plattformstatus (`pending`, `sent`, `failed`, `deleted`, `partial`) und liefern Tooltips mit Fehlermeldungen oder URIs; der globale Skeet-Status folgt dem Modell `draft`, `scheduled`, `pending_manual`, `sent`, `skipped`, `error` (siehe Lebenszyklus-Diagramm).
 
 ### 3.3 Engagement & Replies
 - In der Registerkarte *Veröffentlicht* lässt sich die Sortierung (neu/alt) umschalten.
@@ -66,7 +67,7 @@ Alle Ansichten reagieren auf Server-Sent Events (SSE). Das Dashboard aktualisier
 
 ### 4.2 Statusverlauf
 - Statuswerte: `draft`, `scheduled`, `publishing`, `published`, `failed`, `deleted`.
-- Während `publishing` aktiviert das Dashboard ein kurzes Polling, um den finalen Zustand zu erkennen. Im Anschluss übernimmt wieder SSE.
+- Während `publishing` aktiviert das Dashboard für die betroffenen Threads kurzzeitig zusätzliches Polling, um den finalen Zustand zu erkennen; im Normalfall stammen Aktualisierungen aus SSE-Events.
 - **Thread entfernen** initiiert `POST /api/threads/:id/retract` (Plattform-Delete + Papierkorb). **Wiederherstellen** holt den Eintrag zurück.
 
 ### 4.3 Engagement
@@ -118,8 +119,9 @@ Der Tab **Konfiguration** enthält drei Bereiche:
   - Der „Master-Tab“ sendet alle `heartbeatMs` einen POST `/api/heartbeat`.
   - Fällt kein Heartbeat mehr an, setzt der Agent `idle` und drosselt den automatischen Engagement-Collector (`ENGAGEMENT_*` Variablen).
 - SSE vs. Polling:
-  - Solange die SSE-Verbindung steht, werden Polling-Intervalle automatisch ausgesetzt (außer während kritischer Phasen wie `publishing`).
-  - Bei Netzwerkproblemen springt der Client auf Polling zurück.
+  - Solange die SSE-Verbindung steht, stammen Live-Updates primär aus dem SSE-Stream (`/api/events`); Polling-Intervalle werden für reguläre Ansichten automatisch ausgesetzt.
+  - Während kritischer Phasen (z. B. `publishing`) kann kurzzeitig zusätzlich Polling aktiv sein, um den finalen Status früh zu erkennen.
+  - Bei Netzwerkproblemen oder getrenntem SSE-Stream springt der Client auf Polling zurück, bis die Verbindung wiederhergestellt ist.
 
 ---
 

@@ -10,7 +10,7 @@ import './styles/tailwind.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
-import { ToastProvider } from '@bsky-kampagnen-bot/shared-ui'
+import { ToastProvider, ThemeProvider } from '@bsky-kampagnen-bot/shared-ui'
 import { installFetchInterceptor } from './utils/installFetchInterceptor'
 
 if (!document.documentElement.dataset.styleVariant) {
@@ -21,8 +21,10 @@ installFetchInterceptor()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </ThemeProvider>
   </StrictMode>
 )

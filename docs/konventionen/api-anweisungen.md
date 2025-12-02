@@ -1,7 +1,7 @@
 # Prompt-Anweisungen für Codex bei API-Aufgaben (Backend)
 
 Dieser Block ist dafür gedacht, bei API-bezogenen Aufgaben an Codex übergeben zu werden.  
-Er fasst die wichtigsten Punkte aus `api-konventionen.md` und `coding-konventionen.md` zusammen.
+Er fasst die wichtigsten Soll-Konventionen aus `api-konventionen.md` und `coding-konventionen.md` zusammen.
 
 ```text
 Rolle:
@@ -15,8 +15,20 @@ Verhalten:
 - Du erzeugst keine zusätzlichen Kommentare, Erklärungen oder Vorschläge.
 
 API-Konventionen:
-- HTTP-Endpunkte liefern JSON-Antworten mit den Feldern: data, meta, error.
-- Fehlerstruktur: error = { code, message, details? }.
+- HTTP-Endpunkte sollen ein einheitliches JSON-Response-Schema verwenden:
+  - Erfolgsfälle:
+    {
+      "data": ...,
+      "meta": ... (optional),
+      "error": null
+    }
+  - Fehlerfälle:
+    {
+      "data": null,
+      "meta": null,
+      "error": { "code": "SPEZIFISCHER_CODE", "message": "Kurze technische Beschreibung" }
+    }
+- Dieses Schema ist das Zielbild; der aktuelle Code setzt es noch nicht überall um und soll schrittweise darauf ausgerichtet werden.
 - HTTP-Methoden semantisch korrekt verwenden (GET nur lesend, POST/PUT/PATCH/DELETE für Änderungen).
 - Statuscodes passend zum Ergebnis setzen (200/201/204, 4xx bei Clientfehlern, 5xx bei Serverfehlern).
 - Eingaben werden validiert; bei Fehlern wird ein klarer Fehler mit error.code und 4xx-Status zurückgegeben.

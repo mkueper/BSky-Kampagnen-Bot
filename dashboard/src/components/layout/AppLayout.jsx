@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { HamburgerMenuIcon, ChevronDownIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  HamburgerMenuIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
+} from '@radix-ui/react-icons'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
-
 /**
  * High-level layout wrapper for the dashboard application.
  *
@@ -13,7 +16,7 @@ import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
  * The component is intentionally dumb: navigation items and header content are
  * passed in from the outside so that the business logic can stay in App.jsx.
  */
-function AppLayout({
+function AppLayout ({
   navItems,
   activeView,
   onSelectView,
@@ -26,248 +29,278 @@ function AppLayout({
   mobileMenuExtras = null,
   navFooter = null
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false)
   // Desktop: collapsed main navigation state (default visible)
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false)
   // Merkt sich den Zustand vor dem Auto-Einklappen beim BSky-Client
-  const prevCollapsedRef = useRef(null);
+  const prevCollapsedRef = useRef(null)
 
   const activeNavItemLabel = useMemo(() => {
     for (const item of navItems) {
       if (item.id === activeView) {
-        return item.label;
+        return item.label
       }
       if (Array.isArray(item.children)) {
-        const child = item.children.find((entry) => entry.id === activeView);
+        const child = item.children.find(entry => entry.id === activeView)
         if (child) {
-          return child.label;
+          return child.label
         }
       }
     }
-    return "";
-  }, [navItems, activeView]);
+    return ''
+  }, [navItems, activeView])
 
   const [openGroups, setOpenGroups] = useState(() => {
-    const initial = {};
-    navItems.forEach((item) => {
+    const initial = {}
+    navItems.forEach(item => {
       if (Array.isArray(item.children) && item.children.length > 0) {
-        const isChildActive = item.children.some((child) => child.id === activeView);
-        const isParentActive = item.id === activeView;
-        initial[item.id] = isChildActive || isParentActive;
+        const isChildActive = item.children.some(
+          child => child.id === activeView
+        )
+        const isParentActive = item.id === activeView
+        initial[item.id] = isChildActive || isParentActive
       }
-    });
-    return initial;
-  });
+    })
+    return initial
+  })
 
   useEffect(() => {
-    setOpenGroups((current) => {
-      const next = { ...current };
-      navItems.forEach((item) => {
+    setOpenGroups(current => {
+      const next = { ...current }
+      navItems.forEach(item => {
         if (Array.isArray(item.children) && item.children.length > 0) {
-          const isChildActive = item.children.some((child) => child.id === activeView);
-          const isParentActive = item.id === activeView;
+          const isChildActive = item.children.some(
+            child => child.id === activeView
+          )
+          const isParentActive = item.id === activeView
           if (isChildActive || isParentActive) {
-            next[item.id] = true;
+            next[item.id] = true
           }
         }
-      });
-      return next;
-    });
-  }, [activeView, navItems]);
+      })
+      return next
+    })
+  }, [activeView, navItems])
 
   // Auto-Einklappen nur für die BSky-Client-Ansicht; beim Verlassen den vorherigen Zustand wiederherstellen
   useEffect(() => {
-    const isBskyClient = activeView === 'bsky-client';
+    const isBskyClient = activeView === 'bsky-client'
     if (isBskyClient) {
       if (prevCollapsedRef.current === null) {
-        prevCollapsedRef.current = navCollapsed;
+        prevCollapsedRef.current = navCollapsed
       }
-      setNavCollapsed(true);
+      setNavCollapsed(true)
     } else {
       if (prevCollapsedRef.current !== null) {
-        setNavCollapsed(prevCollapsedRef.current);
-        prevCollapsedRef.current = null;
+        setNavCollapsed(prevCollapsedRef.current)
+        prevCollapsedRef.current = null
       }
     }
-  }, [activeView]);
+  }, [activeView])
 
-  const handleSelectView = (viewId) => {
-    onSelectView(viewId);
-    setMenuOpen(false);
-  };
+  const handleSelectView = viewId => {
+    onSelectView(viewId)
+    setMenuOpen(false)
+  }
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const handleOpenNav = () => setMenuOpen(true);
-    window.addEventListener('dashboard:open-nav', handleOpenNav);
-    return () => window.removeEventListener('dashboard:open-nav', handleOpenNav);
-  }, []);
+    if (typeof window === 'undefined') return undefined
+    const handleOpenNav = () => setMenuOpen(true)
+    window.addEventListener('dashboard:open-nav', handleOpenNav)
+    return () => window.removeEventListener('dashboard:open-nav', handleOpenNav)
+  }, [])
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
-      <div className="mx-auto flex h-full w-full max-w-[1400px] px-2 py-2 sm:px-20 lg:px-10">
+    <div className='h-screen overflow-hidden bg-background text-foreground'>
+      <div className='mx-auto flex h-full w-full max-w-[1400px] px-2 py-2 sm:px-20 lg:px-10'>
         <aside
           className={`fixed inset-y-6 left-3 z-30 w-64 rounded-3xl border border-border bg-background-elevated shadow-card transition-transform duration-200 md:static ${
             navCollapsed ? 'md:hidden' : 'md:block md:translate-x-0'
-          } ${menuOpen ? 'translate-x-0' : '-translate-x-[110%] md:-translate-x-0'}`}
-          aria-label="Hauptnavigation"
+          } ${
+            menuOpen ? 'translate-x-0' : '-translate-x-[110%] md:-translate-x-0'
+          }`}
+          aria-label='Hauptnavigation'
         >
-          <div className="flex h-full flex-col p-6">
-            <div className="flex items-center justify-between pb-6">
+          <div className='flex h-full flex-col p-6'>
+            <div className='flex items-center justify-between pb-6'>
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-foreground-subtle">Control Center</p>
-                <h1 className="mt-1 text-xl font-semibold">Kampagnen-Bot</h1>
+                <p className='text-xs uppercase tracking-[0.3em] text-foreground-subtle'>
+                  Control Center
+                </p>
+                <h1 className='mt-1 text-xl font-semibold'>Kampagnen-Bot</h1>
               </div>
-              <div className="flex items-center gap-2">
+              <div className='flex items-center gap-2'>
                 {/* Mobile: schließt Overlay */}
                 <button
-                  type="button"
-                  className="rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:hidden"
+                  type='button'
+                  className='rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:hidden'
                   onClick={() => setMenuOpen(false)}
                 >
-                  <HamburgerMenuIcon className="h-5 w-5 rotate-180" />
-                  <span className="sr-only">Navigation schließen</span>
+                  <HamburgerMenuIcon className='h-5 w-5 rotate-180' />
+                  <span className='sr-only'>Navigation schließen</span>
                 </button>
                 {/* Desktop: klappt Hauptnavigation ein */}
                 <button
-                  type="button"
-                  className="hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:inline-flex"
+                  type='button'
+                  className='hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:inline-flex'
                   onClick={() => setNavCollapsed(true)}
-                  aria-label="Navigation einklappen"
-                  title="Navigation einklappen"
+                  aria-label='Navigation einklappen'
+                  title='Navigation einklappen'
                 >
-                  <HamburgerMenuIcon className="h-5 w-5 rotate-180" />
+                  <HamburgerMenuIcon className='h-5 w-5 rotate-180' />
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-1 flex-col">
-              <nav className="flex flex-1 flex-col gap-2">
-                {navItems.map((item) => {
-                const { id, label, icon: Icon, children } = item;
-                const hasChildren = Array.isArray(children) && children.length > 0;
-                const isChildActive = hasChildren ? children.some((child) => child.id === activeView) : false;
-                const isActive = id === activeView || isChildActive;
+            <div className='flex flex-1 flex-col'>
+              <nav className='flex flex-1 flex-col gap-2'>
+                {navItems.map(item => {
+                  const { id, label, icon: Icon, children } = item
+                  const hasChildren =
+                    Array.isArray(children) && children.length > 0
+                  const isChildActive = hasChildren
+                    ? children.some(child => child.id === activeView)
+                    : false
+                  const isActive = id === activeView || isChildActive
 
-                if (!hasChildren) {
+                  if (!hasChildren) {
+                    return (
+                      <button
+                        key={id}
+                        type='button'
+                        onClick={() => handleSelectView(id)}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-soft'
+                            : 'text-foreground-muted hover:bg-background-subtle'
+                        }`}
+                      >
+                        {Icon ? <Icon className='h-5 w-5' /> : null}
+                        <span>{label}</span>
+                      </button>
+                    )
+                  }
+
+                  const expanded = openGroups[id] ?? false
+
                   return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleSelectView(id)}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                        isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
-                      }`}
-                    >
-                      {Icon ? <Icon className="h-5 w-5" /> : null}
-                      <span>{label}</span>
-                    </button>
-                  );
-                }
+                    <div key={id} className='space-y-2'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setOpenGroups(current => ({
+                            ...current,
+                            [id]: !expanded
+                          }))
+                          handleSelectView(id)
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-soft'
+                            : 'text-foreground-muted hover:bg-background-subtle'
+                        }`}
+                      >
+                        <span className='flex items-center gap-3'>
+                          {Icon ? <Icon className='h-5 w-5' /> : null}
+                          {label}
+                        </span>
+                        {expanded ? (
+                          <ChevronDownIcon className='h-4 w-4' />
+                        ) : (
+                          <ChevronRightIcon className='h-4 w-4' />
+                        )}
+                      </button>
 
-                const expanded = openGroups[id] ?? false;
-
-                return (
-                  <div key={id} className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenGroups((current) => ({ ...current, [id]: !expanded }));
-                        handleSelectView(id);
-                      }}
-                      className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                        isActive ? "bg-primary text-primary-foreground shadow-soft" : "text-foreground-muted hover:bg-background-subtle"
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        {Icon ? <Icon className="h-5 w-5" /> : null}
-                        {label}
-                      </span>
-                      {expanded ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
-                    </button>
-
-                    {expanded ? (
-                      <div className="ml-8 flex flex-col gap-2">
-                        {children.map((child) => {
-                          const childActive = child.id === activeView;
-                          return (
-                            <button
-                              key={child.id}
-                              type="button"
-                              onClick={() => handleSelectView(child.id)}
-                              className={`flex items-center gap-3 rounded-2xl px-4 py-2 text-left text-sm transition ${
-                                childActive
-                                  ? "bg-primary text-primary-foreground shadow-soft"
-                                  : "text-foreground-muted hover:bg-background-subtle"
-                              }`}
-                            >
-                              <span>{child.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                );
+                      {expanded ? (
+                        <div className='ml-8 flex flex-col gap-2'>
+                          {children.map(child => {
+                            const childActive = child.id === activeView
+                            return (
+                              <button
+                                key={child.id}
+                                type='button'
+                                onClick={() => handleSelectView(child.id)}
+                                className={`flex items-center gap-3 rounded-2xl px-4 py-2 text-left text-sm transition ${
+                                  childActive
+                                    ? 'bg-primary text-primary-foreground shadow-soft'
+                                    : 'text-foreground-muted hover:bg-background-subtle'
+                                }`}
+                              >
+                                <span>{child.label}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
                 })}
               </nav>
               {navFooter ? (
-                <div className="mt-6 border-t border-border pt-4">
+                <div className='mt-6 border-t border-border pt-4'>
                   {navFooter}
                 </div>
               ) : null}
             </div>
-{mobileMenuExtras ? (
-  <div className="mt-6 border-t border-border pt-4 md:hidden">
-    {mobileMenuExtras}
-  </div>
-) : null}
+            {mobileMenuExtras ? (
+              <div className='mt-6 border-t border-border pt-4 md:hidden'>
+                {mobileMenuExtras}
+              </div>
+            ) : null}
           </div>
         </aside>
 
         {/* Desktop: schmale Leiste zum Wiederherstellen der Navigation */}
         {navCollapsed ? (
           <button
-            type="button"
-            className="group fixed inset-y-6 left-0 z-20 hidden w-3 hover:w-4 rounded-r-2xl border border-primary/30 bg-gradient-to-r from-primary/15 via-background-elevated/80 to-background-elevated/60 shadow-soft backdrop-blur transition-all hover:border-primary hover:from-primary/25 hover:via-background-elevated/90 hover:to-background-elevated md:flex md:flex-col md:items-center md:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Navigation einblenden"
-            title="Navigation einblenden"
+            type='button'
+            className='group fixed inset-y-6 left-0 z-20 hidden w-3 hover:w-4 rounded-r-2xl border border-primary/30 bg-gradient-to-r from-primary/15 via-background-elevated/80 to-background-elevated/60 shadow-soft backdrop-blur transition-all hover:border-primary hover:from-primary/25 hover:via-background-elevated/90 hover:to-background-elevated md:flex md:flex-col md:items-center md:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+            aria-label='Navigation einblenden'
+            title='Navigation einblenden'
             onClick={() => setNavCollapsed(false)}
           >
-            <ChevronRightIcon className="h-4 w-4 text-foreground-muted opacity-80 transition group-hover:opacity-100 group-hover:text-foreground" />
+            <ChevronRightIcon className='h-4 w-4 text-foreground-muted opacity-80 transition group-hover:opacity-100 group-hover:text-foreground' />
           </button>
         ) : null}
 
         {menuOpen ? (
           <div
-            className="fixed inset-0 z-20 bg-gradient-to-br from-black/30 via-black/20 to-black/40 backdrop-blur-sm md:hidden"
+            className='fixed inset-0 z-20 bg-gradient-to-br from-black/30 via-black/20 to-black/40 backdrop-blur-sm md:hidden'
             onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
+            aria-hidden='true'
           />
         ) : null}
 
-        <div className={`ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden ${navCollapsed ? 'md:ml-0' : 'md:ml-8'}`}>
+        <div
+          className={`ml-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden ${
+            navCollapsed ? 'md:ml-0' : 'md:ml-8'
+          }`}
+        >
           {!headerHidden ? (
-            <header className="sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3 order-1 sm:order-none">
+            <header className='sticky top-0 z-10 rounded-3xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 sm:px-5 sm:py-4'>
+              <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                <div className='flex items-center gap-3 order-1 sm:order-none'>
                   <button
-                    type="button"
-                    className="rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden"
+                    type='button'
+                    className='rounded-2xl border border-border-muted bg-background-subtle/80 p-2 text-foreground-muted transition hover:bg-background-subtle md:hidden'
                     onClick={() => setMenuOpen(true)}
                   >
-                    <HamburgerMenuIcon className="h-5 w-5" />
-                    <span className="sr-only">Navigation öffnen</span>
+                    <HamburgerMenuIcon className='h-5 w-5' />
+                    <span className='sr-only'>Navigation öffnen</span>
                   </button>
-                  <div className="min-w-0">
+                  <div className='min-w-0'>
                     {headerCaption ? (
-                      <p className="text-[11px] uppercase tracking-[0.25em] text-foreground-subtle">{headerCaption}</p>
+                      <p className='text-[11px] uppercase tracking-[0.25em] text-foreground-subtle'>
+                        {headerCaption}
+                      </p>
                     ) : null}
-                    <h2 className="text-lg font-semibold whitespace-nowrap truncate sm:text-2xl">{headerTitle || activeNavItemLabel}</h2>
+                    <h2 className='text-lg font-semibold whitespace-nowrap truncate sm:text-2xl'>
+                      {headerTitle || activeNavItemLabel}
+                    </h2>
                   </div>
                 </div>
 
-                <div className="order-2 sm:order-none w-full sm:w-auto flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <div className='order-2 sm:order-none w-full sm:w-auto flex flex-wrap items-center gap-2 sm:flex-nowrap'>
                   {headerActions}
                 </div>
               </div>
@@ -275,17 +308,23 @@ function AppLayout({
           ) : null}
 
           <div
-            id="app-scroll-container"
-            className={`flex-1 min-h-0 max-h-full pr-1 ${headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'} ${activeView === 'bsky-client' ? 'overflow-hidden' : 'overflow-y-auto'}`}
+            id='app-scroll-container'
+            className={`flex-1 min-h-0 max-h-full pr-1 ${
+              headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'
+            } ${
+              activeView === 'bsky-client'
+                ? 'overflow-hidden'
+                : 'overflow-y-auto'
+            }`}
             style={{ scrollbarGutter: 'stable' }}
           >
-            <main className="space-y-8 pb-6 md:pb-8">{children}</main>
+            <main className='space-y-8 pb-6 md:pb-8'>{children}</main>
           </div>
-          {showScrollTop ? <ScrollTopButton position="bottom-left" /> : null}
+          {showScrollTop ? <ScrollTopButton position='bottom-left' /> : null}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default AppLayout;
+export default AppLayout

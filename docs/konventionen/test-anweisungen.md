@@ -21,7 +21,13 @@ Verhalten:
 Allgemeine Test-Regeln:
 - Nutze Vitest und @testing-library entsprechend der bestehenden Testdateien.
 - Keine neuen Test-Frameworks oder zusätzlichen Abhängigkeiten einführen.
-- Tests gehören in die bestehenden Testordner/Strukturen (z. B. __tests__, *.test.jsx).
+- Tests gehören in die zentralen Testordner der Workspaces:
+  - backend/__tests__/
+  - dashboard/__tests__/
+  - bsky-client/__tests__/
+  - packages/shared-ui/__tests__/components/
+  - (zukünftig) packages/media-pickers/__tests__/.
+- Co-located Tests direkt neben Komponenten (z. B. src/components/Button.test.jsx) werden im Projekt nicht mehr verwendet.
 - Bestehende Muster in der Datei nachbilden (describe/it/expect-Struktur).
 
 Was getestet wird:

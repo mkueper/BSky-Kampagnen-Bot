@@ -6,7 +6,7 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 
 > Hinweis (Sicherheit & Reifegrad)
 >
-> Dieses Projekt befindet sich noch in aktiver Entwicklung. Es gibt derzeit keine Benutzer‑/Admin‑Authentifizierung; Schreib‑Endpunkte der API sind ohne Schutz aufrufbar. Der Betrieb auf einem öffentlich erreichbaren Server ist daher nicht empfohlen. Verwende den Bot nur lokal oder hinter einer geschützten Umgebung (VPN/Reverse Proxy mit Auth). Entsprechende Härtungen (Auth, Rate‑Limiting, Security‑Header) sind geplant.
+> Dieses Projekt befindet sich noch in aktiver Entwicklung. Das Dashboard sowie alle produktiven `/api/*`‑Routen werden inzwischen über einen Admin‑Login geschützt (`AUTH_*` in `.env`, Session‑Cookies, Middleware `requireAuth`). Für den Betrieb auf öffentlich erreichbaren Servern werden zusätzliche Härtungen (Rate‑Limiting, Security‑Header, Reverse Proxy/HTTPS) dringend empfohlen; ein ungeschützter Betrieb im Internet ist weiterhin nicht ratsam.
 
 ---
 
@@ -20,9 +20,10 @@ Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu 
 - **Reaktionen & Replies** – Likes/Reposts abrufen sowie Antworten aus Bluesky und Mastodon direkt in der Skeet-Karte anzeigen.
 - **Plattformauswahl & Crossposting** – Zielplattformen pro Skeet festhalten; sobald Mastodon konfiguriert ist, wählen Skeet- und Thread-Formulare Bluesky + Mastodon automatisch vor.
 - **Frontend-Tabs & UX** – Geplante/veröffentlichte Skeets, Reply-Ansicht, Export/Import geplanter Beiträge.
-- **Theme-Wechsel** – Light/Dark-Mode direkt im Dashboard umschalten.
+- **Theme-Wechsel** – Umschalten zwischen mehreren Themes (z. B. Light, Dim, Dark, Midnight) direkt im Dashboard; Auswahl wird persistent gespeichert und systemweite Dark‑Mode‑Einstellungen können berücksichtigt werden.
 - **Direkter Bluesky-Client** – Integrierte Timeline mit Composer (Discover/Following u. a.) sowie rudimentäre Reply-Funktion.
 - **Blockliste & Profil-Hinweise** – Über den NAV-Punkt „Blockliste“ siehst du alle Accounts, die du blockierst; Profile zeigen sofort, ob du blockierst bzw. blockiert wirst.
+- **Admin-Login & API-Schutz** – Dashboard-Login basiert auf `AUTH_*`‑Variablen, setzt httpOnly‑Session‑Cookies und schützt sämtliche `/api/*`‑Routen (außer `/api/auth/*`) über eine Middleware `requireAuth`.
 
 > Die Roadmap in `docs/ROADMAP.md` zeigt, welche Erweiterungen (zusätzliche Plattformen, erweiterte Analysen) geplant sind.
 
@@ -55,6 +56,7 @@ npm run build:frontend
 # Environment vorbereiten
 cp .env.sample .env
 # BLUESKY_IDENTIFIER / BLUESKY_APP_PASSWORD (optional MASTODON_*) ergänzen
+# optional Admin-Login konfigurieren (siehe Abschnitt "Dashboard-Login konfigurieren")
 
 # Schema vorbereiten (idempotente Baseline + optionale Migrationen)
 npm run migrate:dev
@@ -64,7 +66,7 @@ npm run start:dev
 ```
 
 - API: <http://localhost:3000>
-- Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`).
+- Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`); der erste Aufruf führt, sofern `AUTH_*` gesetzt sind, auf die Login-Seite, anschließend auf das Dashboard.
 
 > Für den Produktionsmodus kannst du `npm run build:all` (baut das Dashboard; Backend benötigt keinen Build) und anschließend `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
 
@@ -155,11 +157,11 @@ Changelog pflegen:
 | `ENGAGEMENT_ACTIVE_MIN_MS` | Minimaler Abstand automatischer Engagement-Refreshs bei aktiven Clients | `120000` |
 | `ENGAGEMENT_IDLE_MIN_MS`   | Minimaler Abstand im Idle-Modus (keine Heartbeats)     | `1200000`|
 | `CLIENT_IDLE_THRESHOLD_MS` | Dauer ohne Heartbeat, bevor der Server „idle“ annimmt  | `1200000`|
-| `UPLOAD_MAX_BYTES`     | Upload-Limit für Medien (Skeets/Threads/Temp)             | `8388608` (8 MB) |
-| `AUTH_USERNAME` | Benutzername für den Dashboard-Login | – |
-| `AUTH_PASSWORD_HASH` | Salt:Hash aus `npm run tools:hash-password` | – |
-| `AUTH_TOKEN_SECRET` | Zufälliger Schlüssel für die Signatur der Session-Cookies | – |
-| `AUTH_SESSION_TTL_HOURS` | Gültigkeit einer Session in Stunden (alternativ `*_SECONDS`) | `12` |
+| `UPLOAD_MAX_BYTES`      | Upload-Limit für Medien (Skeets/Threads/Temp)            | `8388608` (8 MB) |
+| `AUTH_USERNAME`         | Benutzername für den Dashboard-Login                     | –        |
+| `AUTH_PASSWORD_HASH`    | Salt:Hash aus `npm run tools:hash-password`              | –        |
+| `AUTH_TOKEN_SECRET`     | Schlüssel für die Signatur der Session-Cookies           | –        |
+| `AUTH_SESSION_TTL_HOURS`| Gültigkeit einer Session in Stunden (alternativ `*_SECONDS`) | `12`  |
 
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
@@ -167,14 +169,14 @@ Eine vollständige Liste inkl. optionaler Variablen findest du in `.env.sample`.
 
 ### Dashboard-Login konfigurieren
 
-Der Zugriff auf `/api/*` und das Dashboard ist jetzt durch einen Admin-Login geschützt. Vorgehen:
+Der Zugriff auf `/api/*` (mit Ausnahme von `/api/auth/*`) und das Dashboard ist durch einen Admin-Login geschützt. Vorgehen:
 
-1. gewünschten Benutzernamen in `.env` als `AUTH_USERNAME` hinterlegen.
+1. Gewünschten Benutzernamen in `.env` als `AUTH_USERNAME` hinterlegen.
 2. Passwort-Hash erzeugen: `npm run tools:hash-password` (CLI fragt das Passwort ab und liefert einen `salt:hash`-String). Ergebnis als `AUTH_PASSWORD_HASH` eintragen.
 3. Einen zufälligen Schlüssel (mind. 32 Zeichen) als `AUTH_TOKEN_SECRET` setzen.
-4. Backend neu starten, danach erscheint der Login-Screen; Cookies werden httpOnly/SameSite=Lax gesetzt. Die Session-Laufzeit lässt sich via `AUTH_SESSION_TTL_HOURS` anpassen.
+4. Backend neu starten. Beim Aufruf des Dashboards erscheint zuerst die Login-Seite, die `/api/auth/login` nutzt; erfolgreiche Logins erhalten ein httpOnly/SameSite=Lax‑Session‑Cookie. Alle produktiven `/api/*`‑Routen hinter `requireAuth` prüfen dieses Cookie und geben bei fehlender/abgelaufener Sitzung `401` zurück; die Session-Laufzeit lässt sich via `AUTH_SESSION_TTL_HOURS` steuern.
 
-Ohne konfigurierte Werte verweigert das Backend sämtliche API-Aufrufe und die UI erklärt, welche Schritte notwendig sind.
+Ohne konfigurierte Werte (`AUTH_*`) verweigert das Backend sämtliche geschützten API-Aufrufe; die UI erklärt in diesem Fall, welche Schritte notwendig sind.
 
 
 ---
@@ -211,7 +213,7 @@ Sicherheitshinweis: `.env` nicht committen und lokal restriktive Rechte setzen (
 
 ## API (Advanced)
 
-Diese Endpunkte sind vor allem für die UI und Admin‑Tasks relevant.
+Diese Endpunkte sind vor allem für die UI und Admin‑Tasks relevant (und setzen eine gültige Session voraus, da sie hinter `requireAuth` liegen):
 
 - `GET /api/client-config` – Read‑only Client‑Konfiguration (Polling‑Intervalle etc.).
 - `GET /api/settings/scheduler` – Scheduler‑Einstellungen (Cron/Zeitzone/Retries).
@@ -236,7 +238,7 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 - **Linting/Formatting:** Das Projekt enthält Linting-Regeln. Mit `npm run lint` kannst du den Code prüfen und mit `npm run lint:fix` automatisch korrigieren lassen.
 - **Client-Tests:** `npm run test --workspace bsky-client` führt die Vitest-Suite (React Testing Library) für den integrierten Bluesky-Client aus; für den Watch-Modus steht `npm run test:watch --workspace bsky-client` zur Verfügung.
 - **Dashboard-Tests:** `npm run test --workspace dashboard` deckt die UI-spezifische Vitest-Suite (Hooks + Komponenten) ab, u. a. Virtualisierung der Skeet-/Thread-Listen sowie die neuen Lazy-Boundaries.
-- **Backend-Tests:** laufen gegen eine In-Memory-SQLite-DB (`sequelize.sync({ force: true })`) und werden über `npm test -- backend/tests/**/*.test.{js,ts}` ausgeführt. Das Schema wird je Lauf frisch aufgebaut.
+- **Backend-Tests:** laufen gegen eine In-Memory-SQLite-DB und werden über Vitest mit Root-Konfiguration gestartet; sie liegen unter `backend/tests/**` und prüfen u. a. Scheduler, Pending-Logik, API-Controller und DB-Utilities.
 - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
  - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.

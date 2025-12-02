@@ -9,22 +9,22 @@ Die Roadmap beschreibt mittelfristige Schwerpunkte. Sie wird laufend angepasst; 
 **Ziel:** Das bestehende Funktionsset (Planung, Scheduler, Engagement, integrierter Bluesky-Client) robust und produktionsnah betreiben können.
 
 Schwerpunkte:
-- Hardening der Deployment-Pfade (Docker, systemd, Backups)
-- Verbesserte Fehlermeldungen & Telemetrie (Logging, SSE-Events)
-- Medien-Handling, Upload-Limits und Datenbank-Baseline weiter absichern
-- Dokumentation & Onboarding (dieser Stand)
+- Medien-Handling & Upload: Implementiert; ausstehend sind Stresstests (große Dateien, Abbrüche, langsame Verbindungen).
+- Überfällige Skeets/Threads: Backend-Logik vorhanden; UI-Ansicht und Freigabe-Workflow ergänzen. Zuverlässige Tests auf Basis sqlite3 inMemory aufbauen.
+- Skeet-/Thread-Historie (täglich, wöchentlich, monatlich): Funktional, inklusive UI-Anzeige. Ausbau der Testabdeckung (Zeitlogik, Randfälle).
+- Teststrategie: sqlite3 inMemory für Unit/Integration-Tests; ergänzend einzelne Szenarien gegen File-basierte SQLite-DB für realistischere Bedingungen.
 
 ---
 
-## Phase 2 – Sicherheit & Mehrbenutzerfähigkeit
+## Phase 2 – Auth-Härtung & Sicherheit
 
-**Ziel:** Das System hinter einer Authentifizierung sicher betreiben; mehrere Nutzer:innen sollen gemeinsam arbeiten können.
+Ziel: Die bestehende Einzelbenutzer-Authentifizierung stabil, sicher und zukunftsfähig machen.
 
-Geplante Aufgaben:
-1. API-/Dashboard-Auth (z. B. OAuth oder App-interne Benutzerverwaltung)
-2. Rollen-/Rechtekonzept (mindestens „Admin“ vs. „Editor“)
-3. Audit-Logs für Scheduler- und Posting-Aktionen
-4. Rate-Limiting & CSRF-Schutz für kritische Endpunkte
+Schwerpunkte:
+- Rate-Limiting für Login-Versuche
+- Token-Handling verbessern (Invalidierung, Ablauf, Rotation)
+- Logging sicherheitsrelevanter Aktionen (z. B. Login, Scheduler)
+- Vorbereitung einer optionalen TOTP-basierten Zwei-Faktor-Authentifizierung (zunächst nur für den Admin-Account)
 
 ---
 
@@ -33,11 +33,8 @@ Geplante Aufgaben:
 **Ziel:** Zusätzliche Kanäle und Automatisierungen erschließen, ohne den Kern zu überlasten.
 
 Ideen & Kandidaten:
-- Mastodon-Feature-Parität (Import/Export, Reaktionen, Direkt-Client)
-- Wiederkehrende Kampagnen mit konfigurierbaren Enddaten
-- Workflow-Automatisierungen (z. B. „Review → Freigabe → Versand“)
-- Webhooks / Export-APIs für externe Auswertungen
-- Support für alternative Speicher (S3 für Medien, experimentelle Postgres-Migration)
+- Mastodon-Anbindung: API-Integration und Posting sind implementiert. Optional kann später ein direkter Mastodon-Client im Dashboard ergänzt werden.
+- Optionaler externer Speicherdienst: Evaluierung einer Nextcloud-/WebDAV-Schnittstelle für Medien, als Alternative zum lokalen Filesystem für Nutzer:innen mit bestehender Nextcloud-Installation.
 
 ---
 

@@ -25,6 +25,7 @@
     "start:dev": "node scripts/switch-env.js dev if-missing && NODE_ENV=development node backend/server.js",
     "start:test": "NODE_ENV=test node backend/server.js",
     "start:prod": "node scripts/switch-env.js prod if-missing && NODE_ENV=production node backend/server.js",
+    "start:preview": "npm run start:prod & cd dashboard && npm run preview",
     "build": "npm run build:backend",
     "build:backend": "node -e \"console.log('Skipping backend build (JS project)')\"",
     "build:frontend": "cross-env npm_config_workspaces=true npm run build --workspace dashboard",

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import NewPostsBanner from './NewPostsBanner.jsx'
+import NewPostsBanner from '../../src/components/NewPostsBanner.jsx'
 
 describe('NewPostsBanner (shared-ui)', () => {
   it('renders nothing when not visible', () => {

@@ -8,12 +8,19 @@ Sie richtet sich an menschliche Entwickler:innen und dient als Referenz, um eine
 ## 1. Test-Orte und Dateien
 
 ### 1.1 Unit- und Integrationstests
-Alle Tests müssen in einem `__tests__`-Ordner neben der jeweils getesteten Datei liegen.
+Jeder Workspace besitzt ein eigenes `__tests__`-Wurzelverzeichnis, unter dem alle automatisierten Tests liegen.
 
-**Erlaubte Pfade:**
-- `backend/src/**/__tests__/*.test.{js,ts,jsx,tsx}`
-- `dashboard/src/**/__tests__/*.test.{js,ts,jsx,tsx}`
-- `bsky-client/src/**/__tests__/*.test.{js,ts,jsx,tsx}`
+**Aktuelle Testpfade:**
+- `backend/__tests__/**/*.test.{js,ts,jsx,tsx}`
+- `dashboard/__tests__/**/*.test.{js,ts,jsx,tsx}`
+- `bsky-client/__tests__/**/*.test.{js,ts,jsx,tsx}`
+- `packages/shared-ui/__tests__/components/**/*.test.{js,ts,jsx,tsx}`
+- `packages/media-pickers/__tests__/**/*.test.{js,ts,jsx,tsx}` (geplant, derzeit ohne Tests)
+
+**Beispiel-Glob (pro Workspace):**
+- `__tests__/**/*.test.{js,jsx,ts,tsx}`
+
+Co-located Tests direkt neben Komponenten (z. B. `src/components/Button.test.jsx`) werden im Projekt nicht mehr verwendet.
 
 ### 1.2 Manuelle Tests / Regressionstests
 Alle manuell definierten Testpläne werden **ausschließlich** in Markdown unter `docs/tests/` abgelegt.
@@ -84,7 +91,9 @@ Tests werden immer dort abgelegt, wo sie logisch hingehören:
 
 | Bereich         | Test-Pfad                                      |
 |-----------------|------------------------------------------------|
-| Backend         | `backend/src/.../__tests__/...`               |
-| Dashboard       | `dashboard/src/.../__tests__/...`             |
-| BSky Client     | `bsky-client/src/.../__tests__/...`           |
+| Backend         | `backend/__tests__/...`                       |
+| Dashboard       | `dashboard/__tests__/...`                     |
+| BSky Client     | `bsky-client/__tests__/...`                   |
+| Shared-UI       | `packages/shared-ui/__tests__/components/...` |
+| Media-Pickers   | `packages/media-pickers/__tests__/...` (Ziel) |
 | Manuelle Tests  | `docs/tests/...`                              |

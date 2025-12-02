@@ -1,77 +1,55 @@
-import { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useTheme } from '../theme/ThemeProvider.jsx'
 
-export function useThemeMode ({
-  themes,
-  themeConfig,
-  defaultTheme
-}) {
-  console.log('themeMode', themeConfig)
-  const themeList = useMemo(() => (Array.isArray(themes) && themes.length > 0 ? themes : ['light']), [themes])
+export function useThemeMode () {
+  const { theme, setTheme, themes, themeConfig } = useTheme()
 
-  const resolvedDefault = useMemo(() => {
-    if (themeList.includes(defaultTheme)) return defaultTheme || themeList[0]
-    return themeList[0]
-  }, [themeList, defaultTheme])
+  const themeList = useMemo(
+    () => (Array.isArray(themes) && themes.length > 0 ? themes : ['light']),
+    [themes]
+  )
 
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return resolvedDefault
-    const stored = window.localStorage.getItem('theme')
-    if (stored && themeList.includes(stored)) return stored
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
-    if (prefersDark && themeList.includes('dark')) return 'dark'
-    return resolvedDefault
-  })
-
-  const [userHasExplicitTheme, setUserHasExplicitTheme] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const stored = window.localStorage.getItem('theme')
-    return Boolean(stored && themeList.includes(stored))
-  })
-
-  useLayoutEffect(() => {
-    if (typeof document === 'undefined') return
-    const root = document.documentElement
-    const resolvedTheme = themeList.includes(theme) ? theme : resolvedDefault
-    const settings = themeConfig[resolvedTheme] || {}
-
-    themeList.forEach(t => root.classList.remove(t))
-    root.classList.add(resolvedTheme)
-    root.classList.toggle('dark', settings.isDark ?? (resolvedTheme !== 'light'))
-
-    root.dataset.theme = resolvedTheme
-    root.style.colorScheme = settings.colorScheme ?? 'light'
-    if (userHasExplicitTheme) {
-      window.localStorage.setItem('theme', resolvedTheme)
-    } else {
-      window.localStorage.removeItem('theme')
-    }
-  }, [theme, themeList, themeConfig, resolvedDefault, userHasExplicitTheme])
-
-  useEffect(() => {
-    if (typeof window?.matchMedia !== 'function') return undefined
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const listener = event => {
-      if (!userHasExplicitTheme) {
-        setTheme(event.matches && themeList.includes('dark') ? 'dark' : resolvedDefault)
-      }
-    }
-    media.addEventListener('change', listener)
-    return () => media.removeEventListener('change', listener)
-  }, [userHasExplicitTheme, resolvedDefault, themeList])
-
-  const currentTheme = themeList.includes(theme) ? theme : resolvedDefault
+  const currentTheme = themeList.includes(theme) ? theme : themeList[0]
   const currentThemeConfig = themeConfig[currentTheme] || {}
-  const nextTheme = themeList[(themeList.indexOf(currentTheme) + 1) % themeList.length]
+  const nextTheme =
+    themeList[(themeList.indexOf(currentTheme) + 1) % themeList.length]
   const nextThemeConfig = themeConfig[nextTheme] || {}
   const nextThemeLabel = nextThemeConfig?.label ?? 'Theme wechseln'
   const ThemeIcon = currentThemeConfig.icon
 
   const toggleTheme = useCallback(() => {
-    setUserHasExplicitTheme(true)
-    const currentIndex = themeList.indexOf(currentTheme)
+    const currentIndex = themeList.indexOf(theme)
     const nextIndex = (currentIndex + 1) % themeList.length
-    setTheme(themeList[nextIndex])
-  }, [currentTheme, themeList])
+    const nextTheme = themeList[nextIndex]
+
+    // console.log('BEFORE DOM UPDATE:', {
+    //   stateTheme: theme,
+    //   domTheme: typeof document !== 'undefined' ? document.documentElement.dataset.theme : 'n/a'
+    // })
+
+    const cfg = themeConfig[nextTheme] || themeConfig[DEFAULT_THEME]
+    const colorScheme = cfg.colorScheme === 'dark' ? 'dark' : 'light'
+
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement
+      root.dataset.theme = nextTheme
+      root.classList.toggle('dark', colorScheme === 'dark')
+      root.style.colorScheme = colorScheme
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('theme', nextTheme)
+      } catch {}
+    }
+
+    // console.log('AFTER DOM UPDATE, BEFORE setTheme:', {
+    //   nextTheme,
+    //   domTheme: typeof document !== 'undefined' ? document.documentElement.dataset.theme : 'n/a'
+    // })
+
+    setTheme(nextTheme)
+  }, [theme, themeList, themeConfig])
 
   return {
     theme: currentTheme,
@@ -80,8 +58,6 @@ export function useThemeMode ({
     nextThemeConfig,
     nextThemeLabel,
     ThemeIcon,
-    toggleTheme,
-    setTheme,
-    setUserHasExplicitTheme
+    toggleTheme
   }
 }

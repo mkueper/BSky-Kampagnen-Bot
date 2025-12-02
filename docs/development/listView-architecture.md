@@ -132,6 +132,58 @@ Ablauf:
 5. Scroll-Verhalten:
    - nach einem Refresh mit `scrollAfter: true` wird der Scroll-Container hart auf `scrollTop = 0` gesetzt.
 
+### Duplikat-Entfernung und Merge-Strategie
+
+Beim Zusammenführen neuer Items mit dem bestehenden Listen-State werden doppelte Einträge anhand stabiler Identifier erkannt und verworfen. Die Architektur folgt dabei einer klar definierten, stabilen Merge-Logik.
+
+#### Schlüssel für die Duplikaterkennung
+
+Ein Eintrag gilt als Duplikat, wenn mindestens einer der folgenden eindeutigen Identifier übereinstimmt:
+
+1. `uri`  – Primärer Identifier bei Bluesky-Timelines
+2. `cid`  – Sekundärer Identifier (Content Identifier), falls keine URI vorhanden ist
+
+Formal gilt:
+
+```js 
+sameEntry = (a.uri === b.uri) || (a.cid === b.cid)
+```
+
+
+#### Merge-Strategie beim Refresh
+
+Beim Refresh werden neue Einträge grundsätzlich **oben** eingefügt. Bestehende Einträge bleiben unverändert weiter unten stehen.
+
+Ablauf:
+
+1. Der Server liefert neue Items von „neu nach alt“.
+2. Für jedes neue Item:
+   - Wenn kein Eintrag mit gleicher `uri` oder `cid` existiert → **oben einfügen**.
+   - Wenn ein Duplikat existiert → **überspringen** (nicht aktualisieren, nicht verschieben).
+3. Alte Einträge werden **nicht neu sortiert** und bleiben an ihren bisherigen Positionen.
+
+#### Warum keine Sortierung nach Timestamps?
+
+- Bluesky garantiert Reihenfolge nur innerhalb der gelieferten Antwort, nicht global.
+- Timestamps sind nicht zuverlässig vergleichbar.
+- Ein globales Resorting führt zu visuell verwirrenden Sprüngen.
+
+Daher erfolgt **keine Sortierung über alle Items hinweg**.
+
+#### Umgang mit unterschiedlicher Reihenfolge vom Server
+
+Wenn der Server bekannte Items in anderer Reihenfolge liefert (Refresh/Timeline-Fetch):
+
+- Nur echte neue Einträge werden verwendet.
+- Unterschiedliche Reihenfolgen bei bereits bekannten Einträgen werden bewusst ignoriert.
+- So bleibt der Feed stabil und springt nicht hin und her.
+
+#### Begründung der Gesamtstrategie
+
+- Posts auf Bluesky sind unveränderlich → es gibt keinen legitimen Grund, ältere Einträge zu überschreiben oder umzuschichten.
+- Die Strategie verhindert doppelte Posts, visuelle Sprünge und ungewünschte Sortierartefakte.
+- Das Verfahren bleibt performant (O(n)) und führt zu einer stabilen, vorhersehbaren UI.
+
 ---
 
 #### 5. ScrollToTop-Button
@@ -215,6 +267,81 @@ Wichtige Stellen im Code:
 
 --- 
 
+## Known Limitations
+
+Die aktuelle ListView-Architektur ist stabil, aber besitzt bewusst akzeptierte Einschränkungen, die bei zukünftigen Erweiterungen berücksichtigt werden müssen:
+
+1. **Kein globales Resorting nach Zeitstempeln**  
+   Die Reihenfolge entspricht ausschließlich der Reihenfolge, die der Server bei Refresh- oder „Load more“-Anfragen liefert. Eine nachträgliche Sortierung der gesamten Liste findet nicht statt.
+
+2. **Unzuverlässige Timestamps in API-Rückgaben**  
+   Da Bluesky keine global konsistente Zeitordnung garantiert, können Listen nicht anhand von `createdAt` sauber sortiert werden. Die Architektur vermeidet dieses Risiko bewusst.
+
+3. **Polling erzeugt nur Früherkennung, aber keine Datenaktualisierung**  
+   Polling markiert neue Einträge mit `hasNew`, lädt diese aber nicht automatisch. Ohne Benutzereingriff (ScrollToTop/Home) bleibt die Liste veraltet.
+
+4. **Kein automatischer Fehler- oder Recovery-Mechanismus**  
+   Fehler bei Fetch, Cursor oder Netzwerk werden im UI nicht gesondert dargestellt.  
+   Die Architektur erwartet stillen Fehler-Umgang im Hintergrund. Dies ist beabsichtigt, um die UI nicht mit Fehlerdialogen zu überladen.
+
+5. **Merge-Strategie verhindert Updates existierender Items**  
+   Da Bluesky-Posts unveränderlich sind, werden vorhandene Items nie neu geladen oder aktualisiert.  
+   Sollte die Plattform zukünftig mutierbare Felder einführen (z. B. Edit-Hinweise), müsste dies erweitert werden.
+
+6. **Keine Live-Synchronisation zwischen Listen**  
+   Änderungen in einer Liste (z. B. Entfernen eines Items) führen nicht automatisch zu UI-Anpassungen in anderen Listen. Jede ListView verwaltet ihren eigenen State.
+
+7. **Keine garantierte Konsistenz bei extrem schnellen Refresh-Vorgängen**  
+   Mehrere Refreshes in enger Abfolge können dazu führen, dass Polling-Resultate oder Cursor-Positionen kurzzeitig hintereinander widersprüchliche Zwischenzustände erzeugen.  
+   Der Zustand korrigiert sich beim nächsten vollständigen Refresh oder „Load more“-Durchlauf automatisch.
+
+8. **Profil-Listen noch nicht vollständig integriert**  
+   Die Architektur ist dafür vorbereitet, aber Profil-Feeds nutzen teilweise noch eigene Logik und werden später konsolidiert.
+
+Dieser Abschnitt beschreibt bewusst akzeptierte Einschränkungen, die aus Stabilitäts-, Performance- und UX-Gründen Teil des aktuellen Designs sind.
+
+## Fehlerbehandlung (Error Handling)
+
+Die ListView-Architektur besitzt ein bewusst einfach gehaltenes Fehlerverhalten. Fehler sollen den Ablauf nicht unterbrechen und die UI nicht übermäßig komplex machen. Statt sofortige UI-Reaktionen zu erzwingen, wird ein leichtgewichtiges Fehlermanagement mit automatischer Selbstkorrektur.
+
+### Fetch-Fehler (Initial Load, Refresh, Load More)
+
+- Fehler beim Laden neuer Items führen **nicht** zu UI-Fehlermeldungen.
+- Der State bleibt unverändert (`items`, `cursor`, `topId`).
+- `isRefreshing` oder `isLoadingMore` werden am Ende trotzdem sauber zurückgesetzt.
+- Die UI zeigt weiterhin die vorhandenen (zuletzt gültigen) Inhalte an.
+
+Typische Ursachen (Serverfehler, Timeout, ungültige Cursor) werden still abgefangen.  
+Der nächste erfolgreiche Refresh korrigiert den Zustand automatisch.
+
+### Cursor-Fehler („Load more“)
+
+Wenn der Server einen ungültigen oder abgelaufenen Cursor liefert:
+
+- Die Operation wird beendet.
+- `isLoadingMore` wird zurückgesetzt.
+- Die Liste bleibt wie sie ist.
+- Keine visuelle Fehlermeldung.
+
+### Polling-Fehler
+
+- Ein fehlgeschlagener Polling-Request hat **keine Auswirkungen** auf die UI.
+- `hasNew` bleibt unverändert.
+- Es findet kein Retry statt; der nächste Polling-Intervall versucht es erneut.
+
+### Netzwerkverlust
+
+- Es gibt keine Offline-UI.
+- Refresh- oder Load-more-Aufrufe schlagen still fehl.
+- Der Zustand bleibt konsistent, weil keine Teildaten übernommen werden — fehlgeschlagene Loads resultieren immer in einem No-Op.
+
+### Selbstheilung durch Refresh
+
+Die Architektur geht davon aus, dass ein regulärer Refresh oder ein Home-Klick den Zustand jederzeit wieder reparieren kann.  
+Fehler erzeugen keine persistente Inkonsistenz.
+
+---
+
 ### Hinweise
 
 #### 1. Hinweis zur Wiederverwendbarkeit für Profil-Listen
@@ -226,4 +353,3 @@ Die Architektur ist so ausgelegt, dass künftige Profil-Listen (Posts, Likes, Re
 #### 2. Hinweis zur „UI-Vereinheitlichung als separatem Schritt“
 
 Die UI der verschiedenen Listen (Timelines, Mitteilungen, Profilansichten) ist aktuell nicht vollständig vereinheitlicht. Daher ist die visuelle Harmonisierung ein separater, späterer Arbeitsschritt.
-

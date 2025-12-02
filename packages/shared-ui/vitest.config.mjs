@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './vitest.setup.js',
-    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+    include: ['__tests__/**/*.test.{js,jsx,ts,tsx}'],
     css: true,
     pool: 'threads'
   }

@@ -10,7 +10,7 @@ export default defineConfig((configEnv) => {
       setupFiles: './vitest.setup.js',
       include: [
         'src/**/*.test.{js,jsx,ts,tsx}',
-        'tests/**/*.test.{js,jsx,ts,tsx}'
+        '__tests__/**/*.test.{js,jsx,ts,tsx}'
       ],
       css: true,
       pool: 'threads'

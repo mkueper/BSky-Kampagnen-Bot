@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import Card from './Card.jsx'
+import Card from '../../src/components/Card.jsx'
 
 describe('Card (shared-ui)', () => {
   it('renders with default background and padding', () => {

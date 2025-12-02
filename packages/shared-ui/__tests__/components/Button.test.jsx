@@ -2,7 +2,7 @@ import { createRef } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import Button from './Button.jsx'
+import Button from '../../src/components/Button.jsx'
 
 describe('Button (shared-ui)', () => {
   it('renders the provided label', () => {

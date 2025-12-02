@@ -1,7 +1,7 @@
-# BSky-Kampagnen-Bot – API-Konventionen (Backend)**
+# BSky-Kampagnen-Bot – API-Konventionen (Backend)
 
-Diese Datei beschreibt die grundlegenden Konventionen für die interne und externe API-Gestaltung im Backend des BSky-Kampagnen-Bots.  
-Sie dient als Referenz für menschliche Entwickler:innen.
+Diese Datei beschreibt die **Soll-Konventionen** für die interne und externe API-Gestaltung im Backend des BSky-Kampagnen-Bots.  
+Sie ist das Zielbild für neue und schrittweise angepasste Endpunkte – der aktuelle Code weicht an einigen Stellen noch davon ab und soll langfristig harmonisiert werden.
 
 ---
 
@@ -33,45 +33,58 @@ Diese Konventionen gelten für:
 ### 3.1 Routen und HTTP-Verben
 
 - Routen im **kebab-case**, z. B.:  
-  - /api/skeets/planned  
-  - /api/skeets/sent  
-  - /api/config/profile
+  - `/api/skeets` – Listen/Erstellen/Aktualisieren/Löschen von Skeets  
+  - `/api/threads` – Listen/Erstellen/Aktualisieren/Löschen von Threads  
+  - `/api/settings/scheduler` – Scheduler-Konfiguration  
+  - `/api/settings/client-polling` – Dashboard-Polling-Konfiguration  
+  - `/api/client-config` – zusammengeführte Client-Konfiguration  
+  - `/api/bsky/timeline` – Datenquelle für den integrierten Bluesky-Client  
 
-- HTTP-Verben:
-  - GET – lesen (keine Seiteneffekte)  
-  - POST – erstellen / Aktionen auslösen  
-  - PUT – vollständiges Aktualisieren  
-  - PATCH – teilweises Aktualisieren  
-  - DELETE – löschen
+- HTTP-Verben (Soll):
+  - `GET` – lesen (keine Seiteneffekte)  
+  - `POST` – erstellen / Aktionen auslösen (z. B. `publish-now`, `engagement/refresh`)  
+  - `PUT` – vollständiges Aktualisieren (z. B. Einstellungsobjekte)  
+  - `PATCH` – teilweises Aktualisieren (z. B. einzelne Felder eines Skeets/Threads)  
+  - `DELETE` – löschen (Soft-/Hard-Delete, je nach Route)
 
-Keine mutierenden Seiteneffekte in GET-Requests.
+Mutierende Seiteneffekte in `GET`-Requests sind zu vermeiden.
 
-### 3.2 Request- und Response-Format
+### 3.2 Request- und Response-Format (Soll-Schema)
 
 - Standardformat: **JSON**
-- Einheitliches Response-Schema:
+- **Einheitliches Response-Schema (Zielbild für alle Endpunkte)**:
 
-```json
-        {
-          "data": {},
-          "meta": {},
-          "error": null
-        }
-```
+  ```json
+  {
+    "data": { },
+    "meta": { },
+    "error": null
+  }
+  ```
 
-- Fehler-Antworten:
-```json
-        {
-          "data": null,
-          "meta": null,
-          "error": {
-            "code": "SPEZIFISCHER_CODE",
-            "message": "Kurze technische Beschreibung",
-            "details": {}
-          }
-        }
-```
+  - `data`: eigentliches Ergebnis (Objekt, Array oder `null`).
+  - `meta`: optionale Metadaten (Pagination, Totals, Flags).
+  - `error`: `null` im Erfolgsfall.
 
+- **Fehler-Antworten (Soll):**
+
+  ```json
+  {
+    "data": null,
+    "meta": null,
+    "error": {
+      "code": "SPEZIFISCHER_CODE",
+      "message": "Kurze technische Beschreibung"
+    }
+  }
+  ```
+
+  - `code`: maschinenlesbarer Fehlercode (z. B. `SKEET_NOT_FOUND`, `INVALID_PAYLOAD`).
+  - `message`: knappe technische Beschreibung (keine Secrets, keine sensiblen Daten).
+
+- **Übergangsregel:**  
+  Bestehende Endpunkte, die noch „flache“ Antworten (reine Objekte/Arrays) liefern, bleiben zunächst kompatibel; neue Endpunkte und überarbeitete Routen sollen konsequent das Schema `{ data, meta, error }` verwenden.
+  
 Keine HTML-Ausgaben, außer bei explizit definierten Health-Checks.
 
 ---

@@ -4,22 +4,43 @@ const LAST_VIEW_KEY = 'dashboard:lastView'
 
 function resolveViewFromLocation (validViews, fallback) {
   if (typeof window === 'undefined') return fallback
-  try {
-    const stored = window.localStorage.getItem(LAST_VIEW_KEY)
-    if (stored && validViews.has(stored)) return stored
-  } catch (err) {
-      console.error('Fehler in resolveViewFromLocation aufgetreten', err)
-    /* ignore storage errors */
-  }
+
+  // URL-Parameter hat Vorrang
   try {
     const params = new URLSearchParams(window.location.search)
     const paramView = params.get('view')
-    if (paramView && validViews.has(paramView)) return paramView
+
+    if (!paramView) {
+      try {
+        window.localStorage.setItem(LAST_VIEW_KEY, 'overview')
+      } catch {}
+    } else if (validViews.has(paramView)) {
+      try {
+        window.localStorage.setItem(LAST_VIEW_KEY, paramView)
+      } catch {}
+      return paramView
+    }
+    // optional: Hash (#overview) als zweite URL-Quelle
     const hash = window.location.hash?.replace('#', '') || ''
-    if (hash && validViews.has(hash)) return hash
+    if (hash && validViews.has(hash)) {
+      return hash
+    }
   } catch {
-    /* ignore invalid URLs */
+    // ignore invalid URLs
   }
+
+  // erst jetzt: gespeicherte letzte View
+  try {
+    const stored = window.localStorage.getItem(LAST_VIEW_KEY)
+    if (stored && validViews.has(stored)) {
+      return stored
+    }
+  } catch (err) {
+    console.error('Fehler in resolveViewFromLocation aufgetreten', err)
+    // ignore storage errors
+  }
+
+  // Fallback
   return fallback
 }
 
@@ -35,7 +56,7 @@ export function useViewState ({
 
   const gatedNeedsCreds = needsCredentials && !credsOkOverride
 
-  const syncUrl = useCallback((view) => {
+  const syncUrl = useCallback(view => {
     if (typeof window === 'undefined') return
     try {
       const url = new URL(window.location.href)
@@ -47,17 +68,20 @@ export function useViewState ({
     }
   }, [])
 
-  const navigate = useCallback((view, { force = false } = {}) => {
-    if (!view || !validViews?.has(view)) return
-    if (!force && gatedNeedsCreds && view !== 'config') {
-      setActiveView('config')
-      return
-    }
-    if (force && view !== 'config') {
-      setCredsOkOverride(true)
-    }
-    setActiveView(prev => (prev === view ? prev : view))
-  }, [gatedNeedsCreds, validViews])
+  const navigate = useCallback(
+    (view, { force = false } = {}) => {
+      if (!view || !validViews?.has(view)) return
+      if (!force && gatedNeedsCreds && view !== 'config') {
+        setActiveView('config')
+        return
+      }
+      if (force && view !== 'config') {
+        setCredsOkOverride(true)
+      }
+      setActiveView(prev => (prev === view ? prev : view))
+    },
+    [gatedNeedsCreds, validViews]
+  )
 
   useEffect(() => {
     if (!gatedNeedsCreds) return
@@ -91,7 +115,7 @@ export function useViewState ({
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
-    const handleNavigate = (ev) => {
+    const handleNavigate = ev => {
       const view = ev?.detail?.view
       const force = Boolean(ev?.detail?.force)
       if (!view) return

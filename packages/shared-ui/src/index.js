@@ -7,7 +7,9 @@ export { default as ScrollTopButton } from './components/ScrollTopButton.jsx'
 export { default as ThemeToggle } from './components/ThemeToggle.jsx'
 export { ToastProvider } from './components/ToastProvider.jsx'
 export { useToast } from './hooks/useToast.js'
-export { useThemeMode } from "./hooks/useThemeMode"
+export { useThemeMode } from './hooks/useThemeMode'
+export { THEMES, THEME_CONFIG, DEFAULT_THEME } from './theme/config.js'
+export { ThemeProvider, useTheme } from './theme/ThemeProvider.jsx'
 export {
   InlineMenu,
   InlineMenuTrigger,

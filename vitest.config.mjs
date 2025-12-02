@@ -5,7 +5,7 @@ export default defineConfig({
     // Suche nach Testdateien in src und im dedizierten tests/-Ordner
     include: [
       'backend/src/**/*.test.{js,ts,jsx,tsx}',
-      'backend/tests/**/*.test.{js,ts,jsx,tsx}',
+      'backend/__tests__/**/*.test.{js,ts,jsx,tsx}',
       'bsky-client/**/*.test.{js,ts,jsx,tsx}',
       'dashboard/src/**/*.test.{js,ts,jsx,tsx}'
       //'tests/**/*.test.{js,ts,jsx,tsx}',
@@ -16,12 +16,12 @@ export default defineConfig({
     // Frontend-Tests (bsky-client, dashboard) nutzen jsdom mit window, document etc.
     environmentMatchGlobs: [
       ['backend/src/**', 'node'],
-      ['backend/tests/**', 'node']
+      ['backend/__tests__/**', 'node']
     ],
     globals: true,
     setupFiles: [
       new URL('./tests/setup.alias.js', import.meta.url).pathname,
-      new URL('./backend/tests/setupTestDb.mjs', import.meta.url).pathname
+      new URL('./backend/__tests__/setupTestDb.mjs', import.meta.url).pathname
     ]
   },
   resolve: {

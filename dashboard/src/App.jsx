@@ -5,17 +5,19 @@ import {
   DownloadIcon,
   GearIcon,
   LayersIcon,
-  MoonIcon,
   Pencil2Icon,
-  ShadowIcon,
-  SunIcon,
   UploadIcon,
   ViewHorizontalIcon,
   InfoCircledIcon
 } from '@radix-ui/react-icons'
-import { Button, Card, ThemeToggle } from '@bsky-kampagnen-bot/shared-ui'
+import {
+  Button,
+  Card,
+  ThemeToggle,
+  useThemeMode
+} from '@bsky-kampagnen-bot/shared-ui'
 import AppLayout from './components/layout/AppLayout'
-import { ThemeProvider } from './components/ui/ThemeContext'
+import { ThemeProvider as UiThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
 import SummaryCard from './components/ui/SummaryCard'
 import ActivityPanel from './components/ui/ActivityPanel'
@@ -27,7 +29,6 @@ import { formatTime } from './utils/formatTime'
 import { getRepeatDescription } from './utils/timeUtils'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useViewState } from './hooks/useViewState'
-import { useThemeMode } from './hooks/useThemeMode'
 import { useImportExport } from './hooks/useImportExport'
 import { useConfirmDialog } from './hooks/useConfirmDialog'
 import { useSkeetActions } from './hooks/useSkeetActions'
@@ -107,16 +108,6 @@ const HEADER_TITLES = {
   config: 'Einstellungen & Automatisierung'
 }
 
-// Theme-Konfiguration – liefert Icon, Label und Farbschema für die Theme-Umschaltung.
-const THEMES = ['light', 'dim', 'dark', 'midnight']
-const THEME_CONFIG = {
-  light: { label: 'Hell', colorScheme: 'light', icon: SunIcon, previewColor: '#e2e8f0' },
-  dark: { label: 'Dunkel', colorScheme: 'dark', icon: MoonIcon, previewColor: '#0f172a' },
-  dim: { label: 'Gedimmt', colorScheme: 'dark', icon: ShadowIcon, previewColor: '#94a3b8' },
-  midnight: { label: 'Mitternacht', colorScheme: 'dark', icon: ShadowIcon, previewColor: '#020617' }
-}
-const DEFAULT_THEME = THEMES[0]
-
 const BskyClientAppLazy = lazy(() => import('bsky-client'))
 const MainOverviewView = lazy(() => import('./components/views/MainOverviewView'))
 const AboutView = lazy(() => import('./components/views/AboutView'))
@@ -150,21 +141,21 @@ function DashboardApp ({ session, onLogout }) {
     currentThemeConfig,
     nextTheme,
     nextThemeLabel,
+    nextThemeConfig,
     ThemeIcon: HookThemeIcon,
     toggleTheme
-  } = useThemeMode({
-    themes: THEMES,
-    themeConfig: THEME_CONFIG,
-    defaultTheme: DEFAULT_THEME
-  })
-  const ThemeIcon = HookThemeIcon || SunIcon
+  } = useThemeMode()
+
+  const ThemeIcon = HookThemeIcon
   const themeToggleProps = {
     icon: ThemeIcon,
-    modeLabel: currentThemeConfig?.label ?? 'Theme',
+    label: 'Theme',
+    modeLabel: currentThemeConfig?.label || '—',
     nextLabel: nextThemeLabel,
-    nextColor: THEME_CONFIG[nextTheme]?.previewColor,
+    nextColor: nextThemeConfig?.previewColor,
+    nextBorderColor: nextThemeConfig?.previewColor,
     onToggle: toggleTheme,
-    ariaLabel: `Theme wechseln - nächstes: ${nextThemeLabel}`
+    ariaLabel: `Theme wechseln – ${nextThemeLabel || ''}`
   }
   const [editingSkeet, setEditingSkeet] = useState(null)
   const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
@@ -778,7 +769,7 @@ function DashboardApp ({ session, onLogout }) {
   const safeSelectView = (viewId, options) => navigate(viewId, options)
 
   return (
-    <ThemeProvider value={{
+    <UiThemeProvider value={{
       // panelBg: 'bg-background',
       panelBg: 'bg-background/80 backdrop-blur-lg',
       cardBg: 'bg-background',
@@ -807,7 +798,7 @@ function DashboardApp ({ session, onLogout }) {
         onCancel={closeConfirm}
       />
     </AppLayout>
-    </ThemeProvider>
+    </UiThemeProvider>
   )
 }
 

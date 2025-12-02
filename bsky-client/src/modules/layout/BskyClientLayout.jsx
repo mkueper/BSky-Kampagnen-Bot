@@ -7,16 +7,13 @@ import {
   useState
 } from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
-import { ScrollTopButton, ThemeToggle } from '@bsky-kampagnen-bot/shared-ui'
 import {
-  PlusIcon,
-  SunIcon,
-  MoonIcon,
-  ShadowIcon,
-  Half2Icon
-} from '@radix-ui/react-icons'
+  ScrollTopButton,
+  ThemeToggle,
+  useThemeMode
+} from '@bsky-kampagnen-bot/shared-ui'
+import { PlusIcon, SunIcon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
-import { useThemeMode } from '../../hooks/useThemeMode'
 import { useLayout } from '../../context/LayoutContext'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
@@ -31,37 +28,6 @@ const MOBILE_NAV_IDS = [
 ]
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
-const THEME_SEQUENCE = ['light', 'dim', 'dark', 'midnight']
-const THEME_CONFIG = {
-  light: {
-    label: 'Hell',
-    colorScheme: 'light',
-    icon: SunIcon,
-    colors: { background: 'hsl(240 10% 99%)', foreground: 'hsl(240 10% 3.9%)' }
-  },
-  dim: {
-    label: 'Gedimmt',
-    colorScheme: 'dark',
-    icon: ShadowIcon,
-    colors: {
-      background: 'hsl(240 3.7% 15.9%)',
-      foreground: 'hsl(240 5% 96.1%)'
-    }
-  },
-  dark: {
-    label: 'Dunkel',
-    colorScheme: 'dark',
-    icon: MoonIcon,
-    colors: { background: 'hsl(240 5.9% 10%)', foreground: 'hsl(240 5% 96.1%)' }
-  },
-  midnight: {
-    label: 'Mitternacht',
-    colorScheme: 'dark',
-    icon: Half2Icon,
-    colors: { background: 'hsl(240 10% 3.9%)', foreground: 'hsl(240 5% 96.1%)' }
-  }
-}
-
 const computeIsMobile = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     ? window.matchMedia('(max-width: 768px)').matches
@@ -153,17 +119,15 @@ export default function BskyClientLayout ({
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
   const [detailLayoutHeader, setDetailLayoutHeader] = useState(null)
+  
   const {
     currentThemeConfig,
     nextThemeLabel,
     nextThemeConfig,
     ThemeIcon: ActiveThemeIcon,
-    toggleTheme: toggleThemeMode
-  } = useThemeMode({
-    themes: THEME_SEQUENCE,
-    themeConfig: THEME_CONFIG,
-    defaultTheme: 'dark'
-  })
+    toggleTheme,
+  } = useThemeMode()
+
   const ThemeIcon = ActiveThemeIcon || SunIcon
   const { setHeaderRef } = useLayout()
   const themeToggleProps = {
@@ -171,9 +135,9 @@ export default function BskyClientLayout ({
     label: t('nav.themeButton', 'Theme'),
     modeLabel: currentThemeConfig?.label || '—',
     nextLabel: nextThemeLabel,
-    nextColor: nextThemeConfig?.colors?.background,
-    nextBorderColor: nextThemeConfig?.colors?.foreground,
-    onToggle: toggleThemeMode,
+    nextColor: nextThemeConfig?.previewColor,
+    nextBorderColor: nextThemeConfig?.previewColor,
+    onToggle: toggleTheme,
     ariaLabel: t(
       'nav.themeSwitch',
       `Theme wechseln – ${nextThemeLabel || ''}`,
