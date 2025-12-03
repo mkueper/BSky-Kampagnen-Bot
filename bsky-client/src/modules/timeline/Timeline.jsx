@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'

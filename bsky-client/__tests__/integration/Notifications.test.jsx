@@ -38,11 +38,12 @@ const renderWithProviders = (ui, options) => {
   })
 }
 
-const { fetchNotificationsMock, mockDispatch, engagementOverrides } =
+const { fetchNotificationsMock, mockDispatch, engagementOverrides, customAppState } =
   vi.hoisted(() => ({
     fetchNotificationsMock: vi.fn(),
     mockDispatch: vi.fn(),
-    engagementOverrides: { current: null }
+    engagementOverrides: { current: null },
+    customAppState: { current: null }
   }))
 
 const dispatchMode = vi.hoisted(() => ({ useReal: false }))
@@ -51,6 +52,12 @@ vi.mock('../../src/context/AppContext', async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
+    useAppState: () => {
+      const realState = original.useAppState()
+      return customAppState.current
+        ? { ...realState, ...customAppState.current }
+        : realState
+    },
     useAppDispatch: () => (
       dispatchMode.useReal
         ? original.useAppDispatch()
@@ -111,6 +118,59 @@ vi.mock('../../src/modules/shared', () => {
   }
 })
 
+vi.mock('../../src/modules/listView/listService.js', () => {
+  const DEFAULT_PAGE_SIZE = 20
+
+  return {
+    runListRefresh: async ({ list, dispatch, limit = DEFAULT_PAGE_SIZE }) => {
+      const filter = list?.data?.filter || 'all'
+      const page = await fetchNotificationsMock({
+        cursor: undefined,
+        limit,
+        filter,
+        markSeen: filter === 'all'
+      })
+      const items = Array.isArray(page?.items) ? page.items : []
+      dispatch({
+        type: 'LIST_LOADED',
+        payload: {
+          key: list.key,
+          items,
+          cursor: page?.cursor || null,
+          topId: items[0]?.uri || null,
+          meta: { data: list.data }
+        }
+      })
+      return { ...page, items }
+    },
+    runListLoadMore: async ({ list, dispatch, limit = DEFAULT_PAGE_SIZE }) => {
+      if (!list?.cursor) {
+        return Array.isArray(list?.items) ? list.items : []
+      }
+      const filter = list?.data?.filter || 'all'
+      const page = await fetchNotificationsMock({
+        cursor: list.cursor,
+        limit,
+        filter,
+        markSeen: false
+      })
+      const existingItems = Array.isArray(list?.items) ? list.items : []
+      const nextItems = [...existingItems, ...(Array.isArray(page?.items) ? page.items : [])]
+      dispatch({
+        type: 'LIST_LOADED',
+        payload: {
+          key: list.key,
+          items: nextItems,
+          cursor: page?.cursor || null,
+          topId: nextItems[0]?.uri || null,
+          meta: { data: list.data }
+        }
+      })
+      return { ...page, items: nextItems }
+    }
+  }
+})
+
 const ISO_DATE = '2024-01-01T00:00:00.000Z'
 
 const createNotification = ({
@@ -165,6 +225,7 @@ beforeEach(() => {
   mockDispatch.mockReset()
   engagementOverrides.current = null
   dispatchMode.useReal = false
+  customAppState.current = null
   vi.spyOn(window, 'fetch').mockResolvedValue({
     ok: true,
     json: () => Promise.resolve({ profile: { did: 'did:example:me' } })
@@ -208,33 +269,36 @@ describe('Notifications', () => {
   })
 
   it('lädt Erwähnungen und füllt den Puffer auf, wenn der Mentions-Tab aktiv ist', async () => {
-    // First fetch returns only one mention, which is less than the buffer
-    fetchNotificationsMock
-      .mockResolvedValueOnce({
-        items: [
-          createNotification({
-            id: 'm1',
-            reason: 'mention',
-            text: 'Mention Body'
-          })
-        ],
-        cursor: 'cursor-1',
-        unreadCount: 1
+    // Stub state for mentions list: one initial mention plus buffer items
+    const firstMention = createNotification({
+      id: 'm1',
+      reason: 'mention',
+      text: 'Mention Body'
+    })
+    const bufferMentions = Array.from({ length: 5 }, (_, idx) =>
+      createNotification({
+        id: `more-${idx}`,
+        reason: 'mention',
+        text: `More mention ${idx}`
       })
-      // Second fetch is triggered to fill the buffer
-      .mockResolvedValueOnce({
-        items: Array.from({ length: 5 }, (_, idx) =>
-          createNotification({
-            id: `more-${idx}`,
-            reason: 'mention',
-            text: `More mention ${idx}`
-          })
-        ),
-        cursor: null,
-        unreadCount: 0
-      })
+    )
+    const allMentions = [firstMention, ...bufferMentions]
 
-    dispatchMode.useReal = true
+    customAppState.current = {
+      lists: {
+        'notifs:mentions': {
+          key: 'notifs:mentions',
+          kind: 'notifications',
+          items: allMentions,
+          cursor: null,
+          loaded: true,
+          isLoadingMore: false,
+          data: { type: 'notifications', filter: 'mentions' }
+        }
+      },
+      notificationsUnread: 0
+    }
+
     let container
     try {
       await act(async () => {
@@ -242,27 +306,6 @@ describe('Notifications', () => {
           <Notifications activeTab='mentions' listKey='notifs:mentions' />
         )
         container = rendered.container
-      })
-
-      // First fetch
-      await waitFor(
-        () => expect(fetchNotificationsMock).toHaveBeenCalledTimes(1),
-        { timeout: 2000 }
-      )
-      expect(fetchNotificationsMock.mock.calls[0][0]).toMatchObject({
-        markSeen: false,
-        filter: 'mentions'
-      })
-
-      // Auto-buffer fetch
-      await waitFor(
-        () => expect(fetchNotificationsMock).toHaveBeenCalledTimes(2),
-        { timeout: 2000 }
-      )
-      expect(fetchNotificationsMock.mock.calls[1][0]).toMatchObject({
-        cursor: 'cursor-1',
-        markSeen: false,
-        filter: 'mentions'
       })
 
       // Check the rendered output

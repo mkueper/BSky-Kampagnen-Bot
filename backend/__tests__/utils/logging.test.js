@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -13,6 +13,9 @@ function freshLogging () {
 describe('logging config', () => {
   const orig = { ...process.env }
   beforeEach(() => { process.env = { ...orig } })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   it('respects LOG_LEVEL and ENGAGEMENT_DEBUG', () => {
     process.env.LOG_LEVEL = 'info'
@@ -72,5 +75,61 @@ describe('logging config', () => {
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
+  })
+
+  it('schreibt nur Logs auf oder über dem konfigurierten LOG_LEVEL', () => {
+    process.env.LOG_LEVEL = 'warn'
+    process.env.ENGAGEMENT_DEBUG = 'false'
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const { createLogger } = freshLogging()
+    const log = createLogger('scope')
+
+    log.debug('debug-msg')
+    log.info('info-msg')
+    log.warn('warn-msg')
+    log.error('error-msg')
+
+    const messages = logSpy.mock.calls.map(args => String(args[0]))
+    expect(messages.some(msg => msg.includes('DEBUG'))).toBe(false)
+    expect(messages.some(msg => msg.includes('INFO'))).toBe(false)
+    expect(messages.some(msg => msg.includes('WARN'))).toBe(true)
+    expect(messages.some(msg => msg.includes('ERROR'))).toBe(true)
+  })
+
+  it('lässt DEBUG-Logs durch, wenn ENGAGEMENT_DEBUG gesetzt ist, auch bei LOG_LEVEL=info', () => {
+    process.env.LOG_LEVEL = 'info'
+    process.env.ENGAGEMENT_DEBUG = 'true'
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const { createLogger } = freshLogging()
+    const log = createLogger('engagement')
+
+    log.debug('debug-on')
+    log.info('info-on')
+
+    const messages = logSpy.mock.calls.map(args => String(args[0]))
+    expect(messages.some(msg => msg.includes('DEBUG'))).toBe(true)
+    expect(messages.some(msg => msg.includes('INFO'))).toBe(true)
+  })
+
+  it('isEngagementDebug spiegelt LOG_LEVEL und ENGAGEMENT_DEBUG korrekt wider', () => {
+    // Default: info + ENGAGEMENT_DEBUG=false
+    process.env.LOG_LEVEL = 'info'
+    process.env.ENGAGEMENT_DEBUG = 'false'
+    let { isEngagementDebug } = freshLogging()
+    expect(isEngagementDebug()).toBe(false)
+
+    // LOG_LEVEL=debug -> true auch ohne ENGAGEMENT_DEBUG
+    process.env.LOG_LEVEL = 'debug'
+    process.env.ENGAGEMENT_DEBUG = 'false'
+    ;({ isEngagementDebug } = freshLogging())
+    expect(isEngagementDebug()).toBe(true)
+
+    // ENGAGEMENT_DEBUG=true -> true auch bei LOG_LEVEL=info
+    process.env.LOG_LEVEL = 'info'
+    process.env.ENGAGEMENT_DEBUG = 'true'
+    ;({ isEngagementDebug } = freshLogging())
+    expect(isEngagementDebug()).toBe(true)
   })
 })

@@ -1,3 +1,4 @@
+import React from 'react'
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
 
 export default function SkeetItemSkeleton () {

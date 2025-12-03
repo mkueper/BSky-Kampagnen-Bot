@@ -1,3 +1,4 @@
+import React from 'react'
 import { Button, Card } from '../shared'
 
 export default function ComposeModal ({ open, onClose, children, actions = null, title = 'Neuer Post' }) {

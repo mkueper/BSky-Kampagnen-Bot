@@ -21,6 +21,7 @@ export default defineConfig({
     globals: true,
     setupFiles: [
       new URL('./tests/setup.alias.js', import.meta.url).pathname,
+      new URL('./tests/setup.jest-dom.mjs', import.meta.url).pathname,
       new URL('./backend/__tests__/setupTestDb.mjs', import.meta.url).pathname
     ]
   },

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import { searchBsky } from '../shared'
 import { useClientConfig } from '../../hooks/useClientConfig'

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import { fetchProfileFeed, fetchProfileLikes } from '../shared/api/bsky'
 import { Card, Button } from '@bsky-kampagnen-bot/shared-ui'
