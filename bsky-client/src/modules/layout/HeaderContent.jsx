@@ -64,8 +64,8 @@ export function TimelineHeader ({
   }, [feedMenuOpen, onCloseFeedMenu])
 
   return (
-    <div className='relative flex items-center gap-3' data-component='BskyTimelineHeaderContent' ref={menuRef}>
-      <HorizontalScrollContainer className='max-w-full flex-1'>
+    <div className='relative flex items-center gap-2' data-component='BskyTimelineHeaderContent' ref={menuRef}>
+      <HorizontalScrollContainer className='flex-1 min-w-0'>
         {tabs.map(tab => {
           const isActive = timelineTab === tab.id
           const showBadge = !isActive && tab.hasNew
@@ -97,7 +97,7 @@ export function TimelineHeader ({
           )
         })}
       </HorizontalScrollContainer>
-      <div className='flex items-center gap-2'>
+      <div className='flex flex-none items-center gap-2 pl-1'>
         <span
           className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition-opacity ${
             isRefreshing ? 'opacity-100' : 'opacity-0'

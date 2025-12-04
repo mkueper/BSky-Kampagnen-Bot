@@ -619,7 +619,7 @@ function ThreadForm ({
               onChange={event => setSource(event.target.value)}
               onKeyDown={handleKeyDown}
               className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-              placeholder='Beispiel:\nIntro zum Thread...\n---\nWeiterer Skeet...'
+              placeholder='Beispiel:\nIntro zum Thread...\n---\nWeiterer Post...'
             />
             {/* Toolbar unter der Textarea */}
             <div className='mt-2 flex items-center gap-2'>
@@ -824,7 +824,7 @@ function ThreadForm ({
                 </button>
               </div>
               <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                {totalSegments} Skeet{totalSegments !== 1 ? 's' : ''}
+                {totalSegments} Post{totalSegments !== 1 ? 's' : ''}
               </span>
             </div>
 
@@ -839,7 +839,7 @@ function ThreadForm ({
                   >
                     <header className='flex items-center justify-between text-sm'>
                       <span className='font-semibold text-foreground'>
-                        Skeet {index + 1}
+                        Post {index + 1}
                       </span>
                       <div className='flex items-center gap-2'>
                         <span
@@ -860,7 +860,7 @@ function ThreadForm ({
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => openMediaDialog(segment.id)}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
-                              ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
+                              ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
                               : 'Bild hinzufügen'}
                           disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
                         >
@@ -872,7 +872,7 @@ function ThreadForm ({
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => setGifPicker({ open: true, index })}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
-                              ? `Maximal ${imagePolicy.maxCount} Bilder je Skeet erreicht`
+                              ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
                               : 'GIF hinzufügen'}
                           disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
                         >
@@ -1035,7 +1035,7 @@ function ThreadForm ({
               richtet sich nach den gewählten Plattformen (kleinster Wert gilt).
             </p>
             <p>
-              Medien kannst du pro Skeet in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Skeet.
+              Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Post.
             </p>
             <p>
               Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
@@ -1054,13 +1054,13 @@ function ThreadForm ({
         >
           <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
-              Jeder Abschnitt bildet einen Skeet. Über die Buttons in der Vorschau kannst du pro Skeet Bilder oder GIFs hinzufügen.
+              Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.
             </p>
             <p>
-              Bilder werden beim Speichern hochgeladen (max. {imagePolicy?.maxCount ?? 4} je Skeet).
+              Bilder werden beim Speichern hochgeladen (max. {imagePolicy?.maxCount ?? 4} je Post).
             </p>
             <p>
-              Der Zähler zeigt die aktuelle Zeichenanzahl je Skeet im Verhältnis zum Limit der ausgewählten Plattformen.
+              Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.
             </p>
             <p>
               Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
@@ -1102,7 +1102,7 @@ function ThreadForm ({
         />
       ) : null}
 
-      {/* Suggest move to Skeets if only one segment */}
+      {/* Suggest move to Posts-Planer if only one segment */}
       {singleSegDialog.open ? (
         <Modal
           open={singleSegDialog.open}
@@ -1127,17 +1127,17 @@ function ThreadForm ({
                     const content = (previewSegments?.[0]?.raw || '').toString()
                     onSuggestMoveToSkeets(content)
                   } else {
-                    toast.info({ title: 'Zum Skeetplaner wechseln', description: 'Bitte wechsle zum Skeetplaner und füge den Text ein.' })
+                    toast.info({ title: 'Zum Posts-Planer wechseln', description: 'Bitte wechsle zum Posts-Planer und füge den Text ein.' })
                   }
                 }}
               >
-                Zum Skeetplaner wechseln
+                Zum Posts-Planer wechseln
               </Button>
             </>
           }
         >
           <div className='space-y-2 text-sm text-foreground'>
-            <p>Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Skeet planen?</p>
+            <p>Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Post planen?</p>
           </div>
         </Modal>
       ) : null}

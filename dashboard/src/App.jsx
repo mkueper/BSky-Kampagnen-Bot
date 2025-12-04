@@ -83,12 +83,12 @@ const VALID_VIEWS = (() => {
 
 // Sekundäre Überschriften, die in den einzelnen Ansichten eingeblendet werden.
 const HEADER_CAPTIONS = {
-  overview: 'Übersicht',
-  skeets: 'Posts',
-  'skeets-overview': 'Posts',
+  overview: 'Kampagnen – Übersicht',
+  skeets: 'Posts – Übersicht',
+  'skeets-overview': 'Posts – Übersicht',
   'skeets-plan': 'Post planen',
-  threads: 'Threads',
-  'threads-overview': 'Threads',
+  threads: 'Threads – Übersicht',
+  'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
   'bsky-client': 'Bluesky Client',
   config: 'Konfiguration',
@@ -97,11 +97,11 @@ const HEADER_CAPTIONS = {
 
 // Haupt-Titelzeile der App, getrennt nach Ansicht.
 const HEADER_TITLES = {
-  overview: 'Bluesky Kampagnen-Dashboard',
+  overview: 'Kampagnen – Übersicht',
   skeets: 'Posts – Übersicht',
   'skeets-overview': 'Posts – Übersicht',
   'skeets-plan': 'Post planen',
-  threads: 'Threads',
+  threads: 'Threads – Übersicht',
   'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
   'bsky-client': 'BSky Client',

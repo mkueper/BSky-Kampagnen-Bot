@@ -39,10 +39,10 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 
 ### Produktname
 
-- Produktname des Tools im UI: **„Kampagnen‑Bot“** (mit Bindestrich).
+- Produktname des Tools im UI: **„Kampagnen‑Tool“** (mit Bindestrich).
   - Verwendet in prominenten Stellen: App-Header, About-Überschrift, ggf. Window-/Titelzeile.
-- Im Fließtext sprechen wir von **„dem Kampagnenbot“** (ohne Bindestrich), z. B.:
-  - „Dieser Kampagnenbot unterstützt das Planen …“
+- Im Fließtext sprechen wir von **„dem Kampagnen‑Tool“**, z. B.:
+  - „Dieses Kampagnen‑Tool unterstützt das Planen …“
 - Plattform-spezifische Bereiche behalten ihren Zusatz:
   - z. B. NAV-Eintrag **„Bluesky Client“** bleibt bestehen und verweist explizit auf den eingebetteten Bluesky-Client.
 
@@ -88,6 +88,7 @@ Diese Begriffe werden insbesondere für:
 verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibel bleibt.
 
 **Navigations- und Bereichsnamen im Kampagnen-Bot**
+**Navigations- und Bereichsnamen im Kampagnen‑Tool**
 
 - Hier verwenden wir bewusst **„Posts“** als Oberbegriff (siehe oben), um eine verständliche, deutschsprachige Navigation zu haben:
   - NAV: „Posts“ → Unterpunkte „Aktivität“, „Planen“.

@@ -76,7 +76,7 @@ async function getExternalPreview (req, res) {
     try {
       resp = await fetch(parsed.toString(), {
         redirect: 'follow',
-        headers: { 'User-Agent': 'BSky-Kampagnen-Bot/1.1 (+preview)' },
+        headers: { 'User-Agent': 'Kampagnen-Tool/1.1 (+preview)' },
         signal: controller.signal
       })
     } finally { clearTimeout(t) }

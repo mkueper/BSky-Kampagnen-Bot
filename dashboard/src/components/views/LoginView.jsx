@@ -39,7 +39,7 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
       <Card className='w-full max-w-md space-y-6 shadow-card' padding='p-8'>
         <div>
           <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>Control Center</p>
-          <h1 className='mt-1 text-2xl font-semibold'>Kampagnen-Bot Login</h1>
+          <h1 className='mt-1 text-2xl font-semibold'>Kampagnen‑Tool Login</h1>
           <p className='mt-2 text-sm text-foreground-muted'>Zugangsdaten werden serverseitig verwaltet.</p>
         </div>
 

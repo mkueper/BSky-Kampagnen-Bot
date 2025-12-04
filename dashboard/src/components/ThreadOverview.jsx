@@ -379,7 +379,7 @@ function ThreadOverview ({
             <div className='mt-4 space-y-3 text-sm'>
               <div className='rounded-2xl border border-border bg-background-subtle p-4'>
                 <header className='mb-2 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                  <span>Skeet 1</span>
+                  <span>Post 1</span>
                   <span>{firstSegment.characterCount} Zeichen</span>
                 </header>{' '}
                 <p className='whitespace-pre-wrap text-foreground'>
@@ -448,12 +448,12 @@ function ThreadOverview ({
                       className='text-sm font-medium text-primary transition hover:underline'
                     >
                       {isExpanded
-                        ? 'Weitere Skeets verbergen'
-                        : 'Weitere Skeets anzeigen'}
+                        ? 'Weitere Posts verbergen'
+                        : 'Weitere Posts anzeigen'}
                     </button>
                   ) : (
                     <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                      Keine weiteren Skeets
+                      Keine weiteren Posts
                     </span>
                   )}
                   <div className='flex flex-wrap items-center gap-2'>
@@ -613,7 +613,7 @@ function ThreadOverview ({
                           className='rounded-xl border border-border bg-background p-3'
                         >
                           <div className='mb-1 text-xs text-foreground-muted'>
-                            Skeet {r.sequence + 1}
+                            Post {r.sequence + 1}
                           </div>
                           <div className='text-sm'>
                             <span className='font-medium'>{r.author}</span>:{' '}
@@ -633,7 +633,7 @@ function ThreadOverview ({
                       className='rounded-2xl border border-border bg-background-subtle/60 p-3'
                     >
                       <header className='mb-1 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                        <span>Skeet {segment.sequence + 1}</span>
+                        <span>Post {segment.sequence + 1}</span>
                         <span>{segment.characterCount} Zeichen</span>
                       </header>
                       <p className='whitespace-pre-wrap text-foreground'>

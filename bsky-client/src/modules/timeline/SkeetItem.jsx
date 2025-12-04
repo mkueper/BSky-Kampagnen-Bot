@@ -900,7 +900,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                         setShareMenuOpen(false)
                       }}
                     >
-                      {t('skeet.share.openInApp', 'In Kampagnen-Bot öffnen')}
+                      {t('skeet.share.openInApp', 'Im Kampagnen‑Tool öffnen')}
                     </InlineMenuItem>
                     <InlineMenuItem
                       icon={Link2Icon}

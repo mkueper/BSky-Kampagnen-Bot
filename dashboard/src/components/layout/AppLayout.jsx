@@ -127,7 +127,7 @@ function AppLayout ({
                 <p className='text-xs uppercase tracking-[0.3em] text-foreground-subtle'>
                   Control Center
                 </p>
-                <h1 className='mt-1 text-xl font-semibold'>Kampagnen-Bot</h1>
+                <h1 className='mt-1 text-xl font-semibold'>Kampagnen‑Tool</h1>
               </div>
               <div className='flex items-center gap-2'>
                 {/* Mobile: schließt Overlay */}

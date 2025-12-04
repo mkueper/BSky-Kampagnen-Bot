@@ -481,7 +481,7 @@ export default function ConfigPanel () {
               <div>
                 <h3 className='text-2xl font-semibold'>Scheduler & Retries</h3>
                 <p className='text-sm text-foreground-muted'>
-                  Passe Cron, Zeitzone und Retry-Strategie für den Kampagnen-Bot
+                  Passe Cron, Zeitzone und Retry-Strategie für das Kampagnen‑Tool
                   an.
                 </p>
               </div>
@@ -617,7 +617,7 @@ export default function ConfigPanel () {
               <div>
                 <h3 className='text-2xl font-semibold'>Dashboard-Polling</h3>
                 <p className='text-sm text-foreground-muted'>
-                  Steuere Intervalle und Backoff für Listen (Threads & Skeets).
+                  Steuere Intervalle und Backoff für Listen (Threads & Posts).
                 </p>
               </div>
               <div className='text-xs text-foreground-muted'>
@@ -696,7 +696,7 @@ export default function ConfigPanel () {
               <div className='grid gap-4 md:grid-cols-4'>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Skeets: Aktiv (ms)
+                    Posts: Aktiv (ms)
                   </label>
                   <input
                     type='number'
@@ -712,7 +712,7 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Skeets: Idle (ms)
+                    Posts: Idle (ms)
                   </label>
                   <input
                     type='number'
@@ -728,7 +728,7 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Skeets: Hidden (ms)
+                    Posts: Hidden (ms)
                   </label>
                   <input
                     type='number'
@@ -754,7 +754,7 @@ export default function ConfigPanel () {
                       disabled={pollLoading || pollSaving}
                       className='h-4 w-4 rounded border-border'
                     />{' '}
-                    <span>Skeets: Minimal Ping hidden</span>
+                    <span>Posts: Minimal Ping hidden</span>
                   </label>
                 </div>
               </div>
@@ -834,7 +834,7 @@ export default function ConfigPanel () {
                     <span className='font-semibold'>Standardwerte:</span>{' '}
                     Threads {pollDefaults.threadActiveMs}/
                     {pollDefaults.threadIdleMs}/{pollDefaults.threadHiddenMs}ms,
-                    Skeets {pollDefaults.skeetActiveMs}/
+                    Posts {pollDefaults.skeetActiveMs}/
                     {pollDefaults.skeetIdleMs}/{pollDefaults.skeetHiddenMs}ms,
                     Backoff {pollDefaults.backoffStartMs}→
                     {pollDefaults.backoffMaxMs}ms, Jitter{' '}
