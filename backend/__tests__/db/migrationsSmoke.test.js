@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Testgruppe: migrationsSmoke.test.js
@@ -16,15 +17,19 @@ import os from 'node:os'
  * zu validieren, ohne Anwendungslogik zu testen.
  */
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const repoRoot = path.resolve(__dirname, '../../..')
+
 function getSequelizeBin () {
   const binName = process.platform === 'win32' ? 'sequelize.cmd' : 'sequelize'
-  return path.join(process.cwd(), 'node_modules', '.bin', binName)
+  return path.join(repoRoot, 'node_modules', '.bin', binName)
 }
 
 function runSequelize (args, options = {}) {
   const bin = getSequelizeBin()
   const result = spawnSync(bin, args, {
-    cwd: process.cwd(),
+    cwd: repoRoot,
     env: { ...process.env, NODE_ENV: 'test' },
     encoding: 'utf8',
     ...options
@@ -68,4 +73,3 @@ describe('Sequelize Migrations & Seeds (Smoke-Tests)', () => {
     expect(result.status).toBe(0)
   })
 })
-

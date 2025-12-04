@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'success',
         validate: {
-          isIn: [['success', 'failed']]
+          isIn: [['success', 'failed', 'skipped']]
         }
       },
       postedAt: { type: DataTypes.DATE, allowNull: false },

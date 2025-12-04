@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Testgruppe: switchEnv.test.js
@@ -17,8 +18,10 @@ import { spawnSync } from 'node:child_process'
  * Script `scripts/switch-env.js` wird von npm-Skripten genutzt, um
  * das aktive `.env` für verschiedene Umgebungen zu setzen.
  */
-
-const SCRIPT_SOURCE = path.join(process.cwd(), 'scripts', 'switch-env.js')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const repoRoot = path.resolve(__dirname, '../../..')
+const SCRIPT_SOURCE = path.join(repoRoot, 'scripts', 'switch-env.js')
 
 let tmpDir
 
@@ -116,4 +119,3 @@ describe('scripts/switch-env.js', () => {
     expect(result.stderr).toMatch(/Usage: node scripts\/switch-env\.js/i)
   })
 })
-

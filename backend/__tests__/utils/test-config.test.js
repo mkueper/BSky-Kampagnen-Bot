@@ -13,10 +13,15 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const repoRoot = path.resolve(__dirname, '../../..')
 
 describe('scripts/test-all.mjs – Workspace-Auswahl', () => {
   it('führt Tests für Root, Dashboard, bsky-client und Shared-UI aus', () => {
-    const scriptPath = path.join(process.cwd(), 'scripts', 'test-all.mjs')
+    const scriptPath = path.join(repoRoot, 'scripts', 'test-all.mjs')
     const content = fs.readFileSync(scriptPath, 'utf8')
 
     expect(content).toContain(`{ name: 'root', args: ['npm', ['run', 'test']] }`)
