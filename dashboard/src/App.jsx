@@ -37,6 +37,7 @@ import LoginView from './components/views/LoginView'
 import { useSession } from './hooks/useSession'
 
 import { LayoutProvider } from 'bsky-client/context/LayoutContext.jsx'
+import { useTranslation } from './i18n/I18nProvider.jsx'
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
   bluesky: 'Bluesky',
@@ -128,6 +129,7 @@ function LoadingBlock ({ message }) {
 }
 
 function DashboardApp ({ onLogout }) {
+  const { t } = useTranslation()
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
@@ -601,11 +603,32 @@ function DashboardApp ({ onLogout }) {
   }, [onLogout, toast])
 
   const isBskyClientView = activeView === 'bsky-client'
-  const headerCaption = HEADER_CAPTIONS[activeView] ?? ''
+  const localizedNavItems = useMemo(() => {
+    return NAV_ITEMS.map(item => {
+      const baseLabel = item.label
+      const translatedLabel = t(`nav.${item.id}`, baseLabel)
+      const children = Array.isArray(item.children)
+        ? item.children.map(child => ({
+            ...child,
+            label: t(`nav.${child.id}`, child.label)
+          }))
+        : undefined
+      return {
+        ...item,
+        label: translatedLabel,
+        children
+      }
+    })
+  }, [t])
+
+  const headerCaption = HEADER_CAPTIONS[activeView]
+    ? t(`header.caption.${activeView}`, HEADER_CAPTIONS[activeView])
+    : ''
   const headerTitle =
-    HEADER_TITLES[activeView] ??
-    NAV_ITEMS.find(item => item.id === activeView)?.label ??
-    ''
+    HEADER_TITLES[activeView]
+      ? t(`header.title.${activeView}`, HEADER_TITLES[activeView])
+      : NAV_ITEMS.find(item => item.id === activeView)?.label ??
+        ''
 
   const isThreadContext = activeView.startsWith('threads')
   const exportButtonLabel = exporting
@@ -678,8 +701,14 @@ function DashboardApp ({ onLogout }) {
 
   let content = null
   const availableNavItems = gatedNeedsCreds
-    ? [{ id: 'config', label: 'Konfiguration', icon: GearIcon }]
-    : NAV_ITEMS
+    ? [
+        {
+          id: 'config',
+          label: t('nav.config', 'Konfiguration'),
+          icon: GearIcon
+        }
+      ]
+    : localizedNavItems
 
   if (gatedNeedsCreds) {
     content = (
@@ -694,7 +723,12 @@ function DashboardApp ({ onLogout }) {
           threads={threads}
           plannedSkeets={plannedSkeets}
           publishedSkeets={publishedSkeets}
+          pendingCount={pendingSkeets.length}
           onOpenSkeetsOverview={() => navigate('skeets-overview')}
+          onOpenPendingSkeets={() => {
+            setActiveDashboardTab('pending')
+            navigate('skeets-overview')
+          }}
           onOpenThreadsOverview={() => navigate('threads-overview')}
         />
       </Suspense>

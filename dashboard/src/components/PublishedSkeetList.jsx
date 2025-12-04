@@ -3,6 +3,7 @@ import { Button, Card } from "@bsky-kampagnen-bot/shared-ui";
 import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";
 import { useVirtualList } from "../hooks/useVirtualList";
+import { useTranslation } from "../i18n/I18nProvider.jsx";
 
 function PublishedSkeetList({
   skeets,
@@ -20,6 +21,7 @@ function PublishedSkeetList({
   formatTime,
   getItemRef,
 }) {
+  const { t } = useTranslation();
   const isEmpty = skeets.length === 0;
   const shouldVirtualize = skeets.length > 25;
   const scrollParentSelector = useCallback(() => {
@@ -81,7 +83,7 @@ function PublishedSkeetList({
                 : "text-foreground-muted hover:text-foreground"
             }`}
           >
-            Beitrag
+            {t('posts.lists.published.tabPost', 'Beitrag')}
           </button>
           <button
             type="button"
@@ -92,7 +94,7 @@ function PublishedSkeetList({
                 : "text-foreground-muted hover:text-foreground"
             }`}
           >
-            Antworten
+            {t('posts.lists.published.tabReplies', 'Antworten')}
           </button>
         </div>
 
@@ -107,7 +109,12 @@ function PublishedSkeetList({
                 </div>
               ) : null}
               {isLoadingReplies ? (
-                <p className="text-sm text-foreground-muted">Antworten werden geladen…</p>
+                <p className="text-sm text-foreground-muted">
+                  {t(
+                    'posts.lists.published.loadingReplies',
+                    'Antworten werden geladen…'
+                  )}
+                </p>
               ) : replies.length > 0 ? (
                 <ul className="space-y-3 text-sm">
                   {replies.map((reply, index) => (
@@ -128,7 +135,12 @@ function PublishedSkeetList({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-foreground-muted">Keine Antworten vorhanden.</p>
+                <p className="text-sm text-foreground-muted">
+                  {t(
+                    'posts.lists.published.noReplies',
+                    'Keine Antworten vorhanden.'
+                  )}
+                </p>
               )}
             </div>
           ) : (
@@ -155,7 +167,10 @@ function PublishedSkeetList({
                 )}
                 {skeet.postedAt && (
                   <p className="text-sm text-foreground-muted">
-                    Gesendet am <span className="font-medium text-foreground">{formatTime(skeet.postedAt)}</span>
+                    {t('posts.lists.published.sentAtPrefix', 'Gesendet am ')}
+                    <span className="font-medium text-foreground">
+                      {formatTime(skeet.postedAt)}
+                    </span>
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-3">
@@ -165,7 +180,12 @@ function PublishedSkeetList({
                       onClick={() => onFetchReactions(skeet.id)}
                       disabled={isFetchingReactions}
                     >
-                      {isFetchingReactions ? "Lädt…" : "Reaktionen aktualisieren"}
+                      {isFetchingReactions
+                        ? t('posts.lists.published.reactionsLoading', 'Lädt…')
+                        : t(
+                            'posts.lists.published.reactionsRefresh',
+                            'Reaktionen aktualisieren'
+                          )}
                     </Button>
                   ) : null}
                   {canRetract ? (
@@ -173,11 +193,18 @@ function PublishedSkeetList({
                       variant="warning"
                       onClick={() => onRetract?.(skeet)}
                     >
-                      Zurückziehen
+                      {t('posts.lists.published.retract', 'Zurückziehen')}
                     </Button>
                   ) : null}
                   <p className="text-sm text-foreground-muted">
-                    Likes: <span className="font-semibold text-foreground">{skeet.likesCount}</span> · Reposts: <span className="font-semibold text-foreground">{skeet.repostsCount}</span>
+                    {t('posts.lists.published.summaryLikes', 'Likes')}:{' '}
+                    <span className="font-semibold text-foreground">
+                      {skeet.likesCount}
+                    </span>{' '}
+                    · {t('posts.lists.published.summaryReposts', 'Reposts')}:{' '}
+                    <span className="font-semibold text-foreground">
+                      {skeet.repostsCount}
+                    </span>
                   </p>
                 </div>
 
@@ -188,14 +215,21 @@ function PublishedSkeetList({
                         <p className="font-medium text-foreground">
                           {platformLabels[platformId] || platformId}
                         </p>
-                        <p className="mt-1 text-foreground-muted">Likes {stats.likes} · Reposts {stats.reposts}</p>
+                        <p className="mt-1 text-foreground-muted">
+                          {t(
+                            'posts.lists.published.platformLikesReposts',
+                            'Likes {likes} · Reposts {reposts}',
+                            { likes: stats.likes, reposts: stats.reposts }
+                          )}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : null}
                 {reactionErrors ? (
                   <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                    Fehler: {Object.values(reactionErrors).join(", ")}
+                    {t('posts.lists.published.reactionsErrorPrefix', 'Fehler: ')}
+                    {Object.values(reactionErrors).join(", ")}
                   </div>
                 ) : null}
               </div>
@@ -237,8 +271,18 @@ function PublishedSkeetList({
   if (isEmpty) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Noch keine veröffentlichten Posts.</p>
-        <p className="mt-2">Sobald Posts live sind, erscheinen sie hier mit allen Kennzahlen.</p>
+        <p className="font-medium text-foreground">
+          {t(
+            'posts.lists.published.emptyTitle',
+            'Noch keine veröffentlichten Posts.'
+          )}
+        </p>
+        <p className="mt-2">
+          {t(
+            'posts.lists.published.emptyBody',
+            'Sobald Posts live sind, erscheinen sie hier mit allen Kennzahlen.'
+          )}
+        </p>
       </div>
     );
   }

@@ -1,13 +1,23 @@
 import { Button, Card } from "@bsky-kampagnen-bot/shared-ui";
 import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";
+import { useTranslation } from "../i18n/I18nProvider.jsx";
 
 function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) {
+  const { t } = useTranslation();
+
   if (skeets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Keine gelöschten Posts.</p>
-        <p className="mt-2">Gelöschte Posts erscheinen hier und können reaktiviert oder endgültig entfernt werden.</p>
+        <p className="font-medium text-foreground">
+          {t('posts.lists.deleted.emptyTitle', 'Keine gelöschten Posts.')}
+        </p>
+        <p className="mt-2">
+          {t(
+            'posts.lists.deleted.emptyBody',
+            'Gelöschte Posts erscheinen hier und können reaktiviert oder endgültig entfernt werden.'
+          )}
+        </p>
       </div>
     );
   }
@@ -21,7 +31,10 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
               <PlatformBadges skeet={skeet} />
               {skeet.deletedAt ? (
                 <p className="text-sm text-foreground-muted">
-                  Gelöscht am <span className="font-medium text-foreground">{formatTime(skeet.deletedAt)}</span>
+                  {t('posts.lists.deleted.deletedAtPrefix', 'Gelöscht am ')}
+                  <span className="font-medium text-foreground">
+                    {formatTime(skeet.deletedAt)}
+                  </span>
                 </p>
               ) : null}
               <ContentWithLinkPreview
@@ -36,8 +49,12 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
               )}
             </div>
             <div className="flex w-full flex-wrap items-center gap-2 self-end md:w-auto md:self-start md:justify-end">
-              <Button variant="primary" onClick={() => onRestore(skeet)}>Reaktivieren</Button>
-              <Button variant="destructive" onClick={() => onPermanentDelete(skeet)}>Endgültig löschen</Button>
+              <Button variant="primary" onClick={() => onRestore(skeet)}>
+                {t('posts.lists.deleted.restore', 'Reaktivieren')}
+              </Button>
+              <Button variant="destructive" onClick={() => onPermanentDelete(skeet)}>
+                {t('posts.lists.deleted.destroy', 'Endgültig löschen')}
+              </Button>
             </div>
           </div>
         </Card>

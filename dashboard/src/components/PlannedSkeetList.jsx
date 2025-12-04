@@ -2,6 +2,7 @@ import { Button, Card } from "@bsky-kampagnen-bot/shared-ui";
 import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";
 import SkeetHistoryPanel from "./skeets/SkeetHistoryPanel.jsx";
+import { useTranslation } from "../i18n/I18nProvider.jsx";
 
 function PlannedSkeetList({
   skeets,
@@ -13,11 +14,19 @@ function PlannedSkeetList({
   onPublishPendingOnce,
   onDiscardPending
 }) {
+  const { t } = useTranslation();
   if (skeets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Noch keine Posts geplant.</p>
-        <p className="mt-2">Nutze den Planer, um deinen ersten Post zu terminieren.</p>
+        <p className="font-medium text-foreground">
+          {t('posts.lists.planned.emptyTitle', 'Noch keine Posts geplant.')}
+        </p>
+        <p className="mt-2">
+          {t(
+            'posts.lists.planned.emptyBody',
+            'Nutze den Planer, um deinen ersten Post zu terminieren.'
+          )}
+        </p>
       </div>
     );
   }
@@ -28,6 +37,7 @@ function PlannedSkeetList({
         const isHighlighted = highlightedId === skeet.id
         const showHistoryPanel = typeof skeet.repeat === "string" && skeet.repeat !== "none"
         const isPendingManual = skeet.status === "pending_manual"
+        const showDefaultActions = !showPendingActions || !isPendingManual
         return (
           <Card
             key={skeet.id}
@@ -59,23 +69,31 @@ function PlannedSkeetList({
                 )}
               </div>
               <div className="skeet-meta-column">
-                <div className="flex w-full flex-row flex-wrap items-center gap-2">
-                  <Button variant="secondary" onClick={() => onEdit(skeet)}>Bearbeiten</Button>
-                  <Button variant="destructive" onClick={() => onDelete(skeet)}>Löschen</Button>
-                </div>
+                {showDefaultActions ? (
+                  <div className="flex w-full flex-row flex-wrap items-center gap-2">
+                    <Button variant="secondary" onClick={() => onEdit(skeet)}>
+                      {t('posts.lists.planned.edit', 'Bearbeiten')}
+                    </Button>
+                    <Button variant="destructive" onClick={() => onDelete(skeet)}>
+                      {t('posts.lists.planned.remove', 'Löschen')}
+                    </Button>
+                  </div>
+                ) : null}
                 {showPendingActions && isPendingManual ? (
                   <div className="mt-4 flex w-full flex-row flex-wrap items-center gap-2">
                     <Button
                       variant="primary"
+                      title={t('posts.lists.planned.publishNowTitle', 'Verpassten Post einmalig senden')}
                       onClick={() => onPublishPendingOnce && onPublishPendingOnce(skeet)}
                     >
-                      Jetzt senden
+                      {t('posts.lists.planned.publishNow', 'Senden')}
                     </Button>
                     <Button
                       variant="outline"
+                      title={t('posts.lists.planned.skipOnceTitle', 'Verpassten Post verwerfen (nicht nachholen)')}
                       onClick={() => onDiscardPending && onDiscardPending(skeet)}
                     >
-                      Termin überspringen
+                      {t('posts.lists.planned.skipOnce', 'Verwerfen')}
                     </Button>
                   </div>
                 ) : null}

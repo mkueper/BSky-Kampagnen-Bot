@@ -9,6 +9,7 @@ import PublishedSkeetList from '../PublishedSkeetList'
 import DeletedSkeetList from '../DeletedSkeetList'
 import { useVisibleIds } from '../../hooks/useVisibleIds'
 import FloatingToolbar from '../ui/FloatingToolbar'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 /**
  * Zusammenstellung aller Dashboard-Kacheln und Listen.
@@ -46,6 +47,7 @@ function DashboardView ({
   onPublishPendingOnce,
   onDiscardPendingSkeet
 }) {
+  const { t } = useTranslation()
   const toast = useToast()
   const [publishedSortOrder, setPublishedSortOrder] = useState('desc')
   const { getRefForId, visibleIds } = useVisibleIds()
@@ -97,10 +99,14 @@ function DashboardView ({
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 sm:flex-row sm:items-center sm:justify-between'>
           <div>
-            <h3 className='text-lg font-semibold'>Post-Aktivität</h3>
+            <h3 className='text-lg font-semibold'>
+              {t('posts.activity.title', 'Post-Aktivität')}
+            </h3>
             <p className='text-sm text-foreground-muted'>
-              Verwalte geplante und veröffentlichte Posts inklusive Antworten
-              &amp; Reaktionen.
+              {t(
+                'posts.activity.description',
+                'Verwalte geplante und veröffentlichte Posts inklusive Antworten & Reaktionen.'
+              )}
             </p>
           </div>
           <div className='flex flex-col gap-3 text-sm font-medium sm:flex-row sm:items-center sm:gap-4'>
@@ -118,7 +124,7 @@ function DashboardView ({
                       : 'text-foreground-muted hover:text-foreground'
                   }`}
                 >
-                  Geplant
+                  {t('posts.activity.tabs.planned', 'Geplant')}
                 </Tabs.Trigger>
                 <Tabs.Trigger
                   value='published'
@@ -128,7 +134,7 @@ function DashboardView ({
                       : 'text-foreground-muted hover:text-foreground'
                   }`}
                 >
-                  Veröffentlicht
+                  {t('posts.activity.tabs.published', 'Veröffentlicht')}
                 </Tabs.Trigger>
                 <Tabs.Trigger
                   value='pending'
@@ -141,7 +147,7 @@ function DashboardView ({
                   }`}
                   disabled={pendingDisabled}
                 >
-                  Freigabe
+                  {t('posts.activity.tabs.pending', 'Wartend')}
                 </Tabs.Trigger>
                 <Tabs.Trigger
                   value='deleted'
@@ -151,7 +157,7 @@ function DashboardView ({
                       : 'text-foreground-muted hover:text-foreground'
                   }`}
                 >
-                  Papierkorb
+                  {t('posts.activity.tabs.deleted', 'Papierkorb')}
                 </Tabs.Trigger>
               </Tabs.List>
             </Tabs.Root>
@@ -207,7 +213,10 @@ function DashboardView ({
       </section>
 
       {activeTab === 'published' ? (
-        <FloatingToolbar ariaLabel='Skeet-Aktionen' variant='primary'>
+        <FloatingToolbar
+          ariaLabel={t('posts.activity.toolbar.ariaLabel', 'Post-Aktionen')}
+          variant='primary'
+        >
           <Button
             variant='ghost'
             size='icon'
@@ -216,8 +225,11 @@ function DashboardView ({
             } hover:bg-primary-foreground/15`}
             onClick={() => setPublishedSortOrder('desc')}
             aria-pressed={publishedSortOrder === 'desc'}
-            aria-label='Neu zuerst sortieren'
-            title='Neu zuerst'
+            aria-label={t(
+              'posts.activity.toolbar.sortNewFirst',
+              'Neu zuerst sortieren'
+            )}
+            title={t('posts.activity.toolbar.sortNewFirst', 'Neu zuerst')}
           >
             <ArrowDownIcon className='h-4 w-4' />
           </Button>
@@ -229,8 +241,11 @@ function DashboardView ({
             } hover:bg-primary-foreground/15`}
             onClick={() => setPublishedSortOrder('asc')}
             aria-pressed={publishedSortOrder === 'asc'}
-            aria-label='Alt zuerst sortieren'
-            title='Alt zuerst'
+            aria-label={t(
+              'posts.activity.toolbar.sortOldFirst',
+              'Alt zuerst sortieren'
+            )}
+            title={t('posts.activity.toolbar.sortOldFirst', 'Alt zuerst')}
           >
             <ArrowUpIcon className='h-4 w-4' />
           </Button>
@@ -243,8 +258,14 @@ function DashboardView ({
             variant='ghost'
             size='icon'
             className='text-inherit hover:bg-primary-foreground/15'
-            aria-label='Alle sichtbaren aktualisieren'
-            title='Alle sichtbaren aktualisieren'
+            aria-label={t(
+              'posts.activity.toolbar.refreshVisible',
+              'Alle sichtbaren aktualisieren'
+            )}
+            title={t(
+              'posts.activity.toolbar.refreshVisible',
+              'Alle sichtbaren aktualisieren'
+            )}
             onClick={async () => {
               try {
                 const ids = sortedPublishedSkeets
@@ -252,9 +273,14 @@ function DashboardView ({
                   .filter(id => visibleIds.includes(id))
                 if (!ids.length) {
                   toast.info({
-                    title: 'Keine sichtbaren Einträge',
-                    description:
+                    title: t(
+                      'posts.activity.toolbar.noVisibleTitle',
+                      'Keine sichtbaren Einträge'
+                    ),
+                    description: t(
+                      'posts.activity.toolbar.noVisibleDescription',
                       'Scrolle die Liste, um Einträge sichtbar zu machen.'
+                    )
                   })
                   return
                 }
@@ -267,7 +293,10 @@ function DashboardView ({
                   const data = await res.json().catch(() => ({}))
                   throw new Error(
                     data.error ||
-                      'Fehler beim Aktualisieren der sichtbaren Skeets.'
+                      t(
+                        'posts.activity.toolbar.refreshBackendErrorFallback',
+                        'Fehler beim Aktualisieren der sichtbaren Posts.'
+                      )
                   )
                 }
                 const data = await res.json().catch(() => null)
@@ -277,9 +306,24 @@ function DashboardView ({
                   : 0
                 const failCount = Math.max(0, total - okCount)
                 toast.success({
-                  title: 'Sichtbare aktualisiert',
-                  description: `Skeets: ${okCount} aktualisiert${
-                    failCount ? ` · ${failCount} fehlgeschlagen` : ''
+                  title: t(
+                    'posts.activity.toolbar.refreshSuccessTitle',
+                    'Sichtbare aktualisiert'
+                  ),
+                  description: `${t(
+                    'posts.activity.toolbar.refreshSuccessDescriptionPrefix',
+                    'Posts: '
+                  )}${okCount}${t(
+                    'posts.activity.toolbar.refreshSuccessDescriptionSuffix',
+                    ' aktualisiert'
+                  )}${
+                    failCount
+                      ? t(
+                          'posts.activity.toolbar.refreshSuccessFailedPart',
+                          ` · ${failCount} fehlgeschlagen`,
+                          { count: failCount }
+                        )
+                      : ''
                   }`
                 })
                 onTabChange('published')
@@ -289,8 +333,16 @@ function DashboardView ({
                   error
                 )
                 toast.error({
-                  title: 'Aktualisierung fehlgeschlagen',
-                  description: error?.message || 'Fehler beim Aktualisieren.'
+                  title: t(
+                    'posts.activity.toolbar.refreshErrorTitle',
+                    'Aktualisierung fehlgeschlagen'
+                  ),
+                  description:
+                    error?.message ||
+                    t(
+                      'posts.activity.toolbar.refreshErrorDescription',
+                      'Fehler beim Aktualisieren.'
+                    )
                 })
               }
             }}

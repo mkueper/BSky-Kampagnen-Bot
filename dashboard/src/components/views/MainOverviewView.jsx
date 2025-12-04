@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Card } from "@bsky-kampagnen-bot/shared-ui";
+import { useTranslation } from "../../i18n/I18nProvider.jsx";
 
 function formatDate(value) {
   if (!value) return null;
@@ -36,7 +37,16 @@ function formatDateParts(value) {
   return { dateText, timeText };
 }
 
-function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeetsOverview, onOpenThreadsOverview }) {
+function MainOverviewView({
+  threads,
+  plannedSkeets,
+  publishedSkeets,
+  pendingCount = 0,
+  onOpenSkeetsOverview,
+  onOpenPendingSkeets,
+  onOpenThreadsOverview
+}) {
+  const { t } = useTranslation();
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -91,26 +101,102 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
       .map(({ thread }) => thread);
   }, [threads]);
 
+  const hasPending =
+    typeof pendingCount === 'number' && Number(pendingCount) > 0
+
   return (
     <div className="space-y-8">
       <section className="grid gap-4 md:grid-cols-2">
         <div className="space-y-4">
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Posts</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+              {t('overview.cards.plannedPosts', 'Geplante Posts')}
+            </p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
           </Card>
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Posts</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+              {t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}
+            </p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
+          </Card>
+          <Card
+            padding="px-5 py-4"
+            onClick={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? () => onOpenPendingSkeets()
+                : undefined
+            }
+            onKeyDown={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onOpenPendingSkeets()
+                    }
+                  }
+                : undefined
+            }
+            className={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary'
+                : undefined
+            }
+            aria-label={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? t(
+                    'overview.aria.toPendingPosts',
+                    'Auf Freigabe wartende Posts anzeigen'
+                  )
+                : undefined
+            }
+            title={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? t(
+                    'overview.aria.toPendingPosts',
+                    'Auf Freigabe wartende Posts anzeigen'
+                  )
+                : undefined
+            }
+            role={
+              hasPending && typeof onOpenPendingSkeets === 'function'
+                ? 'button'
+                : undefined
+            }
+            tabIndex={
+              hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
+            }
+          >
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+              {t('overview.cards.pendingPosts', 'Wartende Posts')}
+            </p>
+            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
+              {pendingCount}
+            </p>
+            <p className="mt-1 text-xs text-foreground-muted">
+              {hasPending
+                ? t(
+                    'overview.cards.pendingPostsHint',
+                    'Auf Freigabe wartende Posts'
+                  )
+                : t(
+                    'overview.cards.pendingPostsEmpty',
+                    'Keine Posts in Wartestellung.'
+                  )}
+            </p>
           </Card>
         </div>
         <div className="space-y-4">
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Threads</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+              {t('overview.cards.plannedThreads', 'Geplante Threads')}
+            </p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
           </Card>
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Threads</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+              {t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}
+            </p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
           </Card>
         </div>
@@ -127,12 +213,14 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
             }
           } : undefined}
           className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label="Zur Posts-Übersicht wechseln"
-          title="Zur Posts-Übersicht wechseln"
+          aria-label={t('overview.aria.toPostsOverview', 'Zur Posts-Übersicht wechseln')}
+          title={t('overview.aria.toPostsOverview', 'Zur Posts-Übersicht wechseln')}
           role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
           tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
         >
-          <h3 className="text-lg font-semibold">Nächster Post</h3>
+          <h3 className="text-lg font-semibold">
+            {t('overview.next.postTitle', 'Nächster Post')}
+          </h3>
           {skeetStats.next ? (() => {
             const { dateText, timeText } = formatDateParts(skeetStats.next.scheduledAt);
             return (
@@ -144,12 +232,14 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
                   ) : null}
                 </div>
                 <p className="text-foreground-muted">
-                  {(skeetStats.next.content || "").toString().trim() || "Kein Inhalt vorhanden"}
+                  {(skeetStats.next.content || "").toString().trim() || t('overview.next.noPostContent', 'Kein Inhalt vorhanden')}
                 </p>
               </div>
             )
           })() : (
-            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Post.</p>
+            <p className="mt-3 text-sm text-foreground-muted">
+              {t('overview.next.noPost', 'Kein geplanter Post.')}
+            </p>
           )}
         </Card>
 
@@ -163,12 +253,14 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
             }
           } : undefined}
           className={typeof onOpenThreadsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label="Zur Thread Übersicht wechseln"
-          title="Zur Thread Übersicht wechseln"
+          aria-label={t('overview.aria.toThreadsOverview', 'Zur Thread Übersicht wechseln')}
+          title={t('overview.aria.toThreadsOverview', 'Zur Thread Übersicht wechseln')}
           role={typeof onOpenThreadsOverview === 'function' ? 'button' : undefined}
           tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
         >
-          <h3 className="text-lg font-semibold">Nächster Thread</h3>
+          <h3 className="text-lg font-semibold">
+            {t('overview.next.threadTitle', 'Nächster Thread')}
+          </h3>
           {threadStats.next ? (() => {
             const { dateText, timeText } = formatDateParts(threadStats.next.scheduledAt);
             return (
@@ -182,48 +274,62 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
                 <p className="text-foreground-muted">
                   {(threadStats.next.title || threadStats.next.segments?.[0]?.content || "")
                     .toString()
-                    .trim() || "Kein Titel hinterlegt"}
+                    .trim() || t('overview.next.noThreadTitle', 'Kein Titel hinterlegt')}
                 </p>
               </div>
             )
           })() : (
-            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Thread.</p>
+            <p className="mt-3 text-sm text-foreground-muted">
+              {t('overview.next.noThread', 'Kein geplanter Thread.')}
+            </p>
           )}
         </Card>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Card padding="p-6">
-          <h3 className="text-lg font-semibold">Bevorstehende Posts</h3>
+          <h3 className="text-lg font-semibold">
+            {t('overview.upcoming.postsTitle', 'Bevorstehende Posts')}
+          </h3>
           {upcomingSkeets.length ? (
             <ul className="mt-3 space-y-3 text-sm">
               {upcomingSkeets.map((skeet) => (
                 <li key={skeet.id} className="rounded-2xl border border-border bg-background-subtle p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(skeet.scheduledAt)}</p>
-                  <p className="mt-1 text-foreground">{skeet.content?.toString().trim() || "(kein Inhalt)"}</p>
+                  <p className="mt-1 text-foreground">
+                    {skeet.content?.toString().trim() || t('overview.upcoming.noPostContent', '(kein Inhalt)')}
+                  </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Posts.</p>
+            <p className="mt-3 text-sm text-foreground-muted">
+              {t('overview.upcoming.noPosts', 'Keine anstehenden Posts.')}
+            </p>
           )}
         </Card>
 
         <Card padding="p-6">
-          <h3 className="text-lg font-semibold">Bevorstehende Threads</h3>
+          <h3 className="text-lg font-semibold">
+            {t('overview.upcoming.threadsTitle', 'Bevorstehende Threads')}
+          </h3>
           {upcomingThreads.length ? (
             <ul className="mt-3 space-y-3 text-sm">
               {upcomingThreads.map((thread) => (
                 <li key={thread.id} className="rounded-2xl border border-border bg-background-subtle p-3">
                   <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(thread.scheduledAt)}</p>
                   <p className="mt-1 text-foreground">
-                    {(thread.title || thread.segments?.[0]?.content || "").toString().trim() || "(kein Titel)"}
+                    {(thread.title || thread.segments?.[0]?.content || "")
+                      .toString()
+                      .trim() || t('overview.upcoming.noThreadTitle', '(kein Titel)')}
                   </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Threads.</p>
+            <p className="mt-3 text-sm text-foreground-muted">
+              {t('overview.upcoming.noThreads', 'Keine anstehenden Threads.')}
+            </p>
           )}
         </Card>
       </section>

@@ -59,6 +59,12 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
   - Panels innerhalb der Übersicht:
     - z. B. **„Post-Aktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“.
 
+### Datenhaltung: veröffentlichte Posts
+
+- Die Ansicht „Veröffentlichte Posts“ dient der **Auswertung und Nachverfolgung** (Reaktionen aktualisieren, ggf. zurückziehen), nicht der Bereinigung.
+- Im Dashboard gibt es daher **keine UI-Aktion**, um veröffentlichte Posts vollständig aus der Datenbank zu löschen.
+- Aufräum- oder Löschvorgänge (z. B. Entfernen alter Testdaten, DSGVO-Löschungen) gehören später in einen separaten **Admin-/Datenverwaltungsbereich** mit klaren Warnhinweisen und Retention-Regeln und sind aktuell nicht Teil des Dashboards.
+
 ### Plattformbegriffe vs. Navigationsbegriffe
 
 Wir unterscheiden klar zwischen:

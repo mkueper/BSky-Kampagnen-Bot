@@ -58,11 +58,11 @@ Der integrierte Bluesky-Client ist **plattform-spezifisch**, soll aber terminolo
 
 ### Produktname
 
-- Produktname im UI: **„Kampagnen‑Bot“** (mit Bindestrich) an prominenten Stellen:
+- Produktname im UI: **„Kampagnen‑Tool“** (mit Bindestrich) an prominenten Stellen:
   - App-Header
   - About-Überschrift
   - ggf. Fenster-/Titelzeile (Electron)
-- Im Fließtext: **„Kampagnenbot“** ohne Bindestrich.
+- Im Fließtext: **„Kampagnen‑Tool“**.
 - Plattform-spezifische Bereiche behalten ihre Namen:
   - z. B. „Bluesky Client“.
 
@@ -152,6 +152,14 @@ Technisch können wir das z. B. so prüfen:
 
 - Alle `dashboard/src/**/*.jsx`/`.js` nach String-Literalen durchsuchen.
 - Diese Literale gegen eine Positiv-/Negativliste vergleichen (oder gezielt per RegEx auf verbotene Begriffe testen).
+
+## Interne Bezeichner / Identifikatoren
+
+- Für **interne Identifikatoren** (Code, Dateinamen, Keys) verwenden wir konsequent **englische Begriffe**:
+  - Beispiele: `posts`, `threads`, `pending_manual`, `scheduler`, `campaignToolBackend`.
+  - Historische Namen wie `SkeetForm`, `useSkeets`, `skeetService` bleiben vorerst bestehen, solange sie keine sichtbaren UI-Texte enthalten.
+- Sichtbare Texte folgen der deutschsprachigen UI-Terminologie (z. B. „Post“, „Thread“, „Kampagnen‑Tool“); interne Namen sind davon unabhängig.
+- Tests in diesem Dokument beziehen sich ausschließlich auf **sichtbare UI-Strings** und erzwingen keine Umbenennung interner Bezeichner.
 
 ## Umsetzungsidee für Tests (später)
 

@@ -57,6 +57,8 @@ module.exports = (sequelize, DataTypes) => {
       repeat: { type: DataTypes.ENUM("none", "daily", "weekly", "monthly"), defaultValue: "none" },
       repeatDayOfWeek: { type: DataTypes.INTEGER, allowNull: true }, // 0–6
       repeatDayOfMonth: { type: DataTypes.INTEGER, allowNull: true }, // 1–31
+      // optionale Liste mehrerer Wochentage (0–6), z. B. für Mo/Mi/Fr-Serien
+      repeatDaysOfWeek: { type: DataTypes.JSON, allowNull: true, defaultValue: null },
       threadId: { type: DataTypes.INTEGER, allowNull: true },
       isThreadPost: { type: DataTypes.BOOLEAN, defaultValue: false },
       targetPlatforms: {
@@ -83,8 +85,28 @@ module.exports = (sequelize, DataTypes) => {
           }
         },
         weeklyRequirement() {
-          if (this.repeat === "weekly" && this.repeatDayOfWeek == null) {
-            throw new Error("repeatDayOfWeek ist erforderlich, wenn repeat = 'weekly' ist.");
+          if (this.repeat !== "weekly") return;
+
+          const raw = this.repeatDaysOfWeek;
+          const list = Array.isArray(raw) ? raw : [];
+          const normalized = Array.from(
+            new Set(
+              list
+                .map(v => Number(v))
+                .filter(v => Number.isInteger(v) && v >= 0 && v <= 6)
+            )
+          );
+
+          const hasMulti = normalized.length > 0;
+          const single =
+            this.repeatDayOfWeek != null ? Number(this.repeatDayOfWeek) : null;
+          const hasSingle =
+            Number.isInteger(single) && single >= 0 && single <= 6;
+
+          if (!hasMulti && !hasSingle) {
+            throw new Error(
+              "Mindestens ein gültiger Wochentag ist erforderlich, wenn repeat = 'weekly' ist."
+            );
           }
         },
         monthlyRequirement() {

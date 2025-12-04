@@ -102,17 +102,85 @@ function addDaysKeepingTime(date, days) {
 }
 
 /**
+ * Normalisiert die konfigurierten Wochentage eines Skeets zu einem
+ * eindeutigen Array von Zahlen (0–6). Fällt auf repeatDayOfWeek zurück,
+ * wenn keine Liste gepflegt ist.
+ */
+function normalizeWeeklyDays(skeet) {
+  if (!skeet) return [];
+
+  const raw = skeet.repeatDaysOfWeek;
+  let days = [];
+
+  if (Array.isArray(raw)) {
+    days = raw;
+  } else if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        days = parsed;
+      }
+    } catch {
+      // Ignorieren – fällt weiter unten auf repeatDayOfWeek zurück
+    }
+  }
+
+  const normalized = Array.from(
+    new Set(
+      days
+        .map((v) => Number(v))
+        .filter((v) => Number.isInteger(v) && v >= 0 && v <= 6)
+    )
+  );
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  const single =
+    skeet.repeatDayOfWeek != null ? Number(skeet.repeatDayOfWeek) : null;
+  if (Number.isInteger(single) && single >= 0 && single <= 6) {
+    return [single];
+  }
+
+  return [];
+}
+
+/**
  * Berechnet den nächsten Wochentermin für ein wiederkehrendes Posting.
  */
-function computeNextWeekly(base, targetDay) {
+function computeNextWeekly(base, skeetOrTargetDay) {
   const next = new Date(base.getTime());
-  const desired = typeof targetDay === "number" ? targetDay : next.getUTCDay();
   const current = next.getUTCDay();
-  let delta = (desired - current + 7) % 7;
-  if (delta === 0) {
-    delta = 7;
+
+  let days;
+  if (typeof skeetOrTargetDay === "number") {
+    const d = Number(skeetOrTargetDay);
+    days = Number.isInteger(d) ? [((d % 7) + 7) % 7] : [];
+  } else if (skeetOrTargetDay && typeof skeetOrTargetDay === "object") {
+    days = normalizeWeeklyDays(skeetOrTargetDay);
+  } else {
+    days = [];
   }
-  next.setUTCDate(next.getUTCDate() + delta);
+
+  if (!Array.isArray(days) || days.length === 0) {
+    // Fallback: eine Woche nach dem aktuellen Wochentag
+    next.setUTCDate(next.getUTCDate() + 7);
+    return next;
+  }
+
+  let bestDelta = null;
+  for (const day of days) {
+    let delta = (day - current + 7) % 7;
+    if (delta === 0) {
+      delta = 7;
+    }
+    if (bestDelta === null || delta < bestDelta) {
+      bestDelta = delta;
+    }
+  }
+
+  next.setUTCDate(next.getUTCDate() + bestDelta);
   return next;
 }
 
@@ -149,7 +217,7 @@ function calculateNextScheduledAt(skeet) {
     case "daily":
       return addDaysKeepingTime(reference, 1);
     case "weekly":
-      return computeNextWeekly(reference, skeet.repeatDayOfWeek);
+      return computeNextWeekly(reference, skeet);
     case "monthly":
       return computeNextMonthly(reference, skeet.repeatDayOfMonth);
     default:
@@ -206,7 +274,7 @@ function getNextScheduledAt(skeet, fromDate = new Date()) {
         next = addDaysKeepingTime(current, 1);
         break;
       case "weekly":
-        next = computeNextWeekly(current, skeet.repeatDayOfWeek);
+        next = computeNextWeekly(current, skeet);
         break;
       case "monthly":
         next = computeNextMonthly(current, skeet.repeatDayOfMonth);

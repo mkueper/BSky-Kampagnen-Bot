@@ -37,6 +37,19 @@ describe('scheduler helper functions', () => {
     expect(nextWeek.getUTCDate()).toBe(13)
   })
 
+  it('computeNextWeekly supports multiple weekdays via repeatDaysOfWeek', () => {
+    // Monday, Jan 6, 2025 (UTC)
+    const base = new Date(Date.UTC(2025, 0, 6, 9, 0, 0)) // Monday (1)
+    const skeet = {
+      repeat: 'weekly',
+      repeatDaysOfWeek: [1, 3, 5] // Mo, Mi, Fr
+    }
+    const first = sched.computeNextWeekly(base, skeet)
+    expect(first.getUTCDay()).toBe(3) // Mittwoch
+    const second = sched.computeNextWeekly(first, skeet)
+    expect(second.getUTCDay()).toBe(5) // Freitag
+  })
+
   it('computeNextMonthly clamps to last day of next month', () => {
     // Jan 31 -> next month Feb (clamped to 28 or 29)
     const base = new Date(Date.UTC(2025, 0, 31, 9, 0, 0))

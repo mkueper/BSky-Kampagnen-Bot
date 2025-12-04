@@ -12,6 +12,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { ToastProvider, ThemeProvider } from '@bsky-kampagnen-bot/shared-ui'
 import { installFetchInterceptor } from './utils/installFetchInterceptor'
+import { I18nProvider } from './i18n/I18nProvider.jsx'
 
 if (!document.documentElement.dataset.styleVariant) {
   document.documentElement.dataset.styleVariant = 'classic'
@@ -23,7 +24,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
       <ToastProvider>
-        <App />
+        <I18nProvider>
+          <App />
+        </I18nProvider>
       </ToastProvider>
     </ThemeProvider>
   </StrictMode>
