@@ -13,7 +13,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } fro
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
-import { useMediaLightbox } from './hooks/useMediaLightbox'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
 import { useListPolling } from './hooks/useListPolling'
@@ -117,9 +116,8 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     }
   }, [activeList?.kind, activeList?.key])
 
-  const { threadState, closeThread, selectThreadFromItem, reloadThread } = useThread()
-  const { openMediaPreview } = useMediaLightbox()
-  const { openComposer, openReplyComposer, openQuoteComposer } = useComposer()
+  const { threadState, closeThread, reloadThread } = useThread()
+  const { openComposer } = useComposer()
   const {
     feedPicker,
     refreshFeeds: refreshFeedPicker,

@@ -14,8 +14,6 @@ const HASHTAG_TABS = [
   { id: 'latest', label: 'Neueste', labelKey: 'search.tabs.latest' }
 ]
 
-const PAGE_SIZE = 20
-
 export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { hashtagSearch } = useAppState()
   const dispatch = useAppDispatch()
@@ -57,7 +55,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
     return ['hashtag-search', query, activeTab, reloadTick, cursor]
   }, [open, query, activeTab, reloadTick])
 
-  const fetchHashtagPage = useCallback(async ([, currentQuery, tab, _reload, cursor]) => {
+  const fetchHashtagPage = useCallback(async ([, currentQuery, tab, , cursor]) => {
     const { items: nextItems, cursor: nextCursor } = await searchBsky({
       query: currentQuery,
       type: tab,

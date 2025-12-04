@@ -21,7 +21,6 @@ import {
   BookmarkIcon,
   BookmarkFilledIcon
 } from '@radix-ui/react-icons'
-import { useLayout } from '../../context/LayoutContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import {
@@ -412,12 +411,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
-  const [menuPositionClass, setMenuPositionClass] = useState('bottom-full mb-2')
   const menuRef = useRef(null)
-  const optionsButtonRef = useRef(null)
-  const menuHeightRef = useRef(null)
-  const { headerHeight } = useLayout()
-  const { headerTop} = useLayout()
 
 
   useEffect(() => {
@@ -953,7 +947,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                             event?.preventDefault?.()
                             try {
                               entry.action()
-                            } catch {}
+                            } catch {
+                              /* ignore menu action errors */
+                            }
                             setOptionsOpen(false)
                           }}
                         >

@@ -18,7 +18,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const models = require('@data/models')
 const scheduler = require('@core/services/scheduler')
 const skeetService = require('@core/services/skeetService')
-const pendingController = require('@api/controllers/pendingSkeetController')
 
 beforeEach(async () => {
   vi.clearAllMocks()

@@ -13,11 +13,15 @@ function resolveViewFromLocation (validViews, fallback) {
     if (!paramView) {
       try {
         window.localStorage.setItem(LAST_VIEW_KEY, 'overview')
-      } catch {}
+      } catch {
+        /* ignore storage errors */
+      }
     } else if (validViews.has(paramView)) {
       try {
         window.localStorage.setItem(LAST_VIEW_KEY, paramView)
-      } catch {}
+      } catch {
+        /* ignore storage errors */
+      }
       return paramView
     }
     // optional: Hash (#overview) als zweite URL-Quelle

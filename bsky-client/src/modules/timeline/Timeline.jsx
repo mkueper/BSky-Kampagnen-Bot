@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -43,7 +43,9 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     try {
       const stored = typeof window !== 'undefined' ? window.localStorage.getItem('bsky.renderMode') : null
       if (stored === 'flat' || stored === 'card') return stored
-    } catch {}
+    } catch {
+      /* ignore storage errors */
+    }
     return 'card'
   }, [renderMode])
 

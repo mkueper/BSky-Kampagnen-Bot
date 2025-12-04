@@ -54,7 +54,7 @@ export default function ProfilePosts ({
     return ['profile-feed', activeTab, targetActor, refreshTick, cursor]
   }, [activeTab, targetActor, refreshTick])
 
-  const fetchProfilePage = useCallback(async ([, tab, actorKey, _refresh, cursor]) => {
+  const fetchProfilePage = useCallback(async ([, tab, actorKey, , cursor]) => {
     if (!actorKey) return { items: [], cursor: null }
     if (tab === 'likes') {
       const { items, cursor: nextCursor } = await fetchProfileLikes({
@@ -118,7 +118,7 @@ export default function ProfilePosts ({
     if (!hasMore || isLoadingInitial || isLoadingMore) return
     try {
       await setSize(size + 1)
-    } catch (_) {
+    } catch {
       // error state handled by SWR
     }
   }, [hasMore, isLoadingInitial, isLoadingMore, setSize, size])
@@ -127,7 +127,9 @@ export default function ProfilePosts ({
     if (isLoadingMore) return
     try {
       await setSize(size + 1)
-    } catch (_) {}
+    } catch {
+      // error state handled by SWR
+    }
   }, [isLoadingMore, setSize, size])
 
   const handleEngagementChange = useCallback((targetId, patch = {}) => {

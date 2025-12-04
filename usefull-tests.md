@@ -171,3 +171,33 @@ Die folgenden Bereiche wirken fachlich/technisch kritisch, haben aber entweder k
 
 Diese Liste ist bewusst fokussiert auf Stellen mit hoher Komplexität oder fachlicher Kritikalität, bei denen zusätzliche Tests einen spürbaren Stabilitätsgewinn erwarten lassen. Weitere Tests können sinnvoll sein, sobald neue Features hinzukommen (z.B. neue Feeds, weitere Notification-Typen oder zusätzliche Plattformen).  
 
+
+---
+
+## Manueller Scheduler-Test: Wiederkehrende Skeets & Freigabe (6.12.)
+
+Prompt, der am 6.12. an Codex gegeben werden kann, um den geplanten Test ohne Bedienfehler durchzuführen:
+
+```text
+Wir wollen heute den manuellen Scheduler-Test für wiederkehrende Skeets durchführen, wie am 4.12. vorbereitet.
+
+Bitte führe die folgenden Schritte für mich aus (ohne zusätzliche Refactorings oder Strukturänderungen):
+
+1. Prüfe, ob kein Backend (`backend/server.js`) läuft. Falls doch, beende diesen Prozess.
+2. Spiele das Backup der Dev-Datenbank zurück:
+   - Datei: `data/bluesky_campaign_development.backup-2025-12-04.sqlite`
+   - Aktive Dev-DB: `data/bluesky_campaign_development.sqlite`
+   - D.h.: `cp data/bluesky_campaign_development.backup-2025-12-04.sqlite data/bluesky_campaign_development.sqlite`
+3. Verifiziere per Models/SQL, dass die drei Test-Skeets für wiederkehrende Posts korrekt gesetzt sind (täglich / wöchentlich / monatlich, nächster Termin um 9:00 MEZ, Status `scheduled`).
+4. Starte das Backend im Development-Modus und beobachte den Scheduler-Startup:
+   - Besonders wichtig: Logs von `markMissedSkeetsPending` (z.B. „Scheduler-Startup: Skeets in pending_manual verschoben“ inkl. IDs) und der erste `processDueSkeets`-Lauf.
+5. Prüfe anschließend im Dashboard:
+   - Tauchen die betroffenen Skeets in der Registerkarte „Freigabe“ auf?
+   - Wird im geplanten Bereich (Geplant/Veröffentlicht) der Status wie erwartet angezeigt?
+6. Dokumentiere das Ergebnis:
+   - Welche IDs wurden beim Startup als `pending_manual` markiert (inkl. Logauszug)?
+   - Ob und wann die Skeets gesendet wurden (Skeet-Historie / `PostSendLog`).
+   - Ob das Verhalten mit der Spezifikation der Grace-Logik übereinstimmt.
+
+Bitte führe diese Schritte möglichst automatisiert über Node-Skripte/Sequelize-Queries aus und beschreibe mir zum Schluss kompakt, was passiert ist und ob der Scheduler sich wie erwartet verhält.
+```

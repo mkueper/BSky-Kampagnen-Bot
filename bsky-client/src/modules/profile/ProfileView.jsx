@@ -3,7 +3,6 @@ import { useAppState, useAppDispatch } from '../../context/AppContext'
 import { fetchProfile } from '../shared/api/bsky'
 import {
   Card,
-  Button,
   ScrollTopButton,
   InlineMenu,
   InlineMenuTrigger,
@@ -12,7 +11,6 @@ import {
 } from '@bsky-kampagnen-bot/shared-ui'
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
-import SkeetItem from '../timeline/SkeetItem.jsx'
 import {
   ArrowLeftIcon,
   ChatBubbleIcon,

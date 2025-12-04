@@ -171,6 +171,11 @@ function calculateNextScheduledAt(skeet) {
  * @returns {Date|null}
  */
 function getNextScheduledAt(skeet, fromDate = new Date()) {
+  // TODO: Für einfache Muster (insb. repeat === "daily") könnten wir den
+  // nächsten Termin ohne Iteration in O(1) berechnen (z. B. via
+  // Differenz in Tagen ab scheduledAt/fromDate), um die Schleife weiter
+  // zu vereinfachen. Die aktuelle Iteration ist auf 366 Schritte begrenzt
+  // und funktional korrekt, aber nicht optimal.
   if (!skeet || !skeet.repeat || skeet.repeat === "none") {
     return null;
   }

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import * as Popover from '@radix-ui/react-popover'
 import { MagnifyingGlassIcon, PersonIcon, SpeakerOffIcon } from '@radix-ui/react-icons'
 import { InlineMenu, InlineMenuContent, InlineMenuItem, InlineMenuTrigger } from '@bsky-kampagnen-bot/shared-ui'
 import { useAppDispatch } from '../../context/AppContext'
@@ -157,10 +156,6 @@ export default function RichText ({ text = '', facets, className = '', hashtagCo
     event.preventDefault()
     event.stopPropagation()
   }, [])
-
-  if (!text) {
-    return <span className={className}>{text}</span>
-  }
 
   const segments = useMemo(() => normalizeSegmentsWithHashtags(parseSegments(text, facets)), [text, facets])
 

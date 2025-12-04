@@ -153,11 +153,14 @@ export default tseslint.config(
     files: [
       "backend/src/**/*.test.js",
       "tests/**/*.js",
-      "backend/tests/**/*.js"
+      "backend/tests/**/*.js",
+      "backend/__tests__/**/*.js",
+      "dashboard/__tests__/**/*.js"
     ],
     languageOptions: {
       globals: {
         ...globals.node,
+        ...globals.browser,
         describe: "readonly",
         it: "readonly",
         test: "readonly",

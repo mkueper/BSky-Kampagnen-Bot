@@ -111,8 +111,6 @@ export async function runListRefresh({ list, dispatch, meta, limit = DEFAULT_PAG
       }
     })
     return { ...page, items: mergedItems }
-  } catch (error) {
-    throw error
   } finally {
     dispatch({
       type: 'LIST_SET_REFRESHING',
@@ -144,8 +142,6 @@ export async function runListLoadMore({ list, dispatch, limit = DEFAULT_PAGE_SIZ
       }
     })
     return { ...page, items: mergedItems }
-  } catch (error) {
-    throw error
   } finally {
     dispatch({
       type: 'LIST_SET_LOADING_MORE',

@@ -21,6 +21,7 @@ function DashboardView ({
   plannedSkeets,
   publishedSkeets,
   deletedSkeets,
+  pendingSkeets,
   onEditSkeet,
   onDeleteSkeet,
   onRetractSkeet,
@@ -41,7 +42,9 @@ function DashboardView ({
   activeTab,
   onTabChange,
   highlightedSkeetId = null,
-  onHighlightConsumed
+  onHighlightConsumed,
+  onPublishPendingOnce,
+  onDiscardPendingSkeet
 }) {
   const toast = useToast()
   const [publishedSortOrder, setPublishedSortOrder] = useState('desc')
@@ -77,6 +80,7 @@ function DashboardView ({
   }, [publishedSkeets, publishedSortOrder])
 
   const theme = useTheme()
+  const pendingDisabled = !pendingSkeets || pendingSkeets.length === 0
 
   useEffect(() => {
     if (!highlightedSkeetId) return
@@ -127,6 +131,19 @@ function DashboardView ({
                   Veröffentlicht
                 </Tabs.Trigger>
                 <Tabs.Trigger
+                  value='pending'
+                  className={`rounded-full px-4 py-2 transition ${
+                    pendingDisabled
+                      ? 'text-foreground-muted opacity-50 cursor-not-allowed'
+                      : activeTab === 'pending'
+                        ? 'bg-background-elevated shadow-soft'
+                        : 'text-foreground-muted hover:text-foreground'
+                  }`}
+                  disabled={pendingDisabled}
+                >
+                  Freigabe
+                </Tabs.Trigger>
+                <Tabs.Trigger
                   value='deleted'
                   className={`rounded-full px-4 py-2 transition ${
                     activeTab === 'deleted'
@@ -167,12 +184,23 @@ function DashboardView ({
               formatTime={formatTime}
               getItemRef={getRefForId}
             />
-          ) : (
+          ) : activeTab === 'deleted' ? (
             <DeletedSkeetList
               skeets={deletedSkeets}
               onRestore={onRestoreSkeet}
               onPermanentDelete={onPermanentDeleteSkeet}
               formatTime={formatTime}
+            />
+          ) : (
+            <PlannedSkeetList
+              skeets={pendingSkeets}
+              onEdit={onEditSkeet}
+              onDelete={onDeleteSkeet}
+              getRepeatDescription={getRepeatDescription}
+              highlightedId={highlightedSkeetId}
+              showPendingActions
+              onPublishPendingOnce={onPublishPendingOnce}
+              onDiscardPending={onDiscardPendingSkeet}
             />
           )}
         </div>

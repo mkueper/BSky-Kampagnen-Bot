@@ -20,7 +20,9 @@ export default function SavedFeed ({ isActive = true }) {
     try {
       const stored = typeof window !== 'undefined' ? window.localStorage.getItem('bsky.renderMode') : null
       if (stored === 'flat' || stored === 'card') return stored
-    } catch {}
+    } catch {
+      /* ignore storage errors */
+    }
     return 'card'
   }, [])
 

@@ -22,7 +22,7 @@ describe('PostSendLogs (scheduler)', () => {
   })
 
   it('erstellt einen Logeintrag für den Versandversuch', async () => {
-    const sendPostSpy = vi.spyOn(postService, 'sendPost').mockResolvedValue({
+    vi.spyOn(postService, 'sendPost').mockResolvedValue({
       ok: true,
       uri: 'at://did:example/post/1',
       postedAt: new Date().toISOString()

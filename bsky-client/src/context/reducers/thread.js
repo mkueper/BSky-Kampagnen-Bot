@@ -1,3 +1,5 @@
+/* global process */
+
 const initialThreadState = {
   active: false,
   loading: false,

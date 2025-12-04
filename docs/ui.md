@@ -28,6 +28,65 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 - `ToastProvider` & `useToast` (`@bsky-kampagnen-bot/shared-ui`)
   - Einheitliche Toasts (`success`, `error`, `info`). Bitte keine ad-hoc `alert()` verwenden.
 
+## Terminologie
+
+- Im UI sprechen wir durchgängig von **Beiträgen** (statt „Skeets“), um plattformneutral zu bleiben:
+  - Beispiele: „Geplante Beiträge“, „Veröffentlichte Beiträge“, „Wartende Beiträge“, „Nächster Beitrag“.
+  - Technische Begriffe wie `Skeet`, `SkeetModel` etc. bleiben im Backend und in der internen Doku bestehen.
+- Für den Status „pending_manual“ verwenden wir im UI die Bezeichnung **„wartend“**:
+  - Tab-Label: z. B. `Wartend` (statt „Freigabe“/„Pending“).
+  - Hinweistexte: Formulierungen wie „Auf Freigabe wartende Beiträge“ bzw. „Beiträge, die auf Freigabe warten“.
+
+### Benennung: Beiträge-Navigation
+
+- Navigation (Sidebar):
+  - Hauptpunkt: **„Beiträge“** (vorher „Skeets“).
+  - Unterpunkte:
+    - **„Aktivität“** (Beitragsaktivität/Übersicht der Zustände).
+    - **„Planen“** (vorher „Skeet planen“).
+- Seitentitel / Header:
+  - Beiträge-Übersicht: großer Header **„Beiträge – Übersicht“**.
+  - Planer-Ansicht: großer Header **„Beitrag planen“**.
+  - Panels innerhalb der Übersicht:
+    - z. B. **„Beitragsaktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“.
+
+### Plattformbegriffe vs. Navigationsbegriffe
+
+Wir unterscheiden klar zwischen:
+
+- **Plattform-/Protokollbegriffen** (Actions, Labels direkt aus Bluesky/Mastodon),
+- und **Navigations-/Bereichsnamen** im Kampagnen-Bot.
+
+**Plattformnahe Begriffe (Actions, Buttons, Menüs)**
+
+Diese folgen der Bluesky-UI (deutsch) möglichst exakt:
+
+- `Post` → **„Post“** (als technische Einheit; im Fließtext kann „Beitrag“ verwendet werden)
+- `Thread` → **„Thread“**
+- `Reply` → **„Antworten“**
+  - Wichtig: nicht „Antwort“, nicht „Beantworten“, sondern exakt „Antworten“.
+- `Repost` → **„Reposten“**
+  - Bluesky nutzt hier eine progressive Form; keine Umschreibung wie „Weiterverbreiten“.
+- `Quote Post` → **„Post zitieren“**
+  - Keine eigenen Begriffe wie „Zitatpost“ oder „Zitat erstellen“ verwenden.
+
+Diese Begriffe werden insbesondere für:
+
+- Kontextmenüs (z. B. in der Beitrags-/Thread-UI),
+- Buttons und Aktionen,
+- Tooltips/`aria-label`s
+
+verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibel bleibt.
+
+**Navigations- und Bereichsnamen im Kampagnen-Bot**
+
+- Hier verwenden wir bewusst **„Beiträge“** als Oberbegriff (siehe oben), um eine verständliche, deutschsprachige Navigation zu haben:
+  - NAV: „Beiträge“ → Unterpunkte „Aktivität“, „Planen“.
+  - Header: „Beiträge – Übersicht“, „Beitrag planen“.
+  - Panels: „Beitragsaktivität“, „Geplante Beiträge“, „Veröffentlichte Beiträge“, „Wartende Beiträge“ usw.
+- Thread-spezifische Bereiche dürfen `Thread` im Namen behalten:
+  - z. B. „Threads – Übersicht“, „Thread planen“, mit erläuternden Unterzeilen wie „mehrteilige Beiträge (Threads)“.
+
 ## Patterns
 
 - Primäre Aktion der Formulare: `Button primary` rechts unten; sekundäre Aktionen links davon (`secondary`).
@@ -36,6 +95,24 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 - Badges: Status‐Farben konsistent (Grün=success, Amber=warning, Rot=destructive).
 - SSE-Hooks: `useSse` vor `useSkeets`/`useThreads` initialisieren, damit `sseConnected` korrekt übergeben wird und Polling sich selbst deaktiviert.
 - Floating Toolbar erst einblenden, wenn Aktionen verfügbar sind (z. B. sichtbare IDs vorhanden); ansonsten versteckt lassen.
+
+### Tabs und Zähler (Beispiele Skeet-/Beitragsaktivität)
+
+- Tabs innerhalb eines ActivityPanels verwenden eine einheitliche Struktur:
+  - Linksbündiges Label (z. B. „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“).
+  - Optional ein **Badge rechts im Tab**, wenn eine Anzahl dargestellt werden soll (z. B. Anzahl wartender Beiträge).
+- Wenn ein Tab einen Zähler anzeigt, sollten **alle Tabs desselben Blocks** grundsätzlich die Möglichkeit für einen Badge haben, auch wenn der Wert häufig `0` ist.
+- Umgang mit leeren Zuständen:
+  - Entweder: Tab bei `0` deaktivieren und klar visuell abgeschwächt darstellen.
+  - Oder: Tab bleibt aktiv, Badge ist leer/0, und der **Empty State wird im Inhalt** kommuniziert (z. B. Karte mit „Derzeit keine wartenden Beiträge“).
+  - Entscheidung pro View, aber innerhalb eines Panels konsistent halten.
+
+### Hinweistexte
+
+- Buttons, Tabs und kritische Aktionen sollten sprechende Titel/Tooltips erhalten:
+  - Beispiel Tab „Wartend“: Tooltip/Hinweistext „Auf Freigabe wartende Beiträge“.
+  - Beispiel Buttons in Toolbars: `aria-label` + `title` setzen, damit die Bedeutung auch ohne sichtbaren Text klar ist.
+- Leere Listen/States immer mit einem kurzen erklärenden Hinweistext versehen (nicht einfach „leer“ lassen).
 
 ## Beispiele
 

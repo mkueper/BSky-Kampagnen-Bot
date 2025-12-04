@@ -1,4 +1,5 @@
 // theme-init.js
+/* global window, document */
 ;(function () {
   try {
     var THEMES = ['light', 'dim', 'dark', 'midnight']
@@ -8,11 +9,11 @@
     })
 
     var stored = null
-    try {
-      stored = window.localStorage.getItem('theme')
-    } catch (e) {
-      // localStorage evtl. nicht verfügbar (Privacy-Mode etc.)
-    }
+	    try {
+	      stored = window.localStorage.getItem('theme')
+	    } catch {
+	      // localStorage evtl. nicht verfügbar (Privacy-Mode etc.)
+	    }
 
     var theme = THEMES.indexOf(stored) !== -1 ? stored : null
 
@@ -34,7 +35,7 @@
     root.dataset.theme = theme
     root.classList.toggle('dark', isDark)
     root.style.colorScheme = isDark ? 'dark' : 'light'
-  } catch (e) {
-    // Im Zweifel macht React/ThemeProvider später den Rest
-  }
-})()
+	  } catch {
+	    // Im Zweifel macht React/ThemeProvider später den Rest
+	  }
+	})()

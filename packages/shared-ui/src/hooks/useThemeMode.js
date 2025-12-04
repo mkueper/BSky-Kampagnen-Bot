@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useTheme } from '../theme/ThemeProvider.jsx'
+import { DEFAULT_THEME } from '../theme/config.js'
 
 export function useThemeMode () {
   const { theme, setTheme, themes, themeConfig } = useTheme()
@@ -40,7 +41,9 @@ export function useThemeMode () {
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem('theme', nextTheme)
-      } catch {}
+      } catch {
+        /* ignore storage errors */
+      }
     }
 
     // console.log('AFTER DOM UPDATE, BEFORE setTheme:', {

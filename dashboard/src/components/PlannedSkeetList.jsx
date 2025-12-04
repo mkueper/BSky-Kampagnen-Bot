@@ -3,7 +3,16 @@ import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";
 import SkeetHistoryPanel from "./skeets/SkeetHistoryPanel.jsx";
 
-function PlannedSkeetList({ skeets, onEdit, onDelete, getRepeatDescription, highlightedId = null }) {
+function PlannedSkeetList({
+  skeets,
+  onEdit,
+  onDelete,
+  getRepeatDescription,
+  highlightedId = null,
+  showPendingActions = false,
+  onPublishPendingOnce,
+  onDiscardPending
+}) {
   if (skeets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
@@ -18,6 +27,7 @@ function PlannedSkeetList({ skeets, onEdit, onDelete, getRepeatDescription, high
       {skeets.map((skeet) => {
         const isHighlighted = highlightedId === skeet.id
         const showHistoryPanel = typeof skeet.repeat === "string" && skeet.repeat !== "none"
+        const isPendingManual = skeet.status === "pending_manual"
         return (
           <Card
             key={skeet.id}
@@ -53,6 +63,22 @@ function PlannedSkeetList({ skeets, onEdit, onDelete, getRepeatDescription, high
                   <Button variant="secondary" onClick={() => onEdit(skeet)}>Bearbeiten</Button>
                   <Button variant="destructive" onClick={() => onDelete(skeet)}>Löschen</Button>
                 </div>
+                {showPendingActions && isPendingManual ? (
+                  <div className="mt-4 flex w-full flex-row flex-wrap items-center gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => onPublishPendingOnce && onPublishPendingOnce(skeet)}
+                    >
+                      Jetzt senden
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => onDiscardPending && onDiscardPending(skeet)}
+                    >
+                      Termin überspringen
+                    </Button>
+                  </div>
+                ) : null}
                 {showHistoryPanel ? (
                   <div className="mt-4 w-full">
                     <SkeetHistoryPanel skeetId={skeet.id} repeat={skeet.repeat} />

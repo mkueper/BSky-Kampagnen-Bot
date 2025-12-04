@@ -14,8 +14,6 @@ export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderI
   const actor = profileViewer?.actor || ''
   const [headline, setHeadline] = useState({ name: '', handle: '', did: '' })
 
-  if (!profileViewer?.open || !actor) return null
-
   const handleClose = () => dispatch({ type: 'CLOSE_PROFILE_VIEWER' })
   const handleHeadlineChange = useCallback((info) => {
     if (!info) {
@@ -28,6 +26,8 @@ export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderI
       did: info.did || ''
     })
   }, [])
+
+  if (!profileViewer?.open || !actor) return null
 
   const formatIdentifier = (value) => {
     if (!value) return ''

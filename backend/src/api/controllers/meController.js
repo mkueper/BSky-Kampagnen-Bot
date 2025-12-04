@@ -1,7 +1,7 @@
 const bskyController = require('@api/controllers/bskyController');
 const { getBlueskyCredentials } = require('@core/services/credentialsService');
 
-async function getMe(req, res, next) {
+async function getMe(req, res, _next) {
   try {
     const { handle } = getBlueskyCredentials();
     if (!handle) {

@@ -8,7 +8,6 @@ const MAX_GIF_BYTES = 8 * 1024 * 1024
 
 export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent }) {
   const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
   const [preview, setPreview] = useState(null)
@@ -39,8 +38,6 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [quote])
   const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
-  const inlineQuoteAuthorLabel = quote?.author?.displayName || quote?.author?.handle || 'Unbekannter Account'
-  const inlineQuoteAuthorMissing = Boolean(quote && !(quote.author?.displayName || quote.author?.handle))
 
   useEffect(() => {
     focusRequestedRef.current = false
@@ -48,14 +45,20 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       try {
         textareaRef.current?.focus()
         focusRequestedRef.current = true
-      } catch {}
+      } catch {
+        /* ignore focus errors */
+      }
     })
   }, [reply, quote])
 
   useEffect(() => {
     if (focusRequestedRef.current) return
     const timer = setTimeout(() => {
-      try { textareaRef.current?.focus() } catch {}
+      try {
+        textareaRef.current?.focus()
+      } catch {
+        /* ignore focus errors */
+      }
     }, 0)
     return () => clearTimeout(timer)
   }, [])
@@ -99,7 +102,15 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       })
       .catch((e) => { if (!ignore) setPreviewError(e?.message || 'Preview fehlgeschlagen') })
       .finally(() => { if (!ignore) setPreviewLoading(false); clearTimeout(t) })
-    return () => { ignore = true; try { controller.abort() } catch {}; clearTimeout(t) }
+    return () => {
+      ignore = true
+      try {
+        controller.abort()
+      } catch {
+        /* ignore abort errors */
+      }
+      clearTimeout(t)
+    }
   }, [firstUrl])
 
   function updateCursorFromTextarea (target) {
@@ -128,7 +139,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             el.setSelectionRange(pos, pos)
             cursorRef.current = { start: pos, end: pos }
           }
-        } catch {}
+        } catch {
+          /* ignore focus errors */
+        }
       })
       return next
     })
@@ -213,12 +226,16 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           mime: info.mime || 'image/gif'
         }]
       })
-    if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+      if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     } catch (e) {
       setMessage(e?.message || 'GIF konnte nicht geladen werden')
     } finally {
       requestAnimationFrame(() => {
-        try { textareaRef.current?.focus() } catch {}
+        try {
+          textareaRef.current?.focus()
+        } catch {
+          /* ignore focus errors */
+        }
       })
     }
   }
@@ -249,7 +266,6 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       return
     }
     const externalPayload = buildExternalPayload()
-    setSending(true)
     try {
       if (reply && reply.uri && reply.cid) {
         const parent = { uri: reply.uri, cid: reply.cid }
@@ -294,7 +310,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     } catch (err) {
       setMessage(err?.message || String(err))
     } finally {
-      setSending(false)
+      // no-op
     }
   }
 

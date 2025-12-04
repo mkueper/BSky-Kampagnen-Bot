@@ -17,7 +17,7 @@ export default function BlockListView () {
     return ['bsky-blocks', reloadTick, cursor]
   }, [reloadTick])
 
-  const fetchBlocksPage = useCallback(async ([, _reload, cursor]) => {
+  const fetchBlocksPage = useCallback(async ([, , cursor]) => {
     const { blocks, cursor: nextCursor } = await fetchBlocks({
       cursor: cursor || undefined,
       limit: PAGE_SIZE

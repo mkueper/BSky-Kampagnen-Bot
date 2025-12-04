@@ -67,7 +67,9 @@ export function ThemeProvider ({ children }) {
   
     try {
       window.localStorage.setItem('theme', activeTheme)
-    } catch {}
+    } catch {
+      // ignore write errors
+    }
   }, [theme])
   
   const value = useMemo(
@@ -90,4 +92,3 @@ export function useTheme () {
   }
   return context
 }
-

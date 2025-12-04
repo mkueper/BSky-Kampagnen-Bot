@@ -156,9 +156,6 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
       }))
       .slice(0, 25)
   }, [focus, threadAuthorDid])
-
-  if (!active) return null
-
   const handleClose = useCallback(() => {
     closeThread({ force: true })
   }, [closeThread])
@@ -171,6 +168,8 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
     if (!state.isAuthorThread) return
     dispatch({ type: 'OPEN_THREAD_UNROLL' })
   }, [dispatch, state.isAuthorThread])
+
+  if (!active) return null
 
   const formatHandle = (value) => {
     if (!value) return ''

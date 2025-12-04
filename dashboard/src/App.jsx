@@ -127,7 +127,7 @@ function LoadingBlock ({ message }) {
   )
 }
 
-function DashboardApp ({ session, onLogout }) {
+function DashboardApp ({ onLogout }) {
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
@@ -139,7 +139,6 @@ function DashboardApp ({ session, onLogout }) {
   //console.log('[DashboardApp] activeView', activeView)
   const {
     currentThemeConfig,
-    nextTheme,
     nextThemeLabel,
     nextThemeConfig,
     ThemeIcon: HookThemeIcon,
@@ -165,7 +164,6 @@ function DashboardApp ({ session, onLogout }) {
   const [editingThreadId, setEditingThreadId] = useState(null)
   const toast = useToast()
   const [logoutPending, setLogoutPending] = useState(false)
-  const sessionUsername = session?.username || 'Account'
   const skeetViewsEnabled =
     activeView === 'overview' ||
     activeView === 'skeets' ||
@@ -204,6 +202,7 @@ function DashboardApp ({ session, onLogout }) {
 
   // Skeet-bezogene Hooks bündeln sämtliche Listen, Detail-Puffer und Aktionen.
   const {
+    skeets,
     plannedSkeets,
     publishedSkeets,
     deletedSkeets,
@@ -285,6 +284,97 @@ function DashboardApp ({ session, onLogout }) {
   // Allow ThreadForm to suggest moving a single-segment thread into Skeet planner
   const [skeetDraftContent, setSkeetDraftContent] = useState('')
 
+  const pendingSkeets = useMemo(() => {
+    return Array.isArray(skeets)
+      ? skeets.filter(s => !s.deletedAt && s.status === 'pending_manual')
+      : []
+  }, [skeets])
+
+  const plannedSkeetsWithoutPending = useMemo(() => {
+    return Array.isArray(plannedSkeets)
+      ? plannedSkeets.filter(s => s.status !== 'pending_manual')
+      : []
+  }, [plannedSkeets])
+
+  const handlePublishPendingOnce = useCallback(
+    async skeet => {
+      const id = skeet && typeof skeet.id === 'number' ? skeet.id : null
+      if (!id) return
+      try {
+        const res = await fetch(`/api/pending-skeets/${id}/publish-once`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          const message =
+            data && typeof data.error === 'string'
+              ? data.error
+              : 'Fehler beim einmaligen Veröffentlichen.'
+          throw new Error(message)
+        }
+        await refreshSkeetsNow({ force: true })
+        toast.success({
+          title: 'Skeet gesendet',
+          description: 'Die verpasste Ausführung wurde nachgeholt.'
+        })
+      } catch (error) {
+        toast.error({
+          title: 'Freigabe fehlgeschlagen',
+          description:
+            (error && error.message)
+              ? `Der Beitrag konnte nicht gesendet werden: ${error.message}`
+              : 'Der Beitrag konnte nicht gesendet werden.'
+        })
+      }
+    },
+    [refreshSkeetsNow, toast]
+  )
+
+  const handleDiscardPendingSkeet = useCallback(
+    skeet => {
+      const id = skeet && typeof skeet.id === 'number' ? skeet.id : null
+      if (!id) return
+      openConfirm({
+        title: 'Termin überspringen',
+        description:
+          'Die verpasste Ausführung wird verworfen. Der nächste Wiederholungstermin bleibt aktiv.',
+        confirmLabel: 'Termin überspringen',
+        variant: 'destructive',
+        onConfirm: async () => {
+          try {
+            const res = await fetch(`/api/pending-skeets/${id}/discard`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}))
+              const message =
+                data && typeof data.error === 'string'
+                  ? data.error
+                  : 'Fehler beim Verwerfen des Pending-Skeets.'
+              throw new Error(message)
+            }
+            await refreshSkeetsNow({ force: true })
+            toast.success({
+              title: 'Termin übersprungen',
+              description:
+                'Die verpasste Ausführung wurde verworfen, der Rhythmus läuft weiter.'
+            })
+          } catch (error) {
+            toast.error({
+              title: 'Aktion fehlgeschlagen',
+              description:
+                (error && error.message)
+                  ? `Die Pending-Aktion konnte nicht ausgeführt werden: ${error.message}`
+                  : 'Die Pending-Aktion konnte nicht ausgeführt werden.'
+            })
+          }
+        }
+      })
+    },
+    [openConfirm, refreshSkeetsNow, toast]
+  )
   
 
   useEffect(() => {
@@ -335,15 +425,15 @@ function DashboardApp ({ session, onLogout }) {
       0
     )
     return [
-      { label: 'Geplante Skeets', value: plannedSkeets.length },
+      { label: 'Geplante Skeets', value: plannedSkeetsWithoutPending.length },
       { label: 'Veröffentlichte Skeets', value: publishedSkeets.length },
       { label: 'Likes gesamt', value: likes },
       { label: 'Reposts gesamt', value: reposts }
     ]
-  }, [plannedSkeets, publishedSkeets])
+  }, [plannedSkeetsWithoutPending, publishedSkeets])
 
   const upcomingSkeet = useMemo(() => {
-    const entries = plannedSkeets
+    const entries = plannedSkeetsWithoutPending
       .map(s => {
         if (!s.scheduledAt) return null
         const date = new Date(s.scheduledAt)
@@ -354,7 +444,7 @@ function DashboardApp ({ session, onLogout }) {
       .filter(Boolean)
       .sort((a, b) => a.scheduledDate - b.scheduledDate)
     return entries[0] ?? null
-  }, [plannedSkeets])
+  }, [plannedSkeetsWithoutPending])
 
   const upcomingSkeetDate = upcomingSkeet
     ? formatTime(
@@ -663,9 +753,10 @@ function DashboardApp ({ session, onLogout }) {
     content = (
       <Suspense fallback={<LoadingBlock message='Skeet Aktivität wird geladen…' />}>
         <DashboardView
-          plannedSkeets={plannedSkeets}
+          plannedSkeets={plannedSkeetsWithoutPending}
           publishedSkeets={publishedSkeets}
           deletedSkeets={deletedSkeets}
+          pendingSkeets={pendingSkeets}
           onEditSkeet={handleEdit}
           onDeleteSkeet={handleDeleteSkeet}
           onRetractSkeet={handleRetractSkeet}
@@ -687,6 +778,8 @@ function DashboardApp ({ session, onLogout }) {
           onTabChange={setActiveDashboardTab}
           highlightedSkeetId={highlightedSkeetId}
           onHighlightConsumed={() => setHighlightedSkeetId(null)}
+          onPublishPendingOnce={handlePublishPendingOnce}
+          onDiscardPendingSkeet={handleDiscardPendingSkeet}
         />
       </Suspense>
     )
