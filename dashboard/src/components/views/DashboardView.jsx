@@ -97,9 +97,9 @@ function DashboardView ({
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 sm:flex-row sm:items-center sm:justify-between'>
           <div>
-            <h3 className='text-lg font-semibold'>Skeet Aktivität</h3>
+            <h3 className='text-lg font-semibold'>Post-Aktivität</h3>
             <p className='text-sm text-foreground-muted'>
-              Verwalte geplante und veröffentlichte Skeets inklusive Antworten
+              Verwalte geplante und veröffentlichte Posts inklusive Antworten
               &amp; Reaktionen.
             </p>
           </div>

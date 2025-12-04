@@ -62,8 +62,8 @@ export function useImportExport ({
     if (typeof window === 'undefined') return
     const isThreadContext = activeView.startsWith('threads')
     const endpoint = isThreadContext ? '/api/threads/export' : '/api/skeets/export'
-    const entityLabel = isThreadContext ? 'Threads' : 'Skeets'
-    const fallbackPrefix = isThreadContext ? 'threads' : 'skeets'
+    const entityLabel = isThreadContext ? 'Threads' : 'Posts'
+    const fallbackPrefix = isThreadContext ? 'threads' : 'posts'
 
     setExporting(true)
     try {
@@ -119,7 +119,7 @@ export function useImportExport ({
       }
       const threadContext = activeView.startsWith('threads')
       const endpoint = threadContext ? '/api/threads/import' : '/api/skeets/import'
-      const entityLabel = threadContext ? 'Threads' : 'Skeets'
+      const entityLabel = threadContext ? 'Threads' : 'Posts'
 
       const res = await fetch(endpoint, {
         method: 'POST',

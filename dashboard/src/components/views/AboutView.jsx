@@ -11,7 +11,7 @@ export default function AboutView () {
         <h2 className='text-xl font-semibold'>Über {project}</h2>
         <p className='mt-2 text-sm text-foreground-muted'>
           Dieses Tool unterstützt das Planen, Veröffentlichen und Auswerten von
-          Skeets und Threads.<br></br>Es enthält ebenfalls einen kompletten
+          Posts und Threads.<br></br>Es enthält ebenfalls einen kompletten
           Bluesky Client
         </p>
       </Card>

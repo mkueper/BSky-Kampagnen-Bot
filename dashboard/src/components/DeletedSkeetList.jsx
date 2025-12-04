@@ -6,8 +6,8 @@ function DeletedSkeetList({ skeets, onRestore, onPermanentDelete, formatTime }) 
   if (skeets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Keine gelöschten Skeets.</p>
-        <p className="mt-2">Gelöschte Beiträge erscheinen hier und können reaktiviert oder endgültig entfernt werden.</p>
+        <p className="font-medium text-foreground">Keine gelöschten Posts.</p>
+        <p className="mt-2">Gelöschte Posts erscheinen hier und können reaktiviert oder endgültig entfernt werden.</p>
       </div>
     );
   }

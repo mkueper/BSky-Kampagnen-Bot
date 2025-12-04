@@ -30,25 +30,34 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 
 ## Terminologie
 
-- Im UI sprechen wir durchgängig von **Beiträgen** (statt „Skeets“), um plattformneutral zu bleiben:
-  - Beispiele: „Geplante Beiträge“, „Veröffentlichte Beiträge“, „Wartende Beiträge“, „Nächster Beitrag“.
+- Im UI sprechen wir durchgängig von **Posts** (statt „Skeets“), um plattformneutral zu bleiben:
+  - Beispiele: „Geplante Posts“, „Veröffentlichte Posts“, „Wartende Posts“, „Nächster Post“.
   - Technische Begriffe wie `Skeet`, `SkeetModel` etc. bleiben im Backend und in der internen Doku bestehen.
 - Für den Status „pending_manual“ verwenden wir im UI die Bezeichnung **„wartend“**:
   - Tab-Label: z. B. `Wartend` (statt „Freigabe“/„Pending“).
-  - Hinweistexte: Formulierungen wie „Auf Freigabe wartende Beiträge“ bzw. „Beiträge, die auf Freigabe warten“.
+  - Hinweistexte: Formulierungen wie „Auf Freigabe wartende Posts“ bzw. „Posts, die auf Freigabe warten“.
 
-### Benennung: Beiträge-Navigation
+### Produktname
+
+- Produktname des Tools im UI: **„Kampagnen‑Bot“** (mit Bindestrich).
+  - Verwendet in prominenten Stellen: App-Header, About-Überschrift, ggf. Window-/Titelzeile.
+- Im Fließtext sprechen wir von **„dem Kampagnenbot“** (ohne Bindestrich), z. B.:
+  - „Dieser Kampagnenbot unterstützt das Planen …“
+- Plattform-spezifische Bereiche behalten ihren Zusatz:
+  - z. B. NAV-Eintrag **„Bluesky Client“** bleibt bestehen und verweist explizit auf den eingebetteten Bluesky-Client.
+
+### Benennung: Posts-Navigation
 
 - Navigation (Sidebar):
-  - Hauptpunkt: **„Beiträge“** (vorher „Skeets“).
+  - Hauptpunkt: **„Posts“** (vorher „Skeets“).
   - Unterpunkte:
-    - **„Aktivität“** (Beitragsaktivität/Übersicht der Zustände).
+    - **„Aktivität“** (Post-Aktivität/Übersicht der Zustände).
     - **„Planen“** (vorher „Skeet planen“).
 - Seitentitel / Header:
-  - Beiträge-Übersicht: großer Header **„Beiträge – Übersicht“**.
-  - Planer-Ansicht: großer Header **„Beitrag planen“**.
+  - Posts - Übersicht: großer Header **„Posts – Übersicht“**.
+  - Planer: großer Header **„Post planen“**.
   - Panels innerhalb der Übersicht:
-    - z. B. **„Beitragsaktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“.
+    - z. B. **„Post-Aktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“.
 
 ### Plattformbegriffe vs. Navigationsbegriffe
 
@@ -59,9 +68,9 @@ Wir unterscheiden klar zwischen:
 
 **Plattformnahe Begriffe (Actions, Buttons, Menüs)**
 
-Diese folgen der Bluesky-UI (deutsch) möglichst exakt:
+Diese folgen der Bluesky-UI möglichst exakt:
 
-- `Post` → **„Post“** (als technische Einheit; im Fließtext kann „Beitrag“ verwendet werden)
+- `Post` → **„Post“** (als technische Einheit; im Fließtext kann „Post“ verwendet werden)
 - `Thread` → **„Thread“**
 - `Reply` → **„Antworten“**
   - Wichtig: nicht „Antwort“, nicht „Beantworten“, sondern exakt „Antworten“.
@@ -72,7 +81,7 @@ Diese folgen der Bluesky-UI (deutsch) möglichst exakt:
 
 Diese Begriffe werden insbesondere für:
 
-- Kontextmenüs (z. B. in der Beitrags-/Thread-UI),
+- Kontextmenüs (z. B. in der Posts-/Thread-UI),
 - Buttons und Aktionen,
 - Tooltips/`aria-label`s
 
@@ -80,12 +89,12 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
 
 **Navigations- und Bereichsnamen im Kampagnen-Bot**
 
-- Hier verwenden wir bewusst **„Beiträge“** als Oberbegriff (siehe oben), um eine verständliche, deutschsprachige Navigation zu haben:
-  - NAV: „Beiträge“ → Unterpunkte „Aktivität“, „Planen“.
-  - Header: „Beiträge – Übersicht“, „Beitrag planen“.
-  - Panels: „Beitragsaktivität“, „Geplante Beiträge“, „Veröffentlichte Beiträge“, „Wartende Beiträge“ usw.
+- Hier verwenden wir bewusst **„Posts“** als Oberbegriff (siehe oben), um eine verständliche, deutschsprachige Navigation zu haben:
+  - NAV: „Posts“ → Unterpunkte „Aktivität“, „Planen“.
+  - Header: „Posts – Übersicht“, „Post planen“.
+  - Panels: „Post-Aktivität“, „Geplant“, „Veröffentlicht“, „Wartend“ usw.
 - Thread-spezifische Bereiche dürfen `Thread` im Namen behalten:
-  - z. B. „Threads – Übersicht“, „Thread planen“, mit erläuternden Unterzeilen wie „mehrteilige Beiträge (Threads)“.
+  - z. B. „Threads – Übersicht“, „Thread planen“, mit erläuternden Unterzeilen wie „mehrteilige Posts (Threads)“.
 
 ## Patterns
 
@@ -96,21 +105,21 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
 - SSE-Hooks: `useSse` vor `useSkeets`/`useThreads` initialisieren, damit `sseConnected` korrekt übergeben wird und Polling sich selbst deaktiviert.
 - Floating Toolbar erst einblenden, wenn Aktionen verfügbar sind (z. B. sichtbare IDs vorhanden); ansonsten versteckt lassen.
 
-### Tabs und Zähler (Beispiele Skeet-/Beitragsaktivität)
+### Tabs und Zähler (Beispiele Post-Aktivität)
 
 - Tabs innerhalb eines ActivityPanels verwenden eine einheitliche Struktur:
   - Linksbündiges Label (z. B. „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“).
-  - Optional ein **Badge rechts im Tab**, wenn eine Anzahl dargestellt werden soll (z. B. Anzahl wartender Beiträge).
+  - Optional ein **Badge rechts im Tab**, wenn eine Anzahl dargestellt werden soll (z. B. Anzahl wartender Posts).
 - Wenn ein Tab einen Zähler anzeigt, sollten **alle Tabs desselben Blocks** grundsätzlich die Möglichkeit für einen Badge haben, auch wenn der Wert häufig `0` ist.
 - Umgang mit leeren Zuständen:
   - Entweder: Tab bei `0` deaktivieren und klar visuell abgeschwächt darstellen.
-  - Oder: Tab bleibt aktiv, Badge ist leer/0, und der **Empty State wird im Inhalt** kommuniziert (z. B. Karte mit „Derzeit keine wartenden Beiträge“).
+  - Oder: Tab bleibt aktiv, Badge ist leer/0, und der **Empty State wird im Inhalt** kommuniziert (z. B. Karte mit „Derzeit keine wartenden Posts“).
   - Entscheidung pro View, aber innerhalb eines Panels konsistent halten.
 
 ### Hinweistexte
 
 - Buttons, Tabs und kritische Aktionen sollten sprechende Titel/Tooltips erhalten:
-  - Beispiel Tab „Wartend“: Tooltip/Hinweistext „Auf Freigabe wartende Beiträge“.
+  - Beispiel Tab „Wartend“: Tooltip/Hinweistext „Auf Freigabe wartende Posts“.
   - Beispiel Buttons in Toolbars: `aria-label` + `title` setzen, damit die Bedeutung auch ohne sichtbaren Text klar ist.
 - Leere Listen/States immer mit einem kurzen erklärenden Hinweistext versehen (nicht einfach „leer“ lassen).
 
@@ -139,7 +148,7 @@ function Example() {
 
 ## Hinweise
 
-- Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight).
+- Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight/Dimmed).
 - Für themenabhängige Styles bevorzugt CSS-Variablen (`bg-background`, `text-foreground`, …) statt fixer Hex-Werte verwenden.
 - Bitte neue Oberflächen bevorzugt auf diesen Bausteinen aufbauen.
 

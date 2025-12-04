@@ -237,8 +237,8 @@ function PublishedSkeetList({
   if (isEmpty) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Noch keine veröffentlichten Skeets.</p>
-        <p className="mt-2">Sobald Beiträge live sind, erscheinen sie hier mit allen Kennzahlen.</p>
+        <p className="font-medium text-foreground">Noch keine veröffentlichten Posts.</p>
+        <p className="mt-2">Sobald Posts live sind, erscheinen sie hier mit allen Kennzahlen.</p>
       </div>
     );
   }

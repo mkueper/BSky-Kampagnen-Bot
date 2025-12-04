@@ -317,7 +317,7 @@ function ThreadForm ({
             const data = await res.json().catch(() => ({}));
             throw new Error(data.error || 'Upload fehlgeschlagen.');
           }
-          toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          toast.success({ title: `Post ${index + 1}`, description: 'Bild hinzugefügt.' });
         } catch (e) {
           const msg = e?.message || '';
           if (/zu groß|too large|413/i.test(msg)) {
@@ -348,7 +348,7 @@ function ThreadForm ({
             arr.push({ tempId: info.tempId, mime: info.mime, previewUrl: info.previewUrl, altText: info.altText || '' });
             return { ...s, [index]: arr };
           });
-          toast.success({ title: `Skeet ${index + 1}`, description: 'Bild hinzugefügt.' });
+          toast.success({ title: `Post ${index + 1}`, description: 'Bild hinzugefügt.' });
         } catch (e) {
           const msg = e?.message || '';
           if (/zu groß|too large|413/i.test(msg)) {
@@ -542,7 +542,7 @@ function ThreadForm ({
 
       toast.success({
         title: isEditMode ? 'Thread aktualisiert' : 'Thread geplant',
-        description: `Thread enthält ${totalSegments} Skeet${
+        description: `Thread enthält ${totalSegments} Post${
           totalSegments !== 1 ? 's' : ''
         }.`
       })
@@ -579,7 +579,7 @@ function ThreadForm ({
     event.preventDefault()
     if (saving || loading || sending) return
 
-    // If there is only one segment, suggest creating a single Skeet instead
+    // If there is only one segment, suggest creating a single Post instead
     if (totalSegments === 1) {
       setSingleSegDialog({ open: true })
       return

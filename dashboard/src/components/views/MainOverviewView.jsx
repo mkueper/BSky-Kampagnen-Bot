@@ -96,11 +96,11 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
       <section className="grid gap-4 md:grid-cols-2">
         <div className="space-y-4">
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Skeets</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Geplante Posts</p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
           </Card>
           <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Skeets</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">Veröffentlichte Posts</p>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
           </Card>
         </div>
@@ -127,12 +127,12 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
             }
           } : undefined}
           className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label="Zur Skeet Übersicht wechseln"
-          title="Zur Skeet Übersicht wechseln"
+          aria-label="Zur Posts-Übersicht wechseln"
+          title="Zur Posts-Übersicht wechseln"
           role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
           tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
         >
-          <h3 className="text-lg font-semibold">Nächster Skeet</h3>
+          <h3 className="text-lg font-semibold">Nächster Post</h3>
           {skeetStats.next ? (() => {
             const { dateText, timeText } = formatDateParts(skeetStats.next.scheduledAt);
             return (
@@ -149,7 +149,7 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
               </div>
             )
           })() : (
-            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Skeet.</p>
+            <p className="mt-3 text-sm text-foreground-muted">Kein geplanter Post.</p>
           )}
         </Card>
 
@@ -194,7 +194,7 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Card padding="p-6">
-          <h3 className="text-lg font-semibold">Bevorstehende Skeets</h3>
+          <h3 className="text-lg font-semibold">Bevorstehende Posts</h3>
           {upcomingSkeets.length ? (
             <ul className="mt-3 space-y-3 text-sm">
               {upcomingSkeets.map((skeet) => (
@@ -205,7 +205,7 @@ function MainOverviewView({ threads, plannedSkeets, publishedSkeets, onOpenSkeet
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Skeets.</p>
+            <p className="mt-3 text-sm text-foreground-muted">Keine anstehenden Posts.</p>
           )}
         </Card>
 

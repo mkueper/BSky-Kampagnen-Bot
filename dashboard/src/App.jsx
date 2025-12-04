@@ -49,11 +49,11 @@ const NAV_ITEMS = [
   { id: 'overview', label: 'Übersicht', icon: ViewHorizontalIcon },
   {
     id: 'skeets',
-    label: 'Skeets',
+    label: 'Posts',
     icon: Pencil2Icon,
     children: [
       { id: 'skeets-overview', label: 'Aktivität' },
-      { id: 'skeets-plan', label: 'Skeet planen' }
+      { id: 'skeets-plan', label: 'Planen' }
     ]
   },
   {
@@ -84,12 +84,12 @@ const VALID_VIEWS = (() => {
 // Sekundäre Überschriften, die in den einzelnen Ansichten eingeblendet werden.
 const HEADER_CAPTIONS = {
   overview: 'Übersicht',
-  skeets: 'Skeets',
-  'skeets-overview': 'Skeets',
-  'skeets-plan': 'Skeetplaner',
+  skeets: 'Posts',
+  'skeets-overview': 'Posts',
+  'skeets-plan': 'Post planen',
   threads: 'Threads',
   'threads-overview': 'Threads',
-  'threads-plan': 'Threadplaner',
+  'threads-plan': 'Thread planen',
   'bsky-client': 'Bluesky Client',
   config: 'Konfiguration',
   about: 'Über Kampagnenbot'
@@ -98,11 +98,11 @@ const HEADER_CAPTIONS = {
 // Haupt-Titelzeile der App, getrennt nach Ansicht.
 const HEADER_TITLES = {
   overview: 'Bluesky Kampagnen-Dashboard',
-  skeets: 'Skeets',
-  'skeets-overview': 'Skeet Übersicht',
-  'skeets-plan': 'Skeet planen',
+  skeets: 'Posts – Übersicht',
+  'skeets-overview': 'Posts – Übersicht',
+  'skeets-plan': 'Post planen',
   threads: 'Threads',
-  'threads-overview': 'Thread Übersicht',
+  'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
   'bsky-client': 'BSky Client',
   config: 'Einstellungen & Automatisierung'
@@ -315,7 +315,7 @@ function DashboardApp ({ onLogout }) {
         }
         await refreshSkeetsNow({ force: true })
         toast.success({
-          title: 'Skeet gesendet',
+          title: 'Post gesendet',
           description: 'Die verpasste Ausführung wurde nachgeholt.'
         })
       } catch (error) {
@@ -425,8 +425,8 @@ function DashboardApp ({ onLogout }) {
       0
     )
     return [
-      { label: 'Geplante Skeets', value: plannedSkeetsWithoutPending.length },
-      { label: 'Veröffentlichte Skeets', value: publishedSkeets.length },
+      { label: 'Geplante Posts', value: plannedSkeetsWithoutPending.length },
+      { label: 'Veröffentlichte Posts', value: publishedSkeets.length },
       { label: 'Likes gesamt', value: likes },
       { label: 'Reposts gesamt', value: reposts }
     ]
@@ -581,7 +581,7 @@ function DashboardApp ({ onLogout }) {
     navigate('skeets-overview')
     toast.info({
       title: 'Bearbeitung abgebrochen',
-      description: 'Der Skeet wurde nicht verändert.'
+      description: 'Der Beitrag wurde nicht verändert.'
     })
   }
 
@@ -612,12 +612,12 @@ function DashboardApp ({ onLogout }) {
     ? 'Export…'
     : isThreadContext
     ? 'Threads exportieren'
-    : 'Skeets exportieren'
+    : 'Posts exportieren'
   const importButtonLabel = importing
     ? 'Import…'
     : isThreadContext
     ? 'Threads importieren'
-    : 'Skeets importieren'
+    : 'Posts importieren'
 
   const headerActions = (
     <>
@@ -705,12 +705,12 @@ function DashboardApp ({ onLogout }) {
         <section className='grid gap-4 md:grid-cols-3'>
           <ActivityPanel
             className='md:col-span-2'
-            title='Skeet Aktivität'
-            description='Status deiner geplanten und veröffentlichten Skeets.'
+            title='Post-Aktivität'
+            description='Status deiner geplanten und veröffentlichten Posts.'
             items={overviewStatsSkeets}
           />
           <SummaryCard
-            title='Nächster Skeet'
+            title='Nächster Post'
             value={upcomingSkeetDate}
             time={upcomingSkeetTime ? `${upcomingSkeetTime} Uhr` : null}
             snippet={
@@ -751,7 +751,7 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'skeets-overview') {
     content = (
-      <Suspense fallback={<LoadingBlock message='Skeet Aktivität wird geladen…' />}>
+      <Suspense fallback={<LoadingBlock message='Post-Aktivität wird geladen…' />}>
         <DashboardView
           plannedSkeets={plannedSkeetsWithoutPending}
           publishedSkeets={publishedSkeets}

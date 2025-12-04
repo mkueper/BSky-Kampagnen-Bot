@@ -12,8 +12,8 @@ export function useSkeetActions ({
   const handleDelete = useCallback((skeet) => {
     if (!skeet?.id) return
     openConfirm({
-      title: 'Skeet löschen',
-      description: 'Soll dieser geplante Skeet wirklich gelöscht werden?',
+      title: 'Post löschen',
+      description: 'Soll dieser geplante Post wirklich gelöscht werden?',
       confirmLabel: 'Löschen',
       variant: 'destructive',
       onConfirm: async () => {
@@ -21,19 +21,19 @@ export function useSkeetActions ({
           const res = await fetch(`/api/skeets/${skeet.id}`, { method: 'DELETE' })
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Löschen des Skeets.')
+            throw new Error(data.error || 'Fehler beim Löschen des Posts.')
           }
           setEditingSkeet(current => (current?.id === skeet.id ? null : current))
           await refreshSkeetsNow()
           toast.success({
-            title: 'Skeet gelöscht',
-            description: 'Der Skeet wurde gelöscht und kann im Papierkorb reaktiviert werden.'
+            title: 'Post gelöscht',
+            description: 'Der Post wurde gelöscht und kann im Papierkorb reaktiviert werden.'
           })
         } catch (error) {
-          console.error('Fehler beim Löschen des Skeets:', error)
+          console.error('Fehler beim Löschen des Posts:', error)
           toast.error({
             title: 'Löschen fehlgeschlagen',
-            description: error.message || 'Fehler beim Löschen des Skeets.'
+            description: error.message || 'Fehler beim Löschen des Posts.'
           })
         }
       }
@@ -44,7 +44,7 @@ export function useSkeetActions ({
     if (!skeet?.id) return
     openConfirm({
       title: 'Veröffentlichung zurückziehen',
-      description: 'Soll dieser veröffentlichte Skeet von den Plattformen zurückgezogen werden?',
+      description: 'Soll dieser veröffentlichte Post von den Plattformen zurückgezogen werden?',
       confirmLabel: 'Zurückziehen',
       variant: 'destructive',
       onConfirm: async () => {
@@ -56,7 +56,7 @@ export function useSkeetActions ({
           })
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim Entfernen des Skeets.')
+            throw new Error(data.error || 'Fehler beim Entfernen des Posts.')
           }
           const data = await res.json()
           await refreshSkeetsNow()
@@ -75,14 +75,14 @@ export function useSkeetActions ({
             parts.push(`Fehlgeschlagen: ${failedPlatforms.join(', ')}`)
           }
           toast.success({
-            title: 'Skeet zurückgezogen',
-            description: parts.join(' · ') || 'Der Skeet wurde auf allen Plattformen zurückgezogen.'
+            title: 'Post zurückgezogen',
+            description: parts.join(' · ') || 'Der Post wurde auf allen Plattformen zurückgezogen.'
           })
         } catch (error) {
-          console.error('Fehler beim Entfernen des Skeets:', error)
+          console.error('Fehler beim Entfernen des Posts:', error)
           toast.error({
             title: 'Zurückziehen fehlgeschlagen',
-            description: error.message || 'Fehler beim Zurückziehen des Skeets.'
+            description: error.message || 'Fehler beim Zurückziehen des Posts.'
           })
         }
       }
@@ -92,7 +92,7 @@ export function useSkeetActions ({
   const handlePermanentDelete = useCallback((skeet) => {
     if (!skeet?.id) return
     openConfirm({
-      title: 'Skeet endgültig löschen',
+      title: 'Post endgültig löschen',
       description: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
       confirmLabel: 'Endgültig löschen',
       variant: 'destructive',
@@ -103,19 +103,19 @@ export function useSkeetActions ({
           })
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
-            throw new Error(data.error || 'Fehler beim endgültigen Löschen des Skeets.')
+            throw new Error(data.error || 'Fehler beim endgültigen Löschen des Posts.')
           }
           setEditingSkeet(current => (current?.id === skeet.id ? null : current))
           await refreshSkeetsNow()
           toast.success({
-            title: 'Skeet entfernt',
-            description: 'Der Skeet wurde dauerhaft gelöscht.'
+            title: 'Post entfernt',
+            description: 'Der Post wurde dauerhaft gelöscht.'
           })
         } catch (error) {
-          console.error('Fehler beim endgültigen Löschen des Skeets:', error)
+          console.error('Fehler beim endgültigen Löschen des Posts:', error)
           toast.error({
             title: 'Endgültiges Löschen fehlgeschlagen',
-            description: error.message || 'Fehler beim endgültigen Löschen des Skeets.'
+            description: error.message || 'Fehler beim endgültigen Löschen des Posts.'
           })
         }
       }
@@ -130,7 +130,7 @@ export function useSkeetActions ({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Fehler beim Reaktivieren des Skeets.')
+        throw new Error(data.error || 'Fehler beim Reaktivieren des Posts.')
       }
       const restored = await res.json().catch(() => null)
       await refreshSkeetsNow({ force: true })
@@ -146,19 +146,19 @@ export function useSkeetActions ({
               el.scrollIntoView({ behavior: 'smooth', block: 'center' })
             }
           } catch (error) {
-            console.error('Fehler beim Scrollen zum wiederhergestellten Skeet:', error)
+            console.error('Fehler beim Scrollen zum wiederhergestellten Post:', error)
           }
         }, 80)
       }
       toast.success({
-        title: 'Skeet reaktiviert',
-        description: 'Der Skeet wurde wiederhergestellt und erscheint erneut in der Skeet Übersicht.'
+        title: 'Post reaktiviert',
+        description: 'Der Post wurde wiederhergestellt und erscheint erneut in der Posts-Übersicht.'
       })
     } catch (error) {
-      console.error('Fehler beim Reaktivieren des Skeets:', error)
+      console.error('Fehler beim Reaktivieren des Posts:', error)
       toast.error({
         title: 'Reaktivierung fehlgeschlagen',
-        description: error.message || 'Fehler beim Reaktivieren des Skeets.'
+        description: error.message || 'Fehler beim Reaktivieren des Posts.'
       })
     }
   }, [navigate, refreshSkeetsNow, setActiveDashboardTab, toast])

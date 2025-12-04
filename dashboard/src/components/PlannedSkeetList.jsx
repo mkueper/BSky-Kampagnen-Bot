@@ -16,8 +16,8 @@ function PlannedSkeetList({
   if (skeets.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-muted bg-background-subtle p-8 text-center text-sm text-foreground-muted">
-        <p className="font-medium text-foreground">Noch keine Skeets geplant.</p>
-        <p className="mt-2">Nutze den Skeetplaner, um deinen ersten Beitrag zu terminieren.</p>
+        <p className="font-medium text-foreground">Noch keine Posts geplant.</p>
+        <p className="mt-2">Nutze den Planer, um deinen ersten Post zu terminieren.</p>
       </div>
     );
   }

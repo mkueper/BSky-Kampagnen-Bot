@@ -305,7 +305,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     if (content.length > submissionLimit) {
       toast.error({
         title: 'Zeichenlimit überschritten',
-        description: `Der Skeet darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten.`
+        description: `Der Post darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten.`
       })
       return
     }
@@ -379,14 +379,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       }
       if (onSkeetSaved) onSkeetSaved()
       toast.success({
-        title: isEditing ? 'Skeet aktualisiert' : 'Skeet geplant',
+        title: isEditing ? 'Post aktualisiert' : 'Post geplant',
         description: 'Die Änderungen wurden übernommen.'
       })
     } else {
       const data = await res.json().catch(() => ({}))
       toast.error({
         title: 'Speichern fehlgeschlagen',
-        description: data.error || 'Fehler beim Speichern des Skeets.'
+        description: data.error || 'Fehler beim Speichern des Posts.'
       })
     }
   }
@@ -396,7 +396,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
         <div>
           <h2 className='text-2xl font-semibold text-foreground'>
-            {isEditing ? 'Skeet bearbeiten' : 'Neuen Skeet planen'}
+            {isEditing ? 'Post bearbeiten' : 'Neuen Post planen'}
           </h2>
           <p className='mt-1 text-sm text-foreground-muted'>
             Maximal {maxContentLength} Zeichen für die gewählten Plattformen.
@@ -444,12 +444,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         <div className='hidden lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6'>
           <div className='flex items-center justify-between self-end'>
             <label htmlFor='skeet-content' className='text-lg font-semibold text-foreground'>
-              Skeet-Text
+              Post-Text
             </label>
             <button
               type='button'
               className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-              aria-label='Hinweis zu Skeet-Text anzeigen'
+              aria-label='Hinweis zu Post-Text anzeigen'
               onClick={() => setInfoContentOpen(true)}
               title='Hinweis anzeigen'
             >
@@ -483,12 +483,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 htmlFor='skeet-content'
                 className='text-lg font-semibold text-foreground'
               >
-                Skeet-Text
+                Post-Text
               </label>
               <button
                 type='button'
                 className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Hinweis zu Skeet-Text anzeigen'
+                aria-label='Hinweis zu Post-Text anzeigen'
                 onClick={() => setInfoContentOpen(true)}
                 title='Hinweis anzeigen'
               >
@@ -917,7 +917,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           </Button>
         )}
         <Button type='submit' variant='primary'>
-          {isEditing ? 'Skeet aktualisieren' : 'Planen'}
+          {isEditing ? 'Post aktualisieren' : 'Planen'}
         </Button>
         <Button
           type='button'
@@ -950,16 +950,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
                 if (!resCreate.ok) {
                   const data = await resCreate.json().catch(() => ({}))
-                  throw new Error(data.error || 'Skeet konnte nicht erstellt werden.')
+                  throw new Error(data.error || 'Post konnte nicht erstellt werden.')
                 }
                 const created = await resCreate.json()
-                if (!created?.id) throw new Error('Unerwartete Antwort beim Erstellen des Skeets.')
+                if (!created?.id) throw new Error('Unerwartete Antwort beim Erstellen des Posts.')
                 const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
                 if (!resPub.ok) {
                   const data = await resPub.json().catch(() => ({}))
                   throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
                 }
-                toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+                toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Post wurde unmittelbar gesendet.' })
                 resetToDefaults()
                 if (onSkeetSaved) onSkeetSaved()
               } catch (e) {
@@ -978,7 +978,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 const data = await res.json().catch(() => ({}))
                 throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
               }
-              toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Skeet wurde unmittelbar gesendet.' })
+              toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Post wurde unmittelbar gesendet.' })
               if (onSkeetSaved) onSkeetSaved()
             } catch (e) {
               toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
@@ -1082,11 +1082,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           }
         }}
       />
-      {/* Info: Skeet-Text */}
+      {/* Info: Post-Text */}
       {infoContentOpen ? (
         <Modal
           open={infoContentOpen}
-          title='Hinweis: Skeet-Text'
+          title='Hinweis: Post-Text'
           onClose={() => setInfoContentOpen(false)}
           actions={<Button variant='primary' onClick={() => setInfoContentOpen(false)}>OK</Button>}
         >
@@ -1111,7 +1111,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         >
           <div className='space-y-2 text-sm text-foreground'>
             <p>
-              Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder je Skeet.
+              Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder je Post.
             </p>
             <p>
               Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.
