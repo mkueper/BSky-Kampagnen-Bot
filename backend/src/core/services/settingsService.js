@@ -9,6 +9,7 @@ const KEYS = {
   postRetries: "POST_RETRIES",
   postBackoffMs: "POST_BACKOFF_MS",
   postBackoffMaxMs: "POST_BACKOFF_MAX_MS",
+  graceWindowMinutes: "SCHEDULER_GRACE_WINDOW_MINUTES",
 };
 
 // Client-Polling-Konfigurationsschlüssel (werden an das Dashboard exponiert)
@@ -36,6 +37,7 @@ function defaults() {
     postRetries: Number(process.env.POST_RETRIES ?? 3) || 3,
     postBackoffMs: Number(process.env.POST_BACKOFF_MS ?? 500) || 500,
     postBackoffMaxMs: Number(process.env.POST_BACKOFF_MAX_MS ?? 4000) || 4000,
+    graceWindowMinutes: config.SCHEDULER_GRACE_WINDOW_MINUTES,
   };
 }
 
@@ -71,6 +73,10 @@ async function getSchedulerSettings() {
     postRetries: toNumber(map[KEYS.postRetries], allDefaults.postRetries),
     postBackoffMs: toNumber(map[KEYS.postBackoffMs], allDefaults.postBackoffMs),
     postBackoffMaxMs: toNumber(map[KEYS.postBackoffMaxMs], allDefaults.postBackoffMaxMs),
+    graceWindowMinutes: toNumber(
+      map[KEYS.graceWindowMinutes],
+      allDefaults.graceWindowMinutes
+    ),
   };
 
   const overrides = Object.fromEntries(
@@ -92,9 +98,6 @@ function validateScheduleInput({ scheduleTime, timeZone }) {
   if (!scheduleTime || !cron.validate(scheduleTime)) {
     throw new Error("Ungültiger Cron-Ausdruck für den Scheduler.");
   }
-  if (!timeZone || typeof timeZone !== "string") {
-    throw new Error("TIME_ZONE muss angegeben werden.");
-  }
 }
 
 function validatePostingInput({ postRetries, postBackoffMs, postBackoffMaxMs }) {
@@ -108,14 +111,22 @@ async function saveSchedulerSettings(payload) {
   const { values, defaults: defaultValues } = await getSchedulerSettings();
   const nextValues = {
     scheduleTime: payload.scheduleTime ?? values.scheduleTime,
-    timeZone: payload.timeZone ?? values.timeZone,
+    timeZone: values.timeZone,
     postRetries: payload.postRetries ?? values.postRetries,
     postBackoffMs: payload.postBackoffMs ?? values.postBackoffMs,
     postBackoffMaxMs: payload.postBackoffMaxMs ?? values.postBackoffMaxMs,
+    graceWindowMinutes:
+      payload.graceWindowMinutes ?? values.graceWindowMinutes,
   };
 
   validateScheduleInput(nextValues);
   validatePostingInput(nextValues);
+  const grace = Number(nextValues.graceWindowMinutes);
+  if (!Number.isFinite(grace) || grace < 2) {
+    throw new Error(
+      "SCHEDULER_GRACE_WINDOW_MINUTES muss mindestens 2 Minuten betragen."
+    );
+  }
 
   await Promise.all([
     setSetting(KEYS.scheduleTime, nextValues.scheduleTime, defaultValues.scheduleTime),
@@ -123,9 +134,40 @@ async function saveSchedulerSettings(payload) {
     setSetting(KEYS.postRetries, nextValues.postRetries, defaultValues.postRetries),
     setSetting(KEYS.postBackoffMs, nextValues.postBackoffMs, defaultValues.postBackoffMs),
     setSetting(KEYS.postBackoffMaxMs, nextValues.postBackoffMaxMs, defaultValues.postBackoffMaxMs),
+    setSetting(
+      KEYS.graceWindowMinutes,
+      nextValues.graceWindowMinutes,
+      defaultValues.graceWindowMinutes
+    ),
   ]);
 
   return getSchedulerSettings();
+}
+
+async function getGeneralSettings() {
+  const defaults = {
+    timeZone: config.TIME_ZONE,
+  };
+  const map = await getSettingsMap([KEYS.timeZone]);
+  const values = {
+    timeZone: map[KEYS.timeZone] || defaults.timeZone,
+  };
+  const overrides = {
+    timeZone: map[KEYS.timeZone] ?? null,
+  };
+  return { values, defaults, overrides };
+}
+
+async function saveGeneralSettings(payload = {}) {
+  const { values, defaults } = await getGeneralSettings();
+  const next = {
+    timeZone: payload.timeZone ?? values.timeZone,
+  };
+  if (!next.timeZone || typeof next.timeZone !== "string") {
+    throw new Error("TIME_ZONE muss angegeben werden.");
+  }
+  await setSetting(KEYS.timeZone, next.timeZone, defaults.timeZone);
+  return getGeneralSettings();
 }
 
 async function getPostingConfig() {
@@ -141,6 +183,8 @@ module.exports = {
   getSchedulerSettings,
   saveSchedulerSettings,
   getPostingConfig,
+  getGeneralSettings,
+  saveGeneralSettings,
 };
 
 // --- Client-Polling: Lesen/Speichern --------------------------------------

@@ -49,9 +49,44 @@ async function updateSchedulerSettings(req, res) {
   }
 }
 
+/**
+ * GET /api/settings/general
+ *
+ * Liefert allgemeine Konfiguration (z. B. Zeitzone) mit Defaults.
+ */
+async function getGeneralSettings(req, res) {
+  try {
+    const data = await settingsService.getGeneralSettings();
+    res.json(data);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: error?.message || "Fehler beim Laden der allgemeinen Einstellungen." });
+  }
+}
+
+/**
+ * PUT /api/settings/general
+ *
+ * Speichert allgemeine Settings (aktuell TIME_ZONE) und startet den Scheduler neu.
+ */
+async function updateGeneralSettings(req, res) {
+  try {
+    const data = await settingsService.saveGeneralSettings(req.body || {});
+    await restartScheduler();
+    res.json(data);
+  } catch (error) {
+    const message = error?.message || "Fehler beim Speichern der allgemeinen Einstellungen.";
+    const status = message.includes("TIME_ZONE") ? 400 : 500;
+    res.status(status).json({ error: message });
+  }
+}
+
 module.exports = {
   getSchedulerSettings,
   updateSchedulerSettings,
+  getGeneralSettings,
+  updateGeneralSettings,
   // Client-Polling
   async getClientPollingSettings(req, res) {
     try {

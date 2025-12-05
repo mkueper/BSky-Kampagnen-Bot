@@ -92,7 +92,7 @@ const messages = {
       submitBusy: 'Anmeldung läuft…',
       submitLabel: 'Anmelden',
       footerHint:
-        'Tipp: Mehrere Admins möglich, indem du die Cookies teilst oder den Login via Proxy absicherst.'
+        'Tipp: Mehrere Admins sind möglich, wenn die Cookies geteilt oder der Login via Proxy abgesichert wird.'
     },
     posts: {
       form: {
@@ -124,7 +124,7 @@ const messages = {
         content: {
           label: 'Post-Text',
           infoAria: 'Hinweis zu Post-Text anzeigen',
-          placeholder: 'Was möchtest du veröffentlichen?',
+          placeholder: 'Was soll veröffentlicht werden?',
           counter: '{count}/{limit} Zeichen'
         },
         preview: {
@@ -208,7 +208,7 @@ const messages = {
         infoPreview: {
           title: 'Hinweis: Vorschau',
           body1:
-            'Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
+            'Über die Buttons lassen sich Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
           body2:
             'Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.'
         }
@@ -393,7 +393,7 @@ const messages = {
         sendNow: {
           validationErrorTitle: 'Formular unvollständig',
           validationErrorDescription:
-            'Bitte behebe die markierten Probleme, bevor du sendest.',
+            'Die markierten Probleme sollten vor dem Senden behoben werden.',
           createErrorFallback: 'Thread konnte nicht erstellt werden.',
           unexpectedCreateResponse:
             'Unerwartete Antwort beim Erstellen des Threads.',
@@ -411,18 +411,18 @@ const messages = {
         infoSource: {
           title: 'Hinweis: Thread-Inhalt',
           body1:
-            'Schreibe den gesamten Thread in ein Feld. Du kannst --- als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.',
+            'Der gesamte Thread wird in einem Feld erfasst. --- kann als Trenner genutzt werden, alternativ STRG+Enter.',
           body2:
             'Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung richtet sich nach den gewählten Plattformen (kleinster Wert gilt).',
           body3:
-            'Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {max} Bilder pro Post.',
+            'Medien können pro Post in der Vorschau hinzugefügt werden. Maximal {max} Bilder pro Post.',
           body4:
             'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
         },
         infoPreview: {
           title: 'Hinweis: Vorschau',
           body1:
-            'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.',
+            'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau lassen sich pro Post Bilder oder GIFs hinzufügen.',
           body2:
             'Bilder werden beim Speichern hochgeladen (max. {max} je Post).',
           body3:
@@ -438,7 +438,7 @@ const messages = {
             'Bitte wechsle zum Posts-Planer und füge den Text ein.',
           moveToPostsButton: 'Zum Posts-Planer wechseln',
           body:
-            'Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Post planen?'
+            'Dieser Thread enthält nur ein Segment. Stattdessen kann ein einzelner Post geplant werden.'
         }
       },
       overview: {
@@ -531,7 +531,185 @@ const messages = {
       }
     },
     config: {
-      loading: 'Konfiguration wird geladen…'
+      loading: 'Konfiguration wird geladen…',
+      general: {
+        heading: 'Allgemein',
+        subtitle:
+          'Basis-Einstellungen für Sprache und Zeitzone des Kampagnen‑Tools.',
+        labels: {
+          locale: 'Anzeigesprache',
+          timeZone: 'Standard-Zeitzone'
+        },
+        localeHint:
+          'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.',
+        timeZoneHint:
+          'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).',
+        toastTitle: 'Allgemeine Einstellungen',
+        loadErrorDescription:
+          'Allgemeine Einstellungen konnten nicht geladen werden.',
+        saveErrorFallback:
+          'Fehler beim Speichern der allgemeinen Einstellungen.',
+        saveSuccessTitle: 'Allgemeine Einstellungen gespeichert',
+        saveSuccessDescription:
+          'Zeitzone wurde aktualisiert. Der Scheduler verwendet künftig die neue Einstellung.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription:
+          'Die allgemeinen Einstellungen konnten nicht gespeichert werden.',
+        summary: 'Aktuelle Zeitzone: {tz}',
+        resetButton: 'Standard wiederherstellen',
+        saveBusy: 'Speichern…',
+        saveLabel: 'Allgemeine Einstellungen speichern'
+      },
+      scheduler: {
+        toastTitle: 'Konfiguration',
+        loadErrorDescription:
+          'Einstellungen konnten nicht geladen werden.',
+        noChangesTitle: 'Keine Änderungen',
+        noChangesDescription: 'Die Einstellungen sind bereits aktuell.',
+        cronMissingTitle: 'Cron-Ausdruck fehlt',
+        cronMissingDescription:
+          'Bitte einen gültigen Cron-Ausdruck angeben.',
+        timeZoneMissingTitle: 'Zeitzone fehlt',
+        timeZoneMissingDescription: 'Bitte eine Zeitzone angeben.',
+        invalidNumberTitle: 'Ungültiger Wert',
+        invalidNumberDescription:
+          '{label} muss eine positive Zahl sein.',
+        saveErrorFallback: 'Speichern fehlgeschlagen.',
+        saveSuccessTitle: 'Einstellungen gespeichert',
+        saveSuccessDescription:
+          'Scheduler und Retry-Strategie wurden aktualisiert.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription:
+          'Die Einstellungen konnten nicht gespeichert werden.',
+        heading: 'Scheduler & Retry',
+        subtitle:
+          'Passe Cron, Zeitzone und Retry-Strategie für das Kampagnen‑Tool an.',
+        hintDefaults:
+          'Standardwerte basieren auf der aktuellen .env.',
+        labels: {
+          scheduleCronBlockTitle: 'Cron',
+          scheduleTime: 'Cron-Ausdruck',
+          timeZone: 'Zeitzone',
+          postRetries: 'Maximale Wiederholversuche',
+          postBackoffMs: 'Basis-Backoff (ms)',
+          postBackoffMaxMs: 'Maximaler Backoff (ms)',
+          graceWindowMinutes: 'Grace-Zeit für verpasste Termine (Minuten)'
+        },
+        examples:
+          'Beispiele: 0 * * * * (stündlich), */5 * * * * (alle 5 Minuten)',
+        summary:
+          'Standardwerte: Cron {cron}, Zeitzone {tz}, Retries {retries}, Backoff {backoffMs}ms (max. {backoffMaxMs}ms)',
+        graceHint:
+          'Innerhalb dieses Zeitfensters nach dem geplanten Zeitpunkt werden verpasste Posts/Threads noch nachgeholt. Mindestwert: 2 Minuten.',
+        infoHeading: 'Hinweise',
+        tips: {
+          serverTime:
+            'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.',
+          backoff:
+            'Backoff-Werte steuern Wartezeiten zwischen Wiederholversuchen und helfen bei Rate-Limits.',
+          apply:
+            'Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.'
+        },
+        resetButton: 'Zurücksetzen auf Standard',
+        saveBusy: 'Speichern…',
+        saveLabel: 'Einstellungen speichern'
+      },
+      polling: {
+        toastTitle: 'Konfiguration',
+        loadErrorDescription:
+          'Client-Config konnte nicht geladen werden.',
+        noChangesTitle: 'Keine Änderungen',
+        noChangesDescription:
+          'Die Client-Polling-Einstellungen sind bereits aktuell.',
+        invalidValuesTitle: 'Ungültige Werte',
+        invalidValuesDescription:
+          'Intervalle und Backoff müssen positive Zahlen sein.',
+        invalidJitterTitle: 'Ungültiger Jitter',
+        invalidJitterDescription:
+          'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.',
+        saveErrorFallback:
+          'Fehler beim Speichern der Client-Konfiguration.',
+        saveSuccessTitle: 'Client-Konfiguration gespeichert',
+        saveSuccessDescription: 'Polling & Backoff aktualisiert.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription:
+          'Die Client-Polling-Einstellungen konnten nicht gespeichert werden.',
+        heading: 'Dashboard-Polling',
+        subtitle:
+          'Steuere Intervalle und Backoff für Listen (Threads & Posts).',
+        hintDefaults:
+          'Standardwerte stammen aus der .env bzw. aus Build-Defaults.',
+        labels: {
+          threadActiveMs: 'Threads: Aktiv (ms)',
+          threadIdleMs: 'Threads: Idle (ms)',
+          threadHiddenMs: 'Threads: Hidden (ms)',
+          threadMinimalHidden: 'Threads: Minimal Ping hidden',
+          skeetActiveMs: 'Posts: Aktiv (ms)',
+          skeetIdleMs: 'Posts: Idle (ms)',
+          skeetHiddenMs: 'Posts: Hidden (ms)',
+          skeetMinimalHidden: 'Posts: Minimal Ping hidden',
+          backoffStartMs: 'Backoff Start (ms)',
+          backoffMaxMs: 'Backoff Max (ms)',
+          jitterRatio: 'Jitter Ratio (0..1)',
+          heartbeatMs: 'Heartbeat (ms)'
+        },
+        summary:
+          'Standardwerte: Threads {tActive}/{tIdle}/{tHidden}ms, Posts {pActive}/{pIdle}/{pHidden}ms, Backoff {bStart}→{bMax}ms, Jitter {jitter}, Heartbeat {heartbeat}ms',
+        resetButton: 'Zurücksetzen auf Standard',
+        saveBusy: 'Speichern…',
+        saveLabel: 'Einstellungen speichern'
+      },
+      credentials: {
+        toastTitle: 'Zugangsdaten',
+        heading: 'Zugangsdaten',
+        subtitle:
+          'Server-URLs und Logins für Bluesky und Mastodon.',
+        loading: 'Lade …',
+        loadErrorFallback: 'Fehler beim Laden der Zugangsdaten.',
+        loadErrorDescription:
+          'Die Zugangsdaten konnten nicht geladen werden.',
+        saveErrorFallback: 'Fehler beim Speichern der Zugangsdaten.',
+        saveSuccessTitle: 'Gespeichert',
+        saveSuccessDescription: 'Zugangsdaten aktualisiert.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription:
+          'Die Zugangsdaten konnten nicht gespeichert werden.',
+        required: {
+          heading: 'Zugangsdaten erforderlich',
+          body:
+            'Bitte hinterlege zuerst deine Zugangsdaten für Bluesky (und optional Mastodon). Anschließend kannst du die weiteren Optionen nach Bedarf anpassen.'
+        },
+        bluesky: {
+          heading: 'Bluesky',
+          serverUrlLabel: 'Server URL',
+          identifierLabel: 'Identifier (Handle/E-Mail)',
+          appPasswordLabel: 'App Password',
+          appPasswordHint:
+            'Leer lassen, um das bestehende Passwort zu behalten.'
+        },
+        mastodon: {
+          heading: 'Mastodon',
+          apiUrlLabel: 'API URL',
+          accessTokenLabel: 'Access Token',
+          accessTokenHint:
+            'Leer lassen, um das bestehende Token zu behalten.'
+        },
+        tenor: {
+          heading: 'Tenor (GIF Suche)',
+          apiKeyLabel: 'API Key',
+          apiKeyHint:
+            'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
+        },
+        saveBusy: 'Speichere …',
+        saveLabel: 'Zugangsdaten speichern'
+      },
+      tabs: {
+        ariaLabel: 'Konfig-Themen',
+        general: 'Allgemein',
+        scheduler: 'Scheduler & Retry',
+        polling: 'Dashboard-Polling',
+        credentials: 'Zugangsdaten'
+      }
     },
     about: {
       loading: 'Infoansicht wird geladen…'

@@ -2,16 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs']
-
-const LABELS = {
-  scheduleTime: 'Cron-Ausdruck',
-  timeZone: 'Zeitzone',
-  postRetries: 'Maximale Wiederholversuche',
-  postBackoffMs: 'Basis-Backoff (ms)',
-  postBackoffMaxMs: 'Maximaler Backoff (ms)'
-}
 
 function formatNumberInput (value) {
   return value == null ? '' : String(value)
@@ -20,7 +13,6 @@ function formatNumberInput (value) {
 function normalizeFormPayload (values) {
   return {
     scheduleTime: values.scheduleTime?.trim(),
-    timeZone: values.timeZone?.trim(),
     postRetries: values.postRetries !== '' ? Number(values.postRetries) : null,
     postBackoffMs:
       values.postBackoffMs !== '' ? Number(values.postBackoffMs) : null,
@@ -31,7 +23,8 @@ function normalizeFormPayload (values) {
 
 export default function ConfigPanel () {
   const toast = useToast()
-  const [tab, setTab] = useState('scheduler')
+  const { t, locale, setLocale } = useTranslation()
+  const [tab, setTab] = useState('general')
   const [needsCreds, setNeedsCreds] = useState(false)
   // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
   useEffect(() => {
@@ -51,15 +44,23 @@ export default function ConfigPanel () {
   }, [])
   const [formValues, setFormValues] = useState({
     scheduleTime: '',
-    timeZone: '',
     postRetries: '',
     postBackoffMs: '',
-    postBackoffMaxMs: ''
+    postBackoffMaxMs: '',
+    graceWindowMinutes: ''
   })
   const [initialValues, setInitialValues] = useState(formValues)
   const [defaults, setDefaults] = useState(formValues)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  // Allgemeine Einstellungen (Zeitzone)
+  const [generalValues, setGeneralValues] = useState({
+    timeZone: ''
+  })
+  const [generalDefaults, setGeneralDefaults] = useState(generalValues)
+  const [generalLoading, setGeneralLoading] = useState(true)
+  const [generalSaving, setGeneralSaving] = useState(false)
 
   // Client-Polling Abschnitt
   const [pollValues, setPollValues] = useState({
@@ -103,17 +104,23 @@ export default function ConfigPanel () {
         const data = await res.json()
         const nextValues = {
           scheduleTime: data.values?.scheduleTime ?? '',
-          timeZone: data.values?.timeZone ?? '',
           postRetries: formatNumberInput(data.values?.postRetries),
           postBackoffMs: formatNumberInput(data.values?.postBackoffMs),
-          postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs)
+          postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs),
+          graceWindowMinutes: formatNumberInput(
+            data.values?.graceWindowMinutes
+          )
         }
         const nextDefaults = {
           scheduleTime: data.defaults?.scheduleTime ?? '',
-          timeZone: data.defaults?.timeZone ?? '',
           postRetries: formatNumberInput(data.defaults?.postRetries),
           postBackoffMs: formatNumberInput(data.defaults?.postBackoffMs),
-          postBackoffMaxMs: formatNumberInput(data.defaults?.postBackoffMaxMs)
+          postBackoffMaxMs: formatNumberInput(
+            data.defaults?.postBackoffMaxMs
+          ),
+          graceWindowMinutes: formatNumberInput(
+            data.defaults?.graceWindowMinutes
+          )
         }
         if (!ignore) {
           setFormValues(nextValues)
@@ -123,9 +130,13 @@ export default function ConfigPanel () {
       } catch (error) {
         console.error('Fehler beim Laden der Einstellungen:', error)
         toast.error({
-          title: 'Konfiguration',
+          title: t('config.scheduler.toastTitle', 'Konfiguration'),
           description:
-            error.message || 'Einstellungen konnten nicht geladen werden.'
+            error.message ||
+            t(
+              'config.scheduler.loadErrorDescription',
+              'Einstellungen konnten nicht geladen werden.'
+            )
         })
       } finally {
         if (!ignore) setLoading(false)
@@ -137,6 +148,51 @@ export default function ConfigPanel () {
       ignore = true
     }
   }, [toast])
+
+  // Allgemeine Settings laden (aktuell: Zeitzone)
+  useEffect(() => {
+    let ignore = false
+    async function loadGeneral () {
+      setGeneralLoading(true)
+      try {
+        const res = await fetch('/api/settings/general')
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(
+            data.error || 'Fehler beim Laden der allgemeinen Einstellungen.'
+          )
+        }
+        const data = await res.json()
+        const nextValues = {
+          timeZone: data.values?.timeZone ?? data.defaults?.timeZone ?? ''
+        }
+        const nextDefaults = {
+          timeZone: data.defaults?.timeZone ?? ''
+        }
+        if (!ignore) {
+          setGeneralValues(nextValues)
+          setGeneralDefaults(nextDefaults)
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden der allgemeinen Einstellungen:', error)
+        toast.error({
+          title: t('config.general.toastTitle', 'Allgemeine Einstellungen'),
+          description:
+            error.message ||
+            t(
+              'config.general.loadErrorDescription',
+              'Allgemeine Einstellungen konnten nicht geladen werden.'
+            )
+        })
+      } finally {
+        if (!ignore) setGeneralLoading(false)
+      }
+    }
+    loadGeneral()
+    return () => {
+      ignore = true
+    }
+  }, [toast, t])
 
   // Client-Polling laden
   useEffect(() => {
@@ -189,9 +245,13 @@ export default function ConfigPanel () {
       } catch (error) {
         console.error('Fehler beim Laden der Client-Konfiguration:', error)
         toast.error({
-          title: 'Konfiguration',
+          title: t('config.polling.toastTitle', 'Konfiguration'),
           description:
-            error.message || 'Client-Config konnte nicht geladen werden.'
+            error.message ||
+            t(
+              'config.polling.loadErrorDescription',
+              'Client-Config konnte nicht geladen werden.'
+            )
         })
       } finally {
         if (!ignore) setPollLoading(false)
@@ -219,29 +279,95 @@ export default function ConfigPanel () {
     setPollValues(pollDefaults)
   }
 
+  const handleGeneralSubmit = async event => {
+    event.preventDefault()
+    setGeneralSaving(true)
+    try {
+      const payload = {
+        timeZone: generalValues.timeZone?.trim() || null
+      }
+      const res = await fetch('/api/settings/general', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(
+          data.error ||
+            t(
+              'config.general.saveErrorFallback',
+              'Fehler beim Speichern der allgemeinen Einstellungen.'
+            )
+        )
+      }
+      const data = await res.json()
+      const nextValues = {
+        timeZone: data.values?.timeZone ?? payload.timeZone ?? ''
+      }
+      const nextDefaults = {
+        timeZone: data.defaults?.timeZone ?? generalDefaults.timeZone
+      }
+      setGeneralValues(nextValues)
+      setGeneralDefaults(nextDefaults)
+      toast.success({
+        title: t(
+          'config.general.saveSuccessTitle',
+          'Allgemeine Einstellungen gespeichert'
+        ),
+        description: t(
+          'config.general.saveSuccessDescription',
+          'Zeitzone wurde aktualisiert. Der Scheduler verwendet künftig die neue Einstellung.'
+        )
+      })
+    } catch (error) {
+      console.error('Fehler beim Speichern der allgemeinen Einstellungen:', error)
+      toast.error({
+        title: t(
+          'config.general.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
+        description:
+          error.message ||
+          t(
+            'config.general.saveErrorDescription',
+            'Die allgemeinen Einstellungen konnten nicht gespeichert werden.'
+          )
+      })
+    } finally {
+      setGeneralSaving(false)
+    }
+  }
+
   const handleSubmit = async event => {
     event.preventDefault()
     if (!hasChanges) {
       toast.info({
-        title: 'Keine Änderungen',
-        description: 'Die Einstellungen sind bereits aktuell.'
+        title: t('config.scheduler.noChangesTitle', 'Keine Änderungen'),
+        description: t(
+          'config.scheduler.noChangesDescription',
+          'Die Einstellungen sind bereits aktuell.'
+        )
       })
       return
     }
 
     const payload = normalizeFormPayload(formValues)
+    payload.graceWindowMinutes =
+      formValues.graceWindowMinutes === ''
+        ? null
+        : Number(formValues.graceWindowMinutes)
 
     if (!payload.scheduleTime) {
       toast.error({
-        title: 'Cron-Ausdruck fehlt',
-        description: 'Bitte einen gültigen Cron-Ausdruck angeben.'
-      })
-      return
-    }
-    if (!payload.timeZone) {
-      toast.error({
-        title: 'Zeitzone fehlt',
-        description: 'Bitte eine Zeitzone angeben.'
+        title: t(
+          'config.scheduler.cronMissingTitle',
+          'Cron-Ausdruck fehlt'
+        ),
+        description: t(
+          'config.scheduler.cronMissingDescription',
+          'Bitte einen gültigen Cron-Ausdruck angeben.'
+        )
       })
       return
     }
@@ -249,8 +375,20 @@ export default function ConfigPanel () {
       const value = payload[key]
       if (value == null || Number.isNaN(value) || value < 0) {
         toast.error({
-          title: 'Ungültiger Wert',
-          description: `${LABELS[key]} muss eine positive Zahl sein.`
+          title: t(
+            'config.scheduler.invalidNumberTitle',
+            'Ungültiger Wert'
+          ),
+          description: t(
+            'config.scheduler.invalidNumberDescription',
+            '{label} muss eine positive Zahl sein.',
+            {
+              label: t(
+                `config.scheduler.labels.${key}`,
+                key
+              )
+            }
+          )
         })
         return
       }
@@ -266,20 +404,24 @@ export default function ConfigPanel () {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Speichern fehlgeschlagen.')
+        throw new Error(
+          data.error ||
+            t(
+              'config.scheduler.saveErrorFallback',
+              'Speichern fehlgeschlagen.'
+            )
+        )
       }
 
       const data = await res.json()
       const nextValues = {
         scheduleTime: data.values?.scheduleTime ?? payload.scheduleTime,
-        timeZone: data.values?.timeZone ?? payload.timeZone,
         postRetries: formatNumberInput(data.values?.postRetries),
         postBackoffMs: formatNumberInput(data.values?.postBackoffMs),
         postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs)
       }
       const nextDefaults = {
         scheduleTime: data.defaults?.scheduleTime ?? defaults.scheduleTime,
-        timeZone: data.defaults?.timeZone ?? defaults.timeZone,
         postRetries: formatNumberInput(
           data.defaults?.postRetries ?? defaults.postRetries
         ),
@@ -295,15 +437,28 @@ export default function ConfigPanel () {
       setDefaults(nextDefaults)
 
       toast.success({
-        title: 'Einstellungen gespeichert',
-        description: 'Scheduler und Retry-Strategie wurden aktualisiert.'
+        title: t(
+          'config.scheduler.saveSuccessTitle',
+          'Einstellungen gespeichert'
+        ),
+        description: t(
+          'config.scheduler.saveSuccessDescription',
+          'Scheduler und Retry-Strategie wurden aktualisiert.'
+        )
       })
     } catch (error) {
       console.error('Fehler beim Speichern der Einstellungen:', error)
       toast.error({
-        title: 'Speichern fehlgeschlagen',
+        title: t(
+          'config.scheduler.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
         description:
-          error.message || 'Die Einstellungen konnten nicht gespeichert werden.'
+          error.message ||
+          t(
+            'config.scheduler.saveErrorDescription',
+            'Die Einstellungen konnten nicht gespeichert werden.'
+          )
       })
     } finally {
       setSaving(false)
@@ -320,8 +475,14 @@ export default function ConfigPanel () {
     event.preventDefault()
     if (!pollHasChanges) {
       toast.info({
-        title: 'Keine Änderungen',
-        description: 'Die Client-Polling-Einstellungen sind bereits aktuell.'
+        title: t(
+          'config.polling.noChangesTitle',
+          'Keine Änderungen'
+        ),
+        description: t(
+          'config.polling.noChangesDescription',
+          'Die Client-Polling-Einstellungen sind bereits aktuell.'
+        )
       })
       return
     }
@@ -356,8 +517,14 @@ export default function ConfigPanel () {
     ]
     if (mustBePos.some(v => v == null || Number.isNaN(v) || v < 0)) {
       toast.error({
-        title: 'Ungültige Werte',
-        description: 'Intervalle und Backoff müssen positive Zahlen sein.'
+        title: t(
+          'config.polling.invalidValuesTitle',
+          'Ungültige Werte'
+        ),
+        description: t(
+          'config.polling.invalidValuesDescription',
+          'Intervalle und Backoff müssen positive Zahlen sein.'
+        )
       })
       return
     }
@@ -368,8 +535,14 @@ export default function ConfigPanel () {
       payload.jitterRatio > 1
     ) {
       toast.error({
-        title: 'Ungültiger Jitter',
-        description: 'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.'
+        title: t(
+          'config.polling.invalidJitterTitle',
+          'Ungültiger Jitter'
+        ),
+        description: t(
+          'config.polling.invalidJitterDescription',
+          'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.'
+        )
       })
       return
     }
@@ -384,7 +557,11 @@ export default function ConfigPanel () {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(
-          data.error || 'Fehler beim Speichern der Client-Konfiguration.'
+          data.error ||
+            t(
+              'config.polling.saveErrorFallback',
+              'Fehler beim Speichern der Client-Konfiguration.'
+            )
         )
       }
       const data = await res.json()
@@ -421,15 +598,28 @@ export default function ConfigPanel () {
       setPollValues(nextValues)
       setPollDefaults(nextDefaults)
       toast.success({
-        title: 'Client-Konfiguration gespeichert',
-        description: 'Polling & Backoff aktualisiert.'
+        title: t(
+          'config.polling.saveSuccessTitle',
+          'Client-Konfiguration gespeichert'
+        ),
+        description: t(
+          'config.polling.saveSuccessDescription',
+          'Polling & Backoff aktualisiert.'
+        )
       })
     } catch (error) {
       console.error('Fehler beim Speichern der Client-Konfiguration:', error)
       toast.error({
-        title: 'Speichern fehlgeschlagen',
+        title: t(
+          'config.polling.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
         description:
-          error.message || 'Client-Config konnte nicht gespeichert werden.'
+          error.message ||
+          t(
+            'config.polling.saveErrorDescription',
+            'Client-Config konnte nicht gespeichert werden.'
+          )
       })
     } finally {
       setPollSaving(false)
@@ -441,9 +631,17 @@ export default function ConfigPanel () {
       {needsCreds ? (
         <Card padding='p-4 lg:p-5' className='border border-primary/40 bg-primary/5'>
           <div className='space-y-1'>
-            <h4 className='text-base font-semibold text-foreground'>Zugangsdaten erforderlich</h4>
+            <h4 className='text-base font-semibold text-foreground'>
+              {t(
+                'config.credentials.required.heading',
+                'Zugangsdaten erforderlich'
+              )}
+            </h4>
             <p className='text-sm text-foreground-muted'>
-              Bitte hinterlege zuerst deine Zugangsdaten für Bluesky (und optional Mastodon). Anschließend kannst du die weiteren Optionen nach Bedarf anpassen.
+              {t(
+                'config.credentials.required.body',
+                'Zunächst sollten Zugangsdaten für Bluesky (und optional Mastodon) hinterlegt werden. Anschließend lassen sich die weiteren Optionen nach Bedarf anpassen.'
+              )}
             </p>
           </div>
         </Card>
@@ -452,162 +650,388 @@ export default function ConfigPanel () {
         <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
           <Tabs.List
             className='inline-flex rounded-full bg-background-subtle p-1'
-            aria-label='Konfig-Themen'
+            aria-label={t('config.tabs.ariaLabel', 'Konfig-Themen')}
           >
+            <Tabs.Trigger
+              value='general'
+              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
+            >
+              {t('config.tabs.general', 'Allgemein')}
+            </Tabs.Trigger>
             <Tabs.Trigger
               value='scheduler'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
-              Scheduler & Retries
+              {t('config.tabs.scheduler', 'Scheduler & Retry')}
             </Tabs.Trigger>
             <Tabs.Trigger
               value='polling'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
-              Dashboard-Polling
+              {t('config.tabs.polling', 'Dashboard-Polling')}
             </Tabs.Trigger>
             <Tabs.Trigger
               value='credentials'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
-              Zugangsdaten
+              {t('config.tabs.credentials', 'Zugangsdaten')}
             </Tabs.Trigger>
           </Tabs.List>
         </div>
+
+        <Tabs.Content value='general' className='outline-none'>
+          <Card padding='p-6 lg:p-10'>
+            <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
+              <div>
+                <h3 className='text-2xl font-semibold'>
+                  {t('config.general.heading', 'Allgemein')}
+                </h3>
+                <p className='text-sm text-foreground-muted'>
+                  {t(
+                    'config.general.subtitle',
+                    'Basis-Einstellungen für Sprache und Zeitzone des Kampagnen‑Tools.'
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleGeneralSubmit} className='space-y-6'>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <div className='space-y-2'>
+                <label
+                  htmlFor='general-locale'
+                  className='text-sm font-semibold text-foreground'
+                >
+                  {t(
+                    'config.general.labels.locale',
+                    'Anzeigesprache'
+                  )}
+                </label>
+                <select
+                  id='general-locale'
+                  value={locale}
+                  onChange={e => setLocale(e.target.value)}
+                  disabled={generalLoading || generalSaving}
+                  className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                >
+                  <option value='de'>Deutsch</option>
+                  <option value='en'>English</option>
+                </select>
+                <p className='text-xs text-foreground-muted'>
+                  {t(
+                    'config.general.localeHint',
+                    'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.'
+                  )}
+                </p>
+                </div>
+
+                <div className='space-y-2'>
+                  <label
+                    htmlFor='general-timeZone'
+                    className='text-sm font-semibold text-foreground'
+                  >
+                    {t(
+                      'config.general.labels.timeZone',
+                      'Standard-Zeitzone'
+                    )}
+                  </label>
+                  <input
+                    id='general-timeZone'
+                    type='text'
+                    value={generalValues.timeZone}
+                    onChange={e =>
+                      setGeneralValues(current => ({
+                        ...current,
+                        timeZone: e.target.value
+                      }))
+                    }
+                    disabled={generalLoading || generalSaving}
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    placeholder={generalDefaults.timeZone || 'Europe/Berlin'}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.general.timeZoneHint',
+                      'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).'
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
+                <div className='text-xs text-foreground-muted'>
+                  <p>
+                    {t(
+                      'config.general.summary',
+                      'Aktuelle Zeitzone: {tz}',
+                      { tz: generalValues.timeZone || generalDefaults.timeZone || '–' }
+                    )}
+                  </p>
+                </div>
+                <div className='flex gap-2'>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    onClick={() => setGeneralValues(generalDefaults)}
+                    disabled={generalLoading || generalSaving}
+                  >
+                    {t(
+                      'config.general.resetButton',
+                      'Standard wiederherstellen'
+                    )}
+                  </Button>
+                  <Button
+                    type='submit'
+                    variant='primary'
+                    disabled={generalLoading || generalSaving}
+                  >
+                    {generalSaving
+                      ? t(
+                          'config.general.saveBusy',
+                          'Speichern…'
+                        )
+                      : t(
+                          'config.general.saveLabel',
+                          'Allgemeine Einstellungen speichern'
+                        )}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </Card>
+        </Tabs.Content>
 
         <Tabs.Content value='scheduler' className='outline-none'>
           <Card padding='p-6 lg:p-10'>
             <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
               <div>
-                <h3 className='text-2xl font-semibold'>Scheduler & Retries</h3>
+                <h3 className='text-2xl font-semibold'>
+                  {t('config.scheduler.heading', 'Scheduler & Retry')}
+                </h3>
                 <p className='text-sm text-foreground-muted'>
-                  Passe Cron, Zeitzone und Retry-Strategie für das Kampagnen‑Tool
-                  an.
+                  {t(
+                    'config.scheduler.subtitle',
+                    'Passe Cron, Zeitzone und Retry-Strategie für das Kampagnen‑Tool an.'
+                  )}
                 </p>
-              </div>
-              <div className='text-xs text-foreground-muted'>
-                <p>Standardwerte basieren auf deiner aktuellen .env.</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className='space-y-6'>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <div className='space-y-2'>
+              <div className='grid gap-6 md:grid-cols-3'>
+                <div className='md:col-span-2 space-y-6'>
+                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
+                    <h4 className='text-sm font-semibold text-foreground'>
+                    {t(
+                      'config.scheduler.scheduleCronBlockTitle',
+                      'Cron'
+                    )}
+                  </h4>
                   <label
-                    htmlFor='scheduleTime'
-                    className='text-sm font-semibold text-foreground'
-                  >
-                    {LABELS.scheduleTime}
-                  </label>
-                  <input
-                    id='scheduleTime'
-                    type='text'
-                    value={formValues.scheduleTime}
-                    onChange={e => updateField('scheduleTime', e.target.value)}
-                    disabled={loading || saving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                    placeholder={defaults.scheduleTime}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    Beispiele: <code className='font-mono'>0 * * * *</code>{' '}
-                    (stündlich), <code className='font-mono'>*/5 * * * *</code>{' '}
-                    (alle 5 Minuten)
-                  </p>
-                </div>
-
-                <div className='space-y-2'>
-                  <label
-                    htmlFor='timeZone'
-                    className='text-sm font-semibold text-foreground'
-                  >
-                    {LABELS.timeZone}
-                  </label>
-                  <input
-                    id='timeZone'
-                    type='text'
-                    value={formValues.timeZone}
-                    onChange={e => updateField('timeZone', e.target.value)}
-                    disabled={loading || saving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                    placeholder={defaults.timeZone}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    IANA-Zeitzone, z. B. Europe/Berlin oder UTC.
-                  </p>
-                </div>
-              </div>
-
-              <div className='grid gap-4 md:grid-cols-3'>
-                {NUMBER_FIELDS.map(key => (
-                  <div key={key} className='space-y-2'>
-                    <label
-                      htmlFor={key}
+                      htmlFor='scheduleTime'
                       className='text-sm font-semibold text-foreground'
                     >
-                      {LABELS[key]}
+                      {t(
+                        'config.scheduler.labels.scheduleTime',
+                        'Cron-Ausdruck'
+                      )}
                     </label>
                     <input
-                      id={key}
-                      type='number'
-                      min='0'
-                      value={formValues[key]}
-                      onChange={e => updateField(key, e.target.value)}
+                      id='scheduleTime'
+                      type='text'
+                      value={formValues.scheduleTime}
+                      onChange={e => updateField('scheduleTime', e.target.value)}
                       disabled={loading || saving}
                       className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                      placeholder={defaults[key]}
+                      placeholder={defaults.scheduleTime}
                     />
                   </div>
-                ))}
+
+                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
+                    <h4 className='text-sm font-semibold text-foreground'>
+                      {t(
+                        'config.scheduler.blockTitle',
+                        'Wiederholversuche & Backoff'
+                      )}
+                    </h4>
+                    <div className='grid gap-4 md:grid-cols-2'>
+                      <div className='space-y-2'>
+                        <label
+                          htmlFor='postRetries'
+                          className='text-sm font-semibold text-foreground'
+                        >
+                          {t(
+                            'config.scheduler.labels.postRetries',
+                            'Maximale Wiederholversuche'
+                          )}
+                        </label>
+                        <input
+                          id='postRetries'
+                          type='number'
+                          min='0'
+                          value={formValues.postRetries}
+                          onChange={e =>
+                            updateField('postRetries', e.target.value)
+                          }
+                          disabled={loading || saving}
+                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          placeholder={defaults.postRetries}
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <label
+                          htmlFor='postBackoffMs'
+                          className='text-sm font-semibold text-foreground'
+                        >
+                          {t(
+                            'config.scheduler.labels.postBackoffMs',
+                            'Basis-Backoff (ms)'
+                          )}
+                        </label>
+                        <input
+                          id='postBackoffMs'
+                          type='number'
+                          min='0'
+                          value={formValues.postBackoffMs}
+                          onChange={e =>
+                            updateField('postBackoffMs', e.target.value)
+                          }
+                          disabled={loading || saving}
+                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          placeholder={defaults.postBackoffMs}
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <label
+                          htmlFor='postBackoffMaxMs'
+                          className='text-sm font-semibold text-foreground'
+                        >
+                          {t(
+                            'config.scheduler.labels.postBackoffMaxMs',
+                            'Maximaler Backoff (ms)'
+                          )}
+                        </label>
+                        <input
+                          id='postBackoffMaxMs'
+                          type='number'
+                          min='0'
+                          value={formValues.postBackoffMaxMs}
+                          onChange={e =>
+                            updateField('postBackoffMaxMs', e.target.value)
+                          }
+                          disabled={loading || saving}
+                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          placeholder={defaults.postBackoffMaxMs}
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <label
+                          htmlFor='graceWindowMinutes'
+                          className='text-sm font-semibold text-foreground'
+                        >
+                          {t(
+                            'config.scheduler.labels.graceWindowMinutes',
+                            'Grace-Zeit für verpasste Termine (Minuten)'
+                          )}
+                        </label>
+                        <input
+                          id='graceWindowMinutes'
+                          type='number'
+                          min='2'
+                          value={formValues.graceWindowMinutes}
+                          onChange={e =>
+                            updateField('graceWindowMinutes', e.target.value)
+                          }
+                          disabled={loading || saving}
+                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          placeholder={defaults.graceWindowMinutes}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
+                  <h4 className='text-sm font-semibold text-foreground'>
+                    {t('config.scheduler.infoHeading', 'Hinweise')}
+                  </h4>
+                  <p>
+                    {t(
+                      'config.scheduler.examples',
+                      'Beispiele: 0 * * * * (stündlich), */5 * * * * (alle 5 Minuten)'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'config.scheduler.graceHint',
+                      'Innerhalb dieses Zeitfensters nach dem geplanten Zeitpunkt werden verpasste Posts/Threads noch nachgeholt. Mindestwert: 2 Minuten.'
+                    )}
+                  </p>
+                  <ul className='mt-2 space-y-1'>
+                    <li>
+                      {t(
+                        'config.scheduler.tips.serverTime',
+                        'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'config.scheduler.tips.backoff',
+                        'Backoff-Werte steuern Wartezeiten zwischen Wiederholversuchen und helfen bei Rate-Limits.'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'config.scheduler.tips.apply',
+                        'Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.'
+                      )}
+                    </li>
+                  </ul>
+                </div>
               </div>
 
-              {null}
-
-              <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
-                <div className='text-xs text-foreground-muted'>
-                  <p>
-                    <span className='font-semibold'>Standardwerte:</span> Cron{' '}
-                    {defaults.scheduleTime}, Zeitzone {defaults.timeZone},
-                    Retries {defaults.postRetries}, Backoff{' '}
-                    {defaults.postBackoffMs}ms (max. {defaults.postBackoffMaxMs}
-                    ms)
-                  </p>
-                </div>
+              <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
                 <div className='flex flex-wrap gap-3'>
                   <Button
                     type='button'
                     variant='secondary'
                     onClick={resetToDefaults}
                     disabled={loading || saving}
+                    title={t(
+                      'config.scheduler.summary',
+                      'Standardwerte: Cron {cron}, Zeitzone {tz}, Retries {retries}, Backoff {backoffMs}ms (max. {backoffMaxMs}ms)',
+                      {
+                        cron: defaults.scheduleTime,
+                        tz: defaults.timeZone || '–',
+                        retries: defaults.postRetries,
+                        backoffMs: defaults.postBackoffMs,
+                        backoffMaxMs: defaults.postBackoffMaxMs
+                      }
+                    )}
                   >
-                    Zurücksetzen auf Standard
+                    {t(
+                      'config.scheduler.resetButton',
+                      'Zurücksetzen auf Standard'
+                    )}
                   </Button>
                   <Button
                     type='submit'
                     variant='primary'
                     disabled={loading || saving || !hasChanges}
                   >
-                    {saving ? 'Speichern…' : 'Einstellungen speichern'}
+                    {saving
+                      ? t(
+                          'config.scheduler.saveBusy',
+                          'Speichern…'
+                        )
+                      : t(
+                          'config.scheduler.saveLabel',
+                          'Einstellungen speichern'
+                        )}
                   </Button>
                 </div>
               </div>
             </form>
-          </Card>
-          <Card hover={false} padding='p-6 lg:p-8' className='mt-4'>
-            <h4 className='text-lg font-semibold'>Tipps</h4>
-            <ul className='mt-4 space-y-2 text-sm text-foreground-muted'>
-              <li>
-                • Cron-Ausdrücke beziehen sich auf die Serverzeit – achte bei
-                Deployment auf die korrekte Zeitzone.
-              </li>
-              <li>
-                • Backoff-Werte steuern Wartezeiten zwischen Retry-Versuchen und
-                helfen bei Rate-Limits.
-              </li>
-              <li>
-                • Änderungen greifen sofort – der Scheduler wird automatisch
-                neugestartet.
-              </li>
-            </ul>
           </Card>
         </Tabs.Content>
 
@@ -615,14 +1039,22 @@ export default function ConfigPanel () {
           <Card padding='p-6 lg:p-10'>
             <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
               <div>
-                <h3 className='text-2xl font-semibold'>Dashboard-Polling</h3>
+                <h3 className='text-2xl font-semibold'>
+                  {t('config.polling.heading', 'Dashboard-Polling')}
+                </h3>
                 <p className='text-sm text-foreground-muted'>
-                  Steuere Intervalle und Backoff für Listen (Threads & Posts).
+                  {t(
+                    'config.polling.subtitle',
+                    'Steuere Intervalle und Backoff für Listen (Threads & Posts).'
+                  )}
                 </p>
               </div>
               <div className='text-xs text-foreground-muted'>
                 <p>
-                  Standardwerte stammen aus deiner .env bzw. Build-Defaults.
+                  {t(
+                    'config.polling.hintDefaults',
+                    'Standardwerte stammen aus der .env bzw. aus Build-Defaults.'
+                  )}
                 </p>
               </div>
             </div>
@@ -631,7 +1063,10 @@ export default function ConfigPanel () {
               <div className='grid gap-4 md:grid-cols-4'>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Threads: Aktiv (ms)
+                    {t(
+                      'config.polling.labels.threadActiveMs',
+                      'Threads: Aktiv (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -647,7 +1082,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Threads: Idle (ms)
+                    {t(
+                      'config.polling.labels.threadIdleMs',
+                      'Threads: Idle (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -663,7 +1101,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Threads: Hidden (ms)
+                    {t(
+                      'config.polling.labels.threadHiddenMs',
+                      'Threads: Hidden (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -688,7 +1129,12 @@ export default function ConfigPanel () {
                       disabled={pollLoading || pollSaving}
                       className='h-4 w-4 rounded border-border'
                     />
-                    <span>Threads: Minimal Ping hidden</span>
+                    <span>
+                      {t(
+                        'config.polling.labels.threadMinimalHidden',
+                        'Threads: Minimal Ping hidden'
+                      )}
+                    </span>
                   </label>
                 </div>
               </div>
@@ -696,7 +1142,10 @@ export default function ConfigPanel () {
               <div className='grid gap-4 md:grid-cols-4'>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Posts: Aktiv (ms)
+                    {t(
+                      'config.polling.labels.skeetActiveMs',
+                      'Posts: Aktiv (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -712,7 +1161,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Posts: Idle (ms)
+                    {t(
+                      'config.polling.labels.skeetIdleMs',
+                      'Posts: Idle (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -728,7 +1180,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Posts: Hidden (ms)
+                    {t(
+                      'config.polling.labels.skeetHiddenMs',
+                      'Posts: Hidden (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -754,7 +1209,12 @@ export default function ConfigPanel () {
                       disabled={pollLoading || pollSaving}
                       className='h-4 w-4 rounded border-border'
                     />{' '}
-                    <span>Posts: Minimal Ping hidden</span>
+                    <span>
+                      {t(
+                        'config.polling.labels.skeetMinimalHidden',
+                        'Posts: Minimal Ping hidden'
+                      )}
+                    </span>
                   </label>
                 </div>
               </div>
@@ -762,7 +1222,10 @@ export default function ConfigPanel () {
               <div className='grid gap-4 md:grid-cols-4'>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Backoff Start (ms)
+                    {t(
+                      'config.polling.labels.backoffStartMs',
+                      'Backoff Start (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -778,7 +1241,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Backoff Max (ms)
+                    {t(
+                      'config.polling.labels.backoffMaxMs',
+                      'Backoff Max (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -794,7 +1260,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Jitter Ratio (0..1)
+                    {t(
+                      'config.polling.labels.jitterRatio',
+                      'Jitter Ratio (0..1)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -812,7 +1281,10 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    Heartbeat (ms)
+                    {t(
+                      'config.polling.labels.heartbeatMs',
+                      'Heartbeat (ms)'
+                    )}
                   </label>
                   <input
                     type='number'
@@ -831,15 +1303,22 @@ export default function ConfigPanel () {
               <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
                 <div className='text-xs text-foreground-muted'>
                   <p>
-                    <span className='font-semibold'>Standardwerte:</span>{' '}
-                    Threads {pollDefaults.threadActiveMs}/
-                    {pollDefaults.threadIdleMs}/{pollDefaults.threadHiddenMs}ms,
-                    Posts {pollDefaults.skeetActiveMs}/
-                    {pollDefaults.skeetIdleMs}/{pollDefaults.skeetHiddenMs}ms,
-                    Backoff {pollDefaults.backoffStartMs}→
-                    {pollDefaults.backoffMaxMs}ms, Jitter{' '}
-                    {pollDefaults.jitterRatio}, Heartbeat{' '}
-                    {pollDefaults.heartbeatMs}ms
+                    {t(
+                      'config.polling.summary',
+                      'Standardwerte: Threads {tActive}/{tIdle}/{tHidden}ms, Posts {pActive}/{pIdle}/{pHidden}ms, Backoff {bStart}→{bMax}ms, Jitter {jitter}, Heartbeat {heartbeat}ms',
+                      {
+                        tActive: pollDefaults.threadActiveMs,
+                        tIdle: pollDefaults.threadIdleMs,
+                        tHidden: pollDefaults.threadHiddenMs,
+                        pActive: pollDefaults.skeetActiveMs,
+                        pIdle: pollDefaults.skeetIdleMs,
+                        pHidden: pollDefaults.skeetHiddenMs,
+                        bStart: pollDefaults.backoffStartMs,
+                        bMax: pollDefaults.backoffMaxMs,
+                        jitter: pollDefaults.jitterRatio,
+                        heartbeat: pollDefaults.heartbeatMs
+                      }
+                    )}
                   </p>
                 </div>
                 <div className='flex flex-wrap gap-3'>
@@ -849,14 +1328,25 @@ export default function ConfigPanel () {
                     onClick={resetPollToDefaults}
                     disabled={pollLoading || pollSaving}
                   >
-                    Zurücksetzen auf Standard
+                    {t(
+                      'config.polling.resetButton',
+                      'Zurücksetzen auf Standard'
+                    )}
                   </Button>
                   <Button
                     type='submit'
                     variant='primary'
                     disabled={pollLoading || pollSaving || !pollHasChanges}
                   >
-                    {pollSaving ? 'Speichern…' : 'Einstellungen speichern'}
+                    {pollSaving
+                      ? t(
+                          'config.polling.saveBusy',
+                          'Speichern…'
+                        )
+                      : t(
+                          'config.polling.saveLabel',
+                          'Einstellungen speichern'
+                        )}
                   </Button>
                 </div>
               </div>
@@ -873,6 +1363,7 @@ export default function ConfigPanel () {
 
 function CredentialsSection () {
   const toast = useToast()
+  const { t } = useTranslation()
   const [values, setValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
@@ -901,7 +1392,13 @@ function CredentialsSection () {
         const res = await fetch('/api/config/credentials')
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || 'Fehler beim Laden der Zugangsdaten.')
+          throw new Error(
+            data.error ||
+              t(
+                'config.credentials.loadErrorFallback',
+                'Fehler beim Laden der Zugangsdaten.'
+              )
+          )
         }
         const data = await res.json()
         if (!ignore) {
@@ -919,7 +1416,15 @@ function CredentialsSection () {
         }
       } catch (error) {
         console.error('Zugangsdaten laden fehlgeschlagen:', error)
-        toast.error({ title: 'Zugangsdaten', description: error.message })
+        toast.error({
+          title: t('config.credentials.toastTitle', 'Zugangsdaten'),
+          description:
+            error.message ||
+            t(
+              'config.credentials.loadErrorDescription',
+              'Die Zugangsdaten konnten nicht geladen werden.'
+            )
+        })
       } finally {
         if (!ignore) setLoading(false)
       }
@@ -963,14 +1468,26 @@ function CredentialsSection () {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Fehler beim Speichern der Zugangsdaten.')
+        throw new Error(
+          data.error ||
+            t(
+              'config.credentials.saveErrorFallback',
+              'Fehler beim Speichern der Zugangsdaten.'
+            )
+        )
       }
       await res.json().catch(() => ({}))
       if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
       if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
       if (values.tenorApiKey) setHasSecret(s => ({ ...s, tenor: true }))
       setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '', tenorApiKey: '' }))
-      toast.success({ title: 'Gespeichert', description: 'Zugangsdaten aktualisiert.' })
+      toast.success({
+        title: t('config.credentials.saveSuccessTitle', 'Gespeichert'),
+        description: t(
+          'config.credentials.saveSuccessDescription',
+          'Zugangsdaten aktualisiert.'
+        )
+      })
 
       // Nach dem Speichern direkt entsperren und zur Übersicht wechseln.
       // Konfiguration wird parallel aktualisiert; Navigation soll nicht blockieren.
@@ -983,7 +1500,18 @@ function CredentialsSection () {
       } catch { /* ignore */ }
     } catch (error) {
       console.error('Zugangsdaten speichern fehlgeschlagen:', error)
-      toast.error({ title: 'Speichern fehlgeschlagen', description: error.message })
+      toast.error({
+        title: t(
+          'config.credentials.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
+        description:
+          error.message ||
+          t(
+            'config.credentials.saveErrorDescription',
+            'Die Zugangsdaten konnten nicht gespeichert werden.'
+          )
+      })
     } finally {
       setSaving(false)
     }
@@ -993,58 +1521,128 @@ function CredentialsSection () {
     <Card padding='p-6 lg:p-10'>
       <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
         <div>
-          <h3 className='text-2xl font-semibold'>Zugangsdaten</h3>
-          <p className='text-sm text-foreground-muted'>Server-URLs und Logins für Bluesky und Mastodon.</p>
+          <h3 className='text-2xl font-semibold'>
+            {t('config.credentials.heading', 'Zugangsdaten')}
+          </h3>
+          <p className='text-sm text-foreground-muted'>
+            {t(
+              'config.credentials.subtitle',
+              'Server-URLs und Logins für Bluesky und Mastodon.'
+            )}
+          </p>
         </div>
       </div>
       {loading ? (
-        <p className='text-sm text-foreground-muted'>Lade …</p>
+        <p className='text-sm text-foreground-muted'>
+          {t('config.credentials.loading', 'Lade …')}
+        </p>
       ) : (
         <form onSubmit={handleSave} className='space-y-8'>
           <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>Bluesky</h4>
+            <h4 className='text-lg font-semibold'>
+              {t('config.credentials.bluesky.heading', 'Bluesky')}
+            </h4>
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1'>
-                <span className='text-sm font-medium'>Server URL</span>
+                <span className='text-sm font-medium'>
+                  {t(
+                    'config.credentials.bluesky.serverUrlLabel',
+                    'Server URL'
+                  )}
+                </span>
                 <input type='url' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyServerUrl ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='https://bsky.social' value={values.blueskyServerUrl} onChange={onChange('blueskyServerUrl')} />
               </label>
               <label className='space-y-1'>
-                <span className='text-sm font-medium'>Identifier (Handle/E-Mail)</span>
+                <span className='text-sm font-medium'>
+                  {t(
+                    'config.credentials.bluesky.identifierLabel',
+                    'Identifier (Handle/E-Mail)'
+                  )}
+                </span>
                 <input type='text' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyIdentifier ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='dein-handle.bsky.social' value={values.blueskyIdentifier} onChange={onChange('blueskyIdentifier')} />
               </label>
             </div>
             <label className='space-y-1 md:w-1/2'>
-              <span className='text-sm font-medium'>App Password</span>
+              <span className='text-sm font-medium'>
+                {t(
+                  'config.credentials.bluesky.appPasswordLabel',
+                  'App Password'
+                )}
+              </span>
               <input type='password' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyAppPassword ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder={hasSecret.bsky ? '••••••••' : ''} value={values.blueskyAppPassword} onChange={onChange('blueskyAppPassword')} />
-              <p className='text-xs text-foreground-muted'>Leer lassen, um das bestehende Passwort zu behalten.</p>
+              <p className='text-xs text-foreground-muted'>
+                {t(
+                  'config.credentials.bluesky.appPasswordHint',
+                  'Leer lassen, um das bestehende Passwort zu behalten.'
+                )}
+              </p>
             </label>
           </section>
           <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>Mastodon</h4>
+            <h4 className='text-lg font-semibold'>
+              {t('config.credentials.mastodon.heading', 'Mastodon')}
+            </h4>
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1'>
-                <span className='text-sm font-medium'>API URL</span>
+                <span className='text-sm font-medium'>
+                  {t(
+                    'config.credentials.mastodon.apiUrlLabel',
+                    'API URL'
+                  )}
+                </span>
                 <input type='url' className='w-full rounded-md border border-border bg-background p-2' placeholder='https://mastodon.social' value={values.mastodonApiUrl} onChange={onChange('mastodonApiUrl')} />
               </label>
               <label className='space-y-1'>
-                <span className='text-sm font-medium'>Access Token</span>
+                <span className='text-sm font-medium'>
+                  {t(
+                    'config.credentials.mastodon.accessTokenLabel',
+                    'Access Token'
+                  )}
+                </span>
                 <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.masto ? '••••••••' : ''} value={values.mastodonAccessToken} onChange={onChange('mastodonAccessToken')} />
-                <p className='text-xs text-foreground-muted'>Leer lassen, um das bestehende Token zu behalten.</p>
+                <p className='text-xs text-foreground-muted'>
+                  {t(
+                    'config.credentials.mastodon.accessTokenHint',
+                    'Leer lassen, um das bestehende Token zu behalten.'
+                  )}
+                </p>
               </label>
             </div>
           </section>
           <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>Tenor (GIF Suche)</h4>
+            <h4 className='text-lg font-semibold'>
+              {t(
+                'config.credentials.tenor.heading',
+                'Tenor (GIF Suche)'
+              )}
+            </h4>
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1 md:w-1/2'>
-                <span className='text-sm font-medium'>API Key</span>
+                <span className='text-sm font-medium'>
+                  {t(
+                    'config.credentials.tenor.apiKeyLabel',
+                    'API Key'
+                  )}
+                </span>
                 <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.tenor ? '••••••••' : ''} value={values.tenorApiKey} onChange={onChange('tenorApiKey')} />
-                <p className='text-xs text-foreground-muted'>Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).</p>
+                <p className='text-xs text-foreground-muted'>
+                  {t(
+                    'config.credentials.tenor.apiKeyHint',
+                    'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
+                  )}
+                </p>
               </label>
             </div>
           </section>
           <div className='flex gap-3'>
-            <Button type='submit' disabled={saving}>{saving ? 'Speichere …' : 'Zugangsdaten speichern'}</Button>
+            <Button type='submit' disabled={saving}>
+              {saving
+                ? t('config.credentials.saveBusy', 'Speichere …')
+                : t(
+                    'config.credentials.saveLabel',
+                    'Zugangsdaten speichern'
+                  )}
+            </Button>
           </div>
         </form>
       )}

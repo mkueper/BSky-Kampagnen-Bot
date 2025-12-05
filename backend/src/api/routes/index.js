@@ -37,6 +37,8 @@ router.post("/engagement/refresh-many", engagementController.refreshMany);
 // Settings
 router.get("/settings/scheduler", settingsController.getSchedulerSettings);
 router.put("/settings/scheduler", settingsController.updateSchedulerSettings);
+router.get("/settings/general", settingsController.getGeneralSettings);
+router.put("/settings/general", settingsController.updateGeneralSettings);
 router.get("/settings/client-polling", settingsController.getClientPollingSettings);
 router.put("/settings/client-polling", settingsController.updateClientPollingSettings);
 

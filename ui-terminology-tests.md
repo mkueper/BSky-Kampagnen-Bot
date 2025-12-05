@@ -13,7 +13,7 @@ Dieser Entwurf beschreibt, wie wir die Vorgaben aus `docs/ui.md` automatisiert g
 Im ersten Schritt fokussieren wir uns auf das **Dashboard** (`dashboard/src`):
 
 - Navigation (`NAV_ITEMS` in `dashboard/src/App.jsx`)
-- Header-/Seitentitel (`HEADER_TITLES`, `HEADER_CAPTIONS`)
+- Header-/Seitentitel (`HEADER_TITLES`, `HEADER_CAPTIONS`, i18n-Keys in `dashboard/src/i18n/messages.js`)
 - Panels und Summary-Karten:
   - `ActivityPanel` (Post-Aktivität)
   - `SummaryCard`-Titel (z. B. „Nächster Post“)
@@ -25,6 +25,10 @@ Im ersten Schritt fokussieren wir uns auf das **Dashboard** (`dashboard/src`):
 - Formulare & Aktionen:
   - `SkeetForm.jsx` (Post-Formular)
   - `useSkeetActions.js` (Post-Aktionen)
+- Konfiguration & Login:
+  - `ConfigPanel.jsx` (Scheduler, Polling, Zugangsdaten)
+  - `views/LoginView.jsx`
+  - Layout (`components/layout/AppLayout.jsx`)
 
 Der `bsky-client` sowie andere Frontends (z. B. Mastodon-spezifische UIs) werden später separat betrachtet.
 
@@ -91,6 +95,13 @@ Der integrierte Bluesky-Client ist **plattform-spezifisch**, soll aber terminolo
 - `HEADER_TITLES`:
   - `skeets` & `skeets-overview`: `"Posts – Übersicht"`
   - `skeets-plan`: `"Post planen"`
+- i18n-Keys in `dashboard/src/i18n/messages.js`:
+  - `nav.skeets === "Posts"`
+  - `nav['skeets-overview'] === "Aktivität"`
+  - `nav['skeets-plan'] === "Planen"`
+  - `header.caption.skeets` & `header.title.skeets` → `"Posts – Übersicht"`
+  - `header.caption['skeets-plan']` & `header.title['skeets-plan']` → `"Post planen"`
+  - Produktname (prominente Stellen): `layout.nav.appName === "Kampagnen‑Tool"`
 
 ### Übersichtskarten & Summary
 
@@ -102,6 +113,13 @@ Der integrierte Bluesky-Client ist **plattform-spezifisch**, soll aber terminolo
   - `"Nächster Post"`
   - `"Bevorstehende Posts"`
   - `"Kein geplanter Post."`, `"Keine anstehenden Posts."`
+- i18n-Keys:
+  - `overview.cards.plannedPosts === "Geplante Posts"`
+  - `overview.cards.publishedPosts === "Veröffentlichte Posts"`
+  - `overview.next.postTitle === "Nächster Post"`
+  - `overview.next.noPost === "Kein geplanter Post."`
+  - `overview.upcoming.postsTitle === "Bevorstehende Posts"`
+  - `overview.upcoming.noPosts === "Keine anstehenden Posts."`
 
 ### Post-Aktivität (DashboardView)
 
@@ -140,6 +158,118 @@ Der integrierte Bluesky-Client ist **plattform-spezifisch**, soll aber terminolo
 - `useSkeetActions`:
   - Dialog-/Toast-Titel und -Texte durchgängig mit „Post“/„Posts“ (Löschen, Zurückziehen, endgültig löschen, reaktivieren).
 
+#### i18n-Keys für Posts-Formular (`dashboard/src/i18n/messages.js`)
+
+- Überschrift & Subtexte:
+  - `posts.form.headingEdit === "Post bearbeiten"`
+  - `posts.form.headingCreate === "Neuen Post planen"`
+  - `posts.form.maxLengthHint` enthält „Maximal {limit} Zeichen … Posts“.
+- Content-Feld:
+  - `posts.form.content.label === "Post-Text"`
+  - `posts.form.content.placeholder === "Was möchtest du veröffentlichen?"`
+- Buttons:
+  - `posts.form.submitUpdate === "Post aktualisieren"`
+  - `posts.form.submitCreate === "Planen"`
+  - `posts.form.sendNow.buttonDefault === "Sofort senden"`
+  - `posts.form.sendNow.buttonBusy === "Senden…"`
+- Erfolgs-/Fehlertexte:
+  - `posts.form.saveSuccessCreateTitle === "Post geplant"`
+  - `posts.form.saveSuccessUpdateTitle === "Post aktualisiert"`
+  - `posts.form.sendNow.createErrorFallback` und `sendNow.unexpectedCreateResponse` enthalten „Post …“ statt „Skeet“.
+
+### Config & Login (Dashboard)
+
+#### ConfigPanel – Scheduler & Polling
+
+- Sichtbare Begriffe:
+  - Tab-Titel:
+    - `"Scheduler & Retry"`
+    - `"Dashboard-Polling"`
+    - `"Zugangsdaten"`
+  - Scheduler-Panel:
+    - `"Scheduler & Retry"`
+    - `"Passe Cron, Zeitzone und Retry-Strategie für das Kampagnen‑Tool an."`
+    - Feldlabels: `"Cron-Ausdruck"`, `"Zeitzone"`, `"Maximale Wiederholversuche"`, `"Basis-Backoff (ms)"`, `"Maximaler Backoff (ms)"`
+    - Buttontexte: `"Zurücksetzen auf Standard"`, `"Einstellungen speichern"`
+  - Polling-Panel:
+    - `"Dashboard-Polling"`
+    - `"Steuere Intervalle und Backoff für Listen (Threads & Posts)."`
+    - Labels: `"Threads: Aktiv (ms)"`, `"Threads: Idle (ms)"`, `"Threads: Hidden (ms)"`, `"Threads: Minimal Ping hidden"`
+    - `"Posts: Aktiv (ms)"`, `"Posts: Idle (ms)"`, `"Posts: Hidden (ms)"`, `"Posts: Minimal Ping hidden"`
+    - `"Backoff Start (ms)"`, `"Backoff Max (ms)"`, `"Jitter Ratio (0..1)"`, `"Heartbeat (ms)"`
+    - Buttons: `"Zurücksetzen auf Standard"`, `"Einstellungen speichern"`
+- i18n-Keys:
+  - Tabs:
+    - `config.tabs.scheduler === "Scheduler & Retry"`
+    - `config.tabs.polling === "Dashboard-Polling"`
+    - `config.tabs.credentials === "Zugangsdaten"`
+  - Scheduler:
+    - `config.scheduler.heading === "Scheduler & Retry"`
+    - `config.scheduler.subtitle` enthält „Kampagnen‑Tool“ exakt so wie in `docs/ui.md`.
+    - `config.scheduler.labels.scheduleTime === "Cron-Ausdruck"`
+    - `config.scheduler.labels.timeZone === "Zeitzone"`
+    - `config.scheduler.labels.postRetries === "Maximale Wiederholversuche"`
+    - `config.scheduler.labels.postBackoffMs === "Basis-Backoff (ms)"`
+    - `config.scheduler.labels.postBackoffMaxMs === "Maximaler Backoff (ms)"`
+    - `config.scheduler.resetButton === "Zurücksetzen auf Standard"`
+    - `config.scheduler.saveLabel === "Einstellungen speichern"`
+  - Polling:
+    - `config.polling.heading === "Dashboard-Polling"`
+    - `config.polling.subtitle` enthält „Threads & Posts“.
+    - `config.polling.labels.threadActiveMs === "Threads: Aktiv (ms)"` usw. für alle oben genannten Labels.
+    - `config.polling.resetButton === "Zurücksetzen auf Standard"`
+    - `config.polling.saveLabel === "Einstellungen speichern"`
+
+#### CredentialsSection (Zugangsdaten)
+
+- Sichtbare Begriffe:
+  - Abschnittsüberschrift: `"Zugangsdaten"`
+  - Untertitel: `"Server-URLs und Logins für Bluesky und Mastodon."`
+  - Abschnittstitel: `"Bluesky"`, `"Mastodon"`, `"Tenor (GIF Suche)"`
+  - Labels:
+    - `"Server URL"`, `"Identifier (Handle/E-Mail)"`, `"App Password"`
+    - `"API URL"`, `"Access Token"`, `"API Key"`
+  - Hilfetexte:
+    - `"Leer lassen, um das bestehende Passwort zu behalten."`
+    - `"Leer lassen, um das bestehende Token zu behalten."`
+    - `"Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor)."`
+  - Buttons:
+    - `"Zugangsdaten speichern"` (Busy: `"Speichere …"`)
+  - Hinweiskarte bei fehlenden Credentials:
+    - `"Zugangsdaten erforderlich"`
+    - `"Bitte hinterlege zuerst deine Zugangsdaten für Bluesky (und optional Mastodon). …"`
+- i18n-Keys:
+  - `config.credentials.heading === "Zugangsdaten"`
+  - `config.credentials.subtitle === "Server-URLs und Logins für Bluesky und Mastodon."`
+  - `config.credentials.bluesky.heading === "Bluesky"`
+  - `config.credentials.mastodon.heading === "Mastodon"`
+  - `config.credentials.tenor.heading === "Tenor (GIF Suche)"`
+  - `config.credentials.bluesky.serverUrlLabel === "Server URL"`
+  - `config.credentials.bluesky.identifierLabel === "Identifier (Handle/E-Mail)"`
+  - `config.credentials.bluesky.appPasswordLabel === "App Password"`
+  - `config.credentials.bluesky.appPasswordHint` entspricht exakt dem Hilfetext.
+  - Entsprechende Keys für `mastodon.*` und `tenor.*` wie oben beschrieben.
+
+### Login (Dashboard)
+
+- Sichtbare Begriffe:
+  - Tagline: `"Control Center"`
+  - Titel: `"Kampagnen‑Tool Login"`
+  - Untertitel: `"Zugangsdaten werden serverseitig verwaltet."`
+  - Labels: `"Benutzername"`, `"Passwort"`
+  - Buttons:
+    - `"Konfiguration prüfen"`
+    - `"Anmelden"` (Busy: `"Anmeldung läuft…"`).
+  - Hinweisblock bei noch nicht konfiguriertem Login: Schritte 1–3 verwenden die Begriffe wie in `docs/ui.md` (ENV-Keys, „Backend“, etc.).
+- i18n-Keys:
+  - `login.heading === "Kampagnen‑Tool Login"`
+  - `login.subtitle === "Zugangsdaten werden serverseitig verwaltet."`
+  - `login.usernameLabel === "Benutzername"`
+  - `login.passwordLabel === "Passwort"`
+  - `login.submitLabel === "Anmelden"`
+  - `login.submitBusy === "Anmeldung läuft…"`
+  - `login.unconfigured.checkConfig === "Konfiguration prüfen"`
+
 ## Negative Checks
 
 Zusätzlich zu den „positiven“ Label-Checks sollten Tests sicherstellen, dass bestimmte Begriffe **nicht** mehr in sichtbaren UI-Texten auftauchen:
@@ -147,6 +277,27 @@ Zusätzlich zu den „positiven“ Label-Checks sollten Tests sicherstellen, das
 - Verbotene Begriffe in UI-Strings:
   - `"Skeet"` / `"Skeets"` (nur noch in internen Namen/Kommentaren ok)
   - ggf. alte Panel-Titel wie `"Skeet Aktivität"`, `"Geplante Skeets"`, `"Veröffentlichte Skeets"`
+
+### Wertebereiche (Min/Max) für numerische Felder
+
+Neben den Texten sollten die UI-Tests auch prüfen, dass definierte Mindest-/Höchstwerte für numerische Eingaben eingehalten werden. Beispiele:
+
+- Scheduler & Retry (ConfigPanel):
+  - `postRetries`, `postBackoffMs`, `postBackoffMaxMs`:
+    - dürfen im UI nur **nicht-negative** Werte akzeptieren (`min=0`),
+    - Backend validiert ebenfalls positiv („POST_RETRIES und Backoff-Werte müssen positive Zahlen sein.“).
+  - `graceWindowMinutes`:
+    - Mindestwert **2 Minuten** (`min=2` im UI),
+    - Backend-Validierung: `SCHEDULER_GRACE_WINDOW_MINUTES` muss `>= 2` sein.
+- Dashboard-Polling:
+  - Alle Polling-Intervalle (`THREAD_*`, `SKEET_*`) und Backoff/Heartbeat:
+    - `>= 0` (UI lässt keine negativen Werte zu, Backend lehnt sie ab).
+  - `POLL_JITTER_RATIO`:
+    - muss zwischen `0` und `1` liegen (UI und Backend-Validierung).
+
+Tests sollten sowohl:
+- die Attribute der Input-Felder (`min`, `max`, `step`) prüfen, als auch
+- die Reaktion des Backends auf Werte **außerhalb** des erlaubten Bereichs (z. B. erwartete Fehlermeldung).
 
 Technisch können wir das z. B. so prüfen:
 
