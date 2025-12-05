@@ -7,6 +7,7 @@ import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import LinkifiedText from './LinkifiedText'
 import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
 import {
   getDefaultDateParts,
   getInputPartsFromUtc,
@@ -68,6 +69,7 @@ function resolveMaxLength (selectedPlatforms) {
  * @param {Function} onCancelEdit   Wird beim Abbrechen aufgerufen (z. B. Tab-Wechsel).
  */
 function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }) {
+  const { t } = useTranslation()
   const { config: clientConfig } = useClientConfig()
   const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
   const defaultDateParts = useMemo(
@@ -142,7 +144,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const pendingMediaCount = pendingMedia.length
   const previewBlocked = (existingMediaCount + pendingMediaCount) > 0
   const previewDisabledReason = previewBlocked
-    ? 'Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.'
+    ? t(
+        'posts.form.previewDisabledReason',
+        'Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.'
+      )
     : ''
   const {
     previewUrl,
@@ -188,7 +193,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         const res = await fetch(`/api/skeet-media/${item.id}`, { method: 'DELETE' })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data?.error || 'Bild konnte nicht entfernt werden.')
+          throw new Error(
+            data?.error ||
+              t(
+                'posts.form.media.removeErrorFallback',
+                'Bild konnte nicht entfernt werden.'
+              )
+          )
         }
         setRemovedMedia((prev) => ({ ...prev, [item.id]: true }))
         setEditedMediaAlt((prev) => {
@@ -197,9 +208,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           delete clone[item.id]
           return clone
         })
-        toast.success({ title: 'Bild entfernt' })
+        toast.success({
+          title: t('posts.form.media.removeSuccessTitle', 'Bild entfernt')
+        })
       } catch (error) {
-        toast.error({ title: 'Entfernen fehlgeschlagen', description: error?.message || 'Unbekannter Fehler' })
+        toast.error({
+          title: t('posts.form.media.removeErrorTitle', 'Entfernen fehlgeschlagen'),
+          description:
+            error?.message ||
+            t('common.errors.unknown', 'Unbekannter Fehler')
+        })
       }
       return
     }
@@ -304,8 +322,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
     if (content.length > submissionLimit) {
       toast.error({
-        title: 'Zeichenlimit überschritten',
-        description: `Der Post darf maximal ${submissionLimit} Zeichen für die ausgewählten Plattformen enthalten.`
+        title: t('posts.form.limitExceededTitle', 'Zeichenlimit überschritten'),
+        description: t(
+          'posts.form.limitExceededDescription',
+          'Der Post darf maximal {limit} Zeichen für die ausgewählten Plattformen enthalten.',
+          { limit: submissionLimit }
+        )
       })
       return
     }
@@ -314,8 +336,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       const hasSchedule = Boolean(scheduledDateTimeString && /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(scheduledDateTimeString))
       if (!hasSchedule) {
         toast.error({
-          title: 'Ungültige Planung',
-          description: 'Bitte Datum und Uhrzeit prüfen.'
+          title: t('posts.form.invalidScheduleTitle', 'Ungültige Planung'),
+          description: t(
+            'posts.form.invalidScheduleDescription',
+            'Bitte Datum und Uhrzeit prüfen.'
+          )
         })
         return
       }
@@ -324,8 +349,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     if (repeat === 'weekly') {
       if (!repeatDaysOfWeek || repeatDaysOfWeek.length === 0) {
         toast.error({
-          title: 'Bitte Wochentage wählen',
-          description: 'Mindestens einen Tag markieren.'
+          title: t(
+            'posts.form.weeklyMissingDaysTitle',
+            'Bitte Wochentage wählen'
+          ),
+          description: t(
+            'posts.form.weeklyMissingDaysDescription',
+            'Mindestens einen Tag markieren.'
+          )
         })
         return
       }
@@ -335,8 +366,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       const d = Number(repeatDayOfMonth)
       if (!Number.isInteger(d) || d < 1 || d > 31) {
         toast.error({
-          title: 'Ungültiger Monatstag',
-          description: 'Bitte einen Wert von 1 bis 31 wählen.'
+          title: t(
+            'posts.form.monthlyInvalidDayTitle',
+            'Ungültiger Monatstag'
+          ),
+          description: t(
+            'posts.form.monthlyInvalidDayDescription',
+            'Bitte einen Wert von 1 bis 31 wählen.'
+          )
         })
         return
       }
@@ -344,8 +381,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
     if (normalizedPlatforms.length === 0) {
       toast.error({
-        title: 'Keine Plattform gewählt',
-        description: 'Bitte mindestens eine Zielplattform auswählen.'
+        title: t(
+          'posts.form.noPlatformTitle',
+          'Keine Plattform gewählt'
+        ),
+        description: t(
+          'posts.form.noPlatformDescription',
+          'Bitte mindestens eine Zielplattform auswählen.'
+        )
       })
       return
     }
@@ -379,14 +422,24 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       }
       if (onSkeetSaved) onSkeetSaved()
       toast.success({
-        title: isEditing ? 'Post aktualisiert' : 'Post geplant',
-        description: 'Die Änderungen wurden übernommen.'
+        title: isEditing
+          ? t('posts.form.saveSuccessUpdateTitle', 'Post aktualisiert')
+          : t('posts.form.saveSuccessCreateTitle', 'Post geplant'),
+        description: t(
+          'posts.form.saveSuccessDescription',
+          'Die Änderungen wurden übernommen.'
+        )
       })
     } else {
       const data = await res.json().catch(() => ({}))
       toast.error({
-        title: 'Speichern fehlgeschlagen',
-        description: data.error || 'Fehler beim Speichern des Posts.'
+        title: t('posts.form.saveErrorTitle', 'Speichern fehlgeschlagen'),
+        description:
+          data.error ||
+          t(
+            'posts.form.saveErrorDescription',
+            'Fehler beim Speichern des Posts.'
+          )
       })
     }
   }
@@ -396,21 +449,35 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
         <div>
           <h2 className='text-2xl font-semibold text-foreground'>
-            {isEditing ? 'Post bearbeiten' : 'Neuen Post planen'}
+            {isEditing
+              ? t('posts.form.headingEdit', 'Post bearbeiten')
+              : t('posts.form.headingCreate', 'Neuen Post planen')}
           </h2>
           <p className='mt-1 text-sm text-foreground-muted'>
-            Maximal {maxContentLength} Zeichen für die gewählten Plattformen.
+            {t(
+              'posts.form.maxLengthHint',
+              'Maximal {limit} Zeichen für die gewählten Plattformen.',
+              { limit: maxContentLength }
+            )}
           </p>
         </div>
         <div
           className='flex flex-wrap items-center gap-2'
           role='group'
-          aria-label='Plattformen wählen'
+          aria-label={t(
+            'posts.form.platforms.groupLabel',
+            'Plattformen wählen'
+          )}
         >
           {['bluesky', 'mastodon'].map(platform => {
             const isActive = targetPlatforms.includes(platform)
             const disabled = platform === 'mastodon' && !mastodonConfigured
-            const title = disabled ? 'Mastodon-Zugang nicht konfiguriert' : undefined
+            const title = disabled
+              ? t(
+                  'posts.form.platforms.mastodonDisabledTitle',
+                  'Mastodon-Zugang nicht konfiguriert'
+                )
+              : undefined
             return (
               <label
                 key={platform}
@@ -430,8 +497,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   onChange={() => togglePlatform(platform)}
                 />
                 <span className='capitalize'>
-                  {platform.toLowerCase()}
-                  <span className='ml-1 text-xs text-foreground-muted'>({PLATFORM_LIMITS[platform]})</span>
+                  {platform === 'bluesky'
+                    ? t('posts.form.platforms.bluesky', 'Bluesky')
+                    : t('posts.form.platforms.mastodon', 'Mastodon')}
+                  <span className='ml-1 text-xs text-foreground-muted'>
+                    ({PLATFORM_LIMITS[platform]})
+                  </span>
                 </span>
               </label>
             )
@@ -444,33 +515,45 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         <div className='hidden lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-6'>
           <div className='flex items-center justify-between self-end'>
             <label htmlFor='skeet-content' className='text-lg font-semibold text-foreground'>
-              Post-Text
+              {t('posts.form.content.label', 'Post-Text')}
             </label>
             <button
               type='button'
               className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-              aria-label='Hinweis zu Post-Text anzeigen'
+              aria-label={t(
+                'posts.form.content.infoAria',
+                'Hinweis zu Post-Text anzeigen'
+              )}
               onClick={() => setInfoContentOpen(true)}
-              title='Hinweis anzeigen'
+              title={t(
+                'posts.form.infoButtonTitle',
+                'Hinweis anzeigen'
+              )}
             >
               <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
-              Info
+              {t('posts.form.infoButtonLabel', 'Info')}
             </button>
           </div>
           <div />
           <div className='flex items-center justify-between self-end'>
             <label className='text-lg font-semibold text-foreground'>
-              Vorschau
+              {t('posts.form.preview.label', 'Vorschau')}
             </label>
             <button
               type='button'
               className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-              aria-label='Hinweis zur Vorschau anzeigen'
+              aria-label={t(
+                'posts.form.preview.infoAria',
+                'Hinweis zur Vorschau anzeigen'
+              )}
               onClick={() => setInfoPreviewOpen(true)}
-              title='Hinweis anzeigen'
+              title={t(
+                'posts.form.infoButtonTitle',
+                'Hinweis anzeigen'
+              )}
             >
               <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
-              Info
+              {t('posts.form.infoButtonLabel', 'Info')}
             </button>
           </div>
         </div>
@@ -483,17 +566,23 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 htmlFor='skeet-content'
                 className='text-lg font-semibold text-foreground'
               >
-                Post-Text
+                {t('posts.form.content.label', 'Post-Text')}
               </label>
               <button
                 type='button'
                 className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Hinweis zu Post-Text anzeigen'
+                aria-label={t(
+                  'posts.form.content.infoAria',
+                  'Hinweis zu Post-Text anzeigen'
+                )}
                 onClick={() => setInfoContentOpen(true)}
-                title='Hinweis anzeigen'
+                title={t(
+                  'posts.form.infoButtonTitle',
+                  'Hinweis anzeigen'
+                )}
               >
                 <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
-                Info
+                {t('posts.form.infoButtonLabel', 'Info')}
               </button>
             </div>
             <textarea
@@ -511,7 +600,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   // Shortcut konnte nicht verarbeitet werden; ignorieren
                 }
               }}
-              placeholder='Was möchtest du veröffentlichen?'
+              placeholder={t(
+                'posts.form.content.placeholder',
+                'Was möchtest du veröffentlichen?'
+              )}
               rows={10}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
             />
@@ -522,7 +614,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   : 'text-foreground-muted'
               }`}
             >
-              {content.length}/{maxContentLength} Zeichen
+              {t(
+                'posts.form.content.counter',
+                '{count}/{limit} Zeichen',
+                { count: content.length, limit: maxContentLength }
+              )}
             </div>
             <div className='mt-2 flex items-center gap-2 lg:hidden'>
               <button
@@ -532,14 +628,24 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   setMediaDialog({
                     open: true,
                     accept: 'image/*',
-                    title: 'Bild hinzufügen'
+                    title: t(
+                      'posts.form.media.addImageTitle',
+                      'Bild hinzufügen'
+                    )
                   })
                 }
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
                   pendingMedia.length >= (imagePolicy.maxCount || 4)
-                    ? `Maximal ${imagePolicy.maxCount} Bilder`
-                    : 'Bild hinzufügen'
+                    ? t(
+                        'posts.form.media.limitReachedTitle',
+                        'Maximal {count} Bilder',
+                        { count: imagePolicy.maxCount || 4 }
+                      )
+                    : t(
+                        'posts.form.media.addImageTitle',
+                        'Bild hinzufügen'
+                      )
                 }
               >
                 <span className='text-base md:text-lg leading-none'>🖼️</span>
@@ -552,19 +658,32 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
                   pendingMedia.length >= (imagePolicy.maxCount || 4)
-                    ? `Maximal ${imagePolicy.maxCount} Bilder`
-                    : 'GIF hinzufügen'
+                    ? t(
+                        'posts.form.media.limitReachedTitle',
+                        'Maximal {count} Bilder',
+                        { count: imagePolicy.maxCount || 4 }
+                      )
+                    : t(
+                        'posts.form.media.addGifTitle',
+                        'GIF hinzufügen'
+                      )
                 }
               >
-                GIF
+                {t('posts.form.media.addGifLabel', 'GIF')}
               </button>
               ) : null}
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Emoji einfügen'
+                aria-label={t(
+                  'posts.form.emoji.insertAria',
+                  'Emoji einfügen'
+                )}
                 aria-keyshortcuts='Control+. Meta+.'
-                title='Emoji einfügen (Ctrl+.)'
+                title={t(
+                  'posts.form.emoji.insertTitle',
+                  'Emoji einfügen (Ctrl+.)'
+                )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
@@ -581,12 +700,21 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   setMediaDialog({
                     open: true,
                     accept: 'image/*',
-                    title: 'Bild hinzufügen'
+                    title: t(
+                      'posts.form.media.addImageTitle',
+                      'Bild hinzufügen'
+                    )
                   })
                 }
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
-                aria-label='Bild hinzufügen'
-                title='Bild hinzufügen'
+                aria-label={t(
+                  'posts.form.media.addImageAria',
+                  'Bild hinzufügen'
+                )}
+                title={t(
+                  'posts.form.media.addImageTitle',
+                  'Bild hinzufügen'
+                )}
               >
                 <span className='text-base md:text-lg leading-none'>🖼️</span>
               </button>
@@ -596,18 +724,30 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                 onClick={() => setGifPicker({ open: true })}
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
-                aria-label='GIF hinzufügen'
-                title='GIF hinzufügen'
+                aria-label={t(
+                  'posts.form.media.addGifAria',
+                  'GIF hinzufügen'
+                )}
+                title={t(
+                  'posts.form.media.addGifTitle',
+                  'GIF hinzufügen'
+                )}
               >
-                GIF
+                {t('posts.form.media.addGifLabel', 'GIF')}
               </button>
               ) : null}
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Emoji einfügen'
+                aria-label={t(
+                  'posts.form.emoji.insertAria',
+                  'Emoji einfügen'
+                )}
                 aria-keyshortcuts='Control+. Meta+.'
-                title='Emoji einfügen (Ctrl+.)'
+                title={t(
+                  'posts.form.emoji.insertTitle',
+                  'Emoji einfügen (Ctrl+.)'
+                )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
@@ -679,13 +819,30 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                         >
                           <img
                             src={it.src}
-                            alt={it.alt || `Bild ${idx + 1}`}
+                            alt={
+                              it.alt ||
+                              t(
+                                'posts.form.media.imageAltFallback',
+                                'Bild {index}',
+                                { index: idx + 1 }
+                              )
+                            }
                             className='absolute inset-0 h-full w-full object-contain'
                           />
                           <div className='pointer-events-none absolute left-1 top-1 z-10'>
                             <span
                               className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
-                              title={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                              title={
+                                it.alt
+                                  ? t(
+                                      'posts.form.media.altEditTitle',
+                                      'Alt‑Text bearbeiten'
+                                    )
+                                  : t(
+                                      'posts.form.media.altAddTitle',
+                                      'Alt‑Text hinzufügen'
+                                    )
+                              }
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
@@ -693,22 +850,40 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                               }}
                               role='button'
                               tabIndex={0}
-                              aria-label={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                              aria-label={
+                                it.alt
+                                  ? t(
+                                      'posts.form.media.altEditTitle',
+                                      'Alt‑Text bearbeiten'
+                                    )
+                                  : t(
+                                      'posts.form.media.altAddTitle',
+                                      'Alt‑Text hinzufügen'
+                                    )
+                              }
                             >
-                              {it.alt ? 'ALT' : '+ ALT'}
+                              {it.alt
+                                ? t('posts.form.media.altBadge', 'ALT')
+                                : t('posts.form.media.altAddBadge', '+ ALT')}
                             </span>
                           </div>
                           <div className='absolute right-1 top-1 z-10 flex gap-1'>
                             <button
                               type='button'
                               className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80'
-                              title='Bild entfernen'
+                              title={t(
+                                'posts.form.media.removeButtonTitle',
+                                'Bild entfernen'
+                              )}
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
                                 handleRemoveMedia(it)
                               }}
-                              aria-label='Bild entfernen'
+                              aria-label={t(
+                                'posts.form.media.removeButtonTitle',
+                                'Bild entfernen'
+                              )}
                             >
                               ✕
                             </button>
@@ -729,7 +904,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               </div>
             </div>
             <div className='mt-2 text-sm text-foreground-muted'>
-              Medien{' '}
+              {t('posts.form.media.counterLabel', 'Medien')}{' '}
               {(isEditing && Array.isArray(editingSkeet?.media)
                 ? editingSkeet.media.filter(m => !removedMedia[m.id]).length
                 : 0) + pendingMedia.length}
@@ -745,7 +920,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             htmlFor='repeat'
             className='text-sm font-semibold text-foreground'
           >
-            Wiederholungsmuster
+            {t('posts.form.repeat.label', 'Wiederholungsmuster')}
           </label>
           <select
             id='repeat'
@@ -758,10 +933,18 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         }}
             className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
           >
-            <option value='none'>Keine Wiederholung</option>
-            <option value='daily'>Täglich</option>
-            <option value='weekly'>Wöchentlich</option>
-            <option value='monthly'>Monatlich</option>
+            <option value='none'>
+              {t('posts.form.repeat.none', 'Keine Wiederholung')}
+            </option>
+            <option value='daily'>
+              {t('posts.form.repeat.daily', 'Täglich')}
+            </option>
+            <option value='weekly'>
+              {t('posts.form.repeat.weekly', 'Wöchentlich')}
+            </option>
+            <option value='monthly'>
+              {t('posts.form.repeat.monthly', 'Monatlich')}
+            </option>
           </select>
         </div>
 
@@ -770,7 +953,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             htmlFor='time'
             className='text-sm font-semibold text-foreground'
           >
-            Geplante Uhrzeit
+            {t('posts.form.time.label', 'Geplante Uhrzeit')}
           </label>
           <input
             id='time'
@@ -806,7 +989,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         {repeat === 'weekly' && (
           <div className='space-y-2'>
             <label className='text-sm font-semibold text-foreground'>
-              Wochentage
+              {t('posts.form.weekdays.label', 'Wochentage')}
             </label>
             <div className='grid grid-cols-7 gap-2'>
               {order.map(idx => {
@@ -855,7 +1038,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               htmlFor='repeatDayOfMonth'
               className='text-sm font-semibold text-foreground'
             >
-              Tag im Monat (1–31)
+              {t('posts.form.monthlyDay.label', 'Tag im Monat (1–31)')}
             </label>
             <input
               id='repeatDayOfMonth'
@@ -878,7 +1061,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               htmlFor='date'
               className='text-sm font-semibold text-foreground'
             >
-              Geplantes Datum
+              {t('posts.form.date.label', 'Geplantes Datum')}
             </label>
             <input
               id='date'
@@ -913,11 +1096,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             variant='secondary'
             onClick={() => onCancelEdit && onCancelEdit()}
           >
-            Abbrechen
+            {t('posts.form.cancel', 'Abbrechen')}
           </Button>
         )}
         <Button type='submit' variant='primary'>
-          {isEditing ? 'Post aktualisieren' : 'Planen'}
+          {isEditing
+            ? t('posts.form.submitUpdate', 'Post aktualisieren')
+            : t('posts.form.submitCreate', 'Planen')}
         </Button>
         <Button
           type='button'
@@ -929,7 +1114,17 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               const normalizedPlatforms = Array.from(new Set(targetPlatforms))
               const submissionLimit = resolveMaxLength(normalizedPlatforms)
               if (content.length > submissionLimit) {
-                toast.error({ title: 'Zeichenlimit überschritten', description: `Max. ${submissionLimit} Zeichen.` })
+                toast.error({
+                  title: t(
+                    'posts.form.limitExceededTitle',
+                    'Zeichenlimit überschritten'
+                  ),
+                  description: t(
+                    'posts.form.limitExceededShort',
+                    'Max. {limit} Zeichen.',
+                    { limit: submissionLimit }
+                  )
+                })
                 return
               }
               const now = new Date()
@@ -950,20 +1145,56 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
                 if (!resCreate.ok) {
                   const data = await resCreate.json().catch(() => ({}))
-                  throw new Error(data.error || 'Post konnte nicht erstellt werden.')
+                  throw new Error(
+                    data.error ||
+                      t(
+                        'posts.form.sendNow.createErrorFallback',
+                        'Post konnte nicht erstellt werden.'
+                      )
+                  )
                 }
                 const created = await resCreate.json()
-                if (!created?.id) throw new Error('Unerwartete Antwort beim Erstellen des Posts.')
+                if (!created?.id) {
+                  throw new Error(
+                    t(
+                      'posts.form.sendNow.unexpectedCreateResponse',
+                      'Unerwartete Antwort beim Erstellen des Posts.'
+                    )
+                  )
+                }
                 const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
                 if (!resPub.ok) {
                   const data = await resPub.json().catch(() => ({}))
-                  throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                  throw new Error(
+                    data.error ||
+                      t(
+                        'posts.form.sendNow.publishErrorFallback',
+                        'Direktveröffentlichung fehlgeschlagen.'
+                      )
+                  )
                 }
-                toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Post wurde unmittelbar gesendet.' })
+                toast.success({
+                  title: t(
+                    'posts.form.sendNow.successTitle',
+                    'Veröffentlicht (direkt)'
+                  ),
+                  description: t(
+                    'posts.form.sendNow.successDescription',
+                    'Der Post wurde unmittelbar gesendet.'
+                  )
+                })
                 resetToDefaults()
                 if (onSkeetSaved) onSkeetSaved()
               } catch (e) {
-                toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+                toast.error({
+                  title: t(
+                    'posts.form.sendNow.errorTitle',
+                    'Senden fehlgeschlagen'
+                  ),
+                  description:
+                    e?.message ||
+                    t('common.errors.unknown', 'Unbekannter Fehler')
+                })
               } finally {
                 setSendingNow(false)
               }
@@ -976,24 +1207,52 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
               if (!res.ok) {
                 const data = await res.json().catch(() => ({}))
-                throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                throw new Error(
+                  data.error ||
+                    t(
+                      'posts.form.sendNow.publishErrorFallback',
+                      'Direktveröffentlichung fehlgeschlagen.'
+                    )
+                )
               }
-              toast.success({ title: 'Veröffentlicht (direkt)', description: 'Der Post wurde unmittelbar gesendet.' })
+              toast.success({
+                title: t(
+                  'posts.form.sendNow.successTitle',
+                  'Veröffentlicht (direkt)'
+                ),
+                description: t(
+                  'posts.form.sendNow.successDescription',
+                  'Der Post wurde unmittelbar gesendet.'
+                )
+              })
               if (onSkeetSaved) onSkeetSaved()
             } catch (e) {
-              toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' })
+              toast.error({
+                title: t(
+                  'posts.form.sendNow.errorTitle',
+                  'Senden fehlgeschlagen'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
+              })
             } finally {
               setSendingNow(false)
             }
           }}
         >
-          {sendingNow ? 'Senden…' : 'Sofort senden'}
+          {sendingNow
+            ? t('posts.form.sendNow.buttonBusy', 'Senden…')
+            : t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
         </Button>
       </div>
       <MediaDialog
         mode='upload'
         open={Boolean(mediaDialog.open)}
-        title={mediaDialog.title || 'Bild hinzufügen'}
+        title={
+          mediaDialog.title ||
+          t('posts.form.media.addImageTitle', 'Bild hinzufügen')
+        }
         accept={mediaDialog.accept || 'image/*'}
         requireAltText={Boolean(imagePolicy.requireAltText)}
         maxBytes={imagePolicy.maxBytes}
@@ -1045,7 +1304,15 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               }
               reader.readAsDataURL(file)
             } catch (e) {
-              toast.error({ title: 'GIF konnte nicht geladen werden', description: e?.message || 'Unbekannter Fehler' })
+              toast.error({
+                title: t(
+                  'posts.form.media.gifLoadErrorTitle',
+                  'GIF konnte nicht geladen werden'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
+              })
             } finally {
               setGifPicker({ open: false })
             }
@@ -1086,16 +1353,29 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       {infoContentOpen ? (
         <Modal
           open={infoContentOpen}
-          title='Hinweis: Post-Text'
+          title={t('posts.form.infoContent.title', 'Hinweis: Post-Text')}
           onClose={() => setInfoContentOpen(false)}
-          actions={<Button variant='primary' onClick={() => setInfoContentOpen(false)}>OK</Button>}
+          actions={(
+            <Button
+              variant='primary'
+              onClick={() => setInfoContentOpen(false)}
+            >
+              {t('common.actions.ok', 'OK')}
+            </Button>
+          )}
         >
           <div className='space-y-2 text-sm text-foreground'>
             <p>
-              Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.
+              {t(
+                'posts.form.infoContent.body1',
+                'Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.'
+              )}
             </p>
             <p>
-              Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.
+              {t(
+                'posts.form.infoContent.body2',
+                'Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.'
+              )}
             </p>
           </div>
         </Modal>
@@ -1105,16 +1385,30 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       {infoPreviewOpen ? (
         <Modal
           open={infoPreviewOpen}
-          title='Hinweis: Vorschau'
+          title={t('posts.form.infoPreview.title', 'Hinweis: Vorschau')}
           onClose={() => setInfoPreviewOpen(false)}
-          actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
+          actions={(
+            <Button
+              variant='primary'
+              onClick={() => setInfoPreviewOpen(false)}
+            >
+              {t('common.actions.ok', 'OK')}
+            </Button>
+          )}
         >
           <div className='space-y-2 text-sm text-foreground'>
             <p>
-              Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder je Post.
+              {t(
+                'posts.form.infoPreview.body1',
+                'Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
+                { max: imagePolicy?.maxCount ?? 4 }
+              )}
             </p>
             <p>
-              Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.
+              {t(
+                'posts.form.infoPreview.body2',
+                'Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.'
+              )}
             </p>
           </div>
         </Modal>
@@ -1124,7 +1418,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           open={altDialog.open}
           mode='alt'
           title={
-            altDialog.item.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'
+            altDialog.item.alt
+              ? t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten')
+              : t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen')
           }
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}
@@ -1141,7 +1437,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 if (!res.ok)
                   throw new Error(
                     (await res.json().catch(() => ({}))).error ||
-                      'Alt‑Text konnte nicht gespeichert werden.'
+                      t(
+                        'posts.form.media.altSaveErrorFallback',
+                        'Alt‑Text konnte nicht gespeichert werden.'
+                      )
                   )
                 setEditedMediaAlt(s => ({ ...s, [it.id]: newAlt }))
               } else if (it.type === 'pending') {
@@ -1158,8 +1457,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               toast.success({ title: 'Alt‑Text gespeichert' })
             } catch (e) {
               toast.error({
-                title: 'Fehler beim Alt‑Text',
-                description: e?.message || 'Unbekannter Fehler'
+                title: t(
+                  'posts.form.media.altSaveErrorTitle',
+                  'Fehler beim Alt‑Text'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
               })
             } finally {
               setAltDialog({ open: false, item: null })

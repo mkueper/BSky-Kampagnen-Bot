@@ -13,6 +13,7 @@
 import { describe, expect, it, beforeAll, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import PublishedSkeetList from '../../src/components/PublishedSkeetList'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 
 class ResizeObserverMock {
   constructor (cb) {
@@ -68,10 +69,12 @@ describe('PublishedSkeetList', () => {
   it('renders all skeets when virtualization is not required', () => {
     const skeets = Array.from({ length: 3 }, (_, idx) => createSkeet(idx + 1))
     render(
-      <PublishedSkeetList
-        {...defaultProps}
-        skeets={skeets}
-      />
+      <I18nProvider>
+        <PublishedSkeetList
+          {...defaultProps}
+          skeets={skeets}
+        />
+      </I18nProvider>
     )
 
     const buttons = screen.getAllByRole('button', { name: 'Beitrag' })
@@ -94,10 +97,12 @@ describe('PublishedSkeetList', () => {
 
     const skeets = Array.from({ length: 40 }, (_, idx) => createSkeet(idx + 1))
     render(
-      <PublishedSkeetList
-        {...defaultProps}
-        skeets={skeets}
-      />
+      <I18nProvider>
+        <PublishedSkeetList
+          {...defaultProps}
+          skeets={skeets}
+        />
+      </I18nProvider>
     )
 
     await waitFor(() => {

@@ -57,7 +57,7 @@ module.exports = (sequelize, DataTypes) => {
       repeat: { type: DataTypes.ENUM("none", "daily", "weekly", "monthly"), defaultValue: "none" },
       repeatDayOfWeek: { type: DataTypes.INTEGER, allowNull: true }, // 0–6
       repeatDayOfMonth: { type: DataTypes.INTEGER, allowNull: true }, // 1–31
-      // optionale Liste mehrerer Wochentage (0–6), z. B. für Mo/Mi/Fr-Serien
+      // optionale Liste mehrerer Wochentage (0–6), z. B. für Mo/Mi/Fr-Serien
       repeatDaysOfWeek: { type: DataTypes.JSON, allowNull: true, defaultValue: null },
       threadId: { type: DataTypes.INTEGER, allowNull: true },
       isThreadPost: { type: DataTypes.BOOLEAN, defaultValue: false },

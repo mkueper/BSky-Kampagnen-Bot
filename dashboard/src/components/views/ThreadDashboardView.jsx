@@ -7,6 +7,7 @@ import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from '@radix-ui/react-icons'
 import ThreadOverview from '../ThreadOverview'
 import { useVisibleIds } from '../../hooks/useVisibleIds'
 import FloatingToolbar from '../ui/FloatingToolbar'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 function ThreadDashboardView ({
   threads,
@@ -19,6 +20,7 @@ function ThreadDashboardView ({
   onDestroyThread,
   onRetractThread
 }) {
+  const { t } = useTranslation()
   const toast = useToast()
   const [activeTab, setActiveTab] = useState('planned')
   const [bulkRefreshing, setBulkRefreshing] = useState(false)
@@ -78,10 +80,14 @@ function ThreadDashboardView ({
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft`}>
         <div className='flex flex-col gap-4 border-b border-border-muted px-6 py-5 md:flex-row md:items-center md:justify-between'>
           <div>
-            <h3 className='text-lg font-semibold'>Thread Aktivität</h3>
+            <h3 className='text-lg font-semibold'>
+              {t('threads.activity.title', 'Thread Aktivität')}
+            </h3>
             <p className='text-sm text-foreground-muted'>
-              Verwalte geplante und veröffentlichte Threads inklusive Antworten
-              &amp; Reaktionen.
+              {t(
+                'threads.activity.description',
+                'Verwalte geplante und veröffentlichte Threads inklusive Antworten & Reaktionen.'
+              )}
             </p>
           </div>
           <div className='flex flex-col gap-3 text-sm font-medium md:flex-row md:items-center md:gap-3'>
@@ -96,9 +102,18 @@ function ThreadDashboardView ({
                 aria-orientation='horizontal'
               >
                 {[
-                  { value: 'planned', label: 'Geplant' },
-                  { value: 'published', label: 'Veröffentlicht' },
-                  { value: 'deleted', label: 'Papierkorb' }
+                  {
+                    value: 'planned',
+                    label: t('threads.activity.tabs.planned', 'Geplant')
+                  },
+                  {
+                    value: 'published',
+                    label: t('threads.activity.tabs.published', 'Veröffentlicht')
+                  },
+                  {
+                    value: 'deleted',
+                    label: t('threads.activity.tabs.deleted', 'Papierkorb')
+                  }
                 ].map(({ value, label }) => (
                   <Tabs.Trigger
                     key={value}
@@ -117,7 +132,10 @@ function ThreadDashboardView ({
             {activeTab === 'published' ? (
             <div className='self-start flex items-center gap-2 rounded-full border border-border bg-background-subtle px-2 py-1 text-xs font-medium text-foreground-muted md:hidden'>
                 <span className='sr-only'>
-                  Sortierung veröffentlichter Threads
+                  {t(
+                    'threads.activity.toolbar.mobileSortLabel',
+                    'Sortierung veröffentlichter Threads'
+                  )}
                 </span>
                 <div className='flex items-center gap-1'>
                   <Button
@@ -159,26 +177,39 @@ function ThreadDashboardView ({
                         setBulkIncludeReplies(Boolean(e.target.checked))
                       }
                     />
-                    <span className='text-xs'>Antworten</span>
+                    <span className='text-xs'>
+                      {t('threads.activity.toolbar.includeRepliesLabel', 'Antworten')}
+                    </span>
                   </label>
                 <div className='hidden md:flex'>
                   <Button
                     variant='ghost'
                     size='icon'
-                    aria-label='Alle sichtbaren aktualisieren'
-                    title='Alle sichtbaren aktualisieren'
+                    aria-label={t(
+                      'threads.activity.toolbar.refreshVisible',
+                      'Alle sichtbaren aktualisieren'
+                    )}
+                    title={t(
+                      'threads.activity.toolbar.refreshVisible',
+                      'Alle sichtbaren aktualisieren'
+                    )}
                     onClick={async () => {
                         setBulkRefreshing(true)
                         try {
-                          const ids = threads
+                         const ids = threads
                             .filter(t => t.status === 'published')
                             .map(t => t.id)
                             .filter(id => visibleIds.includes(id))
                           if (!ids.length) {
                             toast.info({
-                              title: 'Keine sichtbaren Einträge',
-                              description:
+                              title: t(
+                                'threads.activity.toolbar.noVisibleTitle',
+                                'Keine sichtbaren Einträge'
+                              ),
+                              description: t(
+                                'threads.activity.toolbar.noVisibleDescription',
                                 'Scrolle die Liste, um Einträge sichtbar zu machen.'
+                              )
                             })
                           } else {
                             const res = await fetch(
@@ -197,7 +228,10 @@ function ThreadDashboardView ({
                               const data = await res.json().catch(() => ({}))
                               throw new Error(
                                 data.error ||
-                                  'Fehler beim Aktualisieren der sichtbaren Threads.'
+                                  t(
+                                    'threads.activity.toolbar.refreshBackendErrorFallback',
+                                    'Fehler beim Aktualisieren der sichtbaren Threads.'
+                                  )
                               )
                             }
                             const data = await res.json().catch(() => null)
@@ -207,9 +241,24 @@ function ThreadDashboardView ({
                               : 0
                             const failCount = Math.max(0, total - okCount)
                             toast.success({
-                              title: 'Sichtbare aktualisiert',
-                              description: `Threads: ${okCount} aktualisiert${
-                                failCount ? ` · ${failCount} fehlgeschlagen` : ''
+                              title: t(
+                                'threads.activity.toolbar.refreshSuccessTitle',
+                                'Sichtbare aktualisiert'
+                              ),
+                              description: `${t(
+                                'threads.activity.toolbar.refreshSuccessDescriptionPrefix',
+                                'Threads: '
+                              )}${okCount}${t(
+                                'threads.activity.toolbar.refreshSuccessDescriptionSuffix',
+                                ' aktualisiert'
+                              )}${
+                                failCount
+                                  ? t(
+                                      'threads.activity.toolbar.refreshSuccessFailedPart',
+                                      ` · ${failCount} fehlgeschlagen`,
+                                      { count: failCount }
+                                    )
+                                  : ''
                               }`
                             })
                             if (typeof onReload === 'function')
@@ -221,9 +270,16 @@ function ThreadDashboardView ({
                             error
                           )
                           toast.error({
-                            title: 'Aktualisierung fehlgeschlagen',
+                            title: t(
+                              'threads.activity.toolbar.refreshErrorTitle',
+                              'Aktualisierung fehlgeschlagen'
+                            ),
                             description:
-                              error?.message || 'Fehler beim Aktualisieren.'
+                              error?.message ||
+                              t(
+                                'threads.activity.toolbar.refreshErrorDescription',
+                                'Fehler beim Aktualisieren.'
+                              )
                           })
                         } finally {
                           setBulkRefreshing(false)
@@ -284,14 +340,24 @@ function ThreadDashboardView ({
             />
           ) : (
             <p className='rounded-3xl border border-border bg-background-subtle px-4 py-6 text-sm text-foreground-muted'>
-              Der Papierkorb ist leer.
+              {t(
+                'threads.activity.emptyTrash',
+                'Der Papierkorb ist leer.'
+              )}
             </p>
           )}
         </div>
       </section>
 
       {activeTab === 'published' ? (
-        <FloatingToolbar ariaLabel='Thread-Aktionen' variant='primary' className='hidden md:flex'>
+        <FloatingToolbar
+          ariaLabel={t(
+            'threads.activity.toolbar.ariaLabel',
+            'Thread-Aktionen'
+          )}
+          variant='primary'
+          className='hidden md:flex'
+        >
           <Button
             variant='ghost'
             size='icon'
@@ -300,8 +366,11 @@ function ThreadDashboardView ({
             } hover:bg-primary-foreground/15`}
             onClick={() => setPublishedSortOrder('desc')}
             aria-pressed={publishedSortOrder === 'desc'}
-            aria-label='Neu zuerst sortieren'
-            title='Neu zuerst'
+            aria-label={t(
+              'threads.activity.toolbar.sortNewFirst',
+              'Neu zuerst sortieren'
+            )}
+            title={t('threads.activity.toolbar.sortNewFirst', 'Neu zuerst')}
           >
             <ArrowDownIcon className='h-4 w-4' />
           </Button>
@@ -313,8 +382,11 @@ function ThreadDashboardView ({
             } hover:bg-primary-foreground/15`}
             onClick={() => setPublishedSortOrder('asc')}
             aria-pressed={publishedSortOrder === 'asc'}
-            aria-label='Alt zuerst sortieren'
-            title='Alt zuerst'
+            aria-label={t(
+              'threads.activity.toolbar.sortOldFirst',
+              'Alt zuerst sortieren'
+            )}
+            title={t('threads.activity.toolbar.sortOldFirst', 'Alt zuerst')}
           >
             <ArrowUpIcon className='h-4 w-4' />
           </Button>
@@ -327,8 +399,14 @@ function ThreadDashboardView ({
             variant='ghost'
             size='icon'
             className='text-inherit hover:bg-primary-foreground/15'
-            aria-label='Alle sichtbaren aktualisieren'
-            title='Alle sichtbaren aktualisieren'
+            aria-label={t(
+              'threads.activity.toolbar.refreshVisible',
+              'Alle sichtbaren aktualisieren'
+            )}
+            title={t(
+              'threads.activity.toolbar.refreshVisible',
+              'Alle sichtbaren aktualisieren'
+            )}
             onClick={async () => {
               setBulkRefreshing(true)
               try {

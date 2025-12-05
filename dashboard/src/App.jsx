@@ -632,15 +632,15 @@ function DashboardApp ({ onLogout }) {
 
   const isThreadContext = activeView.startsWith('threads')
   const exportButtonLabel = exporting
-    ? 'Export…'
+    ? t('export.buttonBusy', 'Export…')
     : isThreadContext
-    ? 'Threads exportieren'
-    : 'Posts exportieren'
+        ? t('threads.export.buttonLabel', 'Threads exportieren')
+        : t('postsExtra.export.buttonLabel', 'Posts exportieren')
   const importButtonLabel = importing
-    ? 'Import…'
+    ? t('import.buttonBusy', 'Import…')
     : isThreadContext
-    ? 'Threads importieren'
-    : 'Posts importieren'
+        ? t('threads.import.buttonLabel', 'Threads importieren')
+        : t('postsExtra.import.buttonLabel', 'Posts importieren')
 
   const headerActions = (
     <>
@@ -694,7 +694,7 @@ function DashboardApp ({ onLogout }) {
         onClick={handleLogoutClick}
         disabled={logoutPending}
       >
-        Abmelden
+        {t('auth.logout.button', 'Abmelden')}
       </Button>
     </div>
   )
@@ -712,13 +712,28 @@ function DashboardApp ({ onLogout }) {
 
   if (gatedNeedsCreds) {
     content = (
-      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+      <Suspense
+        fallback={
+          <LoadingBlock
+            message={t(
+              'config.loading',
+              'Konfiguration wird geladen…'
+            )}
+          />
+        }
+      >
         <ConfigPanel />
       </Suspense>
     )
   } else if (activeView === 'overview') {
     content = (
-      <Suspense fallback={<LoadingBlock message='Übersicht wird geladen…' />}>
+      <Suspense
+        fallback={
+          <LoadingBlock
+            message={t('overview.loading', 'Übersicht wird geladen…')}
+          />
+        }
+      >
         <MainOverviewView
           threads={threads}
           plannedSkeets={plannedSkeets}
@@ -739,18 +754,27 @@ function DashboardApp ({ onLogout }) {
         <section className='grid gap-4 md:grid-cols-3'>
           <ActivityPanel
             className='md:col-span-2'
-            title='Post-Aktivität'
-            description='Status deiner geplanten und veröffentlichten Posts.'
+            title={t('posts.activity.title', 'Post-Aktivität')}
+            description={t(
+              'postsExtra.activity.descriptionShort',
+              'Status deiner geplanten und veröffentlichten Posts.'
+            )}
             items={overviewStatsSkeets}
           />
           <SummaryCard
-            title='Nächster Post'
+            title={t(
+              'postsExtra.overview.next.title',
+              'Nächster Post'
+            )}
             value={upcomingSkeetDate}
             time={upcomingSkeetTime ? `${upcomingSkeetTime} Uhr` : null}
             snippet={
               typeof upcomingSkeetSnippet !== 'undefined' && upcomingSkeet
                 ? upcomingSkeetSnippet
-                : 'Noch nichts geplant'
+                : t(
+                    'postsExtra.overview.next.none',
+                    'Noch nichts geplant'
+                  )
             }
           />
         </section>
@@ -764,20 +788,30 @@ function DashboardApp ({ onLogout }) {
         <section className='grid gap-4 md:grid-cols-3'>
           <ActivityPanel
             className='md:col-span-2'
-            title='Thread Aktivität'
-            description='Status deiner geplanten und veröffentlichten Threads.'
+            title={t('threads.activity.title', 'Thread Aktivität')}
+            description={t(
+              'threads.activityExtra.descriptionShort',
+              'Status deiner geplanten und veröffentlichten Threads.'
+            )}
             items={activityStatsThreads}
           />
           <SummaryCard
-            title='Nächster Thread'
+            title={t('threads.overview.next.title', 'Nächster Thread')}
             value={nextThreadDate}
             time={nextThreadTime || null}
             snippet={
               nextScheduledThread
                 ? (nextScheduledThread.thread.segments?.[0]?.content || '')
                     .toString()
-                    .trim() || 'Kein Inhalt hinterlegt'
-                : 'Noch nichts geplant'
+                    .trim() ||
+                  t(
+                    'threads.overview.next.noContent',
+                    'Kein Inhalt hinterlegt'
+                  )
+                : t(
+                    'threads.overview.next.none',
+                    'Noch nichts geplant'
+                  )
             }
           />
         </section>
@@ -785,7 +819,16 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'skeets-overview') {
     content = (
-      <Suspense fallback={<LoadingBlock message='Post-Aktivität wird geladen…' />}>
+      <Suspense
+        fallback={
+          <LoadingBlock
+            message={t(
+              'posts.activity.loading',
+              'Post-Aktivität wird geladen…'
+            )}
+          />
+        }
+      >
         <DashboardView
           plannedSkeets={plannedSkeetsWithoutPending}
           publishedSkeets={publishedSkeets}
@@ -819,7 +862,16 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'threads-overview') {
     content = (
-      <Suspense fallback={<LoadingBlock message='Thread Aktivität wird geladen…' />}>
+      <Suspense
+        fallback={
+          <LoadingBlock
+            message={t(
+              'threads.activity.loading',
+              'Thread Aktivität wird geladen…'
+            )}
+          />
+        }
+      >
         <ThreadDashboardView
           threads={threads}
           loading={threadsLoading}
@@ -835,7 +887,16 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'config') {
     content = (
-      <Suspense fallback={<LoadingBlock message='Konfiguration wird geladen…' />}>
+      <Suspense
+        fallback={
+          <LoadingBlock
+            message={t(
+              'config.loading',
+              'Konfiguration wird geladen…'
+            )}
+          />
+        }
+      >
         <ConfigPanel />
       </Suspense>
     )
@@ -848,7 +909,16 @@ function DashboardApp ({ onLogout }) {
   } else if (activeView === 'about') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <Suspense fallback={<p className='text-sm text-foreground-muted'>Infoansicht wird geladen…</p>}>
+        <Suspense
+          fallback={
+            <p className='text-sm text-foreground-muted'>
+              {t(
+                'about.loading',
+                'Infoansicht wird geladen…'
+              )}
+            </p>
+          }
+        >
           <AboutView />
         </Suspense>
       </Card>
@@ -856,7 +926,16 @@ function DashboardApp ({ onLogout }) {
   } else if (activeView === 'skeets-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <Suspense fallback={<p className='text-sm text-foreground-muted'>Skeet-Formular wird geladen…</p>}>
+        <Suspense
+          fallback={
+            <p className='text-sm text-foreground-muted'>
+              {t(
+                'posts.form.loading',
+                'Post-Formular wird geladen…'
+              )}
+            </p>
+          }
+        >
           <SkeetForm
             onSkeetSaved={handleFormSaved}
             editingSkeet={editingSkeet}
@@ -869,7 +948,16 @@ function DashboardApp ({ onLogout }) {
   } else if (activeView === 'threads-plan') {
     content = (
       <Card padding='p-6 lg:p-10'>
-        <Suspense fallback={<p className='text-sm text-foreground-muted'>Thread-Formular wird geladen…</p>}>
+        <Suspense
+          fallback={
+            <p className='text-sm text-foreground-muted'>
+              {t(
+                'threads.form.loading',
+                'Thread-Formular wird geladen…'
+              )}
+            </p>
+          }
+        >
           <ThreadForm
             key={editingThreadId || 'new'}
             initialThread={editingThreadId ? editingThread : null}
@@ -919,7 +1007,10 @@ function DashboardApp ({ onLogout }) {
         title={confirmDialog.title}
         description={confirmDialog.description}
         confirmLabel={confirmDialog.confirmLabel}
-        cancelLabel={confirmDialog.cancelLabel || 'Abbrechen'}
+        cancelLabel={
+          confirmDialog.cancelLabel ||
+          t('common.actions.cancel', 'Abbrechen')
+        }
         variant={confirmDialog.variant || 'primary'}
         onConfirm={confirmDialog.onConfirm || closeConfirm}
         onCancel={closeConfirm}

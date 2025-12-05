@@ -5,6 +5,7 @@ import {
   ChevronRightIcon
 } from '@radix-ui/react-icons'
 import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 /**
  * High-level layout wrapper for the dashboard application.
  *
@@ -29,6 +30,7 @@ function AppLayout ({
   mobileMenuExtras = null,
   navFooter = null
 }) {
+  const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
   // Desktop: collapsed main navigation state (default visible)
   const [navCollapsed, setNavCollapsed] = useState(false)
@@ -119,15 +121,17 @@ function AppLayout ({
           } ${
             menuOpen ? 'translate-x-0' : '-translate-x-[110%] md:-translate-x-0'
           }`}
-          aria-label='Hauptnavigation'
+          aria-label={t('layout.nav.ariaLabel', 'Hauptnavigation')}
         >
           <div className='flex h-full flex-col p-6'>
             <div className='flex items-center justify-between pb-6'>
               <div>
                 <p className='text-xs uppercase tracking-[0.3em] text-foreground-subtle'>
-                  Control Center
+                  {t('layout.nav.tagline', 'Control Center')}
                 </p>
-                <h1 className='mt-1 text-xl font-semibold'>Kampagnen‑Tool</h1>
+                <h1 className='mt-1 text-xl font-semibold'>
+                  {t('layout.nav.appName', 'Kampagnen‑Tool')}
+                </h1>
               </div>
               <div className='flex items-center gap-2'>
                 {/* Mobile: schließt Overlay */}
@@ -137,7 +141,9 @@ function AppLayout ({
                   onClick={() => setMenuOpen(false)}
                 >
                   <HamburgerMenuIcon className='h-5 w-5 rotate-180' />
-                  <span className='sr-only'>Navigation schließen</span>
+                  <span className='sr-only'>
+                    {t('layout.nav.close', 'Navigation schließen')}
+                  </span>
                 </button>
                 {/* Desktop: klappt Hauptnavigation ein */}
                 <button
@@ -255,8 +261,11 @@ function AppLayout ({
           <button
             type='button'
             className='group fixed inset-y-6 left-0 z-20 hidden w-3 hover:w-4 rounded-r-2xl border border-primary/30 bg-gradient-to-r from-primary/15 via-background-elevated/80 to-background-elevated/60 shadow-soft backdrop-blur transition-all hover:border-primary hover:from-primary/25 hover:via-background-elevated/90 hover:to-background-elevated md:flex md:flex-col md:items-center md:justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-            aria-label='Navigation einblenden'
-            title='Navigation einblenden'
+            aria-label={t(
+              'layout.nav.restore',
+              'Navigation einblenden'
+            )}
+            title={t('layout.nav.restore', 'Navigation einblenden')}
             onClick={() => setNavCollapsed(false)}
           >
             <ChevronRightIcon className='h-4 w-4 text-foreground-muted opacity-80 transition group-hover:opacity-100 group-hover:text-foreground' />
@@ -286,7 +295,9 @@ function AppLayout ({
                     onClick={() => setMenuOpen(true)}
                   >
                     <HamburgerMenuIcon className='h-5 w-5' />
-                    <span className='sr-only'>Navigation öffnen</span>
+                    <span className='sr-only'>
+                      {t('layout.nav.open', 'Navigation öffnen')}
+                    </span>
                   </button>
                   <div className='min-w-0'>
                     {headerCaption ? (

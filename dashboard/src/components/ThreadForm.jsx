@@ -10,6 +10,7 @@ import {
   getDefaultDateParts,
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -118,6 +119,7 @@ function ThreadForm ({
   onCancel,
   onSuggestMoveToSkeets
 }) {
+  const { t } = useTranslation()
   const { config: clientConfig } = useClientConfig()
   const theme = useTheme()
   const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
@@ -315,15 +317,51 @@ function ThreadForm ({
 
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || 'Upload fehlgeschlagen.');
+            throw new Error(
+              data.error ||
+                t(
+                  'threads.form.media.uploadErrorExistingFallback',
+                  'Upload fehlgeschlagen.'
+                )
+            );
           }
-          toast.success({ title: `Post ${index + 1}`, description: 'Bild hinzugefügt.' });
+          toast.success({
+            title: t(
+              'threads.form.media.segmentSuccessTitle',
+              'Post {index}',
+              { index: index + 1 }
+            ),
+            description: t(
+              'threads.form.media.addedDescription',
+              'Bild hinzugefügt.'
+            )
+          });
         } catch (e) {
           const msg = e?.message || '';
           if (/zu groß|too large|413/i.test(msg)) {
-            setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            setUploadError({
+              open: true,
+              message: t(
+                'threads.form.media.tooLargeMessage',
+                'Die Datei ist zu groß. Maximal {mb} MB erlaubt.',
+                {
+                  mb: (imagePolicy.maxBytes / (1024 * 1024)).toFixed(0)
+                }
+              )
+            });
           } else {
-            toast.error({ title: 'Medien-Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            toast.error({
+              title: t(
+                'threads.form.media.uploadExistingErrorTitle',
+                'Medien-Upload fehlgeschlagen'
+              ),
+              description:
+                msg ||
+                t(
+                  'threads.form.media.uploadErrorDescription',
+                  'Fehler beim Upload.'
+                )
+            });
           }
         }
       } else {
@@ -340,7 +378,13 @@ function ThreadForm ({
 
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || 'Temporärer Upload fehlgeschlagen.');
+            throw new Error(
+              data.error ||
+                t(
+                  'threads.form.media.uploadTempErrorFallback',
+                  'Temporärer Upload fehlgeschlagen.'
+                )
+            );
           }
           const info = await res.json();
           setPendingMedia((s) => {
@@ -348,28 +392,83 @@ function ThreadForm ({
             arr.push({ tempId: info.tempId, mime: info.mime, previewUrl: info.previewUrl, altText: info.altText || '' });
             return { ...s, [index]: arr };
           });
-          toast.success({ title: `Post ${index + 1}`, description: 'Bild hinzugefügt.' });
+          toast.success({
+            title: t(
+              'threads.form.media.segmentSuccessTitle',
+              'Post {index}',
+              { index: index + 1 }
+            ),
+            description: t(
+              'threads.form.media.addedDescription',
+              'Bild hinzugefügt.'
+            )
+          });
         } catch (e) {
           const msg = e?.message || '';
           if (/zu groß|too large|413/i.test(msg)) {
-            setUploadError({ open: true, message: `Die Datei ist zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB erlaubt.` });
+            setUploadError({
+              open: true,
+              message: t(
+                'threads.form.media.tooLargeMessage',
+                'Die Datei ist zu groß. Maximal {mb} MB erlaubt.',
+                {
+                  mb: (imagePolicy.maxBytes / (1024 * 1024)).toFixed(0)
+                }
+              )
+            });
           } else {
-            toast.error({ title: 'Upload fehlgeschlagen', description: msg || 'Fehler beim Upload.' });
+            toast.error({
+              title: t(
+                'threads.form.media.uploadTempErrorTitle',
+                'Upload fehlgeschlagen'
+              ),
+              description:
+                msg ||
+                t(
+                  'threads.form.media.uploadErrorDescription',
+                  'Fehler beim Upload.'
+                )
+            });
           }
         }
       }
     } catch (e) {
       console.error("Fehler beim Hochladen des Bildes im Thread", e)
-      toast.error({ title: 'Upload fehlgeschlagen', description: e})
+      toast.error({
+        title: t(
+          'threads.form.media.uploadTempErrorTitle',
+          'Upload fehlgeschlagen'
+        ),
+        description:
+          e?.message || t('common.errors.unknown', 'Unbekannter Fehler')
+      })
     }
   };
 
   // Media Dialog State
-  const [mediaDialog, setMediaDialog] = useState({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+  const [mediaDialog, setMediaDialog] = useState({
+    open: false,
+    index: null,
+    accept: 'image/*',
+    title: t('threads.form.media.addImageTitle', 'Bild hinzufügen')
+  })
   const openMediaDialog = (index, { gif = false } = {}) => {
-    setMediaDialog({ open: true, index, accept: gif ? 'image/gif' : 'image/*', title: gif ? 'GIF hinzufügen' : 'Bild hinzufügen' })
+    setMediaDialog({
+      open: true,
+      index,
+      accept: gif ? 'image/gif' : 'image/*',
+      title: gif
+        ? t('threads.form.media.addGifTitle', 'GIF hinzufügen')
+        : t('threads.form.media.addImageTitle', 'Bild hinzufügen')
+    })
   }
-  const closeMediaDialog = () => setMediaDialog({ open: false, index: null, accept: 'image/*', title: 'Bild hinzufügen' })
+  const closeMediaDialog = () =>
+    setMediaDialog({
+      open: false,
+      index: null,
+      accept: 'image/*',
+      title: t('threads.form.media.addImageTitle', 'Bild hinzufügen')
+    })
   const [gifPicker, setGifPicker] = useState({ open: false, index: null })
   const [emojiPicker, setEmojiPicker] = useState({ open: false })
 
@@ -541,10 +640,17 @@ function ThreadForm ({
       const thread = await res.json()
 
       toast.success({
-        title: isEditMode ? 'Thread aktualisiert' : 'Thread geplant',
-        description: `Thread enthält ${totalSegments} Post${
-          totalSegments !== 1 ? 's' : ''
-        }.`
+        title: isEditMode
+          ? t('threads.form.saveSuccessUpdateTitle', 'Thread aktualisiert')
+          : t('threads.form.saveSuccessCreateTitle', 'Thread geplant'),
+        description: t(
+          'threads.form.saveSuccessDescription',
+          'Thread enthält {count} Post{suffix}.',
+          {
+            count: totalSegments,
+            suffix: totalSegments !== 1 ? 's' : ''
+          }
+        )
       })
 
       if (typeof onThreadSaved === 'function') {
@@ -565,10 +671,20 @@ function ThreadForm ({
       console.error('Thread konnte nicht gespeichert werden:', error)
       toast.error({
         title: isEditMode
-          ? 'Aktualisierung fehlgeschlagen'
-          : 'Speichern fehlgeschlagen',
+          ? t(
+              'threads.form.saveErrorUpdateTitle',
+              'Aktualisierung fehlgeschlagen'
+            )
+          : t(
+              'threads.form.saveErrorCreateTitle',
+              'Speichern fehlgeschlagen'
+            ),
         description:
-          error?.message || 'Unbekannter Fehler beim Speichern des Threads.'
+          error?.message ||
+          t(
+            'threads.form.saveErrorDescription',
+            'Unbekannter Fehler beim Speichern des Threads.'
+          )
       })
     } finally {
       setSaving(false)
@@ -595,20 +711,31 @@ function ThreadForm ({
           <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
             <header className='space-y-3'>
               <div className='flex items-center justify-between'>
-                <h3 className='text-lg font-semibold'>Thread-Inhalt</h3>
+                <h3 className='text-lg font-semibold'>
+                  {t('threads.form.source.heading', 'Thread-Inhalt')}
+                </h3>
                 <button
                   type='button'
                   className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-                  aria-label='Hinweis zu Thread-Inhalt anzeigen'
+                  aria-label={t(
+                    'threads.form.source.infoAria',
+                    'Hinweis zu Thread-Inhalt anzeigen'
+                  )}
                   onClick={() => setInfoThreadOpen(true)}
-                  title='Hinweis anzeigen'
+                  title={t(
+                    'threads.form.infoButtonTitle',
+                    'Hinweis anzeigen'
+                  )}
                 >
-                  <InfoCircledIcon width={14} height={14} /> Info
+                  <InfoCircledIcon width={14} height={14} />{' '}
+                  {t('threads.form.infoButtonLabel', 'Info')}
                 </button>
               </div>
               <div className='flex flex-wrap items-center gap-3 text-sm'>
                 <span className='rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted'>
-                  Limit: {limitLabel}
+                  {t('threads.form.source.limitLabel', 'Limit: {label}', {
+                    label: limitLabel
+                  })}
                 </span>
               </div>
             </header>
@@ -619,16 +746,25 @@ function ThreadForm ({
               onChange={event => setSource(event.target.value)}
               onKeyDown={handleKeyDown}
               className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-              placeholder='Beispiel:\nIntro zum Thread...\n---\nWeiterer Post...'
+              placeholder={t(
+                'threads.form.source.placeholder',
+                'Beispiel:\nIntro zum Thread...\n---\nWeiterer Post...'
+              )}
             />
             {/* Toolbar unter der Textarea */}
             <div className='mt-2 flex items-center gap-2'>
               <button
                 type='button'
                 className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Emoji einfügen'
+                aria-label={t(
+                  'threads.form.emoji.insertAria',
+                  'Emoji einfügen'
+                )}
                 aria-keyshortcuts='Control+. Meta+.'
-                title='Emoji einfügen (Ctrl+.)'
+                title={t(
+                  'threads.form.emoji.insertTitle',
+                  'Emoji einfügen (Ctrl+.)'
+                )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
                 <span className='text-base md:text-lg leading-none'>😊</span>
@@ -638,13 +774,29 @@ function ThreadForm ({
             <div className='mt-4 space-y-3'>
               <fieldset className='space-y-2'>
                 <legend className='text-sm font-semibold'>
-                  Zielplattformen
+                  {t('threads.form.platforms.legend', 'Zielplattformen')}
                 </legend>
-                <div className='flex flex-wrap items-center gap-2' role='group' aria-label='Zielplattformen wählen'>
+                <div
+                  className='flex flex-wrap items-center gap-2'
+                  role='group'
+                  aria-label={t(
+                    'threads.form.platforms.groupLabel',
+                    'Zielplattformen wählen'
+                  )}
+                >
                   {PLATFORM_OPTIONS.map((option) => {
                     const isActive = targetPlatforms.includes(option.id);
                     const disabled = option.id === 'mastodon' && !mastodonConfigured;
-                    const title = disabled ? 'Mastodon-Zugang nicht konfiguriert' : `${option.label} (${option.limit})`;
+                    const title = disabled
+                      ? t(
+                          'threads.form.platforms.mastodonDisabledTitle',
+                          'Mastodon-Zugang nicht konfiguriert'
+                        )
+                      : t(
+                          'threads.form.platforms.optionTitle',
+                          '{label} ({limit})',
+                          { label: option.label, limit: option.limit }
+                        );
                     return (
                       <label
                         key={option.id}
@@ -664,8 +816,12 @@ function ThreadForm ({
                           onChange={() => handleTogglePlatform(option.id)}
                         />
                         <span className='capitalize'>
-                          {option.label.toLowerCase()}
-                          <span className='ml-1 text-xs text-foreground-muted'>({option.limit})</span>
+                          {option.id === 'bluesky'
+                            ? t('threads.form.platforms.bluesky', 'Bluesky')
+                            : t('threads.form.platforms.mastodon', 'Mastodon')}
+                          <span className='ml-1 text-xs text-foreground-muted'>
+                            ({option.limit})
+                          </span>
                         </span>
                       </label>
                     );
@@ -680,11 +836,14 @@ function ThreadForm ({
                   checked={appendNumbering}
                   onChange={event => setAppendNumbering(event.target.checked)}
                 />
-                Automatische Nummerierung (`1/x`) anhängen
+                {t(
+                  'threads.form.numbering.label',
+                  'Automatische Nummerierung (`1/x`) anhängen'
+                )}
               </label>
 
               <label className='block text-sm font-medium'>
-                Geplanter Versand
+                {t('threads.form.schedule.label', 'Geplanter Versand')}
                 <input
                   type='datetime-local'
                   value={scheduledAt}
@@ -692,20 +851,24 @@ function ThreadForm ({
                   className='mt-1 w-full rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
                 />
                 <span className='mt-1 block text-xs text-foreground-muted'>
-                  Standard: morgen um 09:00 Uhr
+                  {t(
+                    'threads.form.schedule.hint',
+                    'Standard: morgen um 09:00 Uhr'
+                  )}
                 </span>
               </label>
 
               <p className='text-xs text-foreground-muted'>
-                STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden
-                automatisch aufgeteilt. Nummerierung kann optional deaktiviert
-                werden.
+                {t(
+                  'threads.form.source.shortHint',
+                  'STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.'
+                )}
               </p>
 
               <div className='flex flex-wrap items-center gap-2'>
                 {isEditMode && typeof onCancel === 'function' ? (
                   <Button type='button' variant='secondary' onClick={onCancel} disabled={saving}>
-                    Abbrechen
+                    {t('threads.form.actions.cancel', 'Abbrechen')}
                   </Button>
                 ) : null}
                 <Button
@@ -720,7 +883,10 @@ function ThreadForm ({
                   }}
                   disabled={saving || sending}
                 >
-                  Formular zurücksetzen
+                  {t(
+                    'threads.form.actions.reset',
+                    'Formular zurücksetzen'
+                  )}
                 </Button>
                 <Button
                   type='button'
@@ -728,7 +894,16 @@ function ThreadForm ({
                   onClick={async () => {
                     if (saving || loading || sending) return
                     if (hasValidationIssues) {
-                      toast.error({ title: 'Formular unvollständig', description: 'Bitte behebe die markierten Probleme, bevor du sendest.' })
+                      toast.error({
+                        title: t(
+                          'threads.form.sendNow.validationErrorTitle',
+                          'Formular unvollständig'
+                        ),
+                        description: t(
+                          'threads.form.sendNow.validationErrorDescription',
+                          'Bitte behebe die markierten Probleme, bevor du sendest.'
+                        )
+                      })
                       return
                     }
 
@@ -761,24 +936,49 @@ function ThreadForm ({
                         })
                         if (!resCreate.ok) {
                           const data = await resCreate.json().catch(() => ({}))
-                          throw new Error(data.error || 'Thread konnte nicht erstellt werden.')
+                          throw new Error(
+                            data.error ||
+                              t(
+                                'threads.form.sendNow.createErrorFallback',
+                                'Thread konnte nicht erstellt werden.'
+                              )
+                          )
                         }
                         const created = await resCreate.json()
                         id = created?.id
-                        if (!id) throw new Error('Unerwartete Antwort beim Erstellen des Threads.')
+                        if (!id) {
+                          throw new Error(
+                            t(
+                              'threads.form.sendNow.unexpectedCreateResponse',
+                              'Unerwartete Antwort beim Erstellen des Threads.'
+                            )
+                          )
+                        }
                       }
 
                       // 2) Direkt veröffentlichen (ohne Scheduler-Tick)
                       const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
                       if (!resPub.ok) {
                         const data = await resPub.json().catch(() => ({}))
-                        throw new Error(data.error || 'Direktveröffentlichung fehlgeschlagen.')
+                        throw new Error(
+                          data.error ||
+                            t(
+                              'threads.form.sendNow.publishErrorFallback',
+                              'Direktveröffentlichung fehlgeschlagen.'
+                            )
+                        )
                       }
                       const published = await resPub.json()
 
                       toast.success({
-                        title: 'Veröffentlicht (direkt)',
-                        description: 'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
+                        title: t(
+                          'threads.form.sendNow.successTitle',
+                          'Veröffentlicht (direkt)'
+                        ),
+                        description: t(
+                          'threads.form.sendNow.successDescription',
+                          'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
+                        )
                       })
 
                       if (typeof onThreadSaved === 'function') {
@@ -789,19 +989,42 @@ function ThreadForm ({
                       }
                     } catch (e) {
                       console.error('Sofort senden fehlgeschlagen:', e)
-                      toast.error({ title: 'Senden fehlgeschlagen', description: e?.message || 'Unbekannter Fehler beim Senden.' })
+                      toast.error({
+                        title: t(
+                          'threads.form.sendNow.errorTitle',
+                          'Senden fehlgeschlagen'
+                        ),
+                        description:
+                          e?.message ||
+                          t(
+                            'threads.form.sendNow.errorDescription',
+                            'Unbekannter Fehler beim Senden.'
+                          )
+                      })
                     } finally {
                       setSending(false)
                     }
                   }}
                   disabled={hasValidationIssues || saving || loading || sending}
                 >
-                  {sending ? 'Senden…' : 'Sofort senden'}
+                  {sending
+                    ? t('threads.form.sendNow.buttonBusy', 'Senden…')
+                    : t(
+                        'threads.form.sendNow.buttonDefault',
+                        'Sofort senden'
+                      )}
                 </Button>
                 <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving
-                    ? (isEditMode ? 'Aktualisieren…' : 'Planen…')
-                    : (isEditMode ? 'Thread aktualisieren' : 'Planen')}
+                    ? isEditMode
+                      ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
+                      : t('threads.form.submitCreateBusy', 'Planen…')
+                    : isEditMode
+                      ? t(
+                          'threads.form.submitUpdate',
+                          'Thread aktualisieren'
+                        )
+                      : t('threads.form.submitCreate', 'Planen')}
                 </Button>
               </div>
             </div>
@@ -812,19 +1035,35 @@ function ThreadForm ({
           <div className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}>
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
-                <h3 className='text-lg font-semibold'>Vorschau</h3>
+                <h3 className='text-lg font-semibold'>
+                  {t('threads.form.preview.heading', 'Vorschau')}
+                </h3>
                 <button
                   type='button'
                   className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-                  aria-label='Hinweis zur Vorschau anzeigen'
+                  aria-label={t(
+                    'threads.form.preview.infoAria',
+                    'Hinweis zur Vorschau anzeigen'
+                  )}
                   onClick={() => setInfoPreviewOpen(true)}
-                  title='Hinweis anzeigen'
+                  title={t(
+                    'threads.form.infoButtonTitle',
+                    'Hinweis anzeigen'
+                  )}
                 >
-                  <InfoCircledIcon width={14} height={14} /> Info
+                  <InfoCircledIcon width={14} height={14} />{' '}
+                  {t('threads.form.infoButtonLabel', 'Info')}
                 </button>
               </div>
               <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                {totalSegments} Post{totalSegments !== 1 ? 's' : ''}
+                {t(
+                  'threads.form.preview.counter',
+                  '{count} Post{suffix}',
+                  {
+                    count: totalSegments,
+                    suffix: totalSegments !== 1 ? 's' : ''
+                  }
+                )}
               </span>
             </div>
 
@@ -904,31 +1143,95 @@ function ThreadForm ({
                         <div className='mt-2 grid grid-cols-2 gap-2'>
                           {items.map((it, idx) => (
                             <div key={idx} className='relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle'>
-                              <img src={it.src} alt={it.alt || `Bild ${idx + 1}`} className='absolute inset-0 h-full w-full object-contain' />
+                              <img
+                                src={it.src}
+                                alt={
+                                  it.alt ||
+                                  t(
+                                    'threads.form.media.imageAltFallback',
+                                    'Bild {index}',
+                                    { index: idx + 1 }
+                                  )
+                                }
+                                className='absolute inset-0 h-full w-full object-contain'
+                              />
                               <div className='pointer-events-none absolute left-1 top-1 z-10'>
                                 <span className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
-                                  title={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                                  title={
+                                    it.alt
+                                      ? t(
+                                          'threads.form.media.altEditTitle',
+                                          'Alt‑Text bearbeiten'
+                                        )
+                                      : t(
+                                          'threads.form.media.altAddTitle',
+                                          'Alt‑Text hinzufügen'
+                                        )
+                                  }
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAltDialog(segment.id, it); }}
                                   role='button'
                                   tabIndex={0}
-                                  aria-label={it.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+                                  aria-label={
+                                    it.alt
+                                      ? t(
+                                          'threads.form.media.altEditTitle',
+                                          'Alt‑Text bearbeiten'
+                                        )
+                                      : t(
+                                          'threads.form.media.altAddTitle',
+                                          'Alt‑Text hinzufügen'
+                                        )
+                                  }
                                 >
-                                  {it.alt ? 'ALT' : '+ ALT'}
+                                  {it.alt
+                                    ? t(
+                                        'threads.form.media.altBadge',
+                                        'ALT'
+                                      )
+                                    : t(
+                                        'threads.form.media.altAddBadge',
+                                        '+ ALT'
+                                      )}
                                 </span>
                               </div>
                               <div className='absolute right-1 top-1 z-10 flex gap-1'>
-                                <button type='button' className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80' title='Bild entfernen'
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveMedia(segment.id, it); }} aria-label='Bild entfernen'>✕</button>
+                                <button
+                                  type='button'
+                                  className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80'
+                                  title={t(
+                                    'threads.form.media.removeButtonTitle',
+                                    'Bild entfernen'
+                                  )}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveMedia(segment.id, it); }}
+                                  aria-label={t(
+                                    'threads.form.media.removeButtonTitle',
+                                    'Bild entfernen'
+                                  )}
+                                >
+                                  ✕
+                                </button>
                               </div>
                             </div>
                           ))}
                         </div>
                       );
                     })()}
-                    <div className='mt-2 text-xs text-foreground-muted'>Medien {getMediaCount(segment.id)}/{imagePolicy.maxCount}</div>
+                    <div className='mt-2 text-xs text-foreground-muted'>
+                      {t(
+                        'threads.form.media.counterPerSegment',
+                        'Medien {count}/{max}',
+                        {
+                          count: getMediaCount(segment.id),
+                          max: imagePolicy.maxCount
+                        }
+                      )}
+                    </div>
                     {segment.exceedsLimit ? (
                       <p className='mt-1 text-sm text-destructive'>
-                        Zeichenlimit überschritten.
+                        {t(
+                          'threads.form.segment.limitExceeded',
+                          'Zeichenlimit überschritten.'
+                        )}
                       </p>
                     ) : null}
                   </article>
@@ -990,7 +1293,16 @@ function ThreadForm ({
               const resp = await fetch(downloadUrl)
               const blob = await resp.blob()
               if (blob.size > (imagePolicy.maxBytes || 8 * 1024 * 1024)) {
-                setUploadError({ open: true, message: `GIF zu groß. Maximal ${(imagePolicy.maxBytes / (1024*1024)).toFixed(0)} MB.` })
+                setUploadError({
+                  open: true,
+                  message: t(
+                    'threads.form.media.gifTooLargeMessage',
+                    'GIF zu groß. Maximal {mb} MB.',
+                    {
+                      mb: (imagePolicy.maxBytes / (1024 * 1024)).toFixed(0)
+                    }
+                  )
+                })
                 return
               }
               const file = new File([blob], 'tenor.gif', { type: 'image/gif' })
@@ -999,7 +1311,15 @@ function ThreadForm ({
                 await handleUploadMedia(idx, file, '')
               }
             } catch (e) {
-              setUploadError({ open: true, message: e?.message || 'GIF konnte nicht geladen werden.' })
+              setUploadError({
+                open: true,
+                message:
+                  e?.message ||
+                  t(
+                    'threads.form.media.gifLoadErrorMessage',
+                    'GIF konnte nicht geladen werden.'
+                  )
+              })
             } finally {
               setGifPicker({ open: false, index: null })
             }
@@ -1009,11 +1329,27 @@ function ThreadForm ({
       {uploadError.open ? (
         <Modal
           open={uploadError.open}
-          title="Upload fehlgeschlagen"
+          title={t(
+            'threads.form.media.uploadErrorDialogTitle',
+            'Upload fehlgeschlagen'
+          )}
           onClose={() => setUploadError({ open: false, message: '' })}
-          actions={<Button variant='primary' onClick={() => setUploadError({ open: false, message: '' })}>OK</Button>}
+          actions={(
+            <Button
+              variant='primary'
+              onClick={() => setUploadError({ open: false, message: '' })}
+            >
+              {t('common.actions.ok', 'OK')}
+            </Button>
+          )}
         >
-          <p className='text-sm text-foreground'>{uploadError.message || 'Die Bilddatei konnte nicht hochgeladen werden.'}</p>
+          <p className='text-sm text-foreground'>
+            {uploadError.message ||
+              t(
+                'threads.form.media.uploadErrorDialogBody',
+                'Die Bilddatei konnte nicht hochgeladen werden.'
+              )}
+          </p>
         </Modal>
       ) : null}
 
@@ -1021,24 +1357,45 @@ function ThreadForm ({
       {infoThreadOpen ? (
         <Modal
           open={infoThreadOpen}
-          title="Hinweis: Thread-Inhalt"
+          title={t(
+            'threads.form.infoSource.title',
+            'Hinweis: Thread-Inhalt'
+          )}
           onClose={() => setInfoThreadOpen(false)}
-          actions={<Button variant='primary' onClick={() => setInfoThreadOpen(false)}>OK</Button>}
+          actions={(
+            <Button
+              variant='primary'
+              onClick={() => setInfoThreadOpen(false)}
+            >
+              {t('common.actions.ok', 'OK')}
+            </Button>
+          )}
         >
           <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
-              Schreibe den gesamten Thread in ein Feld. Du kannst <code className='rounded bg-background-subtle px-1 py-0.5'>---</code> als Trenner nutzen
-              oder mit <kbd className='rounded bg-background-subtle px-1 py-0.5'>STRG</kbd>+<kbd className='rounded bg-background-subtle px-1 py-0.5'>Enter</kbd> einen Trenner einfügen.
+              {t(
+                'threads.form.infoSource.body1',
+                'Schreibe den gesamten Thread in ein Feld. Du kannst --- als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.'
+              )}
             </p>
             <p>
-              Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung
-              richtet sich nach den gewählten Plattformen (kleinster Wert gilt).
+              {t(
+                'threads.form.infoSource.body2',
+                'Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung richtet sich nach den gewählten Plattformen (kleinster Wert gilt).'
+              )}
             </p>
             <p>
-              Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {imagePolicy?.maxCount ?? 4} Bilder pro Post.
+              {t(
+                'threads.form.infoSource.body3',
+                'Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {max} Bilder pro Post.',
+                { max: imagePolicy?.maxCount ?? 4 }
+              )}
             </p>
             <p>
-              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
+              {t(
+                'threads.form.infoSource.body4',
+                'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+              )}
             </p>
           </div>
         </Modal>
@@ -1048,22 +1405,45 @@ function ThreadForm ({
       {infoPreviewOpen ? (
         <Modal
           open={infoPreviewOpen}
-          title="Hinweis: Vorschau"
+          title={t(
+            'threads.form.infoPreview.title',
+            'Hinweis: Vorschau'
+          )}
           onClose={() => setInfoPreviewOpen(false)}
-          actions={<Button variant='primary' onClick={() => setInfoPreviewOpen(false)}>OK</Button>}
+          actions={(
+            <Button
+              variant='primary'
+              onClick={() => setInfoPreviewOpen(false)}
+            >
+              {t('common.actions.ok', 'OK')}
+            </Button>
+          )}
         >
           <div className='space-y-1.5 text-sm leading-snug text-foreground'>
             <p>
-              Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.
+              {t(
+                'threads.form.infoPreview.body1',
+                'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.'
+              )}
             </p>
             <p>
-              Bilder werden beim Speichern hochgeladen (max. {imagePolicy?.maxCount ?? 4} je Post).
+              {t(
+                'threads.form.infoPreview.body2',
+                'Bilder werden beim Speichern hochgeladen (max. {max} je Post).',
+                { max: imagePolicy?.maxCount ?? 4 }
+              )}
             </p>
             <p>
-              Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.
+              {t(
+                'threads.form.infoPreview.body3',
+                'Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.'
+              )}
             </p>
             <p>
-              Die automatische Nummerierung (<code className='rounded bg-background-subtle px-1 py-0.5'>1/x</code>) kann im Formular ein- oder ausgeschaltet werden.
+              {t(
+                'threads.form.infoPreview.body4',
+                'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+              )}
             </p>
           </div>
         </Modal>
@@ -1071,7 +1451,17 @@ function ThreadForm ({
       {altDialog.open && altDialog.item ? (
         <MediaDialog
           open={altDialog.open}
-          title={altDialog.item.alt ? 'Alt‑Text bearbeiten' : 'Alt‑Text hinzufügen'}
+          title={
+            altDialog.item.alt
+              ? t(
+                  'threads.form.media.altEditTitle',
+                  'Alt‑Text bearbeiten'
+                )
+              : t(
+                  'threads.form.media.altAddTitle',
+                  'Alt‑Text hinzufügen'
+                )
+          }
           mode="alt"
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}
@@ -1082,7 +1472,15 @@ function ThreadForm ({
             try {
               if (item.type === 'existing') {
                 const res = await fetch(`/api/media/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ altText: newAlt }) });
-                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Alt‑Text konnte nicht gespeichert werden.');
+                if (!res.ok) {
+                  throw new Error(
+                    (await res.json().catch(() => ({}))).error ||
+                      t(
+                        'threads.form.media.altSaveErrorFallback',
+                        'Alt‑Text konnte nicht gespeichert werden.'
+                      )
+                  );
+                }
                 setEditedMediaAlt((s) => ({ ...s, [item.id]: newAlt }));
               } else {
                 setPendingMedia((s) => {
@@ -1091,9 +1489,22 @@ function ThreadForm ({
                   return { ...s, [segIdx]: arr };
                 });
               }
-              toast.success({ title: 'Alt‑Text gespeichert' });
+              toast.success({
+                title: t(
+                  'threads.form.media.altSaveSuccessTitle',
+                  'Alt‑Text gespeichert'
+                )
+              });
             } catch (e) {
-              toast.error({ title: 'Fehler beim Alt‑Text', description: e?.message || 'Unbekannter Fehler' });
+              toast.error({
+                title: t(
+                  'threads.form.media.altSaveErrorTitle',
+                  'Fehler beim Alt‑Text'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
+              });
             } finally {
               closeAltDialog();
             }
@@ -1106,7 +1517,10 @@ function ThreadForm ({
       {singleSegDialog.open ? (
         <Modal
           open={singleSegDialog.open}
-          title="Nur ein Segment erkannt"
+          title={t(
+            'threads.form.singleSegment.title',
+            'Nur ein Segment erkannt'
+          )}
           onClose={() => setSingleSegDialog({ open: false })}
           actions={
             <>
@@ -1117,7 +1531,10 @@ function ThreadForm ({
                   await doSubmitThread()
                 }}
               >
-                Trotzdem als Thread speichern
+                {t(
+                  'threads.form.singleSegment.keepAsThread',
+                  'Trotzdem als Thread speichern'
+                )}
               </Button>
               <Button
                 variant='primary'
@@ -1127,17 +1544,34 @@ function ThreadForm ({
                     const content = (previewSegments?.[0]?.raw || '').toString()
                     onSuggestMoveToSkeets(content)
                   } else {
-                    toast.info({ title: 'Zum Posts-Planer wechseln', description: 'Bitte wechsle zum Posts-Planer und füge den Text ein.' })
+                    toast.info({
+                      title: t(
+                        'threads.form.singleSegment.moveToPostsTitle',
+                        'Zum Posts-Planer wechseln'
+                      ),
+                      description: t(
+                        'threads.form.singleSegment.moveToPostsDescription',
+                        'Bitte wechsle zum Posts-Planer und füge den Text ein.'
+                      )
+                    })
                   }
                 }}
               >
-                Zum Posts-Planer wechseln
+                {t(
+                  'threads.form.singleSegment.moveToPostsButton',
+                  'Zum Posts-Planer wechseln'
+                )}
               </Button>
             </>
           }
         >
           <div className='space-y-2 text-sm text-foreground'>
-            <p>Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Post planen?</p>
+            <p>
+              {t(
+                'threads.form.singleSegment.body',
+                'Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Post planen?'
+              )}
+            </p>
           </div>
         </Modal>
       ) : null}

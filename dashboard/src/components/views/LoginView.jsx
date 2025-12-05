@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 export default function LoginView ({ session, sessionError, refreshSession }) {
+  const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -38,9 +40,18 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
     <div className='flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground'>
       <Card className='w-full max-w-md space-y-6 shadow-card' padding='p-8'>
         <div>
-          <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>Control Center</p>
-          <h1 className='mt-1 text-2xl font-semibold'>Kampagnen‑Tool Login</h1>
-          <p className='mt-2 text-sm text-foreground-muted'>Zugangsdaten werden serverseitig verwaltet.</p>
+          <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
+            {t('layout.nav.tagline', 'Control Center')}
+          </p>
+          <h1 className='mt-1 text-2xl font-semibold'>
+            {t('login.heading', 'Kampagnen‑Tool Login')}
+          </h1>
+          <p className='mt-2 text-sm text-foreground-muted'>
+            {t(
+              'login.subtitle',
+              'Zugangsdaten werden serverseitig verwaltet.'
+            )}
+          </p>
         </div>
 
         {errorMessage ? (
@@ -51,30 +62,58 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
 
         {!configured ? (
           <div className='space-y-4 text-sm text-foreground-muted'>
-            <p>Bevor sich jemand anmelden kann, muss der Login im Backend konfiguriert werden:</p>
+            <p>
+              {t(
+                'login.unconfigured.intro',
+                'Bevor sich jemand anmelden kann, muss der Login im Backend konfiguriert werden:'
+              )}
+            </p>
             <ol className='list-decimal space-y-2 pl-5'>
-              <li>Gewünschten Admin-Benutzer in `.env` via `AUTH_USERNAME` setzen.</li>
               <li>
-                Passwort-Hash mit <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>npm run tools:hash-password</code> generieren und als
+                {t(
+                  'login.unconfigured.step1',
+                  'Gewünschten Admin-Benutzer in `.env` via `AUTH_USERNAME` setzen.'
+                )}
+              </li>
+              <li>
+                {t(
+                  'login.unconfigured.step2.prefix',
+                  'Passwort-Hash mit'
+                )}{' '}
+                <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>npm run tools:hash-password</code>{' '}
+                {t(
+                  'login.unconfigured.step2.suffix',
+                  'generieren und als'
+                )}
                 <code className='ml-1 rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_PASSWORD_HASH</code> hinterlegen.
               </li>
-              <li>Einen zufälligen Schlüssel als <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_TOKEN_SECRET</code> vergeben und Backend neustarten.</li>
+              <li>
+                {t(
+                  'login.unconfigured.step3.prefix',
+                  'Einen zufälligen Schlüssel als'
+                )}{' '}
+                <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_TOKEN_SECRET</code>{' '}
+                {t(
+                  'login.unconfigured.step3.suffix',
+                  'vergeben und Backend neustarten.'
+                )}
+              </li>
             </ol>
             <Button variant='secondary' onClick={refreshSession}>
-              Konfiguration prüfen
+              {t('login.unconfigured.checkConfig', 'Konfiguration prüfen')}
             </Button>
           </div>
         ) : (
           <form className='space-y-4' onSubmit={handleSubmit}>
             <div className='space-y-1'>
               <label className='text-sm font-medium text-foreground' htmlFor='login-username'>
-                Benutzername
+                {t('login.usernameLabel', 'Benutzername')}
               </label>
               <input
                 id='login-username'
                 type='text'
                 className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
-                placeholder='admin'
+                placeholder={t('login.usernamePlaceholder', 'admin')}
                 value={username}
                 disabled={submitting}
                 onChange={(event) => setUsername(event.target.value)}
@@ -84,7 +123,7 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
             </div>
             <div className='space-y-1'>
               <label className='text-sm font-medium text-foreground' htmlFor='login-password'>
-                Passwort
+                {t('login.passwordLabel', 'Passwort')}
               </label>
               <input
                 id='login-password'
@@ -99,13 +138,18 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
               />
             </div>
             <Button type='submit' variant='primary' disabled={submitting} className='w-full justify-center'>
-              {submitting ? 'Anmeldung läuft…' : 'Anmelden'}
+              {submitting
+                ? t('login.submitBusy', 'Anmeldung läuft…')
+                : t('login.submitLabel', 'Anmelden')}
             </Button>
           </form>
         )}
 
         <p className='text-xs text-foreground-muted'>
-          Tipp: Mehrere Admins möglich, indem du die Cookies teilst oder den Login via Proxy absicherst.
+          {t(
+            'login.footerHint',
+            'Tipp: Mehrere Admins möglich, indem du die Cookies teilst oder den Login via Proxy absicherst.'
+          )}
         </p>
       </Card>
     </div>

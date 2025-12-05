@@ -10,7 +10,7 @@ const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("@config");
 const { Skeet, Thread, ThreadSkeet, PostSendLog } = require("@data/models");
-const { sendPost } = require("./postService");
+const postService = require("./postService");
 const events = require("./events");
 const settingsService = require("./settingsService");
 const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require("./platformContext");
@@ -426,7 +426,7 @@ async function dispatchSkeet(skeet) {
       const { SkeetMedia } = require('../../data/models');
       const mediaRows = await SkeetMedia.findAll({ where: { skeetId: current.id }, order: [["order","ASC"],["id","ASC"]] });
       const media = mediaRows.slice(0, 4).map((m) => ({ path: m.path, mime: m.mime, altText: m.altText || '' }));
-      const res = await sendPost({ content: current.content, media }, platformId, platformEnv);
+      const res = await postService.sendPost({ content: current.content, media }, platformId, platformEnv);
 
       if (res.ok) {
         const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();
@@ -732,7 +732,7 @@ async function dispatchThread(thread) {
       }
 
       try {
-        const res = await sendPost(postInput, platformId, platformEnv);
+        const res = await postService.sendPost(postInput, platformId, platformEnv);
 
         if (res.ok) {
           const postedAt = res.postedAt ? new Date(res.postedAt) : new Date();

@@ -3,6 +3,7 @@ import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useVirtualList } from '../hooks/useVirtualList'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 
 function parseThreadMetadata (thread) {
@@ -49,36 +50,28 @@ function resolvePublishedDate (thread) {
 }
 
 function formatScheduledLabel (thread) {
-  const formatter = new Intl.DateTimeFormat('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-
   if (thread?.status === 'published') {
     const publishedDate = resolvePublishedDate(thread)
     if (publishedDate) {
-      return `Veröffentlicht am: ${formatter.format(publishedDate)}`
+      return { type: 'publishedAt', date: publishedDate }
     }
-    return 'Veröffentlicht'
+    return { type: 'published' }
   }
 
   if (!thread?.scheduledAt) {
-    return 'Kein Termin geplant'
+    return { type: 'noSchedule' }
   }
 
   const date = new Date(thread.scheduledAt)
   if (Number.isNaN(date.getTime())) {
-    return `Geplant für ${thread.scheduledAt}`
+    return { type: 'invalid', raw: thread.scheduledAt }
   }
 
   if (thread.status === 'scheduled') {
-    return `Wird gepostet um: ${formatter.format(date)}`
+    return { type: 'scheduledAt', date }
   }
 
-  return `Geplant für: ${formatter.format(date)}`
+  return { type: 'scheduledFor', date }
 }
 
 function ThreadOverview ({
@@ -95,6 +88,7 @@ function ThreadOverview ({
   getItemRef
 }) {
   const theme = useTheme()
+  const { t } = useTranslation()
   const [expandedThreads, setExpandedThreads] = useState({})
   const [showReplies, setShowReplies] = useState({})
   const [loadingRefresh, setLoadingRefresh] = useState({})
@@ -135,7 +129,9 @@ function ThreadOverview ({
   if (loading) {
     return (
       <section className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
-        <p className='text-sm text-foreground-muted'>Threads werden geladen…</p>
+        <p className='text-sm text-foreground-muted'>
+          {t('threads.overview.loading', 'Threads werden geladen…')}
+        </p>
       </section>
     )
   }
@@ -145,7 +141,10 @@ function ThreadOverview ({
       <section className='rounded-3xl border border-destructive/50 bg-destructive/10 p-6 shadow-soft'>
         <header className='mb-3 flex items-center justify-between'>
           <h3 className='text-lg font-semibold text-destructive'>
-            Threads konnten nicht geladen werden
+            {t(
+              'threads.overview.loadErrorTitle',
+              'Threads konnten nicht geladen werden'
+            )}
           </h3>
           <button
             type='button'
@@ -155,11 +154,12 @@ function ThreadOverview ({
             }
             disabled={typeof onReload !== 'function'}
           >
-            Erneut versuchen
+            {t('threads.overview.loadErrorRetry', 'Erneut versuchen')}
           </button>
         </header>
         <p className='text-sm text-destructive'>
-          {error?.message || 'Unbekannter Fehler'}
+          {error?.message ||
+            t('threads.overview.loadErrorFallback', 'Unbekannter Fehler')}
         </p>
       </section>
     )
@@ -169,10 +169,16 @@ function ThreadOverview ({
     return (
       <section className={`rounded-3xl border border-border ${theme.panelBg} p-6 text-center shadow-soft`}>
         <h3 className='text-lg font-semibold'>
-          Noch keine Threads gespeichert
+          {t(
+            'threads.overview.emptyTitle',
+            'Noch keine Threads gespeichert'
+          )}
         </h3>
         <p className='mt-2 text-sm text-foreground-muted'>
-          Lege im Thread-Editor einen Thread an, um hier eine Vorschau zu sehen.
+          {t(
+            'threads.overview.emptyBody',
+            'Lege im Thread-Editor einen Thread an, um hier eine Vorschau zu sehen.'
+          )}
         </p>
       </section>
     )
@@ -365,22 +371,74 @@ function ThreadOverview ({
                   {thread.title || `Thread #${thread.id}`}
                 </h3>
                 <p className='text-sm text-foreground-muted'>
-                  {formatScheduledLabel(thread)}
+                  {(() => {
+                    const info = formatScheduledLabel(thread)
+                    if (!info) return null
+                    const formatter = new Intl.DateTimeFormat('de-DE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                    if (info.type === 'publishedAt') {
+                      return `${t(
+                        'threads.card.publishedAtPrefix',
+                        'Veröffentlicht am: '
+                      )}${formatter.format(info.date)}`
+                    }
+                    if (info.type === 'published') {
+                      return t(
+                        'threads.card.publishedFallback',
+                        'Veröffentlicht'
+                      )
+                    }
+                    if (info.type === 'noSchedule') {
+                      return t(
+                        'threads.card.noSchedule',
+                        'Kein Termin geplant'
+                      )
+                    }
+                    if (info.type === 'invalid') {
+                      return `${t(
+                        'threads.card.scheduledInvalidPrefix',
+                        'Geplant für '
+                      )}${info.raw}`
+                    }
+                    if (info.type === 'scheduledAt') {
+                      return `${t(
+                        'threads.card.scheduledAtPrefix',
+                        'Wird gepostet um: '
+                      )}${formatter.format(info.date)}`
+                    }
+                    if (info.type === 'scheduledFor') {
+                      return `${t(
+                        'threads.card.scheduledForPrefix',
+                        'Geplant für: '
+                      )}${formatter.format(info.date)}`
+                    }
+                    return null
+                  })()}
                 </p>
               </div>
               <div className='flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-foreground-muted'>
                 {Array.isArray(thread.targetPlatforms) &&
                 thread.targetPlatforms.length
                   ? thread.targetPlatforms.join(' · ')
-                  : 'Keine Plattformen'}
+                  : t('threads.card.noPlatforms', 'Keine Plattformen')}
               </div>
             </header>
 
             <div className='mt-4 space-y-3 text-sm'>
               <div className='rounded-2xl border border-border bg-background-subtle p-4'>
                 <header className='mb-2 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                  <span>Post 1</span>
-                  <span>{firstSegment.characterCount} Zeichen</span>
+                  <span>
+                    {t('threads.card.postLabel', 'Post {index}', { index: 1 })}
+                  </span>
+                  <span>
+                    {firstSegment.characterCount}
+                    {t('threads.card.charactersSuffix', ' Zeichen')}
+                  </span>
                 </header>{' '}
                 <p className='whitespace-pre-wrap text-foreground'>
                   {firstSegment.content || '(leer)'}
@@ -428,7 +486,10 @@ function ThreadOverview ({
                         <span className='inline-flex items-center gap-1'>
                           <span>·</span>
                           <span>
-                            Zuletzt aktualisiert:{' '}
+                            {t(
+                              'threads.card.metricsUpdatedAtPrefix',
+                              'Kennzahlen aktualisiert am: '
+                            )}
                             <span className='font-medium text-foreground'>
                               {formatUpdatedAt(lastMetricsUpdatedAt)}
                             </span>
@@ -438,7 +499,7 @@ function ThreadOverview ({
                     </div>
                   ) : (
                     <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                      Geplant
+                      {t('threads.card.plannedBadge', 'Geplant')}
                     </span>
                   )}
                   {hasMore ? (
@@ -448,12 +509,21 @@ function ThreadOverview ({
                       className='text-sm font-medium text-primary transition hover:underline'
                     >
                       {isExpanded
-                        ? 'Weitere Posts verbergen'
-                        : 'Weitere Posts anzeigen'}
+                        ? t(
+                            'threads.card.hideMorePosts',
+                            'Weitere Posts verbergen'
+                          )
+                        : t(
+                            'threads.card.showMorePosts',
+                            'Weitere Posts anzeigen'
+                          )}
                     </button>
                   ) : (
                     <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                      Keine weiteren Posts
+                      {t(
+                        'threads.card.noMorePosts',
+                        'Keine weiteren Posts'
+                      )}
                     </span>
                   )}
                   <div className='flex flex-wrap items-center gap-2'>
@@ -463,13 +533,13 @@ function ThreadOverview ({
                           variant='primary'
                           onClick={() => onRestoreThread?.(thread)}
                         >
-                          Reaktivieren
+                          {t('threads.card.restore', 'Reaktivieren')}
                         </Button>
                         <Button
                           variant='destructive'
                           onClick={() => onDestroyThread?.(thread)}
                         >
-                          Endgültig löschen
+                          {t('threads.card.destroy', 'Endgültig löschen')}
                         </Button>
                       </>
                     ) : (
@@ -512,21 +582,33 @@ function ThreadOverview ({
                                   )
                                 }
                                 const data = await res.json().catch(() => null)
-                                if (data && data.totals) {
+                              if (data && data.totals) {
                                   const {
                                     likes = 0,
                                     reposts = 0,
                                     replies = 0
                                   } = data.totals || {}
                                   toast.success({
-                                    title: 'Reaktionen aktualisiert',
-                                    description: `Likes ${likes} · Reposts ${reposts} · Antworten ${replies}`
+                                    title: t(
+                                      'threads.card.refreshSuccessTitle',
+                                      'Reaktionen aktualisiert'
+                                    ),
+                                    description: t(
+                                      'threads.card.refreshSuccessDescription',
+                                      'Likes {likes} · Reposts {reposts} · Antworten {replies}',
+                                      { likes, reposts, replies }
+                                    )
                                   })
                                 } else {
                                   toast.success({
-                                    title: 'Reaktionen aktualisiert',
-                                    description:
+                                    title: t(
+                                      'threads.card.refreshSuccessTitle',
+                                      'Reaktionen aktualisiert'
+                                    ),
+                                    description: t(
+                                      'threads.card.refreshSuccessFallback',
                                       'Kennzahlen wurden neu geladen.'
+                                    )
                                   })
                                 }
                                 if (typeof onReload === 'function') onReload()
@@ -536,10 +618,16 @@ function ThreadOverview ({
                                   e
                                 )
                                 toast.error({
-                                  title: 'Aktualisierung fehlgeschlagen',
+                                  title: t(
+                                    'threads.card.refreshErrorTitle',
+                                    'Aktualisierung fehlgeschlagen'
+                                  ),
                                   description:
                                     e?.message ||
-                                    'Fehler beim Aktualisieren der Reaktionen.'
+                                    t(
+                                      'threads.card.refreshErrorDescription',
+                                      'Fehler beim Aktualisieren der Reaktionen.'
+                                    )
                                 })
                               } finally {
                                 setLoadingRefresh(s => ({
@@ -550,7 +638,12 @@ function ThreadOverview ({
                             }}
                             disabled={Boolean(loadingRefresh[thread.id])}
                           >
-                            {loadingRefresh[thread.id] ? 'Lädt…' : 'Reaktionen aktualisieren'}
+                            {loadingRefresh[thread.id]
+                              ? t('threads.card.refreshLoading', 'Lädt…')
+                              : t(
+                                  'threads.card.refreshButton',
+                                  'Reaktionen aktualisieren'
+                                )}
                           </Button>
                         )}
                         {canEdit ? (
@@ -558,7 +651,7 @@ function ThreadOverview ({
                             variant='secondary'
                             onClick={() => onEditThread?.(thread)}
                           >
-                            Bearbeiten
+                            {t('threads.card.edit', 'Bearbeiten')}
                           </Button>
                         ) : null}
                         {canRetract ? (
@@ -566,20 +659,20 @@ function ThreadOverview ({
                             variant='warning'
                             onClick={() => onRetractThread?.(thread)}
                           >
-                            Zurückziehen
+                            {t('threads.card.retract', 'Zurückziehen')}
                           </Button>
                         ) : null}
                         <Button
                           variant='destructive'
                           onClick={() => onDeleteThread?.(thread)}
                         >
-                          Löschen
+                          {t('threads.card.delete', 'Löschen')}
                         </Button>
                       </>
                     )}
                   </div>
                 </div>
-                {perPlatformTotals.length > 0 ? (
+               {perPlatformTotals.length > 0 ? (
                   <div className='mt-3 grid gap-3 md:grid-cols-2'>
                     {perPlatformTotals.map(p => (
                       <div
@@ -590,7 +683,11 @@ function ThreadOverview ({
                           {PLATFORM_LABELS[p.platformId] || p.platformId}
                         </p>
                         <p className='mt-1 text-foreground-muted'>
-                          Likes {p.likes} · Reposts {p.reposts}
+                          {t(
+                            'threads.card.perPlatformLine',
+                            'Likes {likes} · Reposts {reposts}',
+                            { likes: p.likes, reposts: p.reposts }
+                          )}
                         </p>
                       </div>
                     ))}
@@ -601,7 +698,10 @@ function ThreadOverview ({
               {showReplies[thread.id] && flatReplies.length > 0 ? (
                 <div className='rounded-2xl border border-border-muted bg-background-subtle/60 p-4'>
                   <header className='mb-3 text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                    Antworten (neueste zuerst)
+                    {t(
+                      'threads.card.repliesHeader',
+                      'Antworten (neueste zuerst)'
+                    )}
                   </header>
                   <ul className='space-y-2'>
                     {flatReplies
@@ -613,7 +713,11 @@ function ThreadOverview ({
                           className='rounded-xl border border-border bg-background p-3'
                         >
                           <div className='mb-1 text-xs text-foreground-muted'>
-                            Post {r.sequence + 1}
+                            {t(
+                              'threads.card.replyPostLabel',
+                              'Post {index}',
+                              { index: r.sequence + 1 }
+                            )}
                           </div>
                           <div className='text-sm'>
                             <span className='font-medium'>{r.author}</span>:{' '}
