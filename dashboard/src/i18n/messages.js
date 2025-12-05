@@ -596,7 +596,7 @@ const messages = {
           graceWindowMinutes: 'Grace-Zeit für verpasste Termine (Minuten)'
         },
         examples:
-          'Beispiele: 0 * * * * (stündlich), */5 * * * * (alle 5 Minuten)',
+          'Beispiele:\n0 * * * * (stündlich)\n*/5 * * * * (alle 5 Minuten)',
         summary:
           'Standardwerte: Cron {cron}, Zeitzone {tz}, Retries {retries}, Backoff {backoffMs}ms (max. {backoffMaxMs}ms)',
         graceHint:

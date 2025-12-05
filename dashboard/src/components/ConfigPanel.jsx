@@ -24,6 +24,7 @@ function normalizeFormPayload (values) {
 export default function ConfigPanel () {
   const toast = useToast()
   const { t, locale, setLocale } = useTranslation()
+  const [cronInfoOpen, setCronInfoOpen] = useState(false)
   const [tab, setTab] = useState('general')
   const [needsCreds, setNeedsCreds] = useState(false)
   // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
@@ -38,9 +39,13 @@ export default function ConfigPanel () {
           if (data.needsCredentials) setTab('credentials')
           setNeedsCreds(Boolean(data.needsCredentials))
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     })()
-    return () => { ignore = true }
+    return () => {
+      ignore = true
+    }
   }, [])
   const [formValues, setFormValues] = useState({
     scheduleTime: '',
@@ -107,17 +112,13 @@ export default function ConfigPanel () {
           postRetries: formatNumberInput(data.values?.postRetries),
           postBackoffMs: formatNumberInput(data.values?.postBackoffMs),
           postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs),
-          graceWindowMinutes: formatNumberInput(
-            data.values?.graceWindowMinutes
-          )
+          graceWindowMinutes: formatNumberInput(data.values?.graceWindowMinutes)
         }
         const nextDefaults = {
           scheduleTime: data.defaults?.scheduleTime ?? '',
           postRetries: formatNumberInput(data.defaults?.postRetries),
           postBackoffMs: formatNumberInput(data.defaults?.postBackoffMs),
-          postBackoffMaxMs: formatNumberInput(
-            data.defaults?.postBackoffMaxMs
-          ),
+          postBackoffMaxMs: formatNumberInput(data.defaults?.postBackoffMaxMs),
           graceWindowMinutes: formatNumberInput(
             data.defaults?.graceWindowMinutes
           )
@@ -321,12 +322,12 @@ export default function ConfigPanel () {
         )
       })
     } catch (error) {
-      console.error('Fehler beim Speichern der allgemeinen Einstellungen:', error)
+      console.error(
+        'Fehler beim Speichern der allgemeinen Einstellungen:',
+        error
+      )
       toast.error({
-        title: t(
-          'config.general.saveErrorTitle',
-          'Speichern fehlgeschlagen'
-        ),
+        title: t('config.general.saveErrorTitle', 'Speichern fehlgeschlagen'),
         description:
           error.message ||
           t(
@@ -360,10 +361,7 @@ export default function ConfigPanel () {
 
     if (!payload.scheduleTime) {
       toast.error({
-        title: t(
-          'config.scheduler.cronMissingTitle',
-          'Cron-Ausdruck fehlt'
-        ),
+        title: t('config.scheduler.cronMissingTitle', 'Cron-Ausdruck fehlt'),
         description: t(
           'config.scheduler.cronMissingDescription',
           'Bitte einen gültigen Cron-Ausdruck angeben.'
@@ -375,18 +373,12 @@ export default function ConfigPanel () {
       const value = payload[key]
       if (value == null || Number.isNaN(value) || value < 0) {
         toast.error({
-          title: t(
-            'config.scheduler.invalidNumberTitle',
-            'Ungültiger Wert'
-          ),
+          title: t('config.scheduler.invalidNumberTitle', 'Ungültiger Wert'),
           description: t(
             'config.scheduler.invalidNumberDescription',
             '{label} muss eine positive Zahl sein.',
             {
-              label: t(
-                `config.scheduler.labels.${key}`,
-                key
-              )
+              label: t(`config.scheduler.labels.${key}`, key)
             }
           )
         })
@@ -406,10 +398,7 @@ export default function ConfigPanel () {
         const data = await res.json().catch(() => ({}))
         throw new Error(
           data.error ||
-            t(
-              'config.scheduler.saveErrorFallback',
-              'Speichern fehlgeschlagen.'
-            )
+            t('config.scheduler.saveErrorFallback', 'Speichern fehlgeschlagen.')
         )
       }
 
@@ -449,10 +438,7 @@ export default function ConfigPanel () {
     } catch (error) {
       console.error('Fehler beim Speichern der Einstellungen:', error)
       toast.error({
-        title: t(
-          'config.scheduler.saveErrorTitle',
-          'Speichern fehlgeschlagen'
-        ),
+        title: t('config.scheduler.saveErrorTitle', 'Speichern fehlgeschlagen'),
         description:
           error.message ||
           t(
@@ -475,10 +461,7 @@ export default function ConfigPanel () {
     event.preventDefault()
     if (!pollHasChanges) {
       toast.info({
-        title: t(
-          'config.polling.noChangesTitle',
-          'Keine Änderungen'
-        ),
+        title: t('config.polling.noChangesTitle', 'Keine Änderungen'),
         description: t(
           'config.polling.noChangesDescription',
           'Die Client-Polling-Einstellungen sind bereits aktuell.'
@@ -517,10 +500,7 @@ export default function ConfigPanel () {
     ]
     if (mustBePos.some(v => v == null || Number.isNaN(v) || v < 0)) {
       toast.error({
-        title: t(
-          'config.polling.invalidValuesTitle',
-          'Ungültige Werte'
-        ),
+        title: t('config.polling.invalidValuesTitle', 'Ungültige Werte'),
         description: t(
           'config.polling.invalidValuesDescription',
           'Intervalle und Backoff müssen positive Zahlen sein.'
@@ -535,10 +515,7 @@ export default function ConfigPanel () {
       payload.jitterRatio > 1
     ) {
       toast.error({
-        title: t(
-          'config.polling.invalidJitterTitle',
-          'Ungültiger Jitter'
-        ),
+        title: t('config.polling.invalidJitterTitle', 'Ungültiger Jitter'),
         description: t(
           'config.polling.invalidJitterDescription',
           'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.'
@@ -610,10 +587,7 @@ export default function ConfigPanel () {
     } catch (error) {
       console.error('Fehler beim Speichern der Client-Konfiguration:', error)
       toast.error({
-        title: t(
-          'config.polling.saveErrorTitle',
-          'Speichern fehlgeschlagen'
-        ),
+        title: t('config.polling.saveErrorTitle', 'Speichern fehlgeschlagen'),
         description:
           error.message ||
           t(
@@ -628,8 +602,45 @@ export default function ConfigPanel () {
 
   return (
     <div className='space-y-6'>
+      {cronInfoOpen ? (
+        <div className='fixed inset-0 z-40 flex items-center justify-center bg-background/80 p-4'>
+          <div className='max-w-lg rounded-2xl border border-border bg-background-elevated p-6 shadow-soft'>
+            <div className='mb-4 flex items-start justify-between gap-4'>
+              <div>
+                <h3 className='text-lg font-semibold text-foreground'>
+                  {t('config.scheduler.cronInfoTitle', 'Cron-Ausdruck')}
+                </h3>
+                <p className='mt-1 text-sm text-foreground-muted'>
+                  {t(
+                    'config.scheduler.tips.serverTime',
+                    'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
+                  )}
+                </p>
+              </div>
+              <button
+                type='button'
+                onClick={() => setCronInfoOpen(false)}
+                className='h-8 w-8 rounded-full border border-border bg-background text-sm text-foreground hover:bg-background-elevated'
+                aria-label={t('common.close', 'Schließen')}
+              >
+                ×
+              </button>
+            </div>
+            <div className='text-xs text-foreground-muted whitespace-pre-line md:text-sm'>
+              {t(
+                'config.scheduler.cronInfoBody',
+                'Beispiele:\n0 * * * * – führt zur vollen Stunde aus.\n*/5 * * * * – alle 5 Minuten.\n\nCron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {needsCreds ? (
-        <Card padding='p-4 lg:p-5' className='border border-primary/40 bg-primary/5'>
+        <Card
+          padding='p-4 lg:p-5'
+          className='border border-primary/40 bg-primary/5'
+        >
           <div className='space-y-1'>
             <h4 className='text-base font-semibold text-foreground'>
               {t(
@@ -698,31 +709,28 @@ export default function ConfigPanel () {
             <form onSubmit={handleGeneralSubmit} className='space-y-6'>
               <div className='grid gap-4 md:grid-cols-2'>
                 <div className='space-y-2'>
-                <label
-                  htmlFor='general-locale'
-                  className='text-sm font-semibold text-foreground'
-                >
-                  {t(
-                    'config.general.labels.locale',
-                    'Anzeigesprache'
-                  )}
-                </label>
-                <select
-                  id='general-locale'
-                  value={locale}
-                  onChange={e => setLocale(e.target.value)}
-                  disabled={generalLoading || generalSaving}
-                  className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                >
-                  <option value='de'>Deutsch</option>
-                  <option value='en'>English</option>
-                </select>
-                <p className='text-xs text-foreground-muted'>
-                  {t(
-                    'config.general.localeHint',
-                    'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.'
-                  )}
-                </p>
+                  <label
+                    htmlFor='general-locale'
+                    className='text-sm font-semibold text-foreground'
+                  >
+                    {t('config.general.labels.locale', 'Anzeigesprache')}
+                  </label>
+                  <select
+                    id='general-locale'
+                    value={locale}
+                    onChange={e => setLocale(e.target.value)}
+                    disabled={generalLoading || generalSaving}
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                  >
+                    <option value='de'>Deutsch</option>
+                    <option value='en'>English</option>
+                  </select>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.general.localeHint',
+                      'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.'
+                    )}
+                  </p>
                 </div>
 
                 <div className='space-y-2'>
@@ -730,10 +738,7 @@ export default function ConfigPanel () {
                     htmlFor='general-timeZone'
                     className='text-sm font-semibold text-foreground'
                   >
-                    {t(
-                      'config.general.labels.timeZone',
-                      'Standard-Zeitzone'
-                    )}
+                    {t('config.general.labels.timeZone', 'Standard-Zeitzone')}
                   </label>
                   <input
                     id='general-timeZone'
@@ -761,11 +766,12 @@ export default function ConfigPanel () {
               <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
                 <div className='text-xs text-foreground-muted'>
                   <p>
-                    {t(
-                      'config.general.summary',
-                      'Aktuelle Zeitzone: {tz}',
-                      { tz: generalValues.timeZone || generalDefaults.timeZone || '–' }
-                    )}
+                    {t('config.general.summary', 'Aktuelle Zeitzone: {tz}', {
+                      tz:
+                        generalValues.timeZone ||
+                        generalDefaults.timeZone ||
+                        '–'
+                    })}
                   </p>
                 </div>
                 <div className='flex gap-2'>
@@ -786,10 +792,7 @@ export default function ConfigPanel () {
                     disabled={generalLoading || generalSaving}
                   >
                     {generalSaving
-                      ? t(
-                          'config.general.saveBusy',
-                          'Speichern…'
-                        )
+                      ? t('config.general.saveBusy', 'Speichern…')
                       : t(
                           'config.general.saveLabel',
                           'Allgemeine Einstellungen speichern'
@@ -818,53 +821,139 @@ export default function ConfigPanel () {
             </div>
 
             <form onSubmit={handleSubmit} className='space-y-6'>
-              <div className='grid gap-6 md:grid-cols-3'>
+              <div className='grid gap-6 md:grid-cols-2'>
                 <div className='md:col-span-2 space-y-6'>
-                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
+                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
                     <h4 className='text-sm font-semibold text-foreground'>
-                    {t(
-                      'config.scheduler.scheduleCronBlockTitle',
-                      'Cron'
-                    )}
-                  </h4>
-                  <label
-                      htmlFor='scheduleTime'
-                      className='text-sm font-semibold text-foreground'
-                    >
-                      {t(
-                        'config.scheduler.labels.scheduleTime',
-                        'Cron-Ausdruck'
-                      )}
-                    </label>
-                    <input
-                      id='scheduleTime'
-                      type='text'
-                      value={formValues.scheduleTime}
-                      onChange={e => updateField('scheduleTime', e.target.value)}
-                      disabled={loading || saving}
-                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                      placeholder={defaults.scheduleTime}
-                    />
+                      {t('config.scheduler.scheduleCronBlockTitle', 'Cron')}
+                    </h4>
+                    <div className='grid gap-4 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]'>
+                      <div className='space-y-2'>
+                        <div className='flex items-center justify-between gap-2'>
+                          <label
+                            htmlFor='scheduleTime'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.scheduleTime',
+                              'Cron-Ausdruck'
+                            )}
+                          </label>
+                          <button
+                            type='button'
+                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                            aria-label={t(
+                              'config.scheduler.cronInfoAria',
+                              'Hinweis zu Cron-Ausdruck anzeigen'
+                            )}
+                            onClick={() => setCronInfoOpen(true)}
+                            title={t(
+                              'posts.form.infoButtonTitle',
+                              'Hinweis anzeigen'
+                            )}
+                          >
+                            <svg
+                              width='12'
+                              height='12'
+                              viewBox='0 0 15 15'
+                              fill='none'
+                              xmlns='http://www.w3.org/2000/svg'
+                              aria-hidden='true'
+                            >
+                              <path
+                                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                                fill='currentColor'
+                              />
+                              <path
+                                fillRule='evenodd'
+                                clipRule='evenodd'
+                                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                                fill='currentColor'
+                              />
+                            </svg>
+                            {t('posts.form.infoButtonLabel', 'Info')}
+                          </button>
+                        </div>
+                        <input
+                          id='scheduleTime'
+                          type='text'
+                          value={formValues.scheduleTime}
+                          onChange={e =>
+                            updateField('scheduleTime', e.target.value)
+                          }
+                          disabled={loading || saving}
+                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          placeholder={defaults.scheduleTime}
+                        />
+                      </div>
+                      <div className='space-y-1 text-xs text-foreground-muted md:text-sm'>
+                        <div className='font-semibold'>
+                          {t(
+                            'config.scheduler.examplesTitle',
+                            'Beispiele:'
+                          )}
+                        </div>
+                        <div className='grid grid-cols-[auto,minmax(0,1fr)] gap-x-3 gap-y-1'>
+                          <div>0 * * * *</div><div>{t('config.scheduler.examplesHourly','stündlich')}</div>
+                          <div>*/5 * * * *</div><div>{t('config.scheduler.examplesEveryFive', 'alle 5 Minuten')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
-                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
+                  <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
                     <h4 className='text-sm font-semibold text-foreground'>
                       {t(
                         'config.scheduler.blockTitle',
                         'Wiederholversuche & Backoff'
                       )}
                     </h4>
-                    <div className='grid gap-4 md:grid-cols-2'>
+                    <div className='grid gap-4 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]'>
                       <div className='space-y-2'>
-                        <label
-                          htmlFor='postRetries'
-                          className='text-sm font-semibold text-foreground'
-                        >
-                          {t(
-                            'config.scheduler.labels.postRetries',
-                            'Maximale Wiederholversuche'
-                          )}
-                        </label>
+                        <div className='flex items-center justify-between gap-2'>
+                          <label
+                            htmlFor='postRetries'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.postRetries',
+                              'Maximale Wiederholversuche'
+                            )}
+                          </label>
+                          <button
+                            type='button'
+                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                            aria-label={t(
+                              'config.scheduler.retryInfoAria',
+                              'Hinweis zu Wiederholversuchen & Backoff anzeigen'
+                            )}
+                            title={t(
+                              'posts.form.infoButtonTitle',
+                              'Hinweis anzeigen'
+                            )}
+                          >
+                            <svg
+                              width='12'
+                              height='12'
+                              viewBox='0 0 15 15'
+                              fill='none'
+                              xmlns='http://www.w3.org/2000/svg'
+                              aria-hidden='true'
+                            >
+                              <path
+                                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                                fill='currentColor'
+                              />
+                              <path
+                                fillRule='evenodd'
+                                clipRule='evenodd'
+                                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                                fill='currentColor'
+                              />
+                            </svg>
+                            {t('posts.form.infoButtonLabel', 'Info')}
+                          </button>
+                        </div>
                         <input
                           id='postRetries'
                           type='number'
@@ -947,46 +1036,14 @@ export default function ConfigPanel () {
                           placeholder={defaults.graceWindowMinutes}
                         />
                       </div>
+                      <div className='space-y-2 text-xs text-foreground-muted md:text-sm whitespace-pre-line'>
+                        {t(
+                          'config.scheduler.retryInfoBody',
+                          'Wiederholversuche helfen dabei, temporäre Fehler (z. B. Rate-Limits) abzufedern.\nDer Basis-Backoff steuert die Wartezeit zwischen Versuchen, der maximale Backoff begrenzt die Verzögerung.\nDie Grace-Zeit legt fest, wie lange verpasste Termine nach einem Neustart noch nachgeholt werden.'
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4 text-xs text-foreground-muted md:text-sm'>
-                  <h4 className='text-sm font-semibold text-foreground'>
-                    {t('config.scheduler.infoHeading', 'Hinweise')}
-                  </h4>
-                  <p>
-                    {t(
-                      'config.scheduler.examples',
-                      'Beispiele: 0 * * * * (stündlich), */5 * * * * (alle 5 Minuten)'
-                    )}
-                  </p>
-                  <p>
-                    {t(
-                      'config.scheduler.graceHint',
-                      'Innerhalb dieses Zeitfensters nach dem geplanten Zeitpunkt werden verpasste Posts/Threads noch nachgeholt. Mindestwert: 2 Minuten.'
-                    )}
-                  </p>
-                  <ul className='mt-2 space-y-1'>
-                    <li>
-                      {t(
-                        'config.scheduler.tips.serverTime',
-                        'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
-                      )}
-                    </li>
-                    <li>
-                      {t(
-                        'config.scheduler.tips.backoff',
-                        'Backoff-Werte steuern Wartezeiten zwischen Wiederholversuchen und helfen bei Rate-Limits.'
-                      )}
-                    </li>
-                    <li>
-                      {t(
-                        'config.scheduler.tips.apply',
-                        'Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.'
-                      )}
-                    </li>
-                  </ul>
                 </div>
               </div>
 
@@ -1020,10 +1077,7 @@ export default function ConfigPanel () {
                     disabled={loading || saving || !hasChanges}
                   >
                     {saving
-                      ? t(
-                          'config.scheduler.saveBusy',
-                          'Speichern…'
-                        )
+                      ? t('config.scheduler.saveBusy', 'Speichern…')
                       : t(
                           'config.scheduler.saveLabel',
                           'Einstellungen speichern'
@@ -1161,10 +1215,7 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    {t(
-                      'config.polling.labels.skeetIdleMs',
-                      'Posts: Idle (ms)'
-                    )}
+                    {t('config.polling.labels.skeetIdleMs', 'Posts: Idle (ms)')}
                   </label>
                   <input
                     type='number'
@@ -1281,10 +1332,7 @@ export default function ConfigPanel () {
                 </div>
                 <div className='space-y-2'>
                   <label className='text-sm font-semibold text-foreground'>
-                    {t(
-                      'config.polling.labels.heartbeatMs',
-                      'Heartbeat (ms)'
-                    )}
+                    {t('config.polling.labels.heartbeatMs', 'Heartbeat (ms)')}
                   </label>
                   <input
                     type='number'
@@ -1339,10 +1387,7 @@ export default function ConfigPanel () {
                     disabled={pollLoading || pollSaving || !pollHasChanges}
                   >
                     {pollSaving
-                      ? t(
-                          'config.polling.saveBusy',
-                          'Speichern…'
-                        )
+                      ? t('config.polling.saveBusy', 'Speichern…')
                       : t(
                           'config.polling.saveLabel',
                           'Einstellungen speichern'
@@ -1372,14 +1417,20 @@ function CredentialsSection () {
     mastodonAccessToken: '',
     tenorApiKey: ''
   })
-  const [hasSecret, setHasSecret] = useState({ bsky: false, masto: false, tenor: false })
+  const [hasSecret, setHasSecret] = useState({
+    bsky: false,
+    masto: false,
+    tenor: false
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [blink, setBlink] = useState({})
 
   const triggerBlink = (keys = []) => {
     const obj = {}
-    keys.forEach(k => { obj[k] = true })
+    keys.forEach(k => {
+      obj[k] = true
+    })
     setBlink(obj)
     setTimeout(() => setBlink({}), 900)
   }
@@ -1430,7 +1481,9 @@ function CredentialsSection () {
       }
     }
     loadCreds()
-    return () => { ignore = true }
+    return () => {
+      ignore = true
+    }
   }, [toast])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
@@ -1445,7 +1498,8 @@ function CredentialsSection () {
     }
     const missing = []
     if (!next.blueskyIdentifier) missing.push('blueskyIdentifier')
-    if (!hasSecret.bsky && !next.blueskyAppPassword) missing.push('blueskyAppPassword')
+    if (!hasSecret.bsky && !next.blueskyAppPassword)
+      missing.push('blueskyAppPassword')
     if (missing.length) {
       triggerBlink(missing)
       toast.error({
@@ -1480,7 +1534,12 @@ function CredentialsSection () {
       if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
       if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
       if (values.tenorApiKey) setHasSecret(s => ({ ...s, tenor: true }))
-      setValues(v => ({ ...v, blueskyAppPassword: '', mastodonAccessToken: '', tenorApiKey: '' }))
+      setValues(v => ({
+        ...v,
+        blueskyAppPassword: '',
+        mastodonAccessToken: '',
+        tenorApiKey: ''
+      }))
       toast.success({
         title: t('config.credentials.saveSuccessTitle', 'Gespeichert'),
         description: t(
@@ -1492,12 +1551,18 @@ function CredentialsSection () {
       // Nach dem Speichern direkt entsperren und zur Übersicht wechseln.
       // Konfiguration wird parallel aktualisiert; Navigation soll nicht blockieren.
       window.dispatchEvent(new Event('app:credentials-ok'))
-      window.dispatchEvent(new CustomEvent('app:navigate', { detail: { view: 'overview', force: true } }))
+      window.dispatchEvent(
+        new CustomEvent('app:navigate', {
+          detail: { view: 'overview', force: true }
+        })
+      )
       try {
         window.dispatchEvent(new Event('client-config:refresh'))
         // Hintergrund-Refresh mit Cache-Bust, falls Browser cached
         await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     } catch (error) {
       console.error('Zugangsdaten speichern fehlgeschlagen:', error)
       toast.error({
@@ -1545,12 +1610,19 @@ function CredentialsSection () {
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1'>
                 <span className='text-sm font-medium'>
-                  {t(
-                    'config.credentials.bluesky.serverUrlLabel',
-                    'Server URL'
-                  )}
+                  {t('config.credentials.bluesky.serverUrlLabel', 'Server URL')}
                 </span>
-                <input type='url' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyServerUrl ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='https://bsky.social' value={values.blueskyServerUrl} onChange={onChange('blueskyServerUrl')} />
+                <input
+                  type='url'
+                  className={`w-full rounded-md border bg-background p-2 ${
+                    blink.blueskyServerUrl
+                      ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                      : 'border-border'
+                  }`}
+                  placeholder='https://bsky.social'
+                  value={values.blueskyServerUrl}
+                  onChange={onChange('blueskyServerUrl')}
+                />
               </label>
               <label className='space-y-1'>
                 <span className='text-sm font-medium'>
@@ -1559,7 +1631,17 @@ function CredentialsSection () {
                     'Identifier (Handle/E-Mail)'
                   )}
                 </span>
-                <input type='text' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyIdentifier ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder='dein-handle.bsky.social' value={values.blueskyIdentifier} onChange={onChange('blueskyIdentifier')} />
+                <input
+                  type='text'
+                  className={`w-full rounded-md border bg-background p-2 ${
+                    blink.blueskyIdentifier
+                      ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                      : 'border-border'
+                  }`}
+                  placeholder='dein-handle.bsky.social'
+                  value={values.blueskyIdentifier}
+                  onChange={onChange('blueskyIdentifier')}
+                />
               </label>
             </div>
             <label className='space-y-1 md:w-1/2'>
@@ -1569,7 +1651,17 @@ function CredentialsSection () {
                   'App Password'
                 )}
               </span>
-              <input type='password' className={`w-full rounded-md border bg-background p-2 ${blink.blueskyAppPassword ? 'animate-pulse ring-2 ring-destructive border-destructive' : 'border-border'}`} placeholder={hasSecret.bsky ? '••••••••' : ''} value={values.blueskyAppPassword} onChange={onChange('blueskyAppPassword')} />
+              <input
+                type='password'
+                className={`w-full rounded-md border bg-background p-2 ${
+                  blink.blueskyAppPassword
+                    ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                    : 'border-border'
+                }`}
+                placeholder={hasSecret.bsky ? '••••••••' : ''}
+                value={values.blueskyAppPassword}
+                onChange={onChange('blueskyAppPassword')}
+              />
               <p className='text-xs text-foreground-muted'>
                 {t(
                   'config.credentials.bluesky.appPasswordHint',
@@ -1585,12 +1677,15 @@ function CredentialsSection () {
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1'>
                 <span className='text-sm font-medium'>
-                  {t(
-                    'config.credentials.mastodon.apiUrlLabel',
-                    'API URL'
-                  )}
+                  {t('config.credentials.mastodon.apiUrlLabel', 'API URL')}
                 </span>
-                <input type='url' className='w-full rounded-md border border-border bg-background p-2' placeholder='https://mastodon.social' value={values.mastodonApiUrl} onChange={onChange('mastodonApiUrl')} />
+                <input
+                  type='url'
+                  className='w-full rounded-md border border-border bg-background p-2'
+                  placeholder='https://mastodon.social'
+                  value={values.mastodonApiUrl}
+                  onChange={onChange('mastodonApiUrl')}
+                />
               </label>
               <label className='space-y-1'>
                 <span className='text-sm font-medium'>
@@ -1599,7 +1694,13 @@ function CredentialsSection () {
                     'Access Token'
                   )}
                 </span>
-                <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.masto ? '••••••••' : ''} value={values.mastodonAccessToken} onChange={onChange('mastodonAccessToken')} />
+                <input
+                  type='password'
+                  className='w-full rounded-md border border-border bg-background p-2'
+                  placeholder={hasSecret.masto ? '••••••••' : ''}
+                  value={values.mastodonAccessToken}
+                  onChange={onChange('mastodonAccessToken')}
+                />
                 <p className='text-xs text-foreground-muted'>
                   {t(
                     'config.credentials.mastodon.accessTokenHint',
@@ -1611,20 +1712,20 @@ function CredentialsSection () {
           </section>
           <section className='space-y-4'>
             <h4 className='text-lg font-semibold'>
-              {t(
-                'config.credentials.tenor.heading',
-                'Tenor (GIF Suche)'
-              )}
+              {t('config.credentials.tenor.heading', 'Tenor (GIF Suche)')}
             </h4>
             <div className='grid gap-4 md:grid-cols-2'>
               <label className='space-y-1 md:w-1/2'>
                 <span className='text-sm font-medium'>
-                  {t(
-                    'config.credentials.tenor.apiKeyLabel',
-                    'API Key'
-                  )}
+                  {t('config.credentials.tenor.apiKeyLabel', 'API Key')}
                 </span>
-                <input type='password' className='w-full rounded-md border border-border bg-background p-2' placeholder={hasSecret.tenor ? '••••••••' : ''} value={values.tenorApiKey} onChange={onChange('tenorApiKey')} />
+                <input
+                  type='password'
+                  className='w-full rounded-md border border-border bg-background p-2'
+                  placeholder={hasSecret.tenor ? '••••••••' : ''}
+                  value={values.tenorApiKey}
+                  onChange={onChange('tenorApiKey')}
+                />
                 <p className='text-xs text-foreground-muted'>
                   {t(
                     'config.credentials.tenor.apiKeyHint',
@@ -1638,10 +1739,7 @@ function CredentialsSection () {
             <Button type='submit' disabled={saving}>
               {saving
                 ? t('config.credentials.saveBusy', 'Speichere …')
-                : t(
-                    'config.credentials.saveLabel',
-                    'Zugangsdaten speichern'
-                  )}
+                : t('config.credentials.saveLabel', 'Zugangsdaten speichern')}
             </Button>
           </div>
         </form>

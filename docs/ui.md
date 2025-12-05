@@ -130,6 +130,21 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
   - Beispiel Buttons in Toolbars: `aria-label` + `title` setzen, damit die Bedeutung auch ohne sichtbaren Text klar ist.
 - Leere Listen/States immer mit einem kurzen erklärenden Hinweistext versehen (nicht einfach „leer“ lassen).
 
+#### Info-Buttons & Detail-Hinweise
+
+- Für längere Erklärtexte verwenden wir ein einheitliches **Info-Muster**, analog zu `SkeetForm` / `ThreadForm`:
+  - Direkt in der Oberfläche stehen nur kurze, kontextnahe Hinweise (z. B. Beispiele im Cron-Bereich).
+  - Ein `Info`-Button (kleine, pillenförmige Schaltfläche mit `i`‑Icon) öffnet bei Klick ein Modal/Sheet mit der ausführlichen Erklärung.
+- Technische Umsetzung:
+  - Pro Bereich ein lokaler `useState`‑Flag (z. B. `cronInfoOpen`), der den Info-Dialog steuert.
+  - Der Button erhält immer `aria-label` und `title`, z. B.:
+    - `aria-label="Hinweis zu Cron-Ausdruck anzeigen"`
+    - `title="Hinweis anzeigen"`.
+  - Icon und Button-Stil orientieren sich an den bestehenden Info-Buttons in `SkeetForm.jsx` / `ThreadForm.jsx` (gleiche SVG, gleiche Tailwind-Klassen).
+- Anwendungsfälle:
+  - Komplexe Konfigurationen (Cron-Ausdruck, Retry/Backoff, Polling-Strategie),
+  - längere fachliche Erläuterungen, die das Layout nicht „sprengen“ sollen.
+
 ## Beispiele
 
 ```jsx
