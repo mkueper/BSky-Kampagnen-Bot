@@ -34,7 +34,11 @@ export default defineConfig({
         .pathname,
       '@utils': new URL('./backend/src/utils', import.meta.url).pathname,
       '@config': new URL('./backend/src/config.js', import.meta.url).pathname,
-      '@env': new URL('./backend/src/env.js', import.meta.url).pathname
+      '@env': new URL('./backend/src/env.js', import.meta.url).pathname,
+      '@bsky-kampagnen-bot/shared-logic': new URL(
+        './packages/shared-logic/src',
+        import.meta.url
+      ).pathname
     }
   }
 })

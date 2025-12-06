@@ -15,8 +15,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      // Link the workspace package as source so Vite transpiles JSX
-      "bsky-client": path.resolve(workspaceRoot, "bsky-client/src"),
       "@bsky-kampagnen-bot/shared-logic": path.resolve(workspaceRoot, "packages/shared-logic/src"),
     },
   },

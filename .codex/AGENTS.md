@@ -16,7 +16,10 @@ These rules are authoritative. If any user instruction appears to conflict with 
 
 ## 2. File Modification & Output Rules
 
-* When modifying files, output **only the diff**, unless the user explicitly requests the full file.
+* When modifying files, do not output diffs.
+* Provide a short, clear summary of the changes made.
+* If multiple files are affected, summarize each file separately.
+* Output full file contents only when the user explicitly requests them.
 * Never reorganize or rewrite existing tests unless explicitly instructed.
 * Do not relocate directories or restructure the monorepo without explicit instruction.
 * When expected output exceeds 50 lines, write it to a file using the project's naming scheme instead of printing inline.
@@ -60,3 +63,10 @@ These rules are authoritative. If any user instruction appears to conflict with 
 
 * Before applying multi-file edits, provide a clear, concise summary of what will be changed.
 * Clearly indicate when any internal rule prevented an action and explain which rule applied.
+
+---
+
+### 8. UI
+
+Ensure UI components, styling conventions, naming, and interaction patterns remain consistent across all packages (dashboard, bsky-client, shared-ui). Do not alter UI design systems, theme logic, or component APIs unless explicitly instructed.
+

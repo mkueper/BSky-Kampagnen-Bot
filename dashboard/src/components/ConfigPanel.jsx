@@ -629,7 +629,14 @@ export default function ConfigPanel () {
             <div className='text-xs text-foreground-muted whitespace-pre-line md:text-sm'>
               {t(
                 'config.scheduler.cronInfoBody',
-                'Beispiele:\n0 * * * * – führt zur vollen Stunde aus.\n*/5 * * * * – alle 5 Minuten.\n\nCron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
+                'Beispiele:\n\
+                • 0 * * * * – jede volle Stunde\n\
+                • */5 * * * * – alle 5 Minuten\n\
+                • 0 12 * * * – täglich um 12:00\n\
+                • 30 7 * * * – täglich um 07:30\n\
+                • 0 9 * * 1 – jeden Montag um 09:00\n\
+                • 0 8 1 * * – am 1. des Monats um 08:00\n\n\
+                Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
               )}
             </div>
           </div>
@@ -824,9 +831,48 @@ export default function ConfigPanel () {
               <div className='grid gap-6 md:grid-cols-2'>
                 <div className='md:col-span-2 space-y-6'>
                   <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
-                    <h4 className='text-sm font-semibold text-foreground'>
-                      {t('config.scheduler.scheduleCronBlockTitle', 'Cron')}
-                    </h4>
+                    <div className='flex items-center justify-between gap-2'>
+                      <h3 className='text-sm font-semibold text-foreground'>
+                        {t(
+                          'config.scheduler.labels.scheduleCronBlockTitle',
+                          'Cron'
+                        )}
+                      </h3>
+                      <button
+                        type='button'
+                        className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                        aria-label={t(
+                          'config.scheduler.cronInfoAria',
+                          'Hinweis zu Cron-Ausdruck anzeigen'
+                        )}
+                        onClick={() => setCronInfoOpen(true)}
+                        title={t(
+                          'posts.form.infoButtonTitle',
+                          'Hinweis anzeigen'
+                        )}
+                      >
+                        <svg
+                          width='12'
+                          height='12'
+                          viewBox='0 0 15 15'
+                          fill='none'
+                          xmlns='http://www.w3.org/2000/svg'
+                          aria-hidden='true'
+                        >
+                          <path
+                            d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                            fill='currentColor'
+                          />
+                          <path
+                            fillRule='evenodd'
+                            clipRule='evenodd'
+                            d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                            fill='currentColor'
+                          />
+                        </svg>
+                        {t('posts.form.infoButtonLabel', 'Info')}
+                      </button>
+                    </div>
                     <div className='grid gap-4 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]'>
                       <div className='space-y-2'>
                         <div className='flex items-center justify-between gap-2'>
@@ -839,40 +885,6 @@ export default function ConfigPanel () {
                               'Cron-Ausdruck'
                             )}
                           </label>
-                          <button
-                            type='button'
-                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
-                            aria-label={t(
-                              'config.scheduler.cronInfoAria',
-                              'Hinweis zu Cron-Ausdruck anzeigen'
-                            )}
-                            onClick={() => setCronInfoOpen(true)}
-                            title={t(
-                              'posts.form.infoButtonTitle',
-                              'Hinweis anzeigen'
-                            )}
-                          >
-                            <svg
-                              width='12'
-                              height='12'
-                              viewBox='0 0 15 15'
-                              fill='none'
-                              xmlns='http://www.w3.org/2000/svg'
-                              aria-hidden='true'
-                            >
-                              <path
-                                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
-                                fill='currentColor'
-                              />
-                              <path
-                                fillRule='evenodd'
-                                clipRule='evenodd'
-                                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
-                                fill='currentColor'
-                              />
-                            </svg>
-                            {t('posts.form.infoButtonLabel', 'Info')}
-                          </button>
                         </div>
                         <input
                           id='scheduleTime'
@@ -882,165 +894,175 @@ export default function ConfigPanel () {
                             updateField('scheduleTime', e.target.value)
                           }
                           disabled={loading || saving}
-                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                           placeholder={defaults.scheduleTime}
                         />
                       </div>
                       <div className='space-y-1 text-xs text-foreground-muted md:text-sm'>
                         <div className='font-semibold'>
-                          {t(
-                            'config.scheduler.examplesTitle',
-                            'Beispiele:'
-                          )}
+                          {t('config.scheduler.examplesTitle', 'Beispiele:')}
                         </div>
                         <div className='grid grid-cols-[auto,minmax(0,1fr)] gap-x-3 gap-y-1'>
-                          <div>0 * * * *</div><div>{t('config.scheduler.examplesHourly','stündlich')}</div>
-                          <div>*/5 * * * *</div><div>{t('config.scheduler.examplesEveryFive', 'alle 5 Minuten')}
+                          <div>0 * * * *</div>
+                          <div>
+                            {t('config.scheduler.examplesHourly', 'stündlich')}
+                          </div>
+                          <div>*/5 * * * *</div>
+                          <div>
+                            {t(
+                              'config.scheduler.examplesEveryFive',
+                              'alle 5 Minuten'
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
-                    <h4 className='text-sm font-semibold text-foreground'>
-                      {t(
-                        'config.scheduler.blockTitle',
-                        'Wiederholversuche & Backoff'
-                      )}
-                    </h4>
-                    <div className='grid gap-4 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]'>
-                      <div className='space-y-2'>
-                        <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center justify-between gap-2'>
+                      <h3 className='text-sm font-semibold text-foreground'>
+                        {t(
+                          'config.scheduler.sections.retryTitle',
+                          'Wiederholversuche & Backoff'
+                        )}
+                      </h3>
+                      <button
+                        type='button'
+                        className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                        aria-label={t(
+                          'config.scheduler.retryInfoAria',
+                          'Hinweis zu Wiederholversuchen & Backoff anzeigen'
+                        )}
+                        title={t(
+                          'posts.form.infoButtonTitle',
+                          'Hinweis anzeigen'
+                        )}
+                      >
+                        <svg
+                          width='12'
+                          height='12'
+                          viewBox='0 0 15 15'
+                          fill='none'
+                          xmlns='http://www.w3.org/2000/svg'
+                          aria-hidden='true'
+                        >
+                          <path
+                            d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                            fill='currentColor'
+                          />
+                          <path
+                            fillRule='evenodd'
+                            clipRule='evenodd'
+                            d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                            fill='currentColor'
+                          />
+                        </svg>
+                        {t('posts.form.infoButtonLabel', 'Info')}
+                      </button>
+                    </div>
+                    <div className='grid gap-4 md:grid-cols-3'>
+                      <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='flex h-full flex-col'>
+                          <div className='flex items-center justify-between gap-2'>
+                            <label
+                              htmlFor='postRetries'
+                              className='text-sm font-semibold text-foreground'
+                            >
+                              {t(
+                                'config.scheduler.labels.postRetries',
+                                'Maximale Wiederholversuche'
+                              )}
+                            </label>
+                          </div>
+                          <input
+                            id='postRetries'
+                            type='number'
+                            min={0}
+                            max={5}
+                            step={1}
+                            value={formValues.postRetries}
+                            onChange={e =>
+                              updateField('postRetries', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.postRetries}
+                          />
+                        </div>
+                        <div className='flex h-full flex-col'>
                           <label
-                            htmlFor='postRetries'
+                            htmlFor='postBackoffMs'
                             className='text-sm font-semibold text-foreground'
                           >
                             {t(
-                              'config.scheduler.labels.postRetries',
-                              'Maximale Wiederholversuche'
+                              'config.scheduler.labels.postBackoffMs',
+                              'Basis-Backoff (ms)'
                             )}
                           </label>
-                          <button
-                            type='button'
-                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
-                            aria-label={t(
-                              'config.scheduler.retryInfoAria',
-                              'Hinweis zu Wiederholversuchen & Backoff anzeigen'
-                            )}
-                            title={t(
-                              'posts.form.infoButtonTitle',
-                              'Hinweis anzeigen'
-                            )}
-                          >
-                            <svg
-                              width='12'
-                              height='12'
-                              viewBox='0 0 15 15'
-                              fill='none'
-                              xmlns='http://www.w3.org/2000/svg'
-                              aria-hidden='true'
-                            >
-                              <path
-                                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
-                                fill='currentColor'
-                              />
-                              <path
-                                fillRule='evenodd'
-                                clipRule='evenodd'
-                                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
-                                fill='currentColor'
-                              />
-                            </svg>
-                            {t('posts.form.infoButtonLabel', 'Info')}
-                          </button>
+                          <input
+                            id='postBackoffMs'
+                            type='number' min={100} max={10000} step={1}
+                            value={formValues.postBackoffMs}
+                            onChange={e =>
+                              updateField('postBackoffMs', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.postBackoffMs}
+                          />
                         </div>
-                        <input
-                          id='postRetries'
-                          type='number'
-                          min='0'
-                          value={formValues.postRetries}
-                          onChange={e =>
-                            updateField('postRetries', e.target.value)
-                          }
-                          disabled={loading || saving}
-                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                          placeholder={defaults.postRetries}
-                        />
+                        <div className='flex h-full flex-col'>
+                          <label
+                            htmlFor='postBackoffMaxMs'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.postBackoffMaxMs',
+                              'Maximaler Backoff (ms)'
+                            )}
+                          </label>
+                          <input
+                            id='postBackoffMaxMs'
+                            type='number'  min={100} max={120000} step={1}
+                            value={formValues.postBackoffMaxMs}
+                            onChange={e =>
+                              updateField('postBackoffMaxMs', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.postBackoffMaxMs}
+                          />
+                        </div>
+                        <div className='flex h-full flex-col'>
+                          <label
+                            htmlFor='graceWindowMinutes'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.graceWindowMinutes',
+                              'Grace-Zeit für verpasste Termine (Minuten)'
+                            )}
+                          </label>
+                          <input
+                            id='graceWindowMinutes'
+                            type='number' min={2} max={120} step={1}
+                            value={formValues.graceWindowMinutes}
+                            onChange={e =>
+                              updateField('graceWindowMinutes', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.graceWindowMinutes}
+                          />
+                        </div>
                       </div>
-                      <div className='space-y-2'>
-                        <label
-                          htmlFor='postBackoffMs'
-                          className='text-sm font-semibold text-foreground'
-                        >
+                      <div className='md:col-span-1 md:flex md:items-center'>
+                        <p className='text-xs text-foreground-muted md:text-sm whitespace-pre-line'>
                           {t(
-                            'config.scheduler.labels.postBackoffMs',
-                            'Basis-Backoff (ms)'
+                            'config.scheduler.retryInfoBody',
+                            'Wiederholversuche helfen dabei, temporäre Fehler (z. B. Rate-Limits) abzufedern.\nDer Basis-Backoff steuert die Wartezeit zwischen Versuchen, der maximale Backoff begrenzt die Verzögerung.\nDie Grace-Zeit legt fest, wie lange verpasste Termine nach einem Neustart noch nachgeholt werden.'
                           )}
-                        </label>
-                        <input
-                          id='postBackoffMs'
-                          type='number'
-                          min='0'
-                          value={formValues.postBackoffMs}
-                          onChange={e =>
-                            updateField('postBackoffMs', e.target.value)
-                          }
-                          disabled={loading || saving}
-                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                          placeholder={defaults.postBackoffMs}
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <label
-                          htmlFor='postBackoffMaxMs'
-                          className='text-sm font-semibold text-foreground'
-                        >
-                          {t(
-                            'config.scheduler.labels.postBackoffMaxMs',
-                            'Maximaler Backoff (ms)'
-                          )}
-                        </label>
-                        <input
-                          id='postBackoffMaxMs'
-                          type='number'
-                          min='0'
-                          value={formValues.postBackoffMaxMs}
-                          onChange={e =>
-                            updateField('postBackoffMaxMs', e.target.value)
-                          }
-                          disabled={loading || saving}
-                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                          placeholder={defaults.postBackoffMaxMs}
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <label
-                          htmlFor='graceWindowMinutes'
-                          className='text-sm font-semibold text-foreground'
-                        >
-                          {t(
-                            'config.scheduler.labels.graceWindowMinutes',
-                            'Grace-Zeit für verpasste Termine (Minuten)'
-                          )}
-                        </label>
-                        <input
-                          id='graceWindowMinutes'
-                          type='number'
-                          min='2'
-                          value={formValues.graceWindowMinutes}
-                          onChange={e =>
-                            updateField('graceWindowMinutes', e.target.value)
-                          }
-                          disabled={loading || saving}
-                          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                          placeholder={defaults.graceWindowMinutes}
-                        />
-                      </div>
-                      <div className='space-y-2 text-xs text-foreground-muted md:text-sm whitespace-pre-line'>
-                        {t(
-                          'config.scheduler.retryInfoBody',
-                          'Wiederholversuche helfen dabei, temporäre Fehler (z. B. Rate-Limits) abzufedern.\nDer Basis-Backoff steuert die Wartezeit zwischen Versuchen, der maximale Backoff begrenzt die Verzögerung.\nDie Grace-Zeit legt fest, wie lange verpasste Termine nach einem Neustart noch nachgeholt werden.'
-                        )}
+                        </p>
                       </div>
                     </div>
                   </div>

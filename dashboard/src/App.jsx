@@ -35,8 +35,6 @@ import { useSkeetActions } from './hooks/useSkeetActions'
 import { useThreadActions } from './hooks/useThreadActions'
 import LoginView from './components/views/LoginView'
 import { useSession } from './hooks/useSession'
-
-import { LayoutProvider } from 'bsky-client/context/LayoutContext.jsx'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
@@ -66,7 +64,6 @@ const NAV_ITEMS = [
       { id: 'threads-plan', label: 'Thread planen' }
     ]
   },
-  { id: 'bsky-client', label: 'Bluesky Client', icon: ViewHorizontalIcon },
   { id: 'config', label: 'Konfiguration', icon: GearIcon },
   { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
 ]
@@ -91,7 +88,6 @@ const HEADER_CAPTIONS = {
   threads: 'Threads – Übersicht',
   'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
-  'bsky-client': 'Bluesky Client',
   config: 'Konfiguration',
   about: 'Über Kampagnenbot'
 }
@@ -105,11 +101,9 @@ const HEADER_TITLES = {
   threads: 'Threads – Übersicht',
   'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
-  'bsky-client': 'BSky Client',
   config: 'Einstellungen & Automatisierung'
 }
 
-const BskyClientAppLazy = lazy(() => import('bsky-client'))
 const MainOverviewView = lazy(() => import('./components/views/MainOverviewView'))
 const AboutView = lazy(() => import('./components/views/AboutView'))
 const DashboardView = lazy(() => import('./components/views/DashboardView'))
@@ -601,8 +595,6 @@ function DashboardApp ({ onLogout }) {
       setLogoutPending(false)
     }
   }, [onLogout, toast])
-
-  const isBskyClientView = activeView === 'bsky-client'
   const localizedNavItems = useMemo(() => {
     return NAV_ITEMS.map(item => {
       const baseLabel = item.label
@@ -900,12 +892,6 @@ function DashboardApp ({ onLogout }) {
         <ConfigPanel />
       </Suspense>
     )
-  } else if (activeView === 'bsky-client') {
-    content = (
-      <Suspense fallback={null}>
-        <BskyClientAppLazy onNavigateDashboard={() => navigate('overview')} />
-      </Suspense>
-    )
   } else if (activeView === 'about') {
     content = (
       <Card padding='p-6 lg:p-10'>
@@ -997,9 +983,9 @@ function DashboardApp ({ onLogout }) {
       headerCaption={headerCaption}
       headerTitle={headerTitle}
       headerActions={headerActions}
-      headerHidden={isBskyClientView}
+      headerHidden={false}
       navFooter={navFooter}
-      showScrollTop={activeView !== 'bsky-client'}
+      showScrollTop
     >
       {content}
       <ConfirmDialog
@@ -1050,9 +1036,7 @@ function App () {
   }
 
   return (
-    <LayoutProvider>
-      <DashboardApp session={session?.user} onLogout={handleLogout} />
-    </LayoutProvider>
+    <DashboardApp session={session?.user} onLogout={handleLogout} />
   )
 }
 

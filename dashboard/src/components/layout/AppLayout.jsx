@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   HamburgerMenuIcon,
   ChevronDownIcon,
@@ -34,8 +34,6 @@ function AppLayout ({
   const [menuOpen, setMenuOpen] = useState(false)
   // Desktop: collapsed main navigation state (default visible)
   const [navCollapsed, setNavCollapsed] = useState(false)
-  // Merkt sich den Zustand vor dem Auto-Einklappen beim BSky-Client
-  const prevCollapsedRef = useRef(null)
 
   const activeNavItemLabel = useMemo(() => {
     for (const item of navItems) {
@@ -83,22 +81,6 @@ function AppLayout ({
       return next
     })
   }, [activeView, navItems])
-
-  // Auto-Einklappen nur für die BSky-Client-Ansicht; beim Verlassen den vorherigen Zustand wiederherstellen
-  useEffect(() => {
-    const isBskyClient = activeView === 'bsky-client'
-    if (isBskyClient) {
-      if (prevCollapsedRef.current === null) {
-        prevCollapsedRef.current = navCollapsed
-      }
-      setNavCollapsed(true)
-    } else {
-      if (prevCollapsedRef.current !== null) {
-        setNavCollapsed(prevCollapsedRef.current)
-        prevCollapsedRef.current = null
-      }
-    }
-  }, [activeView])
 
   const handleSelectView = viewId => {
     onSelectView(viewId)
@@ -322,11 +304,7 @@ function AppLayout ({
             id='app-scroll-container'
             className={`flex-1 min-h-0 max-h-full pr-1 ${
               headerHidden ? 'pt-2 sm:pt-4' : 'pt-4'
-            } ${
-              activeView === 'bsky-client'
-                ? 'overflow-hidden'
-                : 'overflow-y-auto'
-            }`}
+            } overflow-y-auto`}
             style={{ scrollbarGutter: 'stable' }}
           >
             <main className='space-y-8 pb-6 md:pb-8'>{children}</main>

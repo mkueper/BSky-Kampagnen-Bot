@@ -8,7 +8,6 @@ const messages = {
       threads: 'Threads',
       'threads-overview': 'Aktivität',
       'threads-plan': 'Thread planen',
-      'bsky-client': 'Bluesky Client',
       config: 'Konfiguration',
       about: 'Über Kampagnen‑Tool'
     },
@@ -21,7 +20,6 @@ const messages = {
         threads: 'Threads – Übersicht',
         'threads-overview': 'Threads – Übersicht',
         'threads-plan': 'Thread planen',
-        'bsky-client': 'Bluesky Client',
         config: 'Konfiguration',
         about: 'Über Kampagnen‑Tool'
       },
@@ -33,7 +31,6 @@ const messages = {
         threads: 'Threads – Übersicht',
         'threads-overview': 'Threads – Übersicht',
         'threads-plan': 'Thread planen',
-        'bsky-client': 'BSky Client',
         config: 'Einstellungen & Automatisierung',
         about: 'Über Kampagnen‑Tool'
       }
@@ -599,6 +596,14 @@ const messages = {
           'Beispiele:\n0 * * * * (stündlich)\n*/5 * * * * (alle 5 Minuten)',
         summary:
           'Standardwerte: Cron {cron}, Zeitzone {tz}, Retries {retries}, Backoff {backoffMs}ms (max. {backoffMaxMs}ms)',
+        cronInfoBody: 'Beispiele:\n' +
+          '0   *    *    *    *      – jede volle Stunde\n' +
+          '*/5 *    *    *    *      – alle 5 Minuten\n' +
+          '0   12   *    *    *      – täglich um 12:00\n' +
+          '30  7    *    *    *      – täglich um 07:30\n' +
+          '0   9    *    *    1      – jeden Montag um 09:00\n' +
+          '0   8    1    *    *      – am 1. des Monats um 08:00\n' +
+          'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.',    
         graceHint:
           'Innerhalb dieses Zeitfensters nach dem geplanten Zeitpunkt werden verpasste Posts/Threads noch nachgeholt. Mindestwert: 2 Minuten.',
         infoHeading: 'Hinweise',
