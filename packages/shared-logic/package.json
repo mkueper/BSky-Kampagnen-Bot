@@ -1,0 +1,19 @@
+{
+  "name": "@bsky-kampagnen-bot/shared-logic",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "scripts": {
+    "build": "node -e \"console.log('Shared logic nutzt Quellcode direkt - kein Build-Schritt erforderlich.')\"",
+    "test": "node -e \"console.log('Keine eigenen Tests für shared-logic definiert.')\""
+  }
+}
+

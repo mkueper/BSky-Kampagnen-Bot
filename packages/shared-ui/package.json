@@ -11,7 +11,8 @@
     "./Button": "./src/components/Button.jsx",
     "./Card": "./src/components/Card.jsx",
     "./Modal": "./src/components/Modal.jsx",
-    "./MediaDialog": "./src/components/MediaDialog.jsx"
+    "./MediaDialog": "./src/components/MediaDialog.jsx",
+    "./ConfirmDialog": "./src/components/ConfirmDialog.jsx"
   },
   "scripts": {
     "build": "node -e \"console.log('Shared UI nutzt Quellcode direkt - kein Build-Schritt erforderlich.')\"",

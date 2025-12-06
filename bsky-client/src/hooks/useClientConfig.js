@@ -1,8 +1,7 @@
-import useSWR from 'swr'
-import { fetcher } from '../lib/fetcher'
+import { useClientConfig as useSharedClientConfig } from '@bsky-kampagnen-bot/shared-logic'
 
 export function useClientConfig () {
-  const { data: clientConfig } = useSWR('/api/client-config', fetcher)
+  const { config, loading, error } = useSharedClientConfig()
 
-  return { clientConfig }
+  return { clientConfig: config, loading, error }
 }

@@ -121,7 +121,8 @@
       "dashboard",
       "bsky-client",
       "packages/media-pickers",
-      "packages/shared-ui"
+      "packages/shared-ui",
+      "packages/shared-logic"
     ]
   },
   "build": {
