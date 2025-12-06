@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card, Modal } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 
@@ -602,46 +602,47 @@ export default function ConfigPanel () {
 
   return (
     <div className='space-y-6'>
-      {cronInfoOpen ? (
-        <div className='fixed inset-0 z-40 flex items-center justify-center bg-background/80 p-4'>
-          <div className='max-w-lg rounded-2xl border border-border bg-background-elevated p-6 shadow-soft'>
-            <div className='mb-4 flex items-start justify-between gap-4'>
-              <div>
-                <h3 className='text-lg font-semibold text-foreground'>
-                  {t('config.scheduler.cronInfoTitle', 'Cron-Ausdruck')}
-                </h3>
-                <p className='mt-1 text-sm text-foreground-muted'>
-                  {t(
-                    'config.scheduler.tips.serverTime',
-                    'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
-                  )}
-                </p>
-              </div>
-              <button
-                type='button'
-                onClick={() => setCronInfoOpen(false)}
-                className='h-8 w-8 rounded-full border border-border bg-background text-sm text-foreground hover:bg-background-elevated'
-                aria-label={t('common.close', 'Schließen')}
-              >
-                ×
-              </button>
-            </div>
-            <div className='text-xs text-foreground-muted whitespace-pre-line md:text-sm'>
-              {t(
-                'config.scheduler.cronInfoBody',
-                'Beispiele:\n\
-                • 0 * * * * – jede volle Stunde\n\
-                • */5 * * * * – alle 5 Minuten\n\
-                • 0 12 * * * – täglich um 12:00\n\
-                • 30 7 * * * – täglich um 07:30\n\
-                • 0 9 * * 1 – jeden Montag um 09:00\n\
-                • 0 8 1 * * – am 1. des Monats um 08:00\n\n\
-                Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
-              )}
-            </div>
-          </div>
+      <Modal
+        open={cronInfoOpen}
+        title={t('config.scheduler.cronInfoTitle', 'Cron-Ausdruck')}
+        onClose={() => setCronInfoOpen(false)}
+        actions={(
+          <Button
+            variant='secondary'
+            onClick={() => setCronInfoOpen(false)}
+          >
+            {t('common.actions.close', 'Schließen')}
+          </Button>
+        )}
+        panelClassName='max-w-[80vw] md:max-w-[900px]'
+      >
+        <div className='space-y-3 text-sm text-foreground'>
+          <p className='max-w-[52ch]'>
+            {t(
+              'config.scheduler.tips.serverTime',
+              'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
+            )}
+          </p>
+          <pre className='font-mono text-xs md:text-sm bg-background-subtle rounded-2xl px-4 py-3 whitespace-pre leading-relaxed'>
+            {t(
+              'config.scheduler.cronInfoBody',
+              'Beispiele:\n' +
+              '0   *    *    *    *      – jede volle Stunde\n' +
+              '*/5 *    *    *    *      – alle 5 Minuten\n' +
+              '0   12   *    *    *      – täglich um 12:00\n' +
+              '30  7    *    *    *      – täglich um 07:30\n' +
+              '0   9    *    *    1      – jeden Montag um 09:00\n' +
+              '0   8    1    *    *      – am 1. des Monats um 08:00\n\n'
+            )}
+          </pre>
+          <p className='max-w-[52ch]'>
+            {t(
+              'config.scheduler.cronInfoSummary',
+              'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
+            )}
+          </p>
         </div>
-      ) : null}
+      </Modal>
 
       {needsCreds ? (
         <Card

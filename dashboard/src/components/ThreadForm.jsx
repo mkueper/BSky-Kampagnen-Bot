@@ -1336,10 +1336,10 @@ function ThreadForm ({
           onClose={() => setUploadError({ open: false, message: '' })}
           actions={(
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={() => setUploadError({ open: false, message: '' })}
             >
-              {t('common.actions.ok', 'OK')}
+              {t('common.actions.close', 'Schließen')}
             </Button>
           )}
         >
@@ -1364,39 +1364,41 @@ function ThreadForm ({
           onClose={() => setInfoThreadOpen(false)}
           actions={(
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={() => setInfoThreadOpen(false)}
             >
-              {t('common.actions.ok', 'OK')}
+              {t('common.actions.close', 'Schließen')}
             </Button>
           )}
         >
-          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
-            <p>
-              {t(
-                'threads.form.infoSource.body1',
-                'Schreibe den gesamten Thread in ein Feld. Du kannst --- als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.'
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoSource.body2',
-                'Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung richtet sich nach den gewählten Plattformen (kleinster Wert gilt).'
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoSource.body3',
-                'Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {max} Bilder pro Post.',
-                { max: imagePolicy?.maxCount ?? 4 }
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoSource.body4',
-                'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
-              )}
-            </p>
+          <div className='space-y-3 text-sm leading-snug text-foreground'>
+            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-1.5'>
+              <p>
+                {t(
+                  'threads.form.infoSource.body1',
+                  'Schreibe den gesamten Thread in ein Feld. Du kannst --- als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoSource.body2',
+                  'Längere Abschnitte werden automatisch passend zerschnitten – wenn möglich am Satzende. Die Zeichenbegrenzung richtet sich nach den gewählten Plattformen (kleinster Wert gilt).'
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoSource.body3',
+                  'Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {max} Bilder pro Post.',
+                  { max: imagePolicy?.maxCount ?? 4 }
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoSource.body4',
+                  'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+                )}
+              </p>
+            </div>
           </div>
         </Modal>
       ) : null}
@@ -1412,39 +1414,41 @@ function ThreadForm ({
           onClose={() => setInfoPreviewOpen(false)}
           actions={(
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={() => setInfoPreviewOpen(false)}
             >
-              {t('common.actions.ok', 'OK')}
+              {t('common.actions.close', 'Schließen')}
             </Button>
           )}
         >
-          <div className='space-y-1.5 text-sm leading-snug text-foreground'>
-            <p>
-              {t(
-                'threads.form.infoPreview.body1',
-                'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.'
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoPreview.body2',
-                'Bilder werden beim Speichern hochgeladen (max. {max} je Post).',
-                { max: imagePolicy?.maxCount ?? 4 }
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoPreview.body3',
-                'Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.'
-              )}
-            </p>
-            <p>
-              {t(
-                'threads.form.infoPreview.body4',
-                'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
-              )}
-            </p>
+          <div className='space-y-3 text-sm leading-snug text-foreground'>
+            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-1.5'>
+              <p>
+                {t(
+                  'threads.form.infoPreview.body1',
+                  'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoPreview.body2',
+                  'Bilder werden beim Speichern hochgeladen (max. {max} je Post).',
+                  { max: imagePolicy?.maxCount ?? 4 }
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoPreview.body3',
+                  'Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'threads.form.infoPreview.body4',
+                  'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+                )}
+              </p>
+            </div>
           </div>
         </Modal>
       ) : null}

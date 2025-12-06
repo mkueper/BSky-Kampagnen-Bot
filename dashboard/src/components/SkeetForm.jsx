@@ -1357,26 +1357,28 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           onClose={() => setInfoContentOpen(false)}
           actions={(
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={() => setInfoContentOpen(false)}
             >
-              {t('common.actions.ok', 'OK')}
+              {t('common.actions.close', 'Schließen')}
             </Button>
           )}
         >
-          <div className='space-y-2 text-sm text-foreground'>
-            <p>
-              {t(
-                'posts.form.infoContent.body1',
-                'Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.'
-              )}
-            </p>
-            <p>
-              {t(
-                'posts.form.infoContent.body2',
-                'Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.'
-              )}
-            </p>
+          <div className='space-y-3 text-sm text-foreground'>
+            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-2 leading-relaxed'>
+              <p>
+                {t(
+                  'posts.form.infoContent.body1',
+                  'Zielplattformen bestimmen das Zeichenlimit. Der kleinste Wert (z. B. Bluesky 300, Mastodon 500) gilt.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'posts.form.infoContent.body2',
+                  'Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.'
+                )}
+              </p>
+            </div>
           </div>
         </Modal>
       ) : null}
@@ -1389,27 +1391,29 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           onClose={() => setInfoPreviewOpen(false)}
           actions={(
             <Button
-              variant='primary'
+              variant='secondary'
               onClick={() => setInfoPreviewOpen(false)}
             >
-              {t('common.actions.ok', 'OK')}
+              {t('common.actions.close', 'Schließen')}
             </Button>
           )}
         >
-          <div className='space-y-2 text-sm text-foreground'>
-            <p>
-              {t(
-                'posts.form.infoPreview.body1',
-                'Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
-                { max: imagePolicy?.maxCount ?? 4 }
-              )}
-            </p>
-            <p>
-              {t(
-                'posts.form.infoPreview.body2',
-                'Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.'
-              )}
-            </p>
+          <div className='space-y-3 text-sm text-foreground'>
+            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-2 leading-relaxed'>
+              <p>
+                {t(
+                  'posts.form.infoPreview.body1',
+                  'Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
+                  { max: imagePolicy?.maxCount ?? 4 }
+                )}
+              </p>
+              <p>
+                {t(
+                  'posts.form.infoPreview.body2',
+                  'Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.'
+                )}
+              </p>
+            </div>
           </div>
         </Modal>
       ) : null}
