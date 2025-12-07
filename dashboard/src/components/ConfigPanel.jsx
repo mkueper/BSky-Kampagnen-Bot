@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Button, Card, InfoDialog, Modal, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 

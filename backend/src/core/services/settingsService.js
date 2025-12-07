@@ -94,7 +94,7 @@ async function setSetting(key, value, defaultValue) {
   await Setting.upsert({ key, value: String(value) });
 }
 
-function validateScheduleInput({ scheduleTime, timeZone }) {
+function validateScheduleInput({ scheduleTime }) {
   if (!scheduleTime || !cron.validate(scheduleTime)) {
     throw new Error("Ungültiger Cron-Ausdruck für den Scheduler.");
   }

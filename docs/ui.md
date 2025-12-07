@@ -248,7 +248,7 @@ function Example() {
 - Gestapelte Einstellungsblöcke innerhalb einer Karte (z. B. in `ConfigPanel` für „Scheduler & Retry“ oder „Zugangsdaten“) verwenden einheitliche vertikale Abstände:
   - Zwischen den Blöcken: Container mit `className="space-y-6"` (oder äquivalent), sodass die optischen Bereichsboxen gleich weit auseinanderliegen.
   - Innerhalb eines Blocks: `className="space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4"` für Überschrift und Felder.
-- Neue Einstellungsbereiche sollten dieses Muster übernehmen, damit Zeilenabstände und Blockabstände im gesamten Dashboard konsistent bleiben.
+- Bereits bestehende Einstellungsbereiche (ConfigPanel-Tabs, About-Ansicht „Über Kampagnen‑Tool“) folgen diesem Muster. Neue Einstellungsbereiche sollten es ebenfalls übernehmen, damit Zeilenabstände und Blockabstände im gesamten Dashboard konsistent bleiben.
 
 ### Aktionsgruppen mit Info-Button
 

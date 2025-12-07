@@ -105,22 +105,27 @@ function MainOverviewView({
     typeof pendingCount === 'number' && Number(pendingCount) > 0
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-4">
-          <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
-              {t('overview.cards.plannedPosts', 'Geplante Posts')}
-            </p>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.plannedCount}</p>
-          </Card>
-          <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
-              {t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}
-            </p>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{skeetStats.publishedCount}</p>
-          </Card>
-          <Card
+    <div className="space-y-4">
+      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
+            <Card padding="px-5 py-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('overview.cards.plannedPosts', 'Geplante Posts')}
+              </h3>
+              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
+                {skeetStats.plannedCount}
+              </p>
+            </Card>
+            <Card padding="px-5 py-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}
+              </h3>
+              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
+                {skeetStats.publishedCount}
+              </p>
+            </Card>
+            <Card
             padding="px-5 py-4"
             onClick={
               hasPending && typeof onOpenPendingSkeets === 'function'
@@ -167,9 +172,9 @@ function MainOverviewView({
               hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
             }
           >
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
+            <h3 className="text-lg font-semibold text-foreground">
               {t('overview.cards.pendingPosts', 'Wartende Posts')}
-            </p>
+            </h3>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
               {pendingCount}
             </p>
@@ -185,25 +190,31 @@ function MainOverviewView({
                   )}
             </p>
           </Card>
-        </div>
-        <div className="space-y-4">
-          <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
-              {t('overview.cards.plannedThreads', 'Geplante Threads')}
-            </p>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.planned}</p>
-          </Card>
-          <Card padding="px-5 py-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-foreground-muted">
-              {t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}
-            </p>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">{threadStats.published}</p>
-          </Card>
+          </div>
+          <div className="space-y-4">
+            <Card padding="px-5 py-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('overview.cards.plannedThreads', 'Geplante Threads')}
+              </h3>
+              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
+                {threadStats.planned}
+              </p>
+            </Card>
+            <Card padding="px-5 py-4">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}
+              </h3>
+              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
+                {threadStats.published}
+              </p>
+            </Card>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card
+      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card
           padding="p-6"
           onClick={typeof onOpenSkeetsOverview === 'function' ? () => onOpenSkeetsOverview() : undefined}
           onKeyDown={typeof onOpenSkeetsOverview === 'function' ? (e) => {
@@ -284,10 +295,12 @@ function MainOverviewView({
             </p>
           )}
         </Card>
+        </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card padding="p-6">
+      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card padding="p-6">
           <h3 className="text-lg font-semibold">
             {t('overview.upcoming.postsTitle', 'Bevorstehende Posts')}
           </h3>
@@ -332,6 +345,7 @@ function MainOverviewView({
             </p>
           )}
         </Card>
+        </div>
       </section>
     </div>
   );

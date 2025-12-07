@@ -66,7 +66,7 @@ const NAV_ITEMS = [
     ]
   },
   { id: 'config', label: 'Konfiguration', icon: GearIcon },
-  { id: 'about', label: 'Über Kampagnenbot', icon: InfoCircledIcon }
+  { id: 'about', label: 'Über Kampagnen‑Tool', icon: InfoCircledIcon }
 ]
 
 const VALID_VIEWS = (() => {
@@ -90,7 +90,7 @@ const HEADER_CAPTIONS = {
   'threads-overview': 'Threads – Übersicht',
   'threads-plan': 'Thread planen',
   config: 'Konfiguration',
-  about: 'Über Kampagnenbot'
+  about: 'Über Kampagnen‑Tool'
 }
 
 // Haupt-Titelzeile der App, getrennt nach Ansicht.

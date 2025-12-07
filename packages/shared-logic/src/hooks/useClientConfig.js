@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+/* global fetch, window */
 
 export function useClientConfig () {
   const [config, setConfig] = useState(null)
@@ -41,4 +42,3 @@ export function useClientConfig () {
 
   return { config, loading, error }
 }
-

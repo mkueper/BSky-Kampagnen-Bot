@@ -24,7 +24,8 @@
 - Im Tab „Zugangsdaten“ gibt es einen InfoDialog (`config.credentials.info*`) sowie optisch abgesetzte Blöcke für Bluesky, Mastodon und Tenor.
 - Die Zeitzonen-Erklärung ist über einen InfoDialog im Tab „Allgemein“ verfügbar; passende Richtlinien sind in `docs/ui.md` und `docs/development/timezone-picker.md` dokumentiert.
 - Die Button-Leisten in allen Tabs des `ConfigPanel` sind vereinheitlicht: rechtsbündig, primäre Aktion „Übernehmen“ unten rechts, Buttons nur aktiv bei Änderungen; im Tab „Zugangsdaten“ gibt es zusätzlich einen deaktivierbaren „Abbrechen“-Button zum Verwerfen lokaler Änderungen.
- - Für Import/Export in den Übersichten von Posts und Threads gibt es einen eigenen InfoDialog (`importExport.info*`) und einen optisch hervorgehobenen Aktionsblock (Export, Import, Info) gemäß den UI-Richtlinien.
+- Für Import/Export in den Übersichten von Posts und Threads gibt es einen eigenen InfoDialog (`importExport.info*`) und einen optisch hervorgehobenen Aktionsblock (Export, Import, Info) gemäß den UI-Richtlinien.
+- Die About-Ansicht („Über Kampagnen‑Tool“) verwendet nun denselben Card- und Abschnittsstil wie Einstellungs-Views; Produktnamen („Kampagnen‑Tool“) und Beschreibungstexte sind aktualisiert und konsistent.
 - Sprachrichtlinie in `docs/ui.md` ergänzt: UI-Texte werden neutral formuliert, direkte Anrede („du“/„Sie“) wird vermieden.
 - Alle Änderungen sind über i18n abgedeckt; `npm test` läuft grün durch.
 
