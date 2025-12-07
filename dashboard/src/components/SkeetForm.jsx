@@ -4,6 +4,7 @@ import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
+import { ImageIcon, FaceIcon } from '@radix-ui/react-icons'
 import LinkifiedText from './LinkifiedText'
 import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'
@@ -662,7 +663,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                       )
                 }
               >
-                <span className='text-base md:text-lg leading-none'>🖼️</span>
+                <ImageIcon className='h-4 w-4' aria-hidden='true' />
               </button>
               {tenorAvailable ? (
               <button
@@ -700,7 +701,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
-                <span className='text-base md:text-lg leading-none'>😊</span>
+                <FaceIcon className='h-4 w-4' aria-hidden='true' />
               </button>
             </div>
           </div>
@@ -730,7 +731,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   'Bild hinzufügen'
                 )}
               >
-                <span className='text-base md:text-lg leading-none'>🖼️</span>
+                <ImageIcon className='h-4 w-4' aria-hidden='true' />
               </button>
               {tenorAvailable ? (
               <button
@@ -764,7 +765,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                 )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
-                <span className='text-base md:text-lg leading-none'>😊</span>
+                <FaceIcon className='h-4 w-4' aria-hidden='true' />
               </button>
             </div>
           </div>

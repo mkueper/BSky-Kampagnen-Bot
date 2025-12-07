@@ -3,7 +3,7 @@ import { Button, ConfirmDialog, InfoDialog, Modal, MediaDialog } from '@bsky-kam
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
-import { InfoCircledIcon } from '@radix-ui/react-icons'
+import { FaceIcon, ImageIcon, InfoCircledIcon } from '@radix-ui/react-icons'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import {
   formatDateTimeLocal,
@@ -557,16 +557,6 @@ function ThreadForm ({
     }
   }
 
-  const limitLabel = useMemo(() => {
-    if (!targetPlatforms.length) {
-      return 'Keine Plattform ausgewählt'
-    }
-    if (typeof limit !== 'number' || !Number.isFinite(limit)) {
-      return 'Zeichenlimit nicht bestimmt'
-    }
-    return `${limit} Zeichen (limitierend)`
-  }, [limit, targetPlatforms.length])
-
   const hasValidationIssues = useMemo(() => {
     if (!targetPlatforms.length) {
       return true
@@ -829,7 +819,7 @@ function ThreadForm ({
 
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
-      <div className='grid gap-6 lg:grid-cols-2'>
+      <div className='grid gap-6 lg:grid-cols-2 lg:items-start lg:min-h-0'>
         <div className='space-y-4'>
           <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
             <header className='space-y-3'>
@@ -854,13 +844,12 @@ function ThreadForm ({
                   {t('threads.form.infoButtonLabel', 'Info')}
                 </button>
               </div>
-              <div className='flex flex-wrap items-center gap-3 text-sm'>
-                <span className='rounded-full bg-background-subtle px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-foreground-muted'>
-                  {t('threads.form.source.limitLabel', 'Limit: {label}', {
-                    label: limitLabel
-                  })}
-                </span>
-              </div>
+              <p className='mt-1 text-xs text-foreground-muted'>
+                {t(
+                  'threads.form.source.shortHint',
+                  'STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.'
+                )}
+              </p>
             </header>
 
             <textarea
@@ -890,7 +879,7 @@ function ThreadForm ({
                 )}
                 onClick={() => setEmojiPicker({ open: true })}
               >
-                <span className='text-base md:text-lg leading-none'>😊</span>
+                <FaceIcon className='h-4 w-4' aria-hidden='true' />
               </button>
             </div>
 
@@ -981,13 +970,6 @@ function ThreadForm ({
                 </span>
               </label>
 
-              <p className='text-xs text-foreground-muted'>
-                {t(
-                  'threads.form.source.shortHint',
-                  'STRG+Enter fügt einen Trenner ein. Lange Abschnitte werden automatisch aufgeteilt. Nummerierung kann optional deaktiviert werden.'
-                )}
-              </p>
-
               <div className='flex flex-wrap items-center gap-2'>
                 {isEditMode && typeof onCancel === 'function' ? (
                   <Button
@@ -1011,6 +993,7 @@ function ThreadForm ({
                     }
                   }}
                   disabled={saving || sending}
+                  className='min-w-[8rem]'
                 >
                   {t(
                     'threads.form.actions.reset',
@@ -1144,19 +1127,23 @@ function ThreadForm ({
                         </span>
                         <button
                           type='button'
-                          className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                          className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => openMediaDialog(segment.id)}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
                               : 'Bild hinzufügen'}
                           disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
+                          aria-label={t(
+                            'threads.form.media.addImageAria',
+                            'Bild hinzufügen'
+                          )}
                         >
-                          <span className='text-base md:text-lg leading-none'>🖼️</span>
+                          <ImageIcon className='h-4 w-4' aria-hidden='true' />
                         </button>
                         {tenorAvailable ? (
                         <button
                           type='button'
-                          className='rounded-full border border-border bg-background px-3 py-1 text-xs hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                          className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => setGifPicker({ open: true, index })}
                           title={getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
@@ -1169,9 +1156,11 @@ function ThreadForm ({
                         {/* Emoji-Button entfällt: Emojis werden im Text eingefügt */}
                       </div>
                     </header>
-                    <pre className='mt-3 whitespace-pre-wrap break-words rounded-xl bg-background-subtle/70 p-3 text-sm text-foreground'>
-                      {segment.formatted || '(leer)'}
-                    </pre>
+                    <div className='mt-3 flex-1 overflow-auto pr-2'>
+                      <span className='whitespace-pre-wrap break-words leading-relaxed text-foreground'>
+                        {segment.formatted || '(kein Inhalt)'}
+                      </span>
+                    </div>
                     {(() => {
                       // Build preview list: existing (edit) + pending (create)
                       const list = [];
