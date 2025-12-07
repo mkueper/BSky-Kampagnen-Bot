@@ -26,6 +26,8 @@ export default function ConfigPanel () {
   const { t, locale, setLocale } = useTranslation()
   const [cronInfoOpen, setCronInfoOpen] = useState(false)
   const [retryInfoOpen, setRetryInfoOpen] = useState(false)
+  const [pollInfoOpen, setPollInfoOpen] = useState(false)
+  const [timeZoneInfoOpen, setTimeZoneInfoOpen] = useState(false)
   const [tab, setTab] = useState('general')
   const [needsCreds, setNeedsCreds] = useState(false)
   // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
@@ -64,6 +66,9 @@ export default function ConfigPanel () {
   const [generalValues, setGeneralValues] = useState({
     timeZone: ''
   })
+  const [generalInitialValues, setGeneralInitialValues] = useState(
+    generalValues
+  )
   const [generalDefaults, setGeneralDefaults] = useState(generalValues)
   const [generalLoading, setGeneralLoading] = useState(true)
   const [generalSaving, setGeneralSaving] = useState(false)
@@ -95,6 +100,12 @@ export default function ConfigPanel () {
       key => String(formValues[key]) !== String(initialValues[key] ?? '')
     )
   }, [formValues, initialValues])
+  const generalHasChanges = useMemo(() => {
+    return (
+      String(generalValues.timeZone ?? '') !==
+      String(generalInitialValues.timeZone ?? '')
+    )
+  }, [generalValues, generalInitialValues])
 
   useEffect(() => {
     let ignore = false
@@ -173,6 +184,7 @@ export default function ConfigPanel () {
         }
         if (!ignore) {
           setGeneralValues(nextValues)
+          setGeneralInitialValues(nextValues)
           setGeneralDefaults(nextDefaults)
         }
       } catch (error) {
@@ -311,6 +323,7 @@ export default function ConfigPanel () {
         timeZone: data.defaults?.timeZone ?? generalDefaults.timeZone
       }
       setGeneralValues(nextValues)
+      setGeneralInitialValues(nextValues)
       setGeneralDefaults(nextDefaults)
       toast.success({
         title: t(
@@ -637,6 +650,44 @@ export default function ConfigPanel () {
         )}
       />
       <InfoDialog
+        open={timeZoneInfoOpen}
+        title={t(
+          'config.general.timeZoneInfoTitle',
+          'Zeitzone im Scheduler'
+        )}
+        onClose={() => setTimeZoneInfoOpen(false)}
+        closeLabel={t('common.actions.close', 'Schließen')}
+        panelClassName='max-w-[80vw] md:max-w-[700px]'
+        content={(
+          <div className='space-y-3 text-sm text-foreground'>
+            <p>
+              {t(
+                'config.general.timeZoneInfoIntro',
+                'Die Standard-Zeitzone definiert die Referenzzeitzone für Scheduler und Dashboard.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.general.timeZoneInfoServer',
+                'Cron-Ausdrücke und die Ausführung des Schedulers orientieren sich an der konfigurierten Zeitzone auf dem Server. Die lokale Browser-Zeitzone bleibt davon unabhängig.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.general.timeZoneInfoForms',
+                'Datums- und Zeitfelder in den Planungsformularen verwenden die Standard-Zeitzone für Vorschlagswerte und Darstellung.'
+              )}
+            </p>
+            <p className='text-xs text-foreground-muted'>
+              {t(
+                'config.general.timeZoneInfoHint',
+                'In den meisten Installationen ist die Zeitzone des Deployment-Standorts (z. B. Europe/Berlin) sinnvoll. UTC eignet sich für rein technische Umgebungen.'
+              )}
+            </p>
+          </div>
+        )}
+      />
+      <InfoDialog
         open={retryInfoOpen}
         title={t(
           'config.scheduler.retryInfoTitle',
@@ -696,6 +747,71 @@ export default function ConfigPanel () {
               {t(
                 'config.scheduler.retryInfoHint',
                 'Für die meisten Setups ist eine geringe Anzahl an Wiederholversuchen (z. B. 2–3) und eine moderate Grace-Zeit ausreichend, um kurzfristige Ausfälle abzufangen, ohne alte Posts stark zu verzögern.'
+              )}
+            </p>
+          </div>
+        )}
+      />
+      <InfoDialog
+        open={pollInfoOpen}
+        title={t(
+          'config.polling.infoTitle',
+          'Dashboard-Polling & Backoff'
+        )}
+        onClose={() => setPollInfoOpen(false)}
+        closeLabel={t('common.actions.close', 'Schließen')}
+        panelClassName='max-w-[80vw] md:max-w-[700px]'
+        content={(
+          <div className='max-h-[60vh] overflow-y-auto space-y-3 text-sm text-foreground'>
+            <p>
+              {t(
+                'config.polling.infoIntro',
+                'Dashboard-Polling ergänzt die Live-Updates (SSE), damit Listen für Threads und Posts auch bei Verbindungsproblemen aktualisiert werden können.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.polling.infoIntervalsHeading',
+                  'Intervalle für Threads & Posts'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.polling.infoIntervals',
+                'Aktiv-, Idle- und Hidden-Intervalle steuern, wie häufig Threads und Posts im jeweiligen Zustand abgefragt werden.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.polling.infoBackoffHeading',
+                  'Backoff & Jitter'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.polling.infoBackoff',
+                'Backoff-Werte bestimmen, wie stark Polling bei wiederholten Fehlern verlangsamt wird. Jitter streut die Intervalle leicht, um gleichzeitige Anfragen mehrerer Clients zu vermeiden.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.polling.infoHeartbeatHeading',
+                  'Heartbeat & aktiver Tab'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.polling.infoHeartbeat',
+                'Der Heartbeat signalisiert dem Backend, ob ein aktiver Client vorhanden ist. Nur bei aktiven Clients wird Polling für Engagement-Updates häufiger ausgeführt.'
+              )}
+            </p>
+            <p className='text-xs text-foreground-muted'>
+              {t(
+                'config.polling.infoHint',
+                'Für die meisten Setups sind moderate Intervalle ausreichend. Aggressives Polling erhöht die Serverlast und ist meist nur für Debug- oder Testumgebungen sinnvoll.'
               )}
             </p>
           </div>
@@ -800,6 +916,48 @@ export default function ConfigPanel () {
                 </div>
 
                 <div className='space-y-2'>
+                  <div className='flex items-center justify-between gap-2'>
+                    <label
+                      htmlFor='general-timeZone'
+                      className='text-sm font-semibold text-foreground'
+                    >
+                      {t('config.general.labels.timeZone', 'Standard-Zeitzone')}
+                    </label>
+                    <button
+                      type='button'
+                      className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                      aria-label={t(
+                        'config.general.timeZoneInfoAria',
+                        'Hinweis zur Zeitzone anzeigen'
+                      )}
+                      title={t(
+                        'posts.form.infoButtonTitle',
+                        'Hinweis anzeigen'
+                      )}
+                      onClick={() => setTimeZoneInfoOpen(true)}
+                    >
+                      <svg
+                        width='12'
+                        height='12'
+                        viewBox='0 0 15 15'
+                        fill='none'
+                        xmlns='http://www.w3.org/2000/svg'
+                        aria-hidden='true'
+                      >
+                        <path
+                          d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                          fill='currentColor'
+                        />
+                        <path
+                          fillRule='evenodd'
+                          clipRule='evenodd'
+                          d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                          fill='currentColor'
+                        />
+                      </svg>
+                      {t('posts.form.infoButtonLabel', 'Info')}
+                    </button>
+                  </div>
                   <TimeZonePicker
                     id='general-timeZone'
                     value={generalValues.timeZone || null}
@@ -810,12 +968,10 @@ export default function ConfigPanel () {
                       }))
                     }
                     disabled={generalLoading || generalSaving}
-                    label={t('config.general.labels.timeZone', 'Standard-Zeitzone')}
-                    className={"pb-2"}
                     placeholder={generalDefaults.timeZone || 'Europe/Berlin'}
                     helperText={t(
                       'config.general.timeZoneHint',
-                      'Steuert die Timezone des Kampagnen‑Tools.'
+                      'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).'
                     )}
                     favoriteTimeZones={['Europe/Berlin', 'UTC']}
                   />
@@ -823,10 +979,10 @@ export default function ConfigPanel () {
               </div>
 
               <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
-                <div className='flex gap-2'>
+                <div className='flex flex-wrap gap-3'>
                   <Button
                     type='button'
-                    variant='ghost'
+                    variant='secondary'
                     onClick={() => setGeneralValues(generalDefaults)}
                     disabled={generalLoading || generalSaving}
                   >
@@ -838,13 +994,13 @@ export default function ConfigPanel () {
                   <Button
                     type='submit'
                     variant='primary'
-                    disabled={generalLoading || generalSaving}
+                    disabled={generalLoading || generalSaving || !generalHasChanges}
                   >
                     {generalSaving
-                      ? t('config.general.saveBusy', 'Speichern…')
+                      ? t('config.general.saveBusy', 'Übernehmen…')
                       : t(
                           'config.general.saveLabel',
-                          'Allgemeine Einstellungen speichern'
+                          'Übernehmen'
                         )}
                   </Button>
                 </div>
@@ -1142,10 +1298,10 @@ export default function ConfigPanel () {
                     disabled={loading || saving || !hasChanges}
                   >
                     {saving
-                      ? t('config.scheduler.saveBusy', 'Speichern…')
+                      ? t('config.scheduler.saveBusy', 'Übernehmen…')
                       : t(
                           'config.scheduler.saveLabel',
-                          'Einstellungen speichern'
+                          'Übernehmen'
                         )}
                   </Button>
                 </div>
@@ -1168,11 +1324,45 @@ export default function ConfigPanel () {
                   )}
                 </p>
               </div>
-              <div className='text-xs text-foreground-muted'>
-                <p>
+              <div className='flex flex-col items-end text-xs text-foreground-muted md:text-sm'>
+                <button
+                  type='button'
+                  className='mb-1 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                  aria-label={t(
+                    'config.polling.infoAria',
+                    'Hinweis zum Dashboard-Polling anzeigen'
+                  )}
+                  title={t(
+                    'posts.form.infoButtonTitle',
+                    'Hinweis anzeigen'
+                  )}
+                  onClick={() => setPollInfoOpen(true)}
+                >
+                  <svg
+                    width='12'
+                    height='12'
+                    viewBox='0 0 15 15'
+                    fill='none'
+                    xmlns='http://www.w3.org/2000/svg'
+                    aria-hidden='true'
+                  >
+                    <path
+                      d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                      fill='currentColor'
+                    />
+                    <path
+                      fillRule='evenodd'
+                      clipRule='evenodd'
+                      d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                      fill='currentColor'
+                    />
+                  </svg>
+                  {t('posts.form.infoButtonLabel', 'Info')}
+                </button>
+                <p className='text-right'>
                   {t(
                     'config.polling.hintDefaults',
-                    'Standardwerte stammen aus der .env bzw. aus Build-Defaults.'
+                    'Polling ergänzt Live-Updates (SSE) und wird vor allem bei Verbindungsproblemen aktiv.'
                   )}
                 </p>
               </div>
@@ -1195,7 +1385,7 @@ export default function ConfigPanel () {
                       updatePollField('threadActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.threadActiveMs}
                   />
                 </div>
@@ -1214,7 +1404,7 @@ export default function ConfigPanel () {
                       updatePollField('threadIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.threadIdleMs}
                   />
                 </div>
@@ -1233,7 +1423,7 @@ export default function ConfigPanel () {
                       updatePollField('threadHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.threadHiddenMs}
                   />
                 </div>
@@ -1274,7 +1464,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.skeetActiveMs}
                   />
                 </div>
@@ -1290,7 +1480,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.skeetIdleMs}
                   />
                 </div>
@@ -1309,7 +1499,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.skeetHiddenMs}
                   />
                 </div>
@@ -1351,7 +1541,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffStartMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.backoffStartMs}
                   />
                 </div>
@@ -1370,7 +1560,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffMaxMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.backoffMaxMs}
                   />
                 </div>
@@ -1391,7 +1581,7 @@ export default function ConfigPanel () {
                       updatePollField('jitterRatio', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.jitterRatio}
                   />
                 </div>
@@ -1407,33 +1597,13 @@ export default function ConfigPanel () {
                       updatePollField('heartbeatMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                     placeholder={pollDefaults.heartbeatMs}
                   />
                 </div>
               </div>
 
-              <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
-                <div className='text-xs text-foreground-muted'>
-                  <p>
-                    {t(
-                      'config.polling.summary',
-                      'Standardwerte: Threads {tActive}/{tIdle}/{tHidden}ms, Posts {pActive}/{pIdle}/{pHidden}ms, Backoff {bStart}→{bMax}ms, Jitter {jitter}, Heartbeat {heartbeat}ms',
-                      {
-                        tActive: pollDefaults.threadActiveMs,
-                        tIdle: pollDefaults.threadIdleMs,
-                        tHidden: pollDefaults.threadHiddenMs,
-                        pActive: pollDefaults.skeetActiveMs,
-                        pIdle: pollDefaults.skeetIdleMs,
-                        pHidden: pollDefaults.skeetHiddenMs,
-                        bStart: pollDefaults.backoffStartMs,
-                        bMax: pollDefaults.backoffMaxMs,
-                        jitter: pollDefaults.jitterRatio,
-                        heartbeat: pollDefaults.heartbeatMs
-                      }
-                    )}
-                  </p>
-                </div>
+              <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
                 <div className='flex flex-wrap gap-3'>
                   <Button
                     type='button'
@@ -1452,10 +1622,10 @@ export default function ConfigPanel () {
                     disabled={pollLoading || pollSaving || !pollHasChanges}
                   >
                     {pollSaving
-                      ? t('config.polling.saveBusy', 'Speichern…')
+                      ? t('config.polling.saveBusy', 'Übernehmen…')
                       : t(
                           'config.polling.saveLabel',
-                          'Einstellungen speichern'
+                          'Übernehmen'
                         )}
                   </Button>
                 </div>
@@ -1474,7 +1644,16 @@ export default function ConfigPanel () {
 function CredentialsSection () {
   const toast = useToast()
   const { t } = useTranslation()
+  const [infoOpen, setInfoOpen] = useState(false)
   const [values, setValues] = useState({
+    blueskyServerUrl: '',
+    blueskyIdentifier: '',
+    blueskyAppPassword: '',
+    mastodonApiUrl: '',
+    mastodonAccessToken: '',
+    tenorApiKey: ''
+  })
+  const [initialValues, setInitialValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
     blueskyAppPassword: '',
@@ -1518,12 +1697,16 @@ function CredentialsSection () {
         }
         const data = await res.json()
         if (!ignore) {
-          setValues(v => ({
-            ...v,
+          const nextValues = {
             blueskyServerUrl: data?.bluesky?.serverUrl || '',
             blueskyIdentifier: data?.bluesky?.identifier || '',
-            mastodonApiUrl: data?.mastodon?.apiUrl || ''
-          }))
+            blueskyAppPassword: '',
+            mastodonApiUrl: data?.mastodon?.apiUrl || '',
+            mastodonAccessToken: '',
+            tenorApiKey: ''
+          }
+          setValues(nextValues)
+          setInitialValues(nextValues)
           setHasSecret({
             bsky: Boolean(data?.bluesky?.hasAppPassword),
             masto: Boolean(data?.mastodon?.hasAccessToken),
@@ -1552,6 +1735,17 @@ function CredentialsSection () {
   }, [toast])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+
+  const hasCredentialChanges = useMemo(() => {
+    return Object.keys(values).some(
+      key => String(values[key] ?? '') !== String(initialValues[key] ?? '')
+    )
+  }, [values, initialValues])
+
+  const handleCancel = () => {
+    setValues(initialValues)
+    setBlink({})
+  }
 
   const handleSave = async e => {
     e.preventDefault()
@@ -1648,7 +1842,56 @@ function CredentialsSection () {
   }
 
   return (
-    <Card padding='p-6 lg:p-10'>
+    <>
+      <InfoDialog
+        open={infoOpen}
+        title={t(
+          'config.credentials.infoTitle',
+          'Zugangsdaten & Sicherheit'
+        )}
+        onClose={() => setInfoOpen(false)}
+        closeLabel={t('common.actions.close', 'Schließen')}
+        panelClassName='max-w-[80vw] md:max-w-[700px]'
+        content={(
+          <div className='max-h-[60vh] overflow-y-auto space-y-3 text-sm text-foreground'>
+            <p>
+              {t(
+                'config.credentials.infoIntro',
+                'Für den Betrieb des Kampagnen‑Tools werden Zugangsdaten für Bluesky (und optional Mastodon) benötigt. Ohne gültige Zugangsdaten sind Scheduler und Dashboard nur eingeschränkt nutzbar.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.credentials.infoBluesky',
+                'Bluesky verwendet Server‑URL, Identifier (Handle/E‑Mail) und ein App Password. Das App Password ist ein separates Passwort, das ausschließlich für API‑Zugriffe genutzt werden sollte.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.credentials.infoMastodon',
+                'Für Mastodon werden die API‑URL der Instanz und ein Access Token benötigt. Das Access Token sollte nur die Rechte enthalten, die für das Veröffentlichen und Verwalten der Posts erforderlich sind.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.credentials.infoTenor',
+                'Optional kann ein Tenor‑API‑Key hinterlegt werden, um die GIF‑Suche im Dashboard zu aktivieren. Ohne Key bleibt die GIF‑Suche deaktiviert, das Planen von Posts ist davon unabhängig.'
+              )}{' '}
+              {t(
+                'config.credentials.infoSecurity',
+                'Zugangsdaten werden serverseitig gespeichert. Felder für Passwörter und Tokens können leer gelassen werden, um vorhandene Werte beizubehalten.'
+              )}
+            </p>
+            <p className='text-xs text-foreground-muted'>
+              {t(
+                'config.credentials.infoHint',
+                'In der Praxis sollten Zugangsdaten zuerst eingerichtet und getestet werden, bevor Scheduler‑ und Polling‑Einstellungen angepasst werden.'
+              )}
+            </p>
+          </div>
+        )}
+      />
+      <Card padding='p-6 lg:p-10'>
       <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
         <div>
           <h3 className='text-2xl font-semibold'>
@@ -1661,55 +1904,95 @@ function CredentialsSection () {
             )}
           </p>
         </div>
+        <div className='mt-2 flex items-center justify-end md:mt-0'>
+          <button
+            type='button'
+            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+            aria-label={t(
+              'config.credentials.infoAria',
+              'Hinweis zu Zugangsdaten anzeigen'
+            )}
+            title={t(
+              'posts.form.infoButtonTitle',
+              'Hinweis anzeigen'
+            )}
+            onClick={() => setInfoOpen(true)}
+          >
+            <svg
+              width='12'
+              height='12'
+              viewBox='0 0 15 15'
+              fill='none'
+              xmlns='http://www.w3.org/2000/svg'
+              aria-hidden='true'
+            >
+              <path
+                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                fill='currentColor'
+              />
+              <path
+                fillRule='evenodd'
+                clipRule='evenodd'
+                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                fill='currentColor'
+              />
+            </svg>
+            {t('posts.form.infoButtonLabel', 'Info')}
+          </button>
+        </div>
       </div>
       {loading ? (
         <p className='text-sm text-foreground-muted'>
           {t('config.credentials.loading', 'Lade …')}
         </p>
       ) : (
-        <form onSubmit={handleSave} className='space-y-8'>
+        <form onSubmit={handleSave} className='space-y-6'>
           <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>
-              {t('config.credentials.bluesky.heading', 'Bluesky')}
-            </h4>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <label className='space-y-1'>
-                <span className='text-sm font-medium'>
-                  {t('config.credentials.bluesky.serverUrlLabel', 'Server URL')}
-                </span>
-                <input
-                  type='url'
-                  className={`w-full rounded-md border bg-background p-2 ${
-                    blink.blueskyServerUrl
-                      ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                      : 'border-border'
-                  }`}
-                  placeholder='https://bsky.social'
-                  value={values.blueskyServerUrl}
-                  onChange={onChange('blueskyServerUrl')}
-                />
-              </label>
-              <label className='space-y-1'>
-                <span className='text-sm font-medium'>
-                  {t(
-                    'config.credentials.bluesky.identifierLabel',
-                    'Identifier (Handle/E-Mail)'
-                  )}
-                </span>
-                <input
-                  type='text'
-                  className={`w-full rounded-md border bg-background p-2 ${
-                    blink.blueskyIdentifier
-                      ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                      : 'border-border'
-                  }`}
-                  placeholder='handle.bsky.social'
-                  value={values.blueskyIdentifier}
-                  onChange={onChange('blueskyIdentifier')}
-                />
-              </label>
-            </div>
-            <label className='space-y-1 md:w-1/2'>
+            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+              <h4 className='text-lg font-semibold'>
+                {t('config.credentials.bluesky.heading', 'Bluesky')}
+              </h4>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.serverUrlLabel',
+                      'Server URL'
+                    )}
+                  </span>
+                  <input
+                    type='url'
+                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                      blink.blueskyServerUrl
+                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                        : 'border-border'
+                    }`}
+                    placeholder='https://bsky.social'
+                    value={values.blueskyServerUrl}
+                    onChange={onChange('blueskyServerUrl')}
+                  />
+                </label>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.identifierLabel',
+                      'Identifier (Handle/E-Mail)'
+                    )}
+                  </span>
+                  <input
+                    type='text'
+                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                      blink.blueskyIdentifier
+                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                        : 'border-border'
+                    }`}
+                    placeholder='handle.bsky.social'
+                    value={values.blueskyIdentifier}
+                    onChange={onChange('blueskyIdentifier')}
+                  />
+                </label>
+              </div>
+              <label className='space-y-1 md:w-1/2'>
               <span className='text-sm font-medium'>
                 {t(
                   'config.credentials.bluesky.appPasswordLabel',
@@ -1718,97 +2001,117 @@ function CredentialsSection () {
               </span>
               <input
                 type='password'
-                className={`w-full rounded-md border bg-background p-2 ${
+                className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
                   blink.blueskyAppPassword
                     ? 'animate-pulse ring-2 ring-destructive border-destructive'
                     : 'border-border'
                 }`}
                 placeholder={hasSecret.bsky ? '••••••••' : ''}
                 value={values.blueskyAppPassword}
-                onChange={onChange('blueskyAppPassword')}
-              />
-              <p className='text-xs text-foreground-muted'>
-                {t(
-                  'config.credentials.bluesky.appPasswordHint',
-                  'Leer lassen, um das bestehende Passwort zu behalten.'
-                )}
-              </p>
-            </label>
-          </section>
-          <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>
-              {t('config.credentials.mastodon.heading', 'Mastodon')}
-            </h4>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <label className='space-y-1'>
-                <span className='text-sm font-medium'>
-                  {t('config.credentials.mastodon.apiUrlLabel', 'API URL')}
-                </span>
-                <input
-                  type='url'
-                  className='w-full rounded-md border border-border bg-background p-2'
-                  placeholder='https://mastodon.social'
-                  value={values.mastodonApiUrl}
-                  onChange={onChange('mastodonApiUrl')}
-                />
-              </label>
-              <label className='space-y-1'>
-                <span className='text-sm font-medium'>
-                  {t(
-                    'config.credentials.mastodon.accessTokenLabel',
-                    'Access Token'
-                  )}
-                </span>
-                <input
-                  type='password'
-                  className='w-full rounded-md border border-border bg-background p-2'
-                  placeholder={hasSecret.masto ? '••••••••' : ''}
-                  value={values.mastodonAccessToken}
-                  onChange={onChange('mastodonAccessToken')}
+                  onChange={onChange('blueskyAppPassword')}
                 />
                 <p className='text-xs text-foreground-muted'>
                   {t(
-                    'config.credentials.mastodon.accessTokenHint',
-                    'Leer lassen, um das bestehende Token zu behalten.'
+                    'config.credentials.bluesky.appPasswordHint',
+                    'Leer lassen, um das bestehende Passwort zu behalten.'
                   )}
                 </p>
               </label>
             </div>
           </section>
           <section className='space-y-4'>
-            <h4 className='text-lg font-semibold'>
-              {t('config.credentials.tenor.heading', 'Tenor (GIF Suche)')}
-            </h4>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <label className='space-y-1 md:w-1/2'>
-                <span className='text-sm font-medium'>
-                  {t('config.credentials.tenor.apiKeyLabel', 'API Key')}
-                </span>
-                <input
-                  type='password'
-                  className='w-full rounded-md border border-border bg-background p-2'
-                  placeholder={hasSecret.tenor ? '••••••••' : ''}
-                  value={values.tenorApiKey}
-                  onChange={onChange('tenorApiKey')}
-                />
-                <p className='text-xs text-foreground-muted'>
-                  {t(
-                    'config.credentials.tenor.apiKeyHint',
-                    'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
-                  )}
-                </p>
-              </label>
+            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+              <h4 className='text-lg font-semibold'>
+                {t('config.credentials.mastodon.heading', 'Mastodon')}
+              </h4>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t('config.credentials.mastodon.apiUrlLabel', 'API URL')}
+                  </span>
+                  <input
+                    type='url'
+                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    placeholder='https://mastodon.social'
+                    value={values.mastodonApiUrl}
+                    onChange={onChange('mastodonApiUrl')}
+                  />
+                </label>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.mastodon.accessTokenLabel',
+                      'Access Token'
+                    )}
+                  </span>
+                  <input
+                    type='password'
+                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    placeholder={hasSecret.masto ? '••••••••' : ''}
+                    value={values.mastodonAccessToken}
+                    onChange={onChange('mastodonAccessToken')}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.mastodon.accessTokenHint',
+                      'Leer lassen, um das bestehende Token zu behalten.'
+                    )}
+                  </p>
+                </label>
+              </div>
             </div>
           </section>
-          <div className='flex gap-3'>
-            <Button type='submit' disabled={saving}>
-              {saving
-                ? t('config.credentials.saveBusy', 'Speichere …')
-                : t('config.credentials.saveLabel', 'Zugangsdaten speichern')}
-            </Button>
+          <section className='space-y-4'>
+            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+              <h4 className='text-lg font-semibold'>
+                {t('config.credentials.tenor.heading', 'Tenor (GIF Suche)')}
+              </h4>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1 md:w-1/2'>
+                  <span className='text-sm font-medium'>
+                    {t('config.credentials.tenor.apiKeyLabel', 'API Key')}
+                  </span>
+                  <input
+                    type='password'
+                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    placeholder={hasSecret.tenor ? '••••••••' : ''}
+                    value={values.tenorApiKey}
+                    onChange={onChange('tenorApiKey')}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.tenor.apiKeyHint',
+                      'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
+                    )}
+                  </p>
+                </label>
+              </div>
+            </div>
+          </section>
+          <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
+            <div className='flex flex-wrap gap-3'>
+              <Button
+                type='button'
+                variant='secondary'
+                onClick={handleCancel}
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {t('common.actions.cancel', 'Abbrechen')}
+              </Button>
+              <Button
+                type='submit'
+                variant='primary'
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {saving
+                  ? t('config.credentials.saveBusy', 'Übernehmen…')
+                  : t('config.credentials.saveLabel', 'Übernehmen')}
+              </Button>
+            </div>
           </div>
         </form>
       )}
-    </Card>
+      </Card>
+    </>
   )
 }

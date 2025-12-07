@@ -208,7 +208,11 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
   - Icon und Button-Stil orientieren sich an den bestehenden Info-Buttons in `SkeetForm.jsx` / `ThreadForm.jsx` (gleiche SVG, gleiche Tailwind-Klassen).
 - Anwendungsfälle:
   - Komplexe Konfigurationen (Cron-Ausdruck, Retry/Backoff, Polling-Strategie),
+  - Zugangsdaten für externe Dienste (Bluesky, Mastodon, Tenor),
   - längere fachliche Erläuterungen, die das Layout nicht „sprengen“ sollen.
+- Inhaltliche Faustregeln für InfoDialog-Texte:
+  - Möglichst kompakt in 3–5 Absätzen bleiben.
+  - Wenn mehr Text nötig ist, den `content`-Block mit `max-h-[60vh] overflow-y-auto` versehen, damit der Dialog nicht überläuft.
 
 ## Beispiele
 
@@ -238,6 +242,13 @@ function Example() {
 - Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight/Dimmed).
 - Für themenabhängige Styles bevorzugt CSS-Variablen (`bg-background`, `text-foreground`, …) statt fixer Hex-Werte verwenden.
 - Bitte neue Oberflächen bevorzugt auf diesen Bausteinen aufbauen.
+
+### Abstände in Einstellungs-Karten
+
+- Gestapelte Einstellungsblöcke innerhalb einer Karte (z. B. in `ConfigPanel` für „Scheduler & Retry“ oder „Zugangsdaten“) verwenden einheitliche vertikale Abstände:
+  - Zwischen den Blöcken: Container mit `className="space-y-6"` (oder äquivalent), sodass die optischen Bereichsboxen gleich weit auseinanderliegen.
+  - Innerhalb eines Blocks: `className="space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4"` für Überschrift und Felder.
+- Neue Einstellungsbereiche sollten dieses Muster übernehmen, damit Zeilenabstände und Blockabstände im gesamten Dashboard konsistent bleiben.
 
 ## Pane-Zuordnung
 

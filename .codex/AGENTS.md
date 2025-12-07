@@ -89,6 +89,7 @@ Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Intera
   2. Status (aktueller Stand, keine To-Dos)
   3. Startpunkt (kurze Einleitung für die nächste Session)
   4. Nächste Schritte (konkrete, umsetzbare To-Dos)
+     1. Nummeriere To-Dos durch
   5. Abschluss-Check (prüfbare Kriterien, optional)
   6. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
 * Codex darf die Struktur **nicht verändern**, keine neuen Abschnitte hinzufügen und die Reihenfolge nicht anpassen.

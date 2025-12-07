@@ -537,10 +537,9 @@ const messages = {
           locale: 'Anzeigesprache',
           timeZone: 'Standard-Zeitzone'
         },
-        localeHint:
-          'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.',
+        localeHint: 'Steuert die Anzeigesprache des Kampagnen‑Tools.',
         timeZoneHint:
-          'Steuert die Timezone des Kampagnen‑Tools.',
+          'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).',
         toastTitle: 'Allgemeine Einstellungen',
         loadErrorDescription:
           'Allgemeine Einstellungen konnten nicht geladen werden.',
@@ -554,9 +553,18 @@ const messages = {
           'Die allgemeinen Einstellungen konnten nicht gespeichert werden.',
         summary: 'Aktuelle Zeitzone: {tz}',
         resetButton: 'Standard wiederherstellen',
-        saveBusy: 'Speichern…',
-        saveLabel: 'Allgemeine Einstellungen speichern',
-        localeHint: 'Steuert die Anzeigesprache des Kampagnen‑Tools.'
+        saveBusy: 'Übernehmen…',
+        saveLabel: 'Übernehmen',
+        timeZoneInfoTitle: 'Zeitzone im Scheduler',
+        timeZoneInfoIntro:
+          'Die Standard-Zeitzone definiert die Referenzzeitzone für Scheduler und Dashboard.',
+        timeZoneInfoServer:
+          'Cron-Ausdrücke und die Ausführung des Schedulers orientieren sich an der konfigurierten Zeitzone auf dem Server. Die lokale Browser-Zeitzone bleibt davon unabhängig.',
+        timeZoneInfoForms:
+          'Datums- und Zeitfelder in den Planungsformularen verwenden die Standard-Zeitzone für Vorschlagswerte und Darstellung.',
+        timeZoneInfoHint:
+          'In den meisten Installationen ist die Zeitzone des Deployment-Standorts (z. B. Europe/Berlin) sinnvoll. UTC eignet sich für rein technische Umgebungen.',
+        timeZoneInfoAria: 'Hinweis zur Zeitzone anzeigen'
       },
       scheduler: {
         toastTitle: 'Konfiguration',
@@ -633,8 +641,8 @@ const messages = {
             'Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.'
         },
         resetButton: 'Zurücksetzen auf Standard',
-        saveBusy: 'Speichern…',
-        saveLabel: 'Einstellungen speichern'
+        saveBusy: 'Übernehmen…',
+        saveLabel: 'Übernehmen'
       },
       polling: {
         toastTitle: 'Konfiguration',
@@ -660,7 +668,7 @@ const messages = {
         subtitle:
           'Steuere Intervalle und Backoff für Listen (Threads & Posts).',
         hintDefaults:
-          'Standardwerte stammen aus der .env bzw. aus Build-Defaults.',
+          'Polling ergänzt Live-Updates (SSE) und wird vor allem bei Verbindungsproblemen aktiv.',
         labels: {
           threadActiveMs: 'Threads: Aktiv (ms)',
           threadIdleMs: 'Threads: Idle (ms)',
@@ -678,8 +686,24 @@ const messages = {
         summary:
           'Standardwerte: Threads {tActive}/{tIdle}/{tHidden}ms, Posts {pActive}/{pIdle}/{pHidden}ms, Backoff {bStart}→{bMax}ms, Jitter {jitter}, Heartbeat {heartbeat}ms',
         resetButton: 'Zurücksetzen auf Standard',
-        saveBusy: 'Speichern…',
-        saveLabel: 'Einstellungen speichern'
+        saveBusy: 'Übernehmen…',
+        saveLabel: 'Übernehmen',
+        infoButtonLabel: 'Dashboard-Polling',
+        infoTitle: 'Dashboard-Polling & Backoff',
+        infoIntro:
+          'Dashboard-Polling ergänzt die Live-Updates (SSE), damit Listen für Threads und Posts auch bei Verbindungsproblemen aktualisiert werden können.',
+        infoIntervalsHeading: 'Intervalle für Threads & Posts',
+        infoIntervals:
+          'Aktiv-, Idle- und Hidden-Intervalle steuern, wie häufig Threads und Posts im jeweiligen Zustand abgefragt werden.',
+        infoBackoffHeading: 'Backoff & Jitter',
+        infoBackoff:
+          'Backoff-Werte bestimmen, wie stark Polling bei wiederholten Fehlern verlangsamt wird. Jitter streut die Intervalle leicht, um gleichzeitige Anfragen mehrerer Clients zu vermeiden.',
+        infoHeartbeatHeading: 'Heartbeat & aktiver Tab',
+        infoHeartbeat:
+          'Der Heartbeat signalisiert dem Backend, ob ein aktiver Client vorhanden ist. Nur bei aktiven Clients wird Polling für Engagement-Updates häufiger ausgeführt.',
+        infoHint:
+          'Für die meisten Setups sind moderate Intervalle ausreichend. Aggressives Polling erhöht die Serverlast und ist meist nur für Debug- oder Testumgebungen sinnvoll.',
+        infoAria: 'Hinweis zum Dashboard-Polling anzeigen'
       },
       credentials: {
         toastTitle: 'Zugangsdaten',
@@ -696,6 +720,20 @@ const messages = {
         saveErrorTitle: 'Speichern fehlgeschlagen',
         saveErrorDescription:
           'Die Zugangsdaten konnten nicht gespeichert werden.',
+        infoTitle: 'Zugangsdaten & Sicherheit',
+        infoIntro:
+          'Für den Betrieb des Kampagnen‑Tools werden Zugangsdaten für Bluesky (und optional Mastodon) benötigt. Ohne gültige Zugangsdaten sind Scheduler und Dashboard nur eingeschränkt nutzbar.',
+        infoBluesky:
+          'Bluesky verwendet Server‑URL, Identifier (Handle/E‑Mail) und ein App Password. Das App Password ist ein separates Passwort, das ausschließlich für API‑Zugriffe genutzt werden sollte.',
+        infoMastodon:
+          'Für Mastodon werden die API‑URL der Instanz und ein Access Token benötigt. Das Access Token sollte nur die Rechte enthalten, die für das Veröffentlichen und Verwalten der Posts erforderlich sind.',
+        infoTenor:
+          'Optional kann ein Tenor‑API‑Key hinterlegt werden, um die GIF‑Suche im Dashboard zu aktivieren. Ohne Key bleibt die GIF‑Suche deaktiviert, das Planen von Posts ist davon unabhängig.',
+        infoSecurity:
+          'Zugangsdaten werden serverseitig gespeichert. Felder für Passwörter und Tokens können leer gelassen werden, um vorhandene Werte beizubehalten.',
+        infoHint:
+          'In der Praxis sollten Zugangsdaten zuerst eingerichtet und getestet werden, bevor Scheduler‑ und Polling‑Einstellungen angepasst werden.',
+        infoAria: 'Hinweis zu Zugangsdaten anzeigen',
         required: {
           heading: 'Zugangsdaten erforderlich',
           body:
@@ -722,8 +760,8 @@ const messages = {
           apiKeyHint:
             'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
         },
-        saveBusy: 'Speichere …',
-        saveLabel: 'Zugangsdaten speichern'
+        saveBusy: 'Übernehmen…',
+        saveLabel: 'Übernehmen'
       },
       tabs: {
         ariaLabel: 'Konfig-Themen',

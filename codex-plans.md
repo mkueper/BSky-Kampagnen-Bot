@@ -20,26 +20,27 @@
 - Für „Wiederholversuche & Backoff“ existiert jetzt:
   - ein kurzer Inline-Hinweis (`retryInfoInline`) für Normaluser,
   - ein ausführlicher InfoDialog (`retryInfo*`-Texte) für fachlich involvierte Personen.
+- Für den Abschnitt „Dashboard-Polling“ im `ConfigPanel` ist ein InfoDialog (`config.polling.info*`) inklusive kurzer Inline-Erklärung umgesetzt.
+- Im Tab „Zugangsdaten“ gibt es einen InfoDialog (`config.credentials.info*`) sowie optisch abgesetzte Blöcke für Bluesky, Mastodon und Tenor.
+- Die Zeitzonen-Erklärung ist über einen InfoDialog im Tab „Allgemein“ verfügbar; passende Richtlinien sind in `docs/ui.md` und `docs/development/timezone-picker.md` dokumentiert.
+- Die Button-Leisten in allen Tabs des `ConfigPanel` sind vereinheitlicht: rechtsbündig, primäre Aktion „Übernehmen“ unten rechts, Buttons nur aktiv bei Änderungen; im Tab „Zugangsdaten“ gibt es zusätzlich einen deaktivierbaren „Abbrechen“-Button zum Verwerfen lokaler Änderungen.
 - Sprachrichtlinie in `docs/ui.md` ergänzt: UI-Texte werden neutral formuliert, direkte Anrede („du“/„Sie“) wird vermieden.
 - Alle Änderungen sind über i18n abgedeckt; `npm test` läuft grün durch.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus auf weiteren Kandidaten im Dashboard liegen (Dashboard-Polling, Zugangsdaten, Import/Export, ggf. Zeitzonen-Erklärung) und auf der Frage, ob `InfoDialog` in anderen Frontends (bsky-client, Admin-Views) eingesetzt werden soll.
+Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff, Dashboard-Polling, Zugangsdaten, Zeitzonen) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus auf verbleibende Kandidaten im Dashboard liegen (insbesondere Import/Export) sowie auf Layout-Themen bei Einstellungs-Views (einheitliche Abstände, konsistente Cards) und auf der Frage, ob `InfoDialog` in anderen Frontends (bsky-client, Admin-Views) eingesetzt werden soll.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-- Dashboard-Polling:
-  - Im Abschnitt **Dashboard-Polling** (ConfigPanel) prüfen, ob ein InfoDialog sinnvoll ist, der Intervalle, Backoff, Jitter und Heartbeat für fachlich Interessierte erläutert.
-  - Kurzen Inline-Hinweis beibehalten oder ergänzen; Detailerklärung in einen InfoDialog auslagern.
-- Zugangsdaten:
-  - Im Tab **Konfiguration → Zugangsdaten** prüfen, ob ein InfoDialog „Hinweis zu Zugangsdaten“ ergänzt werden sollte (Bezug der Zugangsdaten, Umgang mit App-Passwörtern/Tokens, Verhalten bei fehlenden Credentials).
-- Import/Export:
+1. Import/Export:
   - Für Export-/Import-Funktionen prüfen, ob ein InfoDialog „Import & Export“ sinnvoll ist, der Format, Duplikat-Behandlung und ALT-Text-Verhalten kurz beschreibt (parallel zur bestehenden Doku).
-- Zeitzonen:
-  - Eine knappe Erläuterung zur Zeitzonen-Konfiguration vorbereiten (lokale vs. Server-Zeitzone, zukünftige Verwendung im Scheduler) und entscheiden, ob diese als Inline-Hinweis oder als eigener InfoDialog platziert wird.
-- Priorisierung:
-  - Obige Kandidaten gemeinsam priorisieren und nur dort umsetzen, wo der Mehrwert klar ist und das Layout von einem ausgelagerten Info-Text profitiert.
+
+2. Bereichsabstände:
+  - Vertikale Abstände der optischen Bereichstrennungen in Einstellungs-Views vereinheitlichen, sodass alle Einstellungsblöcke dieselbe `space-y`-Logik und dieselbe Box-Optik (`rounded-2xl border border-border-muted bg-background-subtle p-4`) verwenden.
+
+3. Priorisierung:
+  - Import/Export-InfoDialog als nächstes umsetzen und anschließend die Bereichsabstände in weiteren Einstellungs-Views (jenseits des ConfigPanel) prüfen. Nur dort anpassen, wo der Mehrwert klar ist und das Layout von der Vereinheitlichung profitiert.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
