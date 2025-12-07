@@ -522,6 +522,20 @@ const messages = {
     import: {
       buttonBusy: 'Import…'
     },
+    importExport: {
+      infoTitle: 'Import & Export von Posts und Threads',
+      infoIntro:
+        'Posts und Threads können als JSON-Dateien exportiert und später wieder importiert werden – zum Beispiel für Backups, Migrationen oder zum Testen in einer anderen Umgebung.',
+      infoFormat:
+        'Exportierte Dateien enthalten geplante Posts bzw. Threads mit ihren Feldern (z. B. Inhalt, Zeitpunkte, Wiederholungsregeln) und gegebenenfalls eingebettete Medien als Data-URLs (mit MIME-Typ, optionalem ALT-Text und Binärdaten). Die Struktur entspricht dem in der API-Dokumentation beschriebenen Schema und sollte nicht manuell verändert werden.',
+      infoDuplicates:
+        'Beim Import wird die Datei als Ganzes eingelesen. Duplikate – etwa dieselbe Kombination aus Inhalt/Titel, Termin und Wiederholungsregeln oder identische Thread-Segmente – werden ignoriert. Ein mehrfaches Importieren derselben Datei legt daher keine doppelten Einträge an.',
+      infoAltText:
+        'ALT-Texte aus dem Export werden beim Import übernommen und den betroffenen Medien wieder zugeordnet. Wenn Medien nicht im Export enthalten sind, können sie nach dem Import in den Formularen wie gewohnt ergänzt werden.',
+      infoHint:
+        'In der Praxis ist es sinnvoll, Import und Export zunächst mit einem kleineren Ausschnitt oder in einer Testumgebung auszuprobieren, bevor größere Kampagnenbestände migriert werden.',
+      infoAria: 'Hinweis zu Import & Export anzeigen'
+    },
     auth: {
       logout: {
         button: 'Abmelden'

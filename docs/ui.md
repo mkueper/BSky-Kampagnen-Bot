@@ -250,6 +250,13 @@ function Example() {
   - Innerhalb eines Blocks: `className="space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4"` für Überschrift und Felder.
 - Neue Einstellungsbereiche sollten dieses Muster übernehmen, damit Zeilenabstände und Blockabstände im gesamten Dashboard konsistent bleiben.
 
+### Aktionsgruppen mit Info-Button
+
+- Gruppen aus zusammengehörigen Aktionen (z. B. Export/Import plus Info-Button im Header der Posts-/Threads-Übersicht) werden optisch als Einheit dargestellt:
+  - Container: `inline-flex rounded-2xl border border-border-muted bg-background-elevated p-1 shadow-soft`.
+  - Innenliegende Buttons nutzen die bestehenden Button-Varianten (`primary`, `secondary`) und der Info-Button folgt dem Info-Pattern (kleine Pille mit `i`‑Icon, Border).
+- Neue Aktionsgruppen sollten dieses Muster übernehmen, damit Header-Aktionen im Dashboard einheitlich wirken und Info-Buttons klar einer Gruppe zugeordnet sind.
+
 ## Pane-Zuordnung
 
 ### NAV-Pane (linke Sidebar)

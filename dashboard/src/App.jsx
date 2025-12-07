@@ -17,7 +17,8 @@ import {
   useThemeMode,
   ConfirmDialog,
   useToast,
-  useConfirmDialog
+  useConfirmDialog,
+  InfoDialog
 } from '@bsky-kampagnen-bot/shared-ui'
 import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider as UiThemeProvider } from './components/ui/ThemeContext'
@@ -160,6 +161,7 @@ function DashboardApp ({ onLogout }) {
   const [editingThreadId, setEditingThreadId] = useState(null)
   const toast = useToast()
   const [logoutPending, setLogoutPending] = useState(false)
+  const [importExportInfoOpen, setImportExportInfoOpen] = useState(false)
   const skeetViewsEnabled =
     activeView === 'overview' ||
     activeView === 'skeets' ||
@@ -639,35 +641,70 @@ function DashboardApp ({ onLogout }) {
       {(activeView === 'skeets-overview' ||
         activeView === 'threads-overview') && (
         <>
-          <Button
-            variant='secondary'
-            onClick={handleExport}
-            disabled={exporting}
-            aria-label={exportButtonLabel}
-            title={exportButtonLabel}
-            className='inline-flex items-center justify-center gap-2'
-          >
-            <DownloadIcon className='h-4 w-4' />
-            <span className='hidden sm:inline'>{exportButtonLabel}</span>
-          </Button>
-          <Button
-            variant='primary'
-            onClick={handleImportClick}
-            disabled={importing}
-            aria-label={importButtonLabel}
-            title={importButtonLabel}
-            className='inline-flex items-center justify-center gap-2'
-          >
-            <UploadIcon className='h-4 w-4' />
-            <span className='hidden sm:inline'>{importButtonLabel}</span>
-          </Button>
+          <div className='inline-flex rounded-2xl border border-border-muted bg-background-elevated p-1 shadow-soft'>
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='secondary'
+                onClick={handleExport}
+                disabled={exporting}
+                aria-label={exportButtonLabel}
+                title={exportButtonLabel}
+                className='inline-flex items-center justify-center gap-2'
+              >
+                <DownloadIcon className='h-4 w-4' />
+                <span className='hidden sm:inline'>{exportButtonLabel}</span>
+              </Button>
+              <Button
+                variant='primary'
+                onClick={handleImportClick}
+                disabled={importing}
+                aria-label={importButtonLabel}
+                title={importButtonLabel}
+                className='inline-flex items-center justify-center gap-2'
+              >
+                <UploadIcon className='h-4 w-4' />
+                <span className='hidden sm:inline'>{importButtonLabel}</span>
+              </Button>
+              <button
+                type='button'
+                className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                aria-label={t(
+                  'importExport.infoAria',
+                  'Hinweis zu Import & Export anzeigen'
+                )}
+                title={t('posts.form.infoButtonTitle', 'Hinweis anzeigen')}
+                onClick={() => setImportExportInfoOpen(true)}
+              >
+                <svg
+                  width='12'
+                  height='12'
+                  viewBox='0 0 15 15'
+                  fill='none'
+                  xmlns='http://www.w3.org/2000/svg'
+                  aria-hidden='true'
+                >
+                  <path
+                    d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                    fill='currentColor'
+                  />
+                  <path
+                    fillRule='evenodd'
+                    clipRule='evenodd'
+                    d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                    fill='currentColor'
+                  />
+                </svg>
+                {t('posts.form.infoButtonLabel', 'Info')}
+              </button>
+            </div>
+          </div>
           <input
             ref={importInputRef}
             type='file'
             accept='application/json'
             className='hidden'
-          onChange={handleImportFileChange}
-        />
+            onChange={handleImportFileChange}
+          />
         </>
       )}
     </>
@@ -976,6 +1013,50 @@ function DashboardApp ({ onLogout }) {
       cardBg: 'bg-background',
       cardHover: false
     }}>
+    <InfoDialog
+      open={importExportInfoOpen}
+      title={t(
+        'importExport.infoTitle',
+        'Import & Export von Posts und Threads'
+      )}
+      onClose={() => setImportExportInfoOpen(false)}
+      closeLabel={t('common.actions.close', 'Schließen')}
+      panelClassName='max-w-[80vw] md:max-w-[800px]'
+      content={(
+        <div className='max-h-[60vh] overflow-y-auto space-y-3 text-sm text-foreground'>
+          <p>
+            {t(
+              'importExport.infoIntro',
+              'Posts und Threads können als JSON-Dateien exportiert und später wieder importiert werden – zum Beispiel für Backups, Migrationen oder zum Testen in einer anderen Umgebung.'
+            )}
+          </p>
+          <p>
+            {t(
+              'importExport.infoFormat',
+              'Exportierte Dateien enthalten geplante Posts bzw. Threads mit ihren Feldern (z. B. Inhalt, Zeitpunkte, Wiederholungsregeln) und gegebenenfalls eingebettete Medien als Data-URLs (mit MIME-Typ, optionalem ALT-Text und Binärdaten). Die Struktur entspricht dem in der API-Dokumentation beschriebenen Schema und sollte nicht manuell verändert werden.'
+            )}
+          </p>
+          <p>
+            {t(
+              'importExport.infoDuplicates',
+              'Beim Import wird die Datei als Ganzes eingelesen. Duplikate – etwa dieselbe Kombination aus Inhalt/Titel, Termin und Wiederholungsregeln oder identische Thread-Segmente – werden ignoriert. Ein mehrfaches Importieren derselben Datei legt daher keine doppelten Einträge an.'
+            )}
+          </p>
+          <p>
+            {t(
+              'importExport.infoAltText',
+              'ALT-Texte aus dem Export werden beim Import übernommen und den betroffenen Medien wieder zugeordnet. Wenn Medien nicht im Export enthalten sind, können sie nach dem Import in den Formularen wie gewohnt ergänzt werden.'
+            )}
+          </p>
+          <p className='text-xs text-foreground-muted'>
+            {t(
+              'importExport.infoHint',
+              'In der Praxis ist es sinnvoll, Import und Export zunächst mit einem kleineren Ausschnitt oder in einer Testumgebung auszuprobieren, bevor größere Kampagnenbestände migriert werden.'
+            )}
+          </p>
+        </div>
+      )}
+    />
     <AppLayout
       navItems={availableNavItems}
       activeView={activeView}

@@ -24,6 +24,7 @@
 - Im Tab „Zugangsdaten“ gibt es einen InfoDialog (`config.credentials.info*`) sowie optisch abgesetzte Blöcke für Bluesky, Mastodon und Tenor.
 - Die Zeitzonen-Erklärung ist über einen InfoDialog im Tab „Allgemein“ verfügbar; passende Richtlinien sind in `docs/ui.md` und `docs/development/timezone-picker.md` dokumentiert.
 - Die Button-Leisten in allen Tabs des `ConfigPanel` sind vereinheitlicht: rechtsbündig, primäre Aktion „Übernehmen“ unten rechts, Buttons nur aktiv bei Änderungen; im Tab „Zugangsdaten“ gibt es zusätzlich einen deaktivierbaren „Abbrechen“-Button zum Verwerfen lokaler Änderungen.
+ - Für Import/Export in den Übersichten von Posts und Threads gibt es einen eigenen InfoDialog (`importExport.info*`) und einen optisch hervorgehobenen Aktionsblock (Export, Import, Info) gemäß den UI-Richtlinien.
 - Sprachrichtlinie in `docs/ui.md` ergänzt: UI-Texte werden neutral formuliert, direkte Anrede („du“/„Sie“) wird vermieden.
 - Alle Änderungen sind über i18n abgedeckt; `npm test` läuft grün durch.
 
@@ -33,14 +34,11 @@ Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cr
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Import/Export:
-  - Für Export-/Import-Funktionen prüfen, ob ein InfoDialog „Import & Export“ sinnvoll ist, der Format, Duplikat-Behandlung und ALT-Text-Verhalten kurz beschreibt (parallel zur bestehenden Doku).
-
-2. Bereichsabstände:
+1. Bereichsabstände:
   - Vertikale Abstände der optischen Bereichstrennungen in Einstellungs-Views vereinheitlichen, sodass alle Einstellungsblöcke dieselbe `space-y`-Logik und dieselbe Box-Optik (`rounded-2xl border border-border-muted bg-background-subtle p-4`) verwenden.
 
-3. Priorisierung:
-  - Import/Export-InfoDialog als nächstes umsetzen und anschließend die Bereichsabstände in weiteren Einstellungs-Views (jenseits des ConfigPanel) prüfen. Nur dort anpassen, wo der Mehrwert klar ist und das Layout von der Vereinheitlichung profitiert.
+2. Priorisierung:
+  - Nach Umsetzung des Import/Export-InfoDialogs die Bereichsabstände in weiteren Einstellungs-Views (jenseits des ConfigPanel) prüfen. Nur dort anpassen, wo der Mehrwert klar ist und das Layout von der Vereinheitlichung profitiert.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
