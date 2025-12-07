@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Button, Card, Modal } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, Card, InfoDialog, Modal, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 
@@ -25,6 +25,7 @@ export default function ConfigPanel () {
   const toast = useToast()
   const { t, locale, setLocale } = useTranslation()
   const [cronInfoOpen, setCronInfoOpen] = useState(false)
+  const [retryInfoOpen, setRetryInfoOpen] = useState(false)
   const [tab, setTab] = useState('general')
   const [needsCreds, setNeedsCreds] = useState(false)
   // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
@@ -602,47 +603,104 @@ export default function ConfigPanel () {
 
   return (
     <div className='space-y-6'>
-      <Modal
+      <InfoDialog
         open={cronInfoOpen}
         title={t('config.scheduler.cronInfoTitle', 'Cron-Ausdruck')}
         onClose={() => setCronInfoOpen(false)}
-        actions={(
-          <Button
-            variant='secondary'
-            onClick={() => setCronInfoOpen(false)}
-          >
-            {t('common.actions.close', 'Schließen')}
-          </Button>
-        )}
+        closeLabel={t('common.actions.close', 'Schließen')}
         panelClassName='max-w-[80vw] md:max-w-[900px]'
-      >
-        <div className='space-y-3 text-sm text-foreground'>
-          <p className='max-w-[52ch]'>
-            {t(
-              'config.scheduler.tips.serverTime',
-              'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
-            )}
-          </p>
-          <pre className='font-mono text-xs md:text-sm bg-background-subtle rounded-2xl px-4 py-3 whitespace-pre leading-relaxed'>
-            {t(
-              'config.scheduler.cronInfoBody',
-              'Beispiele:\n' +
-              '0   *    *    *    *      – jede volle Stunde\n' +
-              '*/5 *    *    *    *      – alle 5 Minuten\n' +
-              '0   12   *    *    *      – täglich um 12:00\n' +
-              '30  7    *    *    *      – täglich um 07:30\n' +
-              '0   9    *    *    1      – jeden Montag um 09:00\n' +
-              '0   8    1    *    *      – am 1. des Monats um 08:00\n\n'
-            )}
-          </pre>
-          <p className='max-w-[52ch]'>
-            {t(
-              'config.scheduler.cronInfoSummary',
-              'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
-            )}
-          </p>
-        </div>
-      </Modal>
+        content={(
+          <>
+            <p>
+              {t(
+                'config.scheduler.tips.serverTime',
+                'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
+              )}
+            </p>
+            <p>
+              {t(
+                'config.scheduler.cronInfoSummary',
+                'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
+              )}
+            </p>
+          </>
+        )}
+        examples={t(
+          'config.scheduler.cronInfoBody',
+          'Beispiele:\n' +
+          '0   *    *    *    *      – jede volle Stunde\n' +
+          '*/5 *    *    *    *      – alle 5 Minuten\n' +
+          '0   12   *    *    *      – täglich um 12:00\n' +
+          '30  7    *    *    *      – täglich um 07:30\n' +
+          '0   9    *    *    1      – jeden Montag um 09:00\n' +
+          '0   8    1    *    *      – am 1. des Monats um 08:00\n\n'
+        )}
+      />
+      <InfoDialog
+        open={retryInfoOpen}
+        title={t(
+          'config.scheduler.retryInfoTitle',
+          'Wiederholversuche & Backoff'
+        )}
+        onClose={() => setRetryInfoOpen(false)}
+        closeLabel={t('common.actions.close', 'Schließen')}
+        panelClassName='max-w-[80vw] md:max-w-[700px]'
+        content={(
+          <div className='space-y-3 text-sm text-foreground'>
+            <p className='whitespace-pre-line'>
+              {t(
+                'config.scheduler.retryInfoIntro',
+                'Wiederholversuche helfen dabei, vorübergehende Fehler beim Senden von Posts abzufedern – etwa Rate-Limits oder kurzzeitige Verbindungsprobleme.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.scheduler.retryInfoRetriesHeading',
+                  'Maximale Wiederholversuche'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.scheduler.retryInfoRetries',
+                'Legt fest, wie oft ein Post nach einem Fehler erneut versucht wird, bevor er als fehlgeschlagen gilt.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.scheduler.retryInfoBackoffHeading',
+                  'Basis-Backoff & maximaler Backoff'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.scheduler.retryInfoBackoff',
+                'Der Basis-Backoff bestimmt die anfängliche Wartezeit zwischen zwei Versuchen. Der maximale Backoff begrenzt, wie weit sich diese Wartezeit bei mehrfachen Fehlern erhöhen kann.'
+              )}
+            </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.scheduler.retryInfoGraceHeading',
+                  'Grace-Zeit für verpasste Termine'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.scheduler.retryInfoGrace',
+                'Die Grace-Zeit legt fest, wie lange nach einem Neustart verpasste Sendezeitpunkte noch nachgeholt werden. Liegt ein Termin außerhalb dieses Fensters, wird der Post nicht mehr automatisch nachträglich versendet.'
+              )}
+            </p>
+            <p className='text-xs text-foreground-muted'>
+              {t(
+                'config.scheduler.retryInfoHint',
+                'Für die meisten Setups ist eine geringe Anzahl an Wiederholversuchen (z. B. 2–3) und eine moderate Grace-Zeit ausreichend, um kurzfristige Ausfälle abzufangen, ohne alte Posts stark zu verzögern.'
+              )}
+            </p>
+          </div>
+        )}
+      />
 
       {needsCreds ? (
         <Card
@@ -736,38 +794,31 @@ export default function ConfigPanel () {
                   <p className='text-xs text-foreground-muted'>
                     {t(
                       'config.general.localeHint',
-                      'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.'
+                      'Steuert die Anzeigesprache des Kampagnen‑Tools.'
                     )}
                   </p>
                 </div>
 
                 <div className='space-y-2'>
-                  <label
-                    htmlFor='general-timeZone'
-                    className='text-sm font-semibold text-foreground'
-                  >
-                    {t('config.general.labels.timeZone', 'Standard-Zeitzone')}
-                  </label>
-                  <input
+                  <TimeZonePicker
                     id='general-timeZone'
-                    type='text'
-                    value={generalValues.timeZone}
-                    onChange={e =>
+                    value={generalValues.timeZone || null}
+                    onChange={(tz) =>
                       setGeneralValues(current => ({
                         ...current,
-                        timeZone: e.target.value
+                        timeZone: tz || ''
                       }))
                     }
                     disabled={generalLoading || generalSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    label={t('config.general.labels.timeZone', 'Standard-Zeitzone')}
+                    className={"pb-2"}
                     placeholder={generalDefaults.timeZone || 'Europe/Berlin'}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
+                    helperText={t(
                       'config.general.timeZoneHint',
-                      'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).'
+                      'Steuert die Timezone des Kampagnen‑Tools.'
                     )}
-                  </p>
+                    favoriteTimeZones={['Europe/Berlin', 'UTC']}
+                  />
                 </div>
               </div>
 
@@ -938,6 +989,7 @@ export default function ConfigPanel () {
                           'posts.form.infoButtonTitle',
                           'Hinweis anzeigen'
                         )}
+                        onClick={() => setRetryInfoOpen(true)}
                       >
                         <svg
                           width='12'
@@ -963,7 +1015,7 @@ export default function ConfigPanel () {
                     </div>
                     <div className='grid gap-4 md:grid-cols-3'>
                       <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
-                        <div className='flex h-full flex-col'>
+                      <div className='flex h-full flex-col'>
                           <div className='flex items-center justify-between gap-2'>
                             <label
                               htmlFor='postRetries'
@@ -1060,8 +1112,8 @@ export default function ConfigPanel () {
                       <div className='md:col-span-1 md:flex md:items-center'>
                         <p className='text-xs text-foreground-muted md:text-sm whitespace-pre-line'>
                           {t(
-                            'config.scheduler.retryInfoBody',
-                            'Wiederholversuche helfen dabei, temporäre Fehler (z. B. Rate-Limits) abzufedern.\nDer Basis-Backoff steuert die Wartezeit zwischen Versuchen, der maximale Backoff begrenzt die Verzögerung.\nDie Grace-Zeit legt fest, wie lange verpasste Termine nach einem Neustart noch nachgeholt werden.'
+                            'config.scheduler.retryInfoInline',
+                            'Bei vorübergehenden Fehlern (z. B. Rate-Limits) werden Posts automatisch erneut versucht. Über Wiederholversuche, Backoff und Grace-Zeit wird festgelegt, wie lange das Nachholen erlaubt ist.'
                           )}
                         </p>
                       </div>
@@ -1661,7 +1713,7 @@ function CredentialsSection () {
                       ? 'animate-pulse ring-2 ring-destructive border-destructive'
                       : 'border-border'
                   }`}
-                  placeholder='dein-handle.bsky.social'
+                  placeholder='handle.bsky.social'
                   value={values.blueskyIdentifier}
                   onChange={onChange('blueskyIdentifier')}
                 />

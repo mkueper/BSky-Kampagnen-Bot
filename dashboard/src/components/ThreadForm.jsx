@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, InfoDialog, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
@@ -901,7 +901,7 @@ function ThreadForm ({
                         ),
                         description: t(
                           'threads.form.sendNow.validationErrorDescription',
-                          'Bitte behebe die markierten Probleme, bevor du sendest.'
+                          'Markierte Probleme sollten behoben werden, bevor gesendet wird.'
                         )
                       })
                       return
@@ -1355,28 +1355,20 @@ function ThreadForm ({
 
       {/* Info: Thread-Inhalt */}
       {infoThreadOpen ? (
-        <Modal
+        <InfoDialog
           open={infoThreadOpen}
           title={t(
             'threads.form.infoSource.title',
             'Hinweis: Thread-Inhalt'
           )}
           onClose={() => setInfoThreadOpen(false)}
-          actions={(
-            <Button
-              variant='secondary'
-              onClick={() => setInfoThreadOpen(false)}
-            >
-              {t('common.actions.close', 'Schließen')}
-            </Button>
-          )}
-        >
-          <div className='space-y-3 text-sm leading-snug text-foreground'>
-            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-1.5'>
+          closeLabel={t('common.actions.close', 'Schließen')}
+          content={(
+            <>
               <p>
                 {t(
                   'threads.form.infoSource.body1',
-                  'Schreibe den gesamten Thread in ein Feld. Du kannst --- als Trenner nutzen oder mit STRG+Enter einen Trenner einfügen.'
+                  'Der gesamte Thread kann in ein einzelnes Feld geschrieben werden. --- kann als Trenner genutzt oder mit STRG+Enter eingefügt werden.'
                 )}
               </p>
               <p>
@@ -1388,7 +1380,7 @@ function ThreadForm ({
               <p>
                 {t(
                   'threads.form.infoSource.body3',
-                  'Medien kannst du pro Post in der Vorschau hinzufügen. Maximal {max} Bilder pro Post.',
+                  'Medien werden pro Post in der Vorschau hinzugefügt. Maximal {max} Bilder pro Post.',
                   { max: imagePolicy?.maxCount ?? 4 }
                 )}
               </p>
@@ -1398,35 +1390,27 @@ function ThreadForm ({
                   'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
                 )}
               </p>
-            </div>
-          </div>
-        </Modal>
+            </>
+          )}
+        />
       ) : null}
 
       {/* Info: Vorschau */}
       {infoPreviewOpen ? (
-        <Modal
+        <InfoDialog
           open={infoPreviewOpen}
           title={t(
             'threads.form.infoPreview.title',
             'Hinweis: Vorschau'
           )}
           onClose={() => setInfoPreviewOpen(false)}
-          actions={(
-            <Button
-              variant='secondary'
-              onClick={() => setInfoPreviewOpen(false)}
-            >
-              {t('common.actions.close', 'Schließen')}
-            </Button>
-          )}
-        >
-          <div className='space-y-3 text-sm leading-snug text-foreground'>
-            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-1.5'>
+          closeLabel={t('common.actions.close', 'Schließen')}
+          content={(
+            <>
               <p>
                 {t(
                   'threads.form.infoPreview.body1',
-                  'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau kannst du pro Post Bilder oder GIFs hinzufügen.'
+                  'Jeder Abschnitt bildet einen Post. Über die Buttons in der Vorschau werden pro Post Bilder oder GIFs hinzugefügt.'
                 )}
               </p>
               <p>
@@ -1448,9 +1432,9 @@ function ThreadForm ({
                   'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
                 )}
               </p>
-            </div>
-          </div>
-        </Modal>
+            </>
+          )}
+        />
       ) : null}
       {altDialog.open && altDialog.item ? (
         <MediaDialog
@@ -1573,7 +1557,7 @@ function ThreadForm ({
             <p>
               {t(
                 'threads.form.singleSegment.body',
-                'Dieser Thread enthält nur ein Segment. Möchtest du stattdessen einen einzelnen Post planen?'
+                'Dieser Thread enthält nur ein Segment. Stattdessen kann ein einzelner Post geplant werden.'
               )}
             </p>
           </div>

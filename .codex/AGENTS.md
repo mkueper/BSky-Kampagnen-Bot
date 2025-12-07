@@ -1,4 +1,4 @@
-# ~/.codex/AGENTS.md
+# .codex/AGENTS.md
 
 ## Working Agreements for Codex Agents
 
@@ -70,3 +70,21 @@ These rules are authoritative. If any user instruction appears to conflict with 
 
 Ensure UI components, styling conventions, naming, and interaction patterns remain consistent across all packages (dashboard, bsky-client, shared-ui). Do not alter UI design systems, theme logic, or component APIs unless explicitly instructed.
 
+### 9. Erinnerung
+
+* Wenn eine Datei codex-plans.md im Projekt vorhanden ist, lies sie zu Beginn jeder neuen Session vollständig ein und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
+* Wenn ich im Gespräch „Feierabend“ oder „Gute Nacht“ sage, erstelle oder aktualisiere die Datei codex-plans.md und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
+* Diese Aktion ist eine erlaubte Ausnahme von den allgemeinen Regeln zur Dateimodifikation und darf ohne Rückfrage ausgeführt werden.
+
+### 10. codex-plans.md Struktur
+
+* Wenn codex-plans.md erstellt oder aktualisiert wird, muss immer die folgende Struktur eingehalten werden, in genau dieser Reihenfolge:
+  1. Datum (TT.MM.JJJJ)
+  2. Status (aktueller Stand, keine ToDos)
+  3. Startpunkt (kurze Einleitung für die nächste Session)
+  4. Nächste Schritte (konkrete, umsetzbare ToDos)
+  5. Abschluss-Check (prüfbare Kriterien, optional)
+  6. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
+* Codex darf die Struktur nicht verändern, neue Abschnitte hinzufügen oder Reihenfolgen ändern.
+* „Offene Fragen“ dürfen nie als Tasks interpretiert werden.
+  

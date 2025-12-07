@@ -148,7 +148,7 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
         <p className='text-xs text-foreground-muted'>
           {t(
             'login.footerHint',
-            'Tipp: Mehrere Admins möglich, indem du die Cookies teilst oder den Login via Proxy absicherst.'
+            'Tipp: Mehrere Admins sind möglich, wenn die Cookies gemeinsam genutzt werden oder der Login via Proxy abgesichert wird.'
           )}
         </p>
       </Card>

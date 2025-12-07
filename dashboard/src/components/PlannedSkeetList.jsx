@@ -24,7 +24,7 @@ function PlannedSkeetList({
         <p className="mt-2">
           {t(
             'posts.lists.planned.emptyBody',
-            'Nutze den Planer, um deinen ersten Post zu terminieren.'
+            'Der Planer kann verwendet werden, um erste Posts zu terminieren.'
           )}
         </p>
       </div>

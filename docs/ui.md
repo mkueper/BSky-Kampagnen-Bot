@@ -27,6 +27,59 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
 
 - `ToastProvider` & `useToast` (`@bsky-kampagnen-bot/shared-ui`)
   - Einheitliche Toasts (`success`, `error`, `info`). Bitte keine ad-hoc `alert()` verwenden.
+- `InfoDialog` (`@bsky-kampagnen-bot/shared-ui`)
+  - Generischer Info-Dialog auf Basis von `Modal` mit einheitlichem Layout:
+    - schmaler Haupttextblock (`max-w-[52ch]`, `bg-background-subtle`, `rounded-2xl`, `px-4`, `py-3`)
+    - optionaler Introtext oberhalb und optionaler Monospace-/Beispielblock darunter
+  - Props:
+    - `title`: Dialogtitel (string oder React-Node)
+    - `introText?`: optionaler Einleitungstext (ReactNode)
+    - `content`: Hauptinhalt (ReactNode, Pflicht)
+    - `examples?`: optionaler Monospace-/Beispielblock (`<pre>`, z. B. Cron-Beispiele)
+    - `closeLabel?`: Label des Schließen-Buttons (i18n, z. B. `t('common.actions.close', 'Schließen')`)
+    - `onClose`: Callback beim Schließen
+    - `panelClassName?`: optionale zusätzliche Klassen für die Panel-Breite
+
+**Beispiel: InfoDialog im Dashboard**
+
+```jsx
+import { InfoDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
+
+function CronInfo({ open, onClose }) {
+  const { t } = useTranslation()
+
+  return (
+    <InfoDialog
+      open={open}
+      title={t('config.scheduler.cronInfoTitle', 'Cron-Ausdruck')}
+      onClose={onClose}
+      closeLabel={t('common.actions.close', 'Schließen')}
+      panelClassName="max-w-[80vw] md:max-w-[900px]"
+      content={(
+        <>
+          <p>
+            {t(
+              'config.scheduler.tips.serverTime',
+              'Cron-Ausdrücke beziehen sich auf die Serverzeit – beim Deployment sollte auf die korrekte Zeitzone geachtet werden.'
+            )}
+          </p>
+          <p>
+            {t(
+              'config.scheduler.cronInfoSummary',
+              'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
+            )}
+          </p>
+        </>
+      )}
+      examples={t(
+        'config.scheduler.cronInfoBody',
+        'Beispiele:\n0 * * * * – jede volle Stunde\n…'
+      )}
+    />
+  )
+}
+```
 
 ## Terminologie
 
@@ -129,6 +182,18 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
   - Beispiel Tab „Wartend“: Tooltip/Hinweistext „Auf Freigabe wartende Posts“.
   - Beispiel Buttons in Toolbars: `aria-label` + `title` setzen, damit die Bedeutung auch ohne sichtbaren Text klar ist.
 - Leere Listen/States immer mit einem kurzen erklärenden Hinweistext versehen (nicht einfach „leer“ lassen).
+- Persönliche Anredeformen wie „du“ oder „Sie“ vermeiden; Texte neutral formulieren:
+  - Statt „Backoff und Grace‑Zeit legst du fest, wie lange das Nachholen erlaubt ist“
+  - lieber „Über Backoff und Grace‑Zeit wird festgelegt, wie lange das Nachholen erlaubt ist“.
+
+### Zeitzonen (UI & Scheduler)
+
+- Die **Standard-Zeitzone** wird in den allgemeinen Einstellungen gepflegt und als `TIME_ZONE` im Backend gespeichert.
+- Der Scheduler verwendet diese Zeitzone, um Cron-Ausdrücke auszuwerten (Zeitpunkt der Verarbeitung geplanter Posts/Threads).
+- Das Dashboard holt die aktuelle Zeitzone über `/api/client-config` und nutzt sie für Datums-/Zeitfelder in `SkeetForm` und `ThreadForm` (z. B. Standardvorschlag für „nächster Tag 09:00 Uhr“).
+- Hinweise und InfoDialog-Texte sollten klarstellen, dass:
+  - sich Cron-Ausdrücke auf die **Serverzeitzone** beziehen,
+  - die im Dashboard angezeigten Uhrzeiten auf der konfigurierten **Standard-Zeitzone** basieren (nicht zwingend der lokalen Browser-Zeitzone).
 
 #### Info-Buttons & Detail-Hinweise
 

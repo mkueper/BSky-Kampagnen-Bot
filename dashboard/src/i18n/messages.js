@@ -241,7 +241,7 @@ const messages = {
         planned: {
           emptyTitle: 'Noch keine Posts geplant.',
           emptyBody:
-            'Nutze den Planer, um deinen ersten Post zu terminieren.',
+            'Der Planer kann verwendet werden, um erste Posts zu terminieren.',
           edit: 'Bearbeiten',
           remove: 'Löschen',
           publishNow: 'Senden',
@@ -487,7 +487,7 @@ const messages = {
       },
       activityExtra: {
         descriptionShort:
-          'Status deiner geplanten und veröffentlichten Threads.',
+          'Status geplanter und veröffentlichter Threads.',
         loading: 'Thread Aktivität wird geladen…'
       },
       export: {
@@ -506,7 +506,7 @@ const messages = {
       },
       activity: {
         descriptionShort:
-          'Status deiner geplanten und veröffentlichten Posts.',
+          'Status geplanter und veröffentlichter Posts.',
         loading: 'Post-Aktivität wird geladen…'
       },
       export: {
@@ -540,7 +540,7 @@ const messages = {
         localeHint:
           'Gilt aktuell nur für das Dashboard-UI. Weitere Bereiche folgen.',
         timeZoneHint:
-          'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).',
+          'Steuert die Timezone des Kampagnen‑Tools.',
         toastTitle: 'Allgemeine Einstellungen',
         loadErrorDescription:
           'Allgemeine Einstellungen konnten nicht geladen werden.',
@@ -555,7 +555,8 @@ const messages = {
         summary: 'Aktuelle Zeitzone: {tz}',
         resetButton: 'Standard wiederherstellen',
         saveBusy: 'Speichern…',
-        saveLabel: 'Allgemeine Einstellungen speichern'
+        saveLabel: 'Allgemeine Einstellungen speichern',
+        localeHint: 'Steuert die Anzeigesprache des Kampagnen‑Tools.'
       },
       scheduler: {
         toastTitle: 'Konfiguration',
@@ -605,6 +606,21 @@ const messages = {
           '0   8    1    *    *      – am 1. des Monats um 08:00\n\n',
         cronInfoSummary:
           'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.',
+        retryInfoInline:
+          'Bei vorübergehenden Fehlern (z. B. Rate-Limits) werden Posts automatisch erneut versucht. Über Wiederholversuche, Backoff und Grace-Zeit wird festgelegt, wie lange das Nachholen erlaubt ist.',
+        retryInfoIntro:
+          'Wiederholversuche helfen dabei, vorübergehende Fehler beim Senden von Posts abzufedern – etwa Rate-Limits oder kurzzeitige Verbindungsprobleme.',
+        retryInfoRetriesHeading: 'Maximale Wiederholversuche',
+        retryInfoRetries:
+          'Legt fest, wie oft ein Post nach einem Fehler erneut versucht wird, bevor er als fehlgeschlagen gilt.',
+        retryInfoBackoffHeading: 'Basis-Backoff & maximaler Backoff',
+        retryInfoBackoff:
+          'Der Basis-Backoff bestimmt die anfängliche Wartezeit zwischen zwei Versuchen. Der maximale Backoff begrenzt, wie weit sich diese Wartezeit bei mehrfachen Fehlern erhöhen kann.',
+        retryInfoGraceHeading: 'Grace-Zeit für verpasste Termine',
+        retryInfoGrace:
+          'Die Grace-Zeit legt fest, wie lange nach einem Neustart verpasste Sendezeitpunkte noch nachgeholt werden. Liegt ein Termin außerhalb dieses Fensters, wird der Post nicht mehr automatisch nachträglich versendet.',
+        retryInfoHint:
+          'Für die meisten Setups ist eine geringe Anzahl an Wiederholversuchen (z. B. 2–3) und eine moderate Grace-Zeit ausreichend, um kurzfristige Ausfälle abzufangen, ohne alte Posts stark zu verzögern.',
         graceHint:
           'Innerhalb dieses Zeitfensters nach dem geplanten Zeitpunkt werden verpasste Posts/Threads noch nachgeholt. Mindestwert: 2 Minuten.',
         infoHeading: 'Hinweise',
@@ -683,7 +699,7 @@ const messages = {
         required: {
           heading: 'Zugangsdaten erforderlich',
           body:
-            'Bitte hinterlege zuerst deine Zugangsdaten für Bluesky (und optional Mastodon). Anschließend kannst du die weiteren Optionen nach Bedarf anpassen.'
+            'Zunächst sollten Zugangsdaten für Bluesky (und optional Mastodon) hinterlegt werden. Anschließend lassen sich die weiteren Optionen nach Bedarf anpassen.'
         },
         bluesky: {
           heading: 'Bluesky',

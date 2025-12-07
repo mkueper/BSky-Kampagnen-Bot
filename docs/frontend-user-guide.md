@@ -1,6 +1,8 @@
 # BSky Kampagnen-Bot – Benutzerhandbuch für das Dashboard
 
-Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es erklärt, wie du Skeets und Threads planst, veröffentlichst, Engagement beobachtest und den integrierten Bluesky-Client nutzt.
+Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es erklärt, wie Skeets und Threads geplant, veröffentlicht, Engagement beobachtet und der integrierte Bluesky-Client genutzt wird.
+
+> Sprachstil: In der UI und in diesem Handbuch werden neutrale Formulierungen verwendet. Direkte Anreden („du“, „Sie“) werden vermieden und durch beschreibende Texte ersetzt.
 
 ---
 
@@ -157,7 +159,7 @@ Bei weiteren Problemen helfen Browser-Konsole (Frontend) und die Logs des Node-S
 - Beispielkonfigurationen & .env-Variablen: `.env.sample`
 - CLI-Kommandos (Build, Tests, Bundles): siehe `README.md`
 
-Viel Erfolg mit deinen Kampagnen!
+Viel Erfolg mit geplanten Kampagnen!
 
 ---
 

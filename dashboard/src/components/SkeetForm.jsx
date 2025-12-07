@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, InfoDialog, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
@@ -602,7 +602,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               }}
               placeholder={t(
                 'posts.form.content.placeholder',
-                'Was möchtest du veröffentlichen?'
+                'Geplante Inhalte können hier erfasst werden.'
               )}
               rows={10}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-base leading-relaxed text-foreground shadow-soft transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
@@ -1351,21 +1351,13 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       />
       {/* Info: Post-Text */}
       {infoContentOpen ? (
-        <Modal
+        <InfoDialog
           open={infoContentOpen}
           title={t('posts.form.infoContent.title', 'Hinweis: Post-Text')}
           onClose={() => setInfoContentOpen(false)}
-          actions={(
-            <Button
-              variant='secondary'
-              onClick={() => setInfoContentOpen(false)}
-            >
-              {t('common.actions.close', 'Schließen')}
-            </Button>
-          )}
-        >
-          <div className='space-y-3 text-sm text-foreground'>
-            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-2 leading-relaxed'>
+          closeLabel={t('common.actions.close', 'Schließen')}
+          content={(
+            <>
               <p>
                 {t(
                   'posts.form.infoContent.body1',
@@ -1378,32 +1370,24 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   'Für Wiederholungen wähle bitte das passende Muster (keine/wöchentlich/monatlich) und gib die erforderlichen Felder an.'
                 )}
               </p>
-            </div>
-          </div>
-        </Modal>
+            </>
+          )}
+        />
       ) : null}
 
       {/* Info: Vorschau */}
       {infoPreviewOpen ? (
-        <Modal
+        <InfoDialog
           open={infoPreviewOpen}
           title={t('posts.form.infoPreview.title', 'Hinweis: Vorschau')}
           onClose={() => setInfoPreviewOpen(false)}
-          actions={(
-            <Button
-              variant='secondary'
-              onClick={() => setInfoPreviewOpen(false)}
-            >
-              {t('common.actions.close', 'Schließen')}
-            </Button>
-          )}
-        >
-          <div className='space-y-3 text-sm text-foreground'>
-            <div className='max-w-[52ch] rounded-2xl bg-background-subtle px-4 py-3 space-y-2 leading-relaxed'>
+          closeLabel={t('common.actions.close', 'Schließen')}
+          content={(
+            <>
               <p>
                 {t(
                   'posts.form.infoPreview.body1',
-                  'Über die Buttons kannst du Bilder oder GIFs hinzufügen. Maximal {max} Bilder je Post.',
+                  'Über die Buttons in der Vorschau werden Bilder oder GIFs hinzugefügt. Maximal {max} Bilder je Post.',
                   { max: imagePolicy?.maxCount ?? 4 }
                 )}
               </p>
@@ -1413,9 +1397,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   'Bilder werden beim Speichern hochgeladen. Der Zähler zeigt die aktuelle Zeichenanzahl im Verhältnis zum Limit.'
                 )}
               </p>
-            </div>
-          </div>
-        </Modal>
+            </>
+          )}
+        />
       ) : null}
       {altDialog.open && altDialog.item ? (
         <MediaDialog

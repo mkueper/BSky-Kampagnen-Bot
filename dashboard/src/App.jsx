@@ -749,7 +749,7 @@ function DashboardApp ({ onLogout }) {
             title={t('posts.activity.title', 'Post-Aktivität')}
             description={t(
               'postsExtra.activity.descriptionShort',
-              'Status deiner geplanten und veröffentlichten Posts.'
+              'Status geplanter und veröffentlichter Posts.'
             )}
             items={overviewStatsSkeets}
           />
@@ -783,7 +783,7 @@ function DashboardApp ({ onLogout }) {
             title={t('threads.activity.title', 'Thread Aktivität')}
             description={t(
               'threads.activityExtra.descriptionShort',
-              'Status deiner geplanten und veröffentlichten Threads.'
+              'Status geplanter und veröffentlichter Threads.'
             )}
             items={activityStatsThreads}
           />

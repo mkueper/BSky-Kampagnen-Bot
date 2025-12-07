@@ -38,11 +38,23 @@ async function getClientConfig(req, res) {
       String(process.env.BLUESKY_APP_PASSWORD || '').trim()
     );
 
+    // Standard-Zeitzone aus den allgemeinen Settings ermitteln (falls gesetzt),
+    // ansonsten auf die Konfiguration zurückfallen.
+    let timeZone = config.TIME_ZONE;
+    try {
+      const general = await settingsService.getGeneralSettings();
+      if (general?.values?.timeZone) {
+        timeZone = general.values.timeZone;
+      }
+    } catch {
+      // Fallback: config.TIME_ZONE verwenden, wenn allgemeine Settings nicht gelesen werden können.
+    }
+
     res.json({
       polling,
       images: config.CLIENT_CONFIG?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false },
       locale: config.LOCALE,
-      timeZone: config.TIME_ZONE,
+      timeZone,
       needsCredentials,
       platforms: {
         mastodonConfigured: Boolean(hasMastodonCredentials())
