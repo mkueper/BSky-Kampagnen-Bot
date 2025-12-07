@@ -257,6 +257,42 @@ function Example() {
   - Innenliegende Buttons nutzen die bestehenden Button-Varianten (`primary`, `secondary`) und der Info-Button folgt dem Info-Pattern (kleine Pille mit `i`‑Icon, Border).
 - Neue Aktionsgruppen sollten dieses Muster übernehmen, damit Header-Aktionen im Dashboard einheitlich wirken und Info-Buttons klar einer Gruppe zugeordnet sind.
 
+### Bestätigungsdialoge
+
+- Für kritische oder irreversible Aktionen (z. B. Löschen, „Sofort senden“, Termin überspringen) verwenden wir den gemeinsamen `ConfirmDialog` aus `@bsky-kampagnen-bot/shared-ui` statt `window.confirm`.
+- Konfiguration über Props:
+  - `title`: kurzer, klarer Titel des Dialogs.
+  - `description`: ein bis drei Zeilen mit der Erläuterung, was passiert und was nicht.
+  - `confirmLabel`, `cancelLabel`: Buttontexte, immer über i18n gesetzt.
+  - `variant`: Button-Variante für die Bestätigung (`primary`, `warning`, `destructive`), je nach Gewichtung der Aktion.
+- Der Dialog wird über `open` gesteuert und ruft bei Interaktion die übergebenen Callbacks `onConfirm` bzw. `onCancel` auf.
+- Für „Sofort senden“ wird dieser Dialog genutzt, um die Aktion bewusst zu machen; standardmäßig erscheint ein neutraler Text („Der Beitrag wird sofort veröffentlicht …“), ohne dass der Bestätigungsbutton optisch aggressiver wirkt als andere Primäraktionen.
+
+### Buttons in Formularen und Einstellungsansichten
+
+- In zusammengehörigen Button-Gruppen (z. B. am Ende von Formularen oder Einstellungsblöcken) sollen alle Buttons:
+  - die gleiche Höhe haben,
+  - eine einheitliche Mindestbreite verwenden (z. B. via `min-w-[8rem]` oder entsprechender Utility-Klasse),
+  - typografisch gleich stark sein (gleiche Schriftgröße/-stärke), damit keine Aktion „untergeht“.
+- Primäre Aktionen (z. B. „Übernehmen“, „Sofort senden“) nutzen die `primary`‑Variante. Sekundäre Aktionen wie „Abbrechen“ oder „Planen“ verwenden `secondary` oder `neutral`, bleiben aber in derselben Gruppe optisch gleichwertig platziert (rechts ausgerichtet, gleiche Mindestbreite).
+- Der Button „Sofort senden“ soll bewusst hervorgehoben, aber nicht „schreiend“ gestaltet werden:
+  - gleiche Grundfarbe wie andere Primäraktionen,
+  - optional ergänzendes Icon oder kurzer Zusatz im Kontext (z. B. durch Label/Tooltip) statt einer Sonderfarbe.
+- In einer Gruppe mit mehreren Aktionen sollte die Standard-Aktion (häufig z. B. „Planen“ oder „Übernehmen“) nicht schwächer erscheinen als seltenere Aktionen. Reihenfolge und Breite sind so zu wählen, dass die gewünschte Nutzungshäufigkeit unterstützt wird (z. B. Standard-Aktion rechts außen, gleiche Breite wie „Sofort senden“).
+
+### Icon-Buttons
+
+- Icons stammen konsistent aus demselben Satz (z. B. die im Header verwendeten Vektor-Icons); bunte Emoji-Symbole werden im UI-Chrome vermieden.
+- Es gibt drei typische Formen:
+  - Icon-only: nur für sehr bekannte Aktionen (z. B. Info, einfache Pfeile, Schließen) und immer mit `aria-label`/`title`.
+  - Icon + kurzer Text: für wichtige Aktionen wie Import/Export oder zentrale Info-Buttons.
+  - Text-only: für ruhigere Sekundäraktionen ohne besondere Betonung.
+- Kleine Icon-Buttons (z. B. Bild/GIF/Emoji im Composer) nutzen denselben Container-Stil wie andere Tool-Buttons:
+  - abgerundete Form (z. B. `rounded-full`),
+  - Border + Hintergrund (`border border-border bg-background`),
+  - konsistente Icon-Größe (z. B. `h-4 w-4`) und gleiche Abstände (`px`, `py`).
+- Bestehende Buttons für „Bild hinzufügen“, „GIF hinzufügen“ und „Emoji einfügen“ im Planner sollten an diesen Stil angepasst werden, damit sie optisch zu Info-/Import-/Export-Buttons passen und wie Teil eines einheitlichen Systems wirken.
+
 ## Pane-Zuordnung
 
 ### NAV-Pane (linke Sidebar)

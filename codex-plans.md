@@ -31,7 +31,7 @@
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff, Dashboard-Polling, Zugangsdaten, Zeitzonen) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus auf verbleibende Kandidaten im Dashboard liegen (insbesondere Import/Export) sowie auf Layout-Themen bei Einstellungs-Views (einheitliche Abstände, konsistente Cards) und auf der Frage, ob `InfoDialog` in anderen Frontends (bsky-client, Admin-Views) eingesetzt werden soll.
+Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff, Dashboard-Polling, Zugangsdaten, Zeitzonen) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus auf verbleibende Kandidaten im Dashboard liegen (insbesondere Import/Export) sowie auf Layout-Themen bei Einstellungs-Views (einheitliche Abstände, konsistente Cards) und auf einheitliche Button-Gruppen (Breite, Hierarchie von „Planen“ vs. „Sofort senden“) und auf der Frage, ob `InfoDialog` in anderen Frontends (bsky-client, Admin-Views) eingesetzt werden soll.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
@@ -39,7 +39,20 @@ Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cr
   - Vertikale Abstände der optischen Bereichstrennungen in Einstellungs-Views vereinheitlichen, sodass alle Einstellungsblöcke dieselbe `space-y`-Logik und dieselbe Box-Optik (`rounded-2xl border border-border-muted bg-background-subtle p-4`) verwenden.
 
 2. Priorisierung:
-  - Nach Umsetzung des Import/Export-InfoDialogs die Bereichsabstände in weiteren Einstellungs-Views (jenseits des ConfigPanel) prüfen. Nur dort anpassen, wo der Mehrwert klar ist und das Layout von der Vereinheitlichung profitiert.
+  - Im Dashboard sind ConfigPanel-Tabs und About-Ansicht bereits auf das einheitliche Abstands- und Box-Pattern umgestellt. Für künftige Einstellungs-Views in anderen Frontends (z. B. `bsky-client`) sollte dieses Pattern übernommen werden; eine erneute Anpassung des Kampagnen-Tools ist dafür nicht notwendig.
+
+3. Button-Gruppen (Planen / Sofort senden):
+  - Im Dashboard erfassen, wo relevante Button-Gruppen existieren (z. B. `SkeetForm`, `ThreadForm`, `ConfigPanel`, Header-Aktionsgruppen) und prüfen, ob Höhe/Mindestbreite und die Hierarchie zwischen Standard-Aktion („Planen“/„Übernehmen“) und seltenen Aktionen („Sofort senden“) konsistent sind. Grundlage sind die in `docs/ui.md` ergänzten Richtlinien zu Buttons in Formularen und Einstellungsansichten.
+  - Für „Sofort senden“ und andere irreversible/risikoreiche Aktionen den gemeinsamen `ConfirmDialog` aus `@bsky-kampagnen-bot/shared-ui` einsetzen: Titel, Beschreibung, Buttontexte und Button-Variante werden pro Anwendungsfall konfiguriert, sodass der Dialog klar, aber nicht überdramatisiert wirkt und der Fokus weiterhin auf dem Standard-Workflow (Planen/Übernehmen) liegt.
+
+4. Icon-Buttons vereinheitlichen:
+   - Die im Planner verwendeten Buttons „Bild hinzufügen“, „GIF hinzufügen“ und „Emoji einfügen“ (in `SkeetForm`/`ThreadForm`) an den gemeinsamen Icon-Button-Stil anpassen (gleicher Icon-Satz, Container, Größen), damit sie optisch zu Info-/Import-/Export-Buttons passen. Grundlage sind die in `docs/ui.md` ergänzten Richtlinien zu Icon-Buttons.
+
+5. Thread-Vorschaukarten im Planner:
+   - In `ThreadForm` das Layout der Vorschaukarten überarbeiten: Bereich mit „Post x“, Zeichenzähler und Bild/Media-Buttons optisch zusammenfassen (einheitlicher Abstand, konsistente Icon-Buttons, bessere Trennung zwischen Inhalt und Aktionen), damit die Karten ruhiger und klarer strukturiert wirken.
+
+6. App-Struktur rund um Planer vereinfachen:
+   - `App.jsx` schrittweise entlasten, ohne Verhalten zu ändern: zuerst den Import/Export-Headerblock (Buttons + InfoDialog) in eine eigene, klar abgegrenzte Komponente auslagern; nach Abschluss der UI-Feinschliffe optional schlanke Container-Views für „Post planen“ (`SkeetForm`) und „Thread planen` (`ThreadForm`) einführen, die Routing und Daten an die Form-Komponenten weiterreichen.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
@@ -52,3 +65,4 @@ Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cr
 
 - Soll `InfoDialog` auch in weiteren Workspaces (z. B. `bsky-client`) eingeführt werden, oder bleibt der Einsatz zunächst auf das Dashboard beschränkt?
 - Gibt es fachliche Anforderungen für zusätzliche InfoDialog-Themen (z. B. Datenschutz/Hinweise zu Logs, Limits pro Plattform), die bei künftigen UI-Iterationen berücksichtigt werden sollen?
+- Wann ist der passende Zeitpunkt, um aus dem Kampagnen‑Tool hervorgegangene Bausteine (z. B. Link‑Preview, Medien-/Composer‑Patterns) tatsächlich in `shared-ui`/`shared-logic` zu verschieben, statt später das Kampagnen‑Tool rückwirkend an neue Clients (Bluesky/Mastodon) anzupassen?

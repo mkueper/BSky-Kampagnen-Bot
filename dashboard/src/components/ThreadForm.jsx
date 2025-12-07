@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, InfoDialog, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, ConfirmDialog, InfoDialog, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
@@ -142,6 +142,7 @@ function ThreadForm ({
   const scheduledDefaultRef = useRef(defaultScheduledAt)
   const [saving, setSaving] = useState(false)
   const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
+  const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const textareaRef = useRef(null)
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
@@ -580,6 +581,15 @@ function ThreadForm ({
     })
   }, [previewSegments, targetPlatforms.length, pendingMedia, initialThread, isEditMode])
 
+  const hasAnySegmentContentOrMedia = useMemo(() => {
+    return previewSegments.some(segment => {
+      const noText = segment.isEmpty
+      const mediaCount = getMediaCount(segment.id)
+      const hasMedia = mediaCount > 0
+      return !noText || hasMedia
+    })
+  }, [previewSegments, pendingMedia])
+
   const showLoadingState = loading && !threadId
 
   if (showLoadingState) {
@@ -688,6 +698,119 @@ function ThreadForm ({
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function doSendNowThread() {
+    if (saving || loading || sending) return
+    if (hasValidationIssues || !hasAnySegmentContentOrMedia) {
+      toast.error({
+        title: t(
+          'threads.form.sendNow.validationErrorTitle',
+          'Formular unvollständig'
+        ),
+        description: t(
+          'threads.form.sendNow.validationErrorDescription',
+          'Markierte Probleme sollten behoben werden, bevor gesendet wird.'
+        )
+      })
+      return
+    }
+
+    setSending(true)
+    try {
+      let id = threadId
+      if (!isEditMode) {
+        const titleCandidate = previewSegments[0]?.raw || ''
+        const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
+        const createPayload = {
+          title: normalizedTitle,
+          scheduledAt: null,
+          status: 'draft',
+          targetPlatforms,
+          appendNumbering,
+          metadata: { limit, totalSegments, source, sendNow: true },
+          skeets: previewSegments.map((segment, index) => ({
+            sequence: index,
+            content: segment.formatted,
+            appendNumbering,
+            characterCount: segment.characterCount,
+            media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
+          }))
+        }
+        const resCreate = await fetch('/api/threads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(createPayload)
+        })
+        if (!resCreate.ok) {
+          const data = await resCreate.json().catch(() => ({}))
+          throw new Error(
+            data.error ||
+              t(
+                'threads.form.sendNow.createErrorFallback',
+                'Thread konnte nicht erstellt werden.'
+              )
+          )
+        }
+        const created = await resCreate.json()
+        id = created?.id
+        if (!id) {
+          throw new Error(
+            t(
+              'threads.form.sendNow.unexpectedCreateResponse',
+              'Unerwartete Antwort beim Erstellen des Threads.'
+            )
+          )
+        }
+      }
+
+      const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
+      if (!resPub.ok) {
+        const data = await resPub.json().catch(() => ({}))
+        throw new Error(
+          data.error ||
+            t(
+              'threads.form.sendNow.publishErrorFallback',
+              'Direktveröffentlichung fehlgeschlagen.'
+            )
+        )
+      }
+      const published = await resPub.json()
+
+      toast.success({
+        title: t(
+          'threads.form.sendNow.successTitle',
+          'Veröffentlicht (direkt)'
+        ),
+        description: t(
+          'threads.form.sendNow.successDescription',
+          'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
+        )
+      })
+
+      if (typeof onThreadSaved === 'function') {
+        try { onThreadSaved(published) } catch (cbErr) { console.error('onThreadSaved Fehler:', cbErr) }
+      }
+      if (!isEditMode) {
+        restoreFromThread(null)
+      }
+    } catch (e) {
+      console.error('Sofort senden fehlgeschlagen:', e)
+      toast.error({
+        title: t(
+          'threads.form.sendNow.errorTitle',
+          'Senden fehlgeschlagen'
+        ),
+        description:
+          e?.message ||
+          t(
+            'threads.form.sendNow.errorDescription',
+            'Unbekannter Fehler beim Senden.'
+          )
+      })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -867,7 +990,13 @@ function ThreadForm ({
 
               <div className='flex flex-wrap items-center gap-2'>
                 {isEditMode && typeof onCancel === 'function' ? (
-                  <Button type='button' variant='secondary' onClick={onCancel} disabled={saving}>
+                  <Button
+                    type='button'
+                    variant='secondary'
+                    onClick={onCancel}
+                    disabled={saving}
+                    className='min-w-[8rem]'
+                  >
                     {t('threads.form.actions.cancel', 'Abbrechen')}
                   </Button>
                 ) : null}
@@ -889,132 +1018,11 @@ function ThreadForm ({
                   )}
                 </Button>
                 <Button
-                  type='button'
-                  variant='warning'
-                  onClick={async () => {
-                    if (saving || loading || sending) return
-                    if (hasValidationIssues) {
-                      toast.error({
-                        title: t(
-                          'threads.form.sendNow.validationErrorTitle',
-                          'Formular unvollständig'
-                        ),
-                        description: t(
-                          'threads.form.sendNow.validationErrorDescription',
-                          'Markierte Probleme sollten behoben werden, bevor gesendet wird.'
-                        )
-                      })
-                      return
-                    }
-
-                    setSending(true)
-                    try {
-                      let id = threadId
-                      if (!isEditMode) {
-                        // 1) Thread anlegen (ohne unmittelbare Planung);
-                        const titleCandidate = previewSegments[0]?.raw || ''
-                        const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
-                        const createPayload = {
-                          title: normalizedTitle,
-                          scheduledAt: null,
-                          status: 'draft',
-                          targetPlatforms,
-                          appendNumbering,
-                          metadata: { limit, totalSegments, source, sendNow: true },
-                          skeets: previewSegments.map((segment, index) => ({
-                            sequence: index,
-                            content: segment.formatted,
-                            appendNumbering,
-                            characterCount: segment.characterCount,
-                            media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
-                          }))
-                        }
-                        const resCreate = await fetch('/api/threads', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(createPayload)
-                        })
-                        if (!resCreate.ok) {
-                          const data = await resCreate.json().catch(() => ({}))
-                          throw new Error(
-                            data.error ||
-                              t(
-                                'threads.form.sendNow.createErrorFallback',
-                                'Thread konnte nicht erstellt werden.'
-                              )
-                          )
-                        }
-                        const created = await resCreate.json()
-                        id = created?.id
-                        if (!id) {
-                          throw new Error(
-                            t(
-                              'threads.form.sendNow.unexpectedCreateResponse',
-                              'Unerwartete Antwort beim Erstellen des Threads.'
-                            )
-                          )
-                        }
-                      }
-
-                      // 2) Direkt veröffentlichen (ohne Scheduler-Tick)
-                      const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
-                      if (!resPub.ok) {
-                        const data = await resPub.json().catch(() => ({}))
-                        throw new Error(
-                          data.error ||
-                            t(
-                              'threads.form.sendNow.publishErrorFallback',
-                              'Direktveröffentlichung fehlgeschlagen.'
-                            )
-                        )
-                      }
-                      const published = await resPub.json()
-
-                      toast.success({
-                        title: t(
-                          'threads.form.sendNow.successTitle',
-                          'Veröffentlicht (direkt)'
-                        ),
-                        description: t(
-                          'threads.form.sendNow.successDescription',
-                          'Der Thread wurde unmittelbar gesendet und erscheint unter Veröffentlicht.'
-                        )
-                      })
-
-                      if (typeof onThreadSaved === 'function') {
-                        try { onThreadSaved(published) } catch (cbErr) { console.error('onThreadSaved Fehler:', cbErr) }
-                      }
-                      if (!isEditMode) {
-                        restoreFromThread(null)
-                      }
-                    } catch (e) {
-                      console.error('Sofort senden fehlgeschlagen:', e)
-                      toast.error({
-                        title: t(
-                          'threads.form.sendNow.errorTitle',
-                          'Senden fehlgeschlagen'
-                        ),
-                        description:
-                          e?.message ||
-                          t(
-                            'threads.form.sendNow.errorDescription',
-                            'Unbekannter Fehler beim Senden.'
-                          )
-                      })
-                    } finally {
-                      setSending(false)
-                    }
-                  }}
-                  disabled={hasValidationIssues || saving || loading || sending}
+                  type='submit'
+                  variant='primary'
+                  disabled={hasValidationIssues || saving || loading}
+                  className='min-w-[8rem]'
                 >
-                  {sending
-                    ? t('threads.form.sendNow.buttonBusy', 'Senden…')
-                    : t(
-                        'threads.form.sendNow.buttonDefault',
-                        'Sofort senden'
-                      )}
-                </Button>
-                <Button type='submit' variant='primary' disabled={hasValidationIssues || saving || loading}>
                   {saving
                     ? isEditMode
                       ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
@@ -1025,6 +1033,46 @@ function ThreadForm ({
                           'Thread aktualisieren'
                         )
                       : t('threads.form.submitCreate', 'Planen')}
+                </Button>
+                <Button
+                  type='button'
+                  variant='neutral'
+                  className='min-w-[8rem]'
+                  disabled={
+                    hasValidationIssues ||
+                    !hasAnySegmentContentOrMedia ||
+                    saving ||
+                    loading ||
+                    sending
+                  }
+                  onClick={() => {
+                    if (
+                      hasValidationIssues ||
+                      !hasAnySegmentContentOrMedia ||
+                      saving ||
+                      loading ||
+                      sending
+                    ) {
+                      if (hasValidationIssues) {
+                        toast.error({
+                          title: t(
+                            'threads.form.sendNow.validationErrorTitle',
+                            'Formular unvollständig'
+                          ),
+                          description: t(
+                            'threads.form.sendNow.validationErrorDescription',
+                            'Markierte Probleme sollten behoben werden, bevor gesendet wird.'
+                          )
+                        })
+                      }
+                      return
+                    }
+                    setSendNowConfirmOpen(true)
+                  }}
+                >
+                  {sending
+                    ? t('threads.form.sendNow.buttonBusy', 'Senden…')
+                    : t('threads.form.sendNow.buttonDefault', 'Sofort senden')}
                 </Button>
               </div>
             </div>
@@ -1281,6 +1329,22 @@ function ThreadForm ({
             // Einfügen fehlgeschlagen; Eingabe sauber lassen
           }
         }}
+      />
+      <ConfirmDialog
+        open={sendNowConfirmOpen}
+        title={t('threads.form.sendNow.confirmTitle', 'Sofort senden?')}
+        description={t(
+          'threads.form.sendNow.confirmDescription',
+          'Der Thread wird sofort veröffentlicht und nicht mehr geplant ausgeführt.'
+        )}
+        confirmLabel={t('threads.form.sendNow.buttonDefault', 'Sofort senden')}
+        cancelLabel={t('common.actions.cancel', 'Abbrechen')}
+        variant='primary'
+        onConfirm={async () => {
+          setSendNowConfirmOpen(false)
+          await doSendNowThread()
+        }}
+        onCancel={() => setSendNowConfirmOpen(false)}
       />
       {tenorAvailable ? (
         <GifPicker

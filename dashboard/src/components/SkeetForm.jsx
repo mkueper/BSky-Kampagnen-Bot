@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, InfoDialog, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, ConfirmDialog, InfoDialog, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
@@ -136,6 +136,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const order = weekdayOrder(locale)
   const [infoContentOpen, setInfoContentOpen] = useState(false)
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
+  const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const [sendingNow, setSendingNow] = useState(false)
   const existingMediaCount = useMemo(() => {
     if (!isEditing || !Array.isArray(editingSkeet?.media)) return 0
@@ -149,6 +150,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         'Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.'
       )
     : ''
+  const hasContentOrMedia =
+    content.trim().length > 0 || (existingMediaCount + pendingMediaCount) > 0
   const {
     previewUrl,
     preview,
@@ -319,6 +322,17 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
     const normalizedPlatforms = Array.from(new Set(targetPlatforms))
     const submissionLimit = resolveMaxLength(normalizedPlatforms)
+
+    if (!hasContentOrMedia) {
+      toast.error({
+        title: t('posts.form.noContentTitle', 'Kein Inhalt'),
+        description: t(
+          'posts.form.noContentDescription',
+          'Bitte Text eingeben oder mindestens ein Medium hinzufügen.'
+        )
+      })
+      return
+    }
 
     if (content.length > submissionLimit) {
       toast.error({
@@ -1095,155 +1109,32 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             type='button'
             variant='secondary'
             onClick={() => onCancelEdit && onCancelEdit()}
+            className='min-w-[8rem]'
           >
             {t('posts.form.cancel', 'Abbrechen')}
           </Button>
         )}
-        <Button type='submit' variant='primary'>
+        <Button
+          type='submit'
+          variant='primary'
+          className='min-w-[8rem]'
+          disabled={!hasContentOrMedia}
+        >
           {isEditing
             ? t('posts.form.submitUpdate', 'Post aktualisieren')
             : t('posts.form.submitCreate', 'Planen')}
         </Button>
         <Button
           type='button'
-          variant='warning'
-          disabled={sendingNow}
-          onClick={async () => {
-            if (!isEditing) {
-              // Direktversand benötigt einen existierenden Datensatz → erst speichern mit sofortigem Termin
-              const normalizedPlatforms = Array.from(new Set(targetPlatforms))
-              const submissionLimit = resolveMaxLength(normalizedPlatforms)
-              if (content.length > submissionLimit) {
-                toast.error({
-                  title: t(
-                    'posts.form.limitExceededTitle',
-                    'Zeichenlimit überschritten'
-                  ),
-                  description: t(
-                    'posts.form.limitExceededShort',
-                    'Max. {limit} Zeichen.',
-                    { limit: submissionLimit }
-                  )
-                })
-                return
-              }
-              const now = new Date()
-              const pad = n => String(n).padStart(2, '0')
-              const localIso = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
-              const createPayload = {
-                content,
-                scheduledAt: localIso,
-                repeat: 'none',
-                repeatDaysOfWeek: [],
-                repeatDayOfMonth: null,
-                repeatDayOfWeek: null,
-                targetPlatforms: normalizedPlatforms,
-                media: pendingMedia,
-              }
-              setSendingNow(true)
-              try {
-                const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
-                if (!resCreate.ok) {
-                  const data = await resCreate.json().catch(() => ({}))
-                  throw new Error(
-                    data.error ||
-                      t(
-                        'posts.form.sendNow.createErrorFallback',
-                        'Post konnte nicht erstellt werden.'
-                      )
-                  )
-                }
-                const created = await resCreate.json()
-                if (!created?.id) {
-                  throw new Error(
-                    t(
-                      'posts.form.sendNow.unexpectedCreateResponse',
-                      'Unerwartete Antwort beim Erstellen des Posts.'
-                    )
-                  )
-                }
-                const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
-                if (!resPub.ok) {
-                  const data = await resPub.json().catch(() => ({}))
-                  throw new Error(
-                    data.error ||
-                      t(
-                        'posts.form.sendNow.publishErrorFallback',
-                        'Direktveröffentlichung fehlgeschlagen.'
-                      )
-                  )
-                }
-                toast.success({
-                  title: t(
-                    'posts.form.sendNow.successTitle',
-                    'Veröffentlicht (direkt)'
-                  ),
-                  description: t(
-                    'posts.form.sendNow.successDescription',
-                    'Der Post wurde unmittelbar gesendet.'
-                  )
-                })
-                resetToDefaults()
-                if (onSkeetSaved) onSkeetSaved()
-              } catch (e) {
-                toast.error({
-                  title: t(
-                    'posts.form.sendNow.errorTitle',
-                    'Senden fehlgeschlagen'
-                  ),
-                  description:
-                    e?.message ||
-                    t('common.errors.unknown', 'Unbekannter Fehler')
-                })
-              } finally {
-                setSendingNow(false)
-              }
-              return
-            }
-
-            // Bearbeiten: existierenden posten
-            setSendingNow(true)
-            try {
-              const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
-              if (!res.ok) {
-                const data = await res.json().catch(() => ({}))
-                throw new Error(
-                  data.error ||
-                    t(
-                      'posts.form.sendNow.publishErrorFallback',
-                      'Direktveröffentlichung fehlgeschlagen.'
-                    )
-                )
-              }
-              toast.success({
-                title: t(
-                  'posts.form.sendNow.successTitle',
-                  'Veröffentlicht (direkt)'
-                ),
-                description: t(
-                  'posts.form.sendNow.successDescription',
-                  'Der Post wurde unmittelbar gesendet.'
-                )
-              })
-              if (onSkeetSaved) onSkeetSaved()
-            } catch (e) {
-              toast.error({
-                title: t(
-                  'posts.form.sendNow.errorTitle',
-                  'Senden fehlgeschlagen'
-                ),
-                description:
-                  e?.message ||
-                  t('common.errors.unknown', 'Unbekannter Fehler')
-              })
-            } finally {
-              setSendingNow(false)
-            }
+          variant='neutral'
+          disabled={sendingNow || !hasContentOrMedia}
+          className='min-w-[8rem]'
+          onClick={() => {
+            if (sendingNow || !hasContentOrMedia) return
+            setSendNowConfirmOpen(true)
           }}
         >
-          {sendingNow
-            ? t('posts.form.sendNow.buttonBusy', 'Senden…')
-            : t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
+          {t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
         </Button>
       </div>
       <MediaDialog
@@ -1348,6 +1239,160 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             // Einfügen fehlgeschlagen; Eingabe unverändert lassen
           }
         }}
+      />
+      <ConfirmDialog
+        open={sendNowConfirmOpen}
+        title={t('posts.form.sendNow.confirmTitle', 'Sofort senden?')}
+        description={t(
+          'posts.form.sendNow.confirmDescription',
+          'Der Beitrag wird sofort veröffentlicht und nicht mehr geplant ausgeführt.'
+        )}
+        confirmLabel={t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
+        cancelLabel={t('common.actions.cancel', 'Abbrechen')}
+        variant='primary'
+        onConfirm={async () => {
+          if (!hasContentOrMedia) {
+            setSendNowConfirmOpen(false)
+            toast.error({
+              title: t('posts.form.noContentTitle', 'Kein Inhalt'),
+              description: t(
+                'posts.form.noContentDescription',
+                'Bitte Text eingeben oder mindestens ein Medium hinzufügen.'
+              )
+            })
+            return
+          }
+          setSendNowConfirmOpen(false)
+          if (sendingNow) return
+          if (!isEditing) {
+            const normalizedPlatforms = Array.from(new Set(targetPlatforms))
+            const submissionLimit = resolveMaxLength(normalizedPlatforms)
+            if (content.length > submissionLimit) {
+              toast.error({
+                title: t(
+                  'posts.form.limitExceededTitle',
+                  'Zeichenlimit überschritten'
+                ),
+                description: t(
+                  'posts.form.limitExceededShort',
+                  'Max. {limit} Zeichen.',
+                  { limit: submissionLimit }
+                )
+              })
+              return
+            }
+            const now = new Date()
+            const pad = n => String(n).padStart(2, '0')
+            const localIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+            const createPayload = {
+              content,
+              scheduledAt: localIso,
+              repeat: 'none',
+              repeatDaysOfWeek: [],
+              repeatDayOfMonth: null,
+              repeatDayOfWeek: null,
+              targetPlatforms: normalizedPlatforms,
+              media: pendingMedia
+            }
+            setSendingNow(true)
+            try {
+              const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
+              if (!resCreate.ok) {
+                const data = await resCreate.json().catch(() => ({}))
+                throw new Error(
+                  data.error ||
+                    t(
+                      'posts.form.sendNow.createErrorFallback',
+                      'Post konnte nicht erstellt werden.'
+                    )
+                )
+              }
+              const created = await resCreate.json()
+              if (!created?.id) {
+                throw new Error(
+                  t(
+                    'posts.form.sendNow.unexpectedCreateResponse',
+                    'Unerwartete Antwort beim Erstellen des Posts.'
+                  )
+                )
+              }
+              const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
+              if (!resPub.ok) {
+                const data = await resPub.json().catch(() => ({}))
+                throw new Error(
+                  data.error ||
+                    t(
+                      'posts.form.sendNow.publishErrorFallback',
+                      'Direktveröffentlichung fehlgeschlagen.'
+                    )
+                )
+              }
+              toast.success({
+                title: t(
+                  'posts.form.sendNow.successTitle',
+                  'Veröffentlicht (direkt)'
+                ),
+                description: t(
+                  'posts.form.sendNow.successDescription',
+                  'Der Post wurde unmittelbar gesendet.'
+                )
+              })
+              resetToDefaults()
+              if (onSkeetSaved) onSkeetSaved()
+            } catch (e) {
+              toast.error({
+                title: t(
+                  'posts.form.sendNow.errorTitle',
+                  'Senden fehlgeschlagen'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
+              })
+            } finally {
+              setSendingNow(false)
+            }
+          } else {
+            setSendingNow(true)
+            try {
+              const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                throw new Error(
+                  data.error ||
+                    t(
+                      'posts.form.sendNow.publishErrorFallback',
+                      'Direktveröffentlichung fehlgeschlagen.'
+                    )
+                )
+              }
+              toast.success({
+                title: t(
+                  'posts.form.sendNow.successTitle',
+                  'Veröffentlicht (direkt)'
+                ),
+                description: t(
+                  'posts.form.sendNow.successDescription',
+                  'Der Post wurde unmittelbar gesendet.'
+                )
+              })
+              if (onSkeetSaved) onSkeetSaved()
+            } catch (e) {
+              toast.error({
+                title: t(
+                  'posts.form.sendNow.errorTitle',
+                  'Senden fehlgeschlagen'
+                ),
+                description:
+                  e?.message ||
+                  t('common.errors.unknown', 'Unbekannter Fehler')
+              })
+            } finally {
+              setSendingNow(false)
+            }
+          }
+        }}
+        onCancel={() => setSendNowConfirmOpen(false)}
       />
       {/* Info: Post-Text */}
       {infoContentOpen ? (
