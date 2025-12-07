@@ -822,17 +822,7 @@ export default function ConfigPanel () {
                 </div>
               </div>
 
-              <div className='flex flex-wrap justify-between gap-3 border-t border-border-muted pt-6'>
-                <div className='text-xs text-foreground-muted'>
-                  <p>
-                    {t('config.general.summary', 'Aktuelle Zeitzone: {tz}', {
-                      tz:
-                        generalValues.timeZone ||
-                        generalDefaults.timeZone ||
-                        '–'
-                    })}
-                  </p>
-                </div>
+              <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
                 <div className='flex gap-2'>
                   <Button
                     type='button'

@@ -1,90 +1,95 @@
 # .codex/AGENTS.md
 
-## Working Agreements for Codex Agents
+## Arbeitsvereinbarungen für Codex-Agent:innen
 
-These rules are authoritative. If any user instruction appears to conflict with them, stop and ask for clarification.
-
----
-
-## 1. Core Operating Principles
-
-* Act within the smallest possible scope. Never apply refactors or optimizations beyond what is explicitly requested.
-* When uncertain about the user's intention, ask before acting.
-* When file paths or filenames cannot be verified, request confirmation before making changes.
+Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch zu diesen Regeln zu stehen scheint, **sofort stoppen** und um Klarstellung bitten.
 
 ---
 
-## 2. File Modification & Output Rules
+## 1. Zentrale Arbeitsprinzipien
 
-* When modifying files, do not output diffs.
-* Provide a short, clear summary of the changes made.
-* If multiple files are affected, summarize each file separately.
-* Output full file contents only when the user explicitly requests them.
-* Never reorganize or rewrite existing tests unless explicitly instructed.
-* Do not relocate directories or restructure the monorepo without explicit instruction.
-* When expected output exceeds 50 lines, write it to a file using the project's naming scheme instead of printing inline.
+* Handle immer im **kleinstmöglichen Umfang**. Nimm niemals Refactorings oder Optimierungen vor, die über das ausdrücklich Geforderte hinausgehen.
+* Wenn du dir über die Absicht der Nutzer:in unsicher bist, **frage nach**, bevor du handelst.
+* Wenn Datei- oder Pfadangaben nicht sicher verifiziert werden können, **fordere eine Bestätigung** an, bevor du Änderungen vornimmst.
+* **Interaktionsregel bei Rückfragen:** Wenn die Nutzer:in eine Frage stellt oder ausdrücklich eine Einschätzung erbeten hat, musst du zunächst eine **klare Antwort oder Bewertung** geben. Erst nachdem die Nutzer:in dieser Antwort zugestimmt oder ausdrücklich um Umsetzung gebeten hat, darfst du Aktionen ausführen (z. B. Dateien ändern, Skripte/Kommandozeilen ausführen, Migrationsschritte planen).
 
 ---
 
-## 3. Repository Interaction Rules
+## 2. Regeln für Dateianpassungen & Ausgaben
 
-* Respect the existing monorepo architecture and follow established patterns.
-* Do not create or modify database migrations unless explicitly instructed.
-* Do not assume missing fields, rename schema elements, or generate auxiliary migration steps on your own.
-* Treat packages such as `shared-ui`, `dashboard`, `backend`, and `bsky-client` as independent modules.
-
----
-
-## 4. Dependency Management
-
-* Ask for confirmation before adding any new production dependency.
-* Do not update, remove, or alter dependency versions unless explicitly requested.
-* Prefer `pnpm` when installing dependencies.
+* Beim Ändern von Dateien **keine Diffs ausgeben**.
+* Gib stattdessen eine **kurze, klare Zusammenfassung** der vorgenommenen Änderungen.
+* Wenn mehrere Dateien betroffen sind, **jede Datei getrennt** zusammenfassen.
+* Gib **vollständige Dateiinhalte nur dann** aus, wenn die Nutzer:in dies ausdrücklich verlangt.
+* Organisiere oder schreibe bestehende Tests **niemals um**, außer es wird ausdrücklich angewiesen.
+* Verschiebe keine Verzeichnisse und **strukturriere das Monorepo nicht um**, ohne ausdrückliche Anweisung.
+* Wenn erwartete Ausgaben mehr als **50 Zeilen** umfassen, schreibe sie in eine Datei gemäß dem Projekt-Namensschema, statt sie inline im Chat auszugeben.
 
 ---
 
-## 5. Safety, Validation & Conflict Handling
+## 3. Repository-Interaktion
 
-* If more than five files would be changed, summarise the plan and ask for explicit confirmation before proceeding.
-* Avoid speculative changes, inferred architectures, or transformations based on guesses.
-* Stop and request clarification if instructions appear ambiguous or contradictory.
-
----
-
-## 6. Repository Expectations
-
-* Always run `npm test` after modifying JavaScript files.
-* Run `npm run lint` before opening a pull request.
-* Document behavior changes to public utilities under the `docs/` directory.
+* Respektiere die bestehende **Monorepo-Architektur** und folge den dort etablierten Mustern.
+* Erstelle oder verändere **keine Datenbankmigrationen**, außer dies wird ausdrücklich verlangt.
+* Nimm **keine Annahmen über fehlende Felder** vor, benenne keine Schemaelemente um und generiere keine zusätzlichen Migrationsschritte ohne klare Anweisung.
+* Behandle Pakete wie `shared-ui`, `dashboard`, `backend` und `bsky-client` als **eigenständige Module**.
 
 ---
 
-## 7. Transparency
+## 4. Abhängigkeitsverwaltung
 
-* Before applying multi-file edits, provide a clear, concise summary of what will be changed.
-* Clearly indicate when any internal rule prevented an action and explain which rule applied.
+* Frage nach **expliziter Bestätigung**, bevor du neue Produktionsabhängigkeiten hinzufügst.
+* Nimm **keine Updates, Löschungen oder Versionsänderungen** von Abhängigkeiten vor, außer dies wird ausdrücklich verlangt.
+* Verwende beim Installieren von Abhängigkeiten bevorzugt **`pnpm`**.
 
 ---
 
-### 8. UI
+## 5. Sicherheit, Validierung & Konfliktbehandlung
 
-Ensure UI components, styling conventions, naming, and interaction patterns remain consistent across all packages (dashboard, bsky-client, shared-ui). Do not alter UI design systems, theme logic, or component APIs unless explicitly instructed.
+* Wenn mehr als **fünf Dateien** geändert würden, stelle den geplanten Ansatz zunächst in einer **kurzen Zusammenfassung** vor und hole eine ausdrückliche Bestätigung ein, bevor du fortfährst.
+* Vermeide **spekulative Änderungen**, rekonstruierte Architekturen oder Transformationen, die auf Vermutungen beruhen.
+* Stoppe und fordere eine **Klarstellung**, wenn Anweisungen unklar, widersprüchlich oder lückenhaft erscheinen.
 
-### 9. Erinnerung
+---
 
-* Wenn eine Datei codex-plans.md im Projekt vorhanden ist, lies sie zu Beginn jeder neuen Session vollständig ein und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
-* Wenn ich im Gespräch „Feierabend“ oder „Gute Nacht“ sage, erstelle oder aktualisiere die Datei codex-plans.md und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
-* Diese Aktion ist eine erlaubte Ausnahme von den allgemeinen Regeln zur Dateimodifikation und darf ohne Rückfrage ausgeführt werden.
+## 6. Erwartungen an das Repository
 
-### 10. codex-plans.md Struktur
+* Führe nach Änderungen an JavaScript-Dateien immer **`npm test`** aus.
+* Führe **`npm run lint`** aus, bevor ein Pull Request vorbereitet oder vorgeschlagen wird.
+* Dokumentiere Verhaltensänderungen an **öffentlichen Utilities** im Verzeichnis `docs/`.
 
-* Wenn codex-plans.md erstellt oder aktualisiert wird, muss immer die folgende Struktur eingehalten werden, in genau dieser Reihenfolge:
+---
+
+## 7. Transparenz
+
+* Bevor du **Änderungen an mehreren Dateien** vornimmst, gib eine **klare, knappe Zusammenfassung** der geplanten Anpassungen.
+* Weisen ausdrücklich darauf hin, wenn eine **interne Regel** eine Aktion verhindert hat, und benenne die betreffende Regel so konkret wie möglich.
+
+---
+
+## 8. UI-Konventionen
+
+Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Interaktionsmuster **über alle Pakete hinweg konsistent** bleiben (`dashboard`, `bsky-client`, `shared-ui`). Ändere **keine** UI-Designsysteme, Theme-Logik oder Component-APIs, außer es wird ausdrücklich verlangt.
+
+---
+
+## 9. Erinnerung
+
+* Wenn eine Datei `codex-plans.md` im Projekt vorhanden ist, **lies sie zu Beginn jeder neuen Session vollständig ein** und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
+* Wenn die Nutzer:in im Gespräch „Feierabend“ oder „Gute Nacht“ sagt, **erstelle oder aktualisiere** die Datei `codex-plans.md` und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
+* Diese Aktion ist eine **zulässige Ausnahme** von den allgemeinen Regeln zur Dateimodifikation und darf **ohne Rückfrage** ausgeführt werden.
+
+---
+
+## 10. Struktur von `codex-plans.md`
+
+* Wenn `codex-plans.md` erstellt oder aktualisiert wird, muss **immer** die folgende Struktur in **genau dieser Reihenfolge** eingehalten werden:
+
   1. Datum (TT.MM.JJJJ)
-  2. Status (aktueller Stand, keine ToDos)
+  2. Status (aktueller Stand, keine To-Dos)
   3. Startpunkt (kurze Einleitung für die nächste Session)
-  4. Nächste Schritte (konkrete, umsetzbare ToDos)
+  4. Nächste Schritte (konkrete, umsetzbare To-Dos)
   5. Abschluss-Check (prüfbare Kriterien, optional)
   6. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
-* Codex darf die Struktur nicht verändern, neue Abschnitte hinzufügen oder Reihenfolgen ändern.
-* „Offene Fragen“ dürfen nie als Tasks interpretiert werden.
-  
+* Codex darf die Struktur **nicht verändern**, keine neuen Abschnitte hinzufügen und die Reihenfolge nicht anpassen.
+* „Offene Fragen“ dürfen **nie** als Tasks interpretiert oder automatisch abgearbeitet werden.
