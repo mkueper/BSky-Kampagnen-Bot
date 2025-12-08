@@ -1134,6 +1134,18 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
       </div>
       <div className='flex flex-wrap justify-end gap-3'>
+        <Button
+          type='button'
+          variant='neutral'
+          disabled={sendingNow || !hasContentOrMedia}
+          className='min-w-[8rem]'
+          onClick={() => {
+            if (sendingNow || !hasContentOrMedia) return
+            setSendNowConfirmOpen(true)
+          }}
+        >
+          {t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
+        </Button>
         {isEditing && (
           <Button
             type='button'
@@ -1153,18 +1165,6 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           {isEditing
             ? t('posts.form.submitUpdate', 'Post aktualisieren')
             : t('posts.form.submitCreate', 'Planen')}
-        </Button>
-        <Button
-          type='button'
-          variant='neutral'
-          disabled={sendingNow || !hasContentOrMedia}
-          className='min-w-[8rem]'
-          onClick={() => {
-            if (sendingNow || !hasContentOrMedia) return
-            setSendNowConfirmOpen(true)
-          }}
-        >
-          {t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
         </Button>
       </div>
       <MediaDialog

@@ -39,7 +39,10 @@ const messages = {
       cards: {
         plannedPosts: 'Geplante Posts',
         publishedPosts: 'Veröffentlichte Posts',
-        pendingPosts: 'Wartende Posts',
+        pendingPosts: 'Freizugebende Posts',
+        pendingPostsInfoTitle: 'Freizugebende Posts',
+        pendingPostsInfoBody: 'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den regulären Versand übernommen.',
+        pendingPostsInfoAria: 'Hinweis zu freizugebenden Posts anzeigen',
         plannedThreads: 'Geplante Threads',
         publishedThreads: 'Veröffentlichte Threads'
       },
@@ -217,7 +220,7 @@ const messages = {
         tabs: {
           planned: 'Geplant',
           published: 'Veröffentlicht',
-          pending: 'Wartend',
+          pending: 'Freizugeben',
           deleted: 'Papierkorb'
         },
         toolbar: {
@@ -311,6 +314,10 @@ const messages = {
         saveSuccessUpdateTitle: 'Thread aktualisiert',
         saveSuccessCreateTitle: 'Thread geplant',
         saveSuccessDescription: 'Thread enthält {count} Post{suffix}.',
+        headingCreate: 'Thread planen',
+        headingEdit: 'Thread bearbeiten',
+        headingHint:
+          'Maximal {limit} Zeichen pro Post für die gewählten Plattformen.',
         saveErrorUpdateTitle: 'Aktualisierung fehlgeschlagen',
         saveErrorCreateTitle: 'Speichern fehlgeschlagen',
         saveErrorDescription:

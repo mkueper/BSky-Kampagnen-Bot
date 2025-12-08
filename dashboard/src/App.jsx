@@ -544,6 +544,40 @@ function DashboardApp ({ onLogout }) {
 
   // Thread-spezifische Aktionen liefert useThreadActions
 
+  const cancelSkeetEditing = useCallback(
+    ({ keepView = false, silent = false } = {}) => {
+      if (!editingSkeet) return
+      setEditingSkeet(null)
+      if (!silent) {
+        toast.info({
+          title: 'Bearbeitung abgebrochen',
+          description: 'Der Beitrag wurde nicht verändert.'
+        })
+      }
+      if (!keepView) {
+        navigate('skeets-overview')
+      }
+    },
+    [editingSkeet, navigate, toast]
+  )
+
+  const cancelThreadEditing = useCallback(
+    ({ keepView = false, silent = false } = {}) => {
+      if (!editingThreadId) return
+      setEditingThreadId(null)
+      if (!silent) {
+        toast.info({
+          title: 'Bearbeitung abgebrochen',
+          description: 'Der Thread wurde nicht verändert.'
+        })
+      }
+      if (!keepView) {
+        navigate('threads-overview')
+      }
+    },
+    [editingThreadId, navigate, toast]
+  )
+
   const handleFormSaved = async () => {
     const editedId = editingSkeet?.id ?? null
     setEditingSkeet(null)
@@ -566,21 +600,11 @@ function DashboardApp ({ onLogout }) {
   }
 
   const handleThreadCancel = () => {
-    setEditingThreadId(null)
-    navigate('threads-overview')
-    toast.info({
-      title: 'Bearbeitung abgebrochen',
-      description: 'Der Thread wurde nicht verändert.'
-    })
+    cancelThreadEditing()
   }
 
   const handleCancelEdit = () => {
-    setEditingSkeet(null)
-    navigate('skeets-overview')
-    toast.info({
-      title: 'Bearbeitung abgebrochen',
-      description: 'Der Beitrag wurde nicht verändert.'
-    })
+    cancelSkeetEditing()
   }
 
   const handleLogoutClick = useCallback(async () => {
@@ -1003,6 +1027,18 @@ function DashboardApp ({ onLogout }) {
       </Card>
     )
   }
+
+  useEffect(() => {
+    if (activeView !== 'skeets-plan' && editingSkeet) {
+      cancelSkeetEditing({ keepView: true })
+    }
+  }, [activeView, editingSkeet, cancelSkeetEditing])
+
+  useEffect(() => {
+    if (activeView !== 'threads-plan' && editingThreadId) {
+      cancelThreadEditing({ keepView: true })
+    }
+  }, [activeView, cancelThreadEditing, editingThreadId])
 
   const safeSelectView = (viewId, options) => navigate(viewId, options)
 

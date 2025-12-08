@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Card } from "@bsky-kampagnen-bot/shared-ui";
+import { useMemo, useState } from "react";
+import { Card, InfoDialog } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
 import NextScheduledCard from "../ui/NextScheduledCard.jsx";
 
@@ -28,6 +28,7 @@ function MainOverviewView({
   onOpenThreadsOverview
 }) {
   const { t } = useTranslation();
+  const [pendingInfoOpen, setPendingInfoOpen] = useState(false);
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -132,7 +133,7 @@ function MainOverviewView({
               hasPending && typeof onOpenPendingSkeets === 'function'
                 ? t(
                     'overview.aria.toPendingPosts',
-                    'Auf Freigabe wartende Posts anzeigen'
+                    'Freizugebende Posts anzeigen'
                   )
                 : undefined
             }
@@ -140,7 +141,7 @@ function MainOverviewView({
               hasPending && typeof onOpenPendingSkeets === 'function'
                 ? t(
                     'overview.aria.toPendingPosts',
-                    'Auf Freigabe wartende Posts anzeigen'
+                    'Freizugebende Posts anzeigen'
                   )
                 : undefined
             }
@@ -153,9 +154,27 @@ function MainOverviewView({
               hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
             }
           >
-            <h3 className="text-lg font-semibold text-foreground">
-              {t('overview.cards.pendingPosts', 'Wartende Posts')}
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t('overview.cards.pendingPosts', 'Freizugebende Posts')}
+              </h3>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated"
+                aria-label={t(
+                  'overview.cards.pendingPostsInfoAria',
+                  'Hinweis zu freizugebenden Posts anzeigen'
+                )}
+                title={t('overview.cards.pendingPostsInfoAria', 'Hinweis zu freizugebenden Posts anzeigen')}
+                onClick={() => setPendingInfoOpen(true)}
+              >
+                <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z" fill="currentColor" />
+                  <path fillRule="evenodd" clipRule="evenodd" d="M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z" fill="currentColor" />
+                </svg>
+                {t('posts.form.infoButtonLabel', 'Info')}
+              </button>
+            </div>
             <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
               {pendingCount}
             </p>
@@ -163,11 +182,11 @@ function MainOverviewView({
               {hasPending
                 ? t(
                     'overview.cards.pendingPostsHint',
-                    'Auf Freigabe wartende Posts'
+                    'Posts warten auf Freigabe'
                   )
                 : t(
                     'overview.cards.pendingPostsEmpty',
-                    'Keine Posts in Wartestellung.'
+                    'Keine freizugebenden Posts.'
                   )}
             </p>
           </Card>
@@ -192,6 +211,20 @@ function MainOverviewView({
           </div>
         </div>
       </section>
+      <InfoDialog
+        open={pendingInfoOpen}
+        title={t('overview.cards.pendingPostsInfoTitle', 'Freizugebende Posts')}
+        onClose={() => setPendingInfoOpen(false)}
+        closeLabel={t('common.actions.close', 'Schließen')}
+        content={(
+          <p>
+            {t(
+              'overview.cards.pendingPostsInfoBody',
+              'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den normalen Versandplan übernommen.'
+            )}
+          </p>
+        )}
+      />
 
       <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
         <div className="grid gap-4 md:grid-cols-2">

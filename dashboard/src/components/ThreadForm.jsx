@@ -857,6 +857,22 @@ function ThreadForm ({
 
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
+      <div className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+        <div>
+          <h2 className='text-2xl font-semibold text-foreground'>
+            {isEditMode
+              ? t('threads.form.headingEdit', 'Thread bearbeiten')
+              : t('threads.form.headingCreate', 'Thread planen')}
+          </h2>
+          <p className='mt-1 text-sm text-foreground-muted'>
+            {t(
+              'threads.form.headingHint',
+              'Maximal {limit} Zeichen pro Post für die gewählten Plattformen.',
+              { limit: limit || 0 }
+            )}
+          </p>
+        </div>
+      </div>
       <div className='grid gap-6 lg:grid-cols-2 lg:items-start lg:min-h-0'>
         <div className='space-y-4'>
           <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
@@ -1066,52 +1082,6 @@ function ThreadForm ({
               </div>
 
               <div className='flex flex-wrap items-center gap-2'>
-                {isEditMode && typeof onCancel === 'function' ? (
-                  <Button
-                    type='button'
-                    variant='secondary'
-                    onClick={onCancel}
-                    disabled={saving}
-                    className='min-w-[8rem]'
-                  >
-                    {t('threads.form.actions.cancel', 'Abbrechen')}
-                  </Button>
-                ) : null}
-                <Button
-                  type='button'
-                  variant='secondary'
-                  onClick={() => {
-                    if (isEditMode && initialThread) {
-                      restoreFromThread(initialThread)
-                    } else {
-                      restoreFromThread(null)
-                    }
-                  }}
-                  disabled={saving || sending}
-                  className='min-w-[8rem]'
-                >
-                  {t(
-                    'threads.form.actions.reset',
-                    'Formular zurücksetzen'
-                  )}
-                </Button>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  disabled={hasValidationIssues || saving || loading}
-                  className='min-w-[8rem]'
-                >
-                  {saving
-                    ? isEditMode
-                      ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
-                      : t('threads.form.submitCreateBusy', 'Planen…')
-                    : isEditMode
-                      ? t(
-                          'threads.form.submitUpdate',
-                          'Thread aktualisieren'
-                        )
-                      : t('threads.form.submitCreate', 'Planen')}
-                </Button>
                 <Button
                   type='button'
                   variant='neutral'
@@ -1151,6 +1121,52 @@ function ThreadForm ({
                   {sending
                     ? t('threads.form.sendNow.buttonBusy', 'Senden…')
                     : t('threads.form.sendNow.buttonDefault', 'Sofort senden')}
+                </Button>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  onClick={() => {
+                    if (isEditMode && initialThread) {
+                      restoreFromThread(initialThread)
+                    } else {
+                      restoreFromThread(null)
+                    }
+                  }}
+                  disabled={saving || sending}
+                  className='min-w-[8rem]'
+                >
+                  {t(
+                    'threads.form.actions.reset',
+                    'Formular zurücksetzen'
+                  )}
+                </Button>
+                {isEditMode && typeof onCancel === 'function' ? (
+                  <Button
+                    type='button'
+                    variant='secondary'
+                    onClick={onCancel}
+                    disabled={saving}
+                    className='min-w-[8rem]'
+                  >
+                    {t('threads.form.actions.cancel', 'Abbrechen')}
+                  </Button>
+                ) : null}
+                <Button
+                  type='submit'
+                  variant='primary'
+                  disabled={hasValidationIssues || saving || loading}
+                  className='min-w-[8rem]'
+                >
+                  {saving
+                    ? isEditMode
+                      ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
+                      : t('threads.form.submitCreateBusy', 'Planen…')
+                    : isEditMode
+                      ? t(
+                          'threads.form.submitUpdate',
+                          'Thread aktualisieren'
+                        )
+                      : t('threads.form.submitCreate', 'Planen')}
                 </Button>
               </div>
             </div>
