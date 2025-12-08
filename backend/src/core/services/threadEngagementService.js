@@ -4,6 +4,7 @@
  * pro Plattform und speichert sie an den Segmenten bzw. im Thread-Metadatenfeld.
  */
 const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("@data/models");
+const { env } = require('@env');
 const events = require("./events");
 const { createLogger, isEngagementDebug } = require("@utils/logging");
 const log = createLogger('engagement');
@@ -61,6 +62,15 @@ function stripHtml(input) {
     .trim();
 }
 
+const normalizeHandle = (handle) =>
+  typeof handle === 'string'
+    ? handle.trim().replace(/^@+/, '').toLowerCase()
+    : '';
+
+const OWN_HANDLES = {
+  bluesky: normalizeHandle(env?.bluesky?.identifier || ''),
+};
+
 function extractBskyRepliesFromThread(thread) {
   if (!thread || typeof thread !== "object") return [];
   const out = [];
@@ -74,6 +84,10 @@ function extractBskyRepliesFromThread(thread) {
     const content = post.record?.text ?? "";
     const indexedAt = post.indexedAt ?? post.record?.createdAt ?? new Date().toISOString();
     if (authorHandle && content) {
+      const normalizedAuthor = normalizeHandle(authorHandle);
+      if (OWN_HANDLES.bluesky && normalizedAuthor === OWN_HANDLES.bluesky) {
+        continue;
+      }
       out.push({ platform: "bluesky", authorHandle, content, createdAt: indexedAt });
     }
   }

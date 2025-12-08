@@ -232,7 +232,7 @@ function createWindow () {
   if (devUrl) {
     mainWindow.loadURL(devUrl)
   } else {
-    // In prod: Backend dient auch die statischen Dashboard-Dateien aus
+    // In prod: Backend dient auch die statischen bsky-client-Dateien aus
     // Warten, bis der Server lauscht
     waitForServer(backendPort, 30000)
       .then(() => mainWindow.loadURL(`http://127.0.0.1:${backendPort}`))

@@ -279,6 +279,7 @@ function Example() {
   - gleiche Grundfarbe wie andere Primäraktionen,
   - optional ergänzendes Icon oder kurzer Zusatz im Kontext (z. B. durch Label/Tooltip) statt einer Sonderfarbe.
 - In einer Gruppe mit mehreren Aktionen sollte die Standard-Aktion (häufig z. B. „Planen“ oder „Übernehmen“) nicht schwächer erscheinen als seltenere Aktionen. Reihenfolge und Breite sind so zu wählen, dass die gewünschte Nutzungshäufigkeit unterstützt wird (z. B. Standard-Aktion rechts außen, gleiche Breite wie „Sofort senden“).
+- Buttons, die einen ConfirmDialog voraussetzen (z. B. „Zurückziehen“), nutzen trotz des Risikos weiterhin neutrale/sekundäre Varianten. Die eigentliche Warnwirkung entsteht durch den Dialoginhalt. `warning`/`destructive` bleibt ausschließlich Aktionen vorbehalten, die ohne weitere Rückfrage stattfinden oder tatsächlich endgültig löschen.
 
 ### Icon-Buttons
 

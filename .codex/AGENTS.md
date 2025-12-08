@@ -54,7 +54,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ## 6. Erwartungen an das Repository
 
-* Führe nach Änderungen an JavaScript-Dateien immer **`npm test`** aus.
+* Führe nach Änderungen an JavaScript-Dateien immer **`npm test`** und **`npm run lint`** aus.
 * Führe **`npm run lint`** aus, bevor ein Pull Request vorbereitet oder vorgeschlagen wird.
 * Dokumentiere Verhaltensänderungen an **öffentlichen Utilities** im Verzeichnis `docs/`.
 

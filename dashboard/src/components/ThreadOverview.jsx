@@ -234,50 +234,49 @@ function ThreadOverview ({
           typeof onEditThread === 'function' &&
           thread.status !== 'published'
 
-        // Aggregierte Reaktionen (Replies aus DB; Likes/Reposts bevorzugt aus Metadata-Totals)
-        const reactionTotals = (() => {
-          const acc = { replies: 0, likes: 0, reposts: 0, quotes: 0 }
-          for (const seg of segments) {
-            const reactions = Array.isArray(seg?.reactions) ? seg.reactions : []
-            for (const r of reactions) {
-              const t = String(r?.type || '').toLowerCase()
-              if (t === 'reply') acc.replies++
-              else if (t === 'like') acc.likes++
-              else if (t === 'repost') acc.reposts++
-              else if (t === 'quote') acc.quotes++
-            }
-          }
-          return acc
-        })()
+        const firstSeq = Number(firstSegment.sequence) || 0
 
-        const metadataTotals = (() => {
-          const total = { likes: 0, reposts: 0, replies: 0 }
-          const allowed = Array.isArray(thread.targetPlatforms) ? thread.targetPlatforms.map(String) : []
+        const firstSegmentMetrics = (() => {
+          const totals = { likes: 0, reposts: 0 }
           try {
-            Object.entries(platformResults).forEach(([platformId, entry]) => {
-              const t = entry?.totals || {}
-              if (allowed.length && !allowed.includes(platformId)) return
-              if (String(entry?.status || '').toLowerCase() !== 'sent') return
-              total.likes += Number(t.likes) || 0
-              total.reposts += Number(t.reposts) || 0
-              total.replies += Number(t.replies) || 0
+            Object.values(platformResults).forEach(entry => {
+              if (!entry || typeof entry !== 'object') return
+              const segs = Array.isArray(entry.segments) ? entry.segments : []
+              const seg = segs.find(s => Number(s?.sequence) === firstSeq)
+              if (!seg) return
+              const metrics = seg.metrics || {}
+              totals.likes += Number(metrics.likes) || 0
+              totals.reposts += Number(metrics.reposts) || 0
             })
           } catch (e) {
             console.error(
-              'Fehler bei der Verarbeitung von Metadaten-Summen:',
+              'Fehler bei der Verarbeitung segmentweiser Kennzahlen:',
               e
             )
           }
-          return total
+          return totals
         })()
 
-        const displayLikes = metadataTotals.likes ?? reactionTotals.likes
-        const displayReposts = metadataTotals.reposts ?? reactionTotals.reposts
-        const displayReplies = metadataTotals.replies ?? reactionTotals.replies
-        // const displayReplies = Math.max(
-        //   reactionTotals.replies,
-        //   metadataTotals.replies
-        // )
+        const firstSegmentReplyCount = (() => {
+          try {
+            const reactions = Array.isArray(firstSegment.reactions)
+              ? firstSegment.reactions
+              : []
+            return reactions.filter(
+              r => String(r?.type || '').toLowerCase() === 'reply'
+            ).length
+          } catch (e) {
+            console.error(
+              'Fehler bei der Bestimmung segmentweiser Replies:',
+              e
+            )
+            return 0
+          }
+        })()
+
+        const displayLikes = firstSegmentMetrics.likes
+        const displayReposts = firstSegmentMetrics.reposts
+        const displayReplies = firstSegmentReplyCount
 
         const perPlatformTotals = (() => {
           const out = []
@@ -317,7 +316,6 @@ function ThreadOverview ({
         })()
 
         // Ermittele das jüngste metricsUpdatedAt für das erste Segment (sequence)
-        const firstSeq = Number(firstSegment.sequence) || 0
         const lastMetricsUpdatedAt = (() => {
           let latest = 0
           try {
@@ -526,20 +524,20 @@ function ThreadOverview ({
                       )}
                     </span>
                   )}
-                  <div className='flex flex-wrap items-center gap-2'>
+                  <div className='flex w-full flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap sm:gap-3'>
                     {isDeletedMode ? (
                       <>
-                        <Button
-                          variant='primary'
-                          onClick={() => onRestoreThread?.(thread)}
-                        >
-                          {t('threads.card.restore', 'Reaktivieren')}
-                        </Button>
                         <Button
                           variant='destructive'
                           onClick={() => onDestroyThread?.(thread)}
                         >
                           {t('threads.card.destroy', 'Endgültig löschen')}
+                        </Button>
+                        <Button
+                          variant='primary'
+                          onClick={() => onRestoreThread?.(thread)}
+                        >
+                          {t('threads.card.restore', 'Reaktivieren')}
                         </Button>
                       </>
                     ) : (
@@ -557,6 +555,28 @@ function ThreadOverview ({
                             {showReplies[thread.id]
                               ? 'Antworten verbergen'
                               : `Antworten anzeigen (${flatReplies.length})`}
+                          </Button>
+                        ) : null}
+                        {canRetract ? (
+                          <Button
+                            variant='secondary'
+                            onClick={() => onRetractThread?.(thread)}
+                          >
+                            {t('threads.card.retract', 'Zurückziehen')}
+                          </Button>
+                        ) : null}
+                        <Button
+                          variant='secondary'
+                          onClick={() => onDeleteThread?.(thread)}
+                        >
+                          {t('threads.card.delete', 'Löschen')}
+                        </Button>
+                        {canEdit ? (
+                          <Button
+                            variant='primary'
+                            onClick={() => onEditThread?.(thread)}
+                          >
+                            {t('threads.card.edit', 'Bearbeiten')}
                           </Button>
                         ) : null}
                         {!isDemo && (thread.status === 'published' || hasSentPlatforms) && (
@@ -582,7 +602,7 @@ function ThreadOverview ({
                                   )
                                 }
                                 const data = await res.json().catch(() => null)
-                              if (data && data.totals) {
+                                if (data && data.totals) {
                                   const {
                                     likes = 0,
                                     reposts = 0,
@@ -646,28 +666,6 @@ function ThreadOverview ({
                                 )}
                           </Button>
                         )}
-                        {canEdit ? (
-                          <Button
-                            variant='secondary'
-                            onClick={() => onEditThread?.(thread)}
-                          >
-                            {t('threads.card.edit', 'Bearbeiten')}
-                          </Button>
-                        ) : null}
-                        {canRetract ? (
-                          <Button
-                            variant='warning'
-                            onClick={() => onRetractThread?.(thread)}
-                          >
-                            {t('threads.card.retract', 'Zurückziehen')}
-                          </Button>
-                        ) : null}
-                        <Button
-                          variant='destructive'
-                          onClick={() => onDeleteThread?.(thread)}
-                        >
-                          {t('threads.card.delete', 'Löschen')}
-                        </Button>
                       </>
                     )}
                   </div>

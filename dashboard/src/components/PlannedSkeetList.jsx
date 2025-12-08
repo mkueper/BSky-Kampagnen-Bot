@@ -70,30 +70,30 @@ function PlannedSkeetList({
               </div>
               <div className="skeet-meta-column">
                 {showDefaultActions ? (
-                  <div className="flex w-full flex-row flex-wrap items-center gap-2">
-                    <Button variant="secondary" onClick={() => onEdit(skeet)}>
-                      {t('posts.lists.planned.edit', 'Bearbeiten')}
-                    </Button>
-                    <Button variant="destructive" onClick={() => onDelete(skeet)}>
+                  <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end sm:gap-3">
+                    <Button variant="secondary" onClick={() => onDelete(skeet)}>
                       {t('posts.lists.planned.remove', 'Löschen')}
+                    </Button>
+                    <Button variant="primary" onClick={() => onEdit(skeet)}>
+                      {t('posts.lists.planned.edit', 'Bearbeiten')}
                     </Button>
                   </div>
                 ) : null}
                 {showPendingActions && isPendingManual ? (
-                  <div className="mt-4 flex w-full flex-row flex-wrap items-center gap-2">
-                    <Button
-                      variant="primary"
-                      title={t('posts.lists.planned.publishNowTitle', 'Verpassten Post einmalig senden')}
-                      onClick={() => onPublishPendingOnce && onPublishPendingOnce(skeet)}
-                    >
-                      {t('posts.lists.planned.publishNow', 'Senden')}
-                    </Button>
+                  <div className="mt-4 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end sm:gap-3">
                     <Button
                       variant="outline"
                       title={t('posts.lists.planned.skipOnceTitle', 'Verpassten Post verwerfen (nicht nachholen)')}
                       onClick={() => onDiscardPending && onDiscardPending(skeet)}
                     >
                       {t('posts.lists.planned.skipOnce', 'Verwerfen')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      title={t('posts.lists.planned.publishNowTitle', 'Verpassten Post einmalig senden')}
+                      onClick={() => onPublishPendingOnce && onPublishPendingOnce(skeet)}
+                    >
+                      {t('posts.lists.planned.publishNow', 'Senden')}
                     </Button>
                   </div>
                 ) : null}

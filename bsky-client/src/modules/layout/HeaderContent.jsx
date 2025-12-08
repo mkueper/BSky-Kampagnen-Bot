@@ -165,11 +165,3 @@ TimelineHeader.propTypes = {
   onCloseFeedMenu: PropTypes.func,
   isRefreshing: PropTypes.bool
 }
-TimelineHeader.defaultProps = {
-  tabs: [],
-  pinnedTabs: [],
-  feedMenuOpen: false,
-  onToggleFeedMenu: undefined,
-  onCloseFeedMenu: undefined,
-  isRefreshing: false
-}

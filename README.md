@@ -239,6 +239,7 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 - **Client-Tests:** `npm run test --workspace bsky-client` führt die Vitest-Suite (React Testing Library) für den integrierten Bluesky-Client aus; für den Watch-Modus steht `npm run test:watch --workspace bsky-client` zur Verfügung.
 - **Dashboard-Tests:** `npm run test --workspace dashboard` deckt die UI-spezifische Vitest-Suite (Hooks + Komponenten) ab, u. a. Virtualisierung der Skeet-/Thread-Listen sowie die neuen Lazy-Boundaries.
 - **Backend-Tests:** laufen gegen eine In-Memory-SQLite-DB und werden über Vitest mit Root-Konfiguration gestartet; sie liegen unter `backend/tests/**` und prüfen u. a. Scheduler, Pending-Logik, API-Controller und DB-Utilities.
+- **Vor Abgabe:** bitte immer `npm test` **und** `npm run lint` ausführen, damit Backend/Frontend-Tests und Linting gemeinsam grün sind.
 - **VS Code Workspace & Debugging:** Hinweise und Best Practices: `docs/development/vscode-workspace.md`.
  - **CI (GitHub Actions):** Workflow `CI` prüft TypeScript (`npm run typecheck`), baut das Dashboard (`npm run build:frontend`), führt Linting aus und startet Tests mit Vitest auf Node 20 und 22.
 - **Docker-Builds:** `docker compose build --no-cache frontend` erzwingt das Neu-Bauen der React-App, falls sich das Dashboard geändert hat.
@@ -265,7 +266,7 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
   - Verwende gemeinsame Bausteine: `Button`, `Card`, `Badge` (siehe `docs/ui.md`).
   - Primäre Aktionen als `Button primary`, sekundäre als `secondary`. Für reine Icons `size="icon"` nutzen.
 - Code-Qualität
-  - Lint ausführen: `npm run lint` (optional `npm run lint:fix`).
+  - Vor jedem Commit: `npm test` **und** `npm run lint` (optional `npm run lint:fix`).
   - Keine unbenutzten Variablen/Imports einchecken.
 - Changelog-Workflow
   - Schnell: `npm run changelog:add -- "Kurzbeschreibung"` (landet unter „Unreleased“).

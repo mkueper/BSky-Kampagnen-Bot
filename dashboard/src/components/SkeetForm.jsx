@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ConfirmDialog, InfoDialog, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, ConfirmDialog, InlineField, InfoDialog, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
@@ -929,14 +929,12 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           </div>
         </div>
 
-      <div className='grid gap-6 md:grid-cols-2'>
-        <div className='space-y-2'>
-          <label
-            htmlFor='repeat'
-            className='text-sm font-semibold text-foreground'
-          >
-            {t('posts.form.repeat.label', 'Wiederholungsmuster')}
-          </label>
+      <div className='space-y-6'>
+        <InlineField
+          htmlFor='repeat'
+          label={t('posts.form.repeat.label', 'Wiederholungsmuster')}
+          size='lg'
+        >
           <select
             id='repeat'
             value={repeat}
@@ -961,45 +959,111 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               {t('posts.form.repeat.monthly', 'Monatlich')}
             </option>
           </select>
-        </div>
+        </InlineField>
 
-        <div className='space-y-2'>
-          <label
+        {repeat === 'none' ? (
+          <div className='grid gap-6 md:grid-cols-2'>
+            <InlineField
+              htmlFor='date'
+              label={t('posts.form.date.label', 'Geplantes Datum')}
+              size='lg'
+            >
+              <input
+                id='date'
+                type='date'
+                value={scheduledDate}
+                ref={dateInputRef}
+                onClick={() => {
+                  try {
+                    dateInputRef.current?.showPicker?.()
+                  } catch { 
+                    // showPicker nicht verfügbar
+                  }
+                }}
+                onFocus={() => {
+                  try {
+                    dateInputRef.current?.showPicker?.()
+                  } catch { 
+                    // showPicker nicht verfügbar
+                  }
+                }}
+                onChange={e => setScheduledDate(e.target.value)}
+                className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+              />
+            </InlineField>
+            <InlineField
+              htmlFor='time'
+              label={t('posts.form.time.label', 'Geplante Uhrzeit')}
+              size='lg'
+            >
+              <input
+                id='time'
+                type='time'
+                value={scheduledTime}
+                ref={timeInputRef}
+                onClick={() => {
+                  try {
+                    timeInputRef.current?.showPicker?.()
+                  } catch { 
+                    // showPicker nicht verfügbar
+                  }
+                }}
+                onFocus={() => {
+                  try {
+                    timeInputRef.current?.showPicker?.()
+                  } catch { 
+                    // showPicker nicht verfügbar
+                  }
+                }}
+                onChange={e => {
+                  setScheduledTime(e.target.value)
+                  try {
+                    timeInputRef.current?.blur?.()
+                  } catch { 
+                    // blur konnte nicht erzwungen werden
+                  }
+                }}
+                className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+              />
+            </InlineField>
+          </div>
+        ) : (
+          <InlineField
             htmlFor='time'
-            className='text-sm font-semibold text-foreground'
+            label={t('posts.form.time.label', 'Geplante Uhrzeit')}
+            size='lg'
           >
-            {t('posts.form.time.label', 'Geplante Uhrzeit')}
-          </label>
-          <input
-            id='time'
-            type='time'
-            value={scheduledTime}
-            ref={timeInputRef}
-            onClick={() => {
-              try {
-                timeInputRef.current?.showPicker?.()
-              } catch { 
-                // showPicker nicht verfügbar
-              }
-            }}
-            onFocus={() => {
-              try {
-                timeInputRef.current?.showPicker?.()
-              } catch { 
-                // showPicker nicht verfügbar
-              }
-            }}
-            onChange={e => {
-              setScheduledTime(e.target.value)
-              try {
-                timeInputRef.current?.blur?.()
-              } catch { 
-                // blur konnte nicht erzwungen werden
-              }
-            }}
-            className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-          />
-        </div>
+            <input
+              id='time'
+              type='time'
+              value={scheduledTime}
+              ref={timeInputRef}
+              onClick={() => {
+                try {
+                  timeInputRef.current?.showPicker?.()
+                } catch { 
+                  // showPicker nicht verfügbar
+                }
+              }}
+              onFocus={() => {
+                try {
+                  timeInputRef.current?.showPicker?.()
+                } catch { 
+                  // showPicker nicht verfügbar
+                }
+              }}
+              onChange={e => {
+                setScheduledTime(e.target.value)
+                try {
+                  timeInputRef.current?.blur?.()
+                } catch { 
+                  // blur konnte nicht erzwungen werden
+                }
+              }}
+              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+            />
+          </InlineField>
+        )}
 
         {repeat === 'weekly' && (
           <div className='space-y-2'>
@@ -1048,13 +1112,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         )}
 
         {repeat === 'monthly' && (
-          <div className='space-y-2'>
-            <label
-              htmlFor='repeatDayOfMonth'
-              className='text-sm font-semibold text-foreground'
-            >
-              {t('posts.form.monthlyDay.label', 'Tag im Monat (1–31)')}
-            </label>
+          <InlineField
+            htmlFor='repeatDayOfMonth'
+            label={t('posts.form.monthlyDay.label', 'Tag im Monat (1–31)')}
+            size='sm'
+          >
             <input
               id='repeatDayOfMonth'
               type='number'
@@ -1067,43 +1129,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               }}
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
             />
-          </div>
+          </InlineField>
         )}
 
-        {repeat === 'none' && (
-          <div className='space-y-2'>
-            <label
-              htmlFor='date'
-              className='text-sm font-semibold text-foreground'
-            >
-              {t('posts.form.date.label', 'Geplantes Datum')}
-            </label>
-            <input
-              id='date'
-              type='date'
-              value={scheduledDate}
-              ref={dateInputRef}
-              onClick={() => {
-                try {
-                  dateInputRef.current?.showPicker?.()
-                } catch { 
-                  // showPicker nicht verfügbar
-                }
-              }}
-              onFocus={() => {
-                try {
-                  dateInputRef.current?.showPicker?.()
-                } catch { 
-                  // showPicker nicht verfügbar
-                }
-              }}
-              onChange={e => setScheduledDate(e.target.value)}
-              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-            />
-          </div>
-        )}
       </div>
-
       <div className='flex flex-wrap justify-end gap-3'>
         {isEditing && (
           <Button

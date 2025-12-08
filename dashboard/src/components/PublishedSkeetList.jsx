@@ -173,29 +173,7 @@ function PublishedSkeetList({
                     </span>
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-3">
-                  {canFetchReactions ? (
-                    <Button
-                      variant="primary"
-                      onClick={() => onFetchReactions(skeet.id)}
-                      disabled={isFetchingReactions}
-                    >
-                      {isFetchingReactions
-                        ? t('posts.lists.published.reactionsLoading', 'Lädt…')
-                        : t(
-                            'posts.lists.published.reactionsRefresh',
-                            'Reaktionen aktualisieren'
-                          )}
-                    </Button>
-                  ) : null}
-                  {canRetract ? (
-                    <Button
-                      variant="warning"
-                      onClick={() => onRetract?.(skeet)}
-                    >
-                      {t('posts.lists.published.retract', 'Zurückziehen')}
-                    </Button>
-                  ) : null}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-foreground-muted">
                     {t('posts.lists.published.summaryLikes', 'Likes')}:{' '}
                     <span className="font-semibold text-foreground">
@@ -206,6 +184,32 @@ function PublishedSkeetList({
                       {skeet.repostsCount}
                     </span>
                   </p>
+                  {(canFetchReactions || canRetract) && (
+                    <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                      {canRetract ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => onRetract?.(skeet)}
+                      >
+                        {t('posts.lists.published.retract', 'Zurückziehen')}
+                      </Button>
+                      ) : null}
+                      {canFetchReactions ? (
+                        <Button
+                          variant="primary"
+                          onClick={() => onFetchReactions(skeet.id)}
+                          disabled={isFetchingReactions}
+                        >
+                          {isFetchingReactions
+                            ? t('posts.lists.published.reactionsLoading', 'Lädt…')
+                            : t(
+                                'posts.lists.published.reactionsRefresh',
+                                'Reaktionen aktualisieren'
+                              )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
 
                 {Object.keys(reactions).length > 0 ? (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ConfirmDialog, InfoDialog, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, ConfirmDialog, InfoDialog, InlineField, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
@@ -139,7 +139,15 @@ function ThreadForm ({
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt)
+  const [scheduledDate, setScheduledDate] = useState(() =>
+    defaultScheduledAt ? defaultScheduledAt.split('T')[0] : ''
+  )
+  const [scheduledTime, setScheduledTime] = useState(() =>
+    defaultScheduledAt ? defaultScheduledAt.split('T')[1] || '' : ''
+  )
   const scheduledDefaultRef = useRef(defaultScheduledAt)
+  const dateInputRef = useRef(null)
+  const timeInputRef = useRef(null)
   const [saving, setSaving] = useState(false)
   const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
   const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
@@ -147,6 +155,19 @@ function ThreadForm ({
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
   const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
+
+  const applyScheduledParts = useCallback(
+    (nextDate, nextTime) => {
+      setScheduledDate(nextDate)
+      setScheduledTime(nextTime)
+      if (nextDate && nextTime) {
+        setScheduledAt(`${nextDate}T${nextTime}`)
+      } else {
+        setScheduledAt('')
+      }
+    },
+    []
+  )
 
   const restoreFromThread = useCallback((thread) => {
     if (thread && thread.id) {
@@ -198,6 +219,23 @@ function ThreadForm ({
     }
     scheduledDefaultRef.current = defaultScheduledAt
   }, [defaultScheduledAt, scheduledAt, threadId])
+
+  useEffect(() => {
+    if (!scheduledAt) {
+      if (scheduledDate !== '' || scheduledTime !== '') {
+        setScheduledDate('')
+        setScheduledTime('')
+      }
+      return
+    }
+    const [datePart, timePart] = scheduledAt.split('T')
+    if (datePart !== scheduledDate) {
+      setScheduledDate(datePart || '')
+    }
+    if (timePart !== scheduledTime) {
+      setScheduledTime(timePart || '')
+    }
+  }, [scheduledAt, scheduledDate, scheduledTime])
 
   // Mastodon aus Zielplattformen entfernen, wenn nicht konfiguriert
   useEffect(() => {
@@ -941,34 +979,91 @@ function ThreadForm ({
                 </div>
               </fieldset>
 
-              <label className='flex items-center gap-3 text-sm font-medium'>
-                <input
-                  type='checkbox'
-                  className='rounded border-border text-primary focus:ring-primary'
-                  checked={appendNumbering}
-                  onChange={event => setAppendNumbering(event.target.checked)}
-                />
-                {t(
-                  'threads.form.numbering.label',
-                  'Automatische Nummerierung (`1/x`) anhängen'
-                )}
-              </label>
-
-              <label className='block text-sm font-medium'>
-                {t('threads.form.schedule.label', 'Geplanter Versand')}
-                <input
-                  type='datetime-local'
-                  value={scheduledAt}
-                  onChange={event => setScheduledAt(event.target.value)}
-                  className='mt-1 w-full rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-                />
-                <span className='mt-1 block text-xs text-foreground-muted'>
+              <div className='space-y-3'>
+                <p className='text-sm font-semibold text-foreground'>
+                  {t('threads.form.schedule.label', 'Geplanter Versand')}
+                </p>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <InlineField
+                    htmlFor='thread-schedule-date'
+                    label={t('posts.form.date.label', 'Geplantes Datum')}
+                    size='lg'
+                  >
+                    <input
+                      id='thread-schedule-date'
+                      type='date'
+                      value={scheduledDate}
+                      ref={dateInputRef}
+                      onClick={() => {
+                        try {
+                          dateInputRef.current?.showPicker?.()
+                        } catch { 
+                          // showPicker nicht verfügbar
+                        }
+                      }}
+                      onFocus={() => {
+                        try {
+                          dateInputRef.current?.showPicker?.()
+                        } catch { 
+                          // showPicker nicht verfügbar
+                        }
+                      }}
+                      onChange={event => {
+                        const value = event.target.value
+                        applyScheduledParts(value, scheduledTime)
+                        try {
+                          dateInputRef.current?.blur?.()
+                        } catch { 
+                          // blur nicht möglich
+                        }
+                      }}
+                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    />
+                  </InlineField>
+                  <InlineField
+                    htmlFor='thread-schedule-time'
+                    label={t('posts.form.time.label', 'Geplante Uhrzeit')}
+                    size='lg'
+                  >
+                    <input
+                      id='thread-schedule-time'
+                      type='time'
+                      value={scheduledTime}
+                      ref={timeInputRef}
+                      onClick={() => {
+                        try {
+                          timeInputRef.current?.showPicker?.()
+                        } catch { 
+                          // showPicker nicht verfügbar
+                        }
+                      }}
+                      onFocus={() => {
+                        try {
+                          timeInputRef.current?.showPicker?.()
+                        } catch { 
+                          // showPicker nicht verfügbar
+                        }
+                      }}
+                      onChange={event => {
+                        const value = event.target.value
+                        applyScheduledParts(scheduledDate, value)
+                        try {
+                          timeInputRef.current?.blur?.()
+                        } catch { 
+                          // blur nicht möglich
+                        }
+                      }}
+                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    />
+                  </InlineField>
+                </div>
+                <p className='text-xs text-foreground-muted'>
                   {t(
                     'threads.form.schedule.hint',
                     'Standard: morgen um 09:00 Uhr'
                   )}
-                </span>
-              </label>
+                </p>
+              </div>
 
               <div className='flex flex-wrap items-center gap-2'>
                 {isEditMode && typeof onCancel === 'function' ? (
@@ -1097,6 +1192,19 @@ function ThreadForm ({
                 )}
               </span>
             </div>
+
+            <label className='mt-4 flex items-center gap-3 text-sm font-medium'>
+              <input
+                type='checkbox'
+                className='rounded border-border text-primary focus:ring-primary'
+                checked={appendNumbering}
+                onChange={event => setAppendNumbering(event.target.checked)}
+              />
+              {t(
+                'threads.form.numbering.label',
+                'Automatische Nummerierung (`1/x`) anhängen'
+              )}
+            </label>
 
             <div className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'>
               {previewSegments.map((segment, index) => {

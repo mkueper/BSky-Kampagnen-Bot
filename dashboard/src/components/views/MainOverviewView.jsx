@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Card } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
+import NextScheduledCard from "../ui/NextScheduledCard.jsx";
 
 function formatDate(value) {
   if (!value) return null;
@@ -15,26 +16,6 @@ function formatDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-}
-
-function formatDateParts(value) {
-  if (!value) {
-    return { dateText: "", timeText: "" };
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return { dateText: value, timeText: "" };
-  }
-  const dateText = new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-  const timeText = new Intl.DateTimeFormat("de-DE", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-  return { dateText, timeText };
 }
 
 function MainOverviewView({
@@ -214,87 +195,35 @@ function MainOverviewView({
 
       <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <Card
-          padding="p-6"
-          onClick={typeof onOpenSkeetsOverview === 'function' ? () => onOpenSkeetsOverview() : undefined}
-          onKeyDown={typeof onOpenSkeetsOverview === 'function' ? (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onOpenSkeetsOverview();
+          <NextScheduledCard
+            title={t('overview.next.postTitle', 'Nächster Post')}
+            scheduledAt={skeetStats.next?.scheduledAt}
+            content={skeetStats.next?.content}
+            emptyLabel={t('overview.next.noPost', 'Kein geplanter Post.')}
+            noContentLabel={t('overview.next.noPostContent', 'Kein Inhalt vorhanden')}
+            onActivate={
+              typeof onOpenSkeetsOverview === 'function'
+                ? () => onOpenSkeetsOverview()
+                : undefined
             }
-          } : undefined}
-          className={typeof onOpenSkeetsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label={t('overview.aria.toPostsOverview', 'Zur Posts-Übersicht wechseln')}
-          title={t('overview.aria.toPostsOverview', 'Zur Posts-Übersicht wechseln')}
-          role={typeof onOpenSkeetsOverview === 'function' ? 'button' : undefined}
-          tabIndex={typeof onOpenSkeetsOverview === 'function' ? 0 : undefined}
-        >
-          <h3 className="text-lg font-semibold">
-            {t('overview.next.postTitle', 'Nächster Post')}
-          </h3>
-          {skeetStats.next ? (() => {
-            const { dateText, timeText } = formatDateParts(skeetStats.next.scheduledAt);
-            return (
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex flex-col">
-                  <p className="font-semibold text-foreground text-base break-words leading-tight">{dateText}</p>
-                  {timeText ? (
-                    <p className="text-sm text-foreground-muted leading-snug">{timeText} Uhr</p>
-                  ) : null}
-                </div>
-                <p className="text-foreground-muted">
-                  {(skeetStats.next.content || "").toString().trim() || t('overview.next.noPostContent', 'Kein Inhalt vorhanden')}
-                </p>
-              </div>
-            )
-          })() : (
-            <p className="mt-3 text-sm text-foreground-muted">
-              {t('overview.next.noPost', 'Kein geplanter Post.')}
-            </p>
-          )}
-        </Card>
-
-        <Card
-          padding="p-6"
-          onClick={typeof onOpenThreadsOverview === 'function' ? () => onOpenThreadsOverview() : undefined}
-          onKeyDown={typeof onOpenThreadsOverview === 'function' ? (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onOpenThreadsOverview();
+            ariaLabel={t('overview.aria.toPostsOverview', 'Zur Posts-Übersicht wechseln')}
+          />
+          <NextScheduledCard
+            title={t('overview.next.threadTitle', 'Nächster Thread')}
+            scheduledAt={threadStats.next?.scheduledAt}
+            content={
+              threadStats.next?.title ||
+              threadStats.next?.segments?.[0]?.content
             }
-          } : undefined}
-          className={typeof onOpenThreadsOverview === 'function' ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary' : undefined}
-          aria-label={t('overview.aria.toThreadsOverview', 'Zur Thread Übersicht wechseln')}
-          title={t('overview.aria.toThreadsOverview', 'Zur Thread Übersicht wechseln')}
-          role={typeof onOpenThreadsOverview === 'function' ? 'button' : undefined}
-          tabIndex={typeof onOpenThreadsOverview === 'function' ? 0 : undefined}
-        >
-          <h3 className="text-lg font-semibold">
-            {t('overview.next.threadTitle', 'Nächster Thread')}
-          </h3>
-          {threadStats.next ? (() => {
-            const { dateText, timeText } = formatDateParts(threadStats.next.scheduledAt);
-            return (
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex flex-col">
-                  <p className="font-semibold text-foreground text-base break-words leading-tight">{dateText}</p>
-                  {timeText ? (
-                    <p className="text-sm text-foreground-muted leading-snug">{timeText} Uhr</p>
-                  ) : null}
-                </div>
-                <p className="text-foreground-muted">
-                  {(threadStats.next.title || threadStats.next.segments?.[0]?.content || "")
-                    .toString()
-                    .trim() || t('overview.next.noThreadTitle', 'Kein Titel hinterlegt')}
-                </p>
-              </div>
-            )
-          })() : (
-            <p className="mt-3 text-sm text-foreground-muted">
-              {t('overview.next.noThread', 'Kein geplanter Thread.')}
-            </p>
-          )}
-        </Card>
+            emptyLabel={t('overview.next.noThread', 'Kein geplanter Thread.')}
+            noContentLabel={t('overview.next.noThreadTitle', 'Kein Titel hinterlegt')}
+            onActivate={
+              typeof onOpenThreadsOverview === 'function'
+                ? () => onOpenThreadsOverview()
+                : undefined
+            }
+            ariaLabel={t('overview.aria.toThreadsOverview', 'Zur Thread Übersicht wechseln')}
+          />
         </div>
       </section>
 

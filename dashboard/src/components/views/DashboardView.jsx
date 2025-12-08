@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from '../ui/ThemeContext'
 import * as Tabs from '@radix-ui/react-tabs'
-import { ArrowDownIcon, ArrowUpIcon, ReloadIcon } from '@radix-ui/react-icons'
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ReloadIcon } from '@radix-ui/react-icons'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import PlannedSkeetList from '../PlannedSkeetList'
 import PublishedSkeetList from '../PublishedSkeetList'
@@ -51,12 +51,47 @@ function DashboardView ({
   const toast = useToast()
   const [publishedSortOrder, setPublishedSortOrder] = useState('desc')
   const { getRefForId, visibleIds } = useVisibleIds()
+  const tabListViewportRef = useRef(null)
+  const [tabScrollState, setTabScrollState] = useState({
+    canScrollLeft: false,
+    canScrollRight: false
+  })
+
+  const updateTabOverflow = useCallback(() => {
+    const viewport = tabListViewportRef.current
+    if (!viewport) return
+    const { scrollLeft, scrollWidth, clientWidth } = viewport
+    setTabScrollState({
+      canScrollLeft: scrollLeft > 1,
+      canScrollRight: scrollWidth - scrollLeft - clientWidth > 1
+    })
+  }, [])
+
+  const scrollTabs = useCallback(direction => {
+    const viewport = tabListViewportRef.current
+    if (!viewport) return
+    const delta = direction === 'left' ? -180 : 180
+    viewport.scrollBy({ left: delta, behavior: 'smooth' })
+  }, [])
 
   useEffect(() => {
     if (activeTab !== 'published') {
       setPublishedSortOrder('desc')
     }
   }, [activeTab])
+
+  useEffect(() => {
+    const viewport = tabListViewportRef.current
+    if (!viewport) return
+    updateTabOverflow()
+    const handleScroll = () => updateTabOverflow()
+    viewport.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', updateTabOverflow)
+    return () => {
+      viewport.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', updateTabOverflow)
+    }
+  }, [updateTabOverflow])
 
   // Hinweis: Übersicht und Nächster Skeet werden in diesem View nicht verwendet
 
@@ -113,53 +148,96 @@ function DashboardView ({
             <Tabs.Root
               value={activeTab}
               onValueChange={onTabChange}
-              className='inline-flex rounded-full bg-background-subtle p-1'
+              className='block w-full sm:w-auto'
             >
-              <Tabs.List className='flex'>
-                <Tabs.Trigger
-                  value='planned'
-                  className={`rounded-full px-4 py-2 transition ${
-                    activeTab === 'planned'
-                      ? 'bg-background-elevated shadow-soft'
-                      : 'text-foreground-muted hover:text-foreground'
-                  }`}
+              <div className='relative rounded-full bg-background-subtle'>
+                {tabScrollState.canScrollLeft ? (
+                  <>
+                    <div
+                      aria-hidden='true'
+                      className='pointer-events-none absolute inset-y-[6px] left-0 w-8 rounded-l-full bg-gradient-to-r from-background-subtle to-transparent'
+                    />
+                    <button
+                      type='button'
+                      className='absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background p-1 text-foreground transition hover:bg-background-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+                      onClick={() => scrollTabs('left')}
+                      aria-label={t('posts.activity.tabs.scrollLeft', 'Tabs nach links scrollen')}
+                    >
+                      <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
+                    </button>
+                  </>
+                ) : null}
+                <div
+                  ref={tabListViewportRef}
+                  className='hide-scrollbar overflow-x-auto rounded-full'
+                  role='presentation'
                 >
-                  {t('posts.activity.tabs.planned', 'Geplant')}
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                  value='published'
-                  className={`rounded-full px-4 py-2 transition ${
-                    activeTab === 'published'
-                      ? 'bg-background-elevated shadow-soft'
-                      : 'text-foreground-muted hover:text-foreground'
-                  }`}
-                >
-                  {t('posts.activity.tabs.published', 'Veröffentlicht')}
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                  value='pending'
-                  className={`rounded-full px-4 py-2 transition ${
-                    pendingDisabled
-                      ? 'text-foreground-muted opacity-50 cursor-not-allowed'
-                      : activeTab === 'pending'
-                        ? 'bg-background-elevated shadow-soft'
-                        : 'text-foreground-muted hover:text-foreground'
-                  }`}
-                  disabled={pendingDisabled}
-                >
-                  {t('posts.activity.tabs.pending', 'Wartend')}
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                  value='deleted'
-                  className={`rounded-full px-4 py-2 transition ${
-                    activeTab === 'deleted'
-                      ? 'bg-background-elevated shadow-soft'
-                      : 'text-foreground-muted hover:text-foreground'
-                  }`}
-                >
-                  {t('posts.activity.tabs.deleted', 'Papierkorb')}
-                </Tabs.Trigger>
-              </Tabs.List>
+                  <Tabs.List
+                    className='flex min-w-max flex-nowrap items-center gap-1 px-1 py-1'
+                    aria-label={t('posts.activity.tabs.ariaLabel', 'Post-Status auswählen')}
+                  >
+                    <Tabs.Trigger
+                      value='planned'
+                      className={`whitespace-nowrap rounded-full px-4 py-2 transition ${
+                        activeTab === 'planned'
+                          ? 'bg-background-elevated shadow-soft'
+                          : 'text-foreground-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t('posts.activity.tabs.planned', 'Geplant')}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value='published'
+                      className={`whitespace-nowrap rounded-full px-4 py-2 transition ${
+                        activeTab === 'published'
+                          ? 'bg-background-elevated shadow-soft'
+                          : 'text-foreground-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t('posts.activity.tabs.published', 'Veröffentlicht')}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value='pending'
+                      className={`whitespace-nowrap rounded-full px-4 py-2 transition ${
+                        pendingDisabled
+                          ? 'cursor-not-allowed text-foreground-muted opacity-50'
+                          : activeTab === 'pending'
+                            ? 'bg-background-elevated shadow-soft'
+                            : 'text-foreground-muted hover:text-foreground'
+                      }`}
+                      disabled={pendingDisabled}
+                    >
+                      {t('posts.activity.tabs.pending', 'Wartend')}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value='deleted'
+                      className={`whitespace-nowrap rounded-full px-4 py-2 transition ${
+                        activeTab === 'deleted'
+                          ? 'bg-background-elevated shadow-soft'
+                          : 'text-foreground-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t('posts.activity.tabs.deleted', 'Papierkorb')}
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                </div>
+                {tabScrollState.canScrollRight ? (
+                  <>
+                    <div
+                      aria-hidden='true'
+                      className='pointer-events-none absolute inset-y-[6px] right-0 w-8 rounded-r-full bg-gradient-to-l from-background-subtle to-transparent'
+                    />
+                    <button
+                      type='button'
+                      className='absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-border bg-background p-1 text-foreground transition hover:bg-background-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50'
+                      onClick={() => scrollTabs('right')}
+                      aria-label={t('posts.activity.tabs.scrollRight', 'Tabs nach rechts scrollen')}
+                    >
+                      <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
+                    </button>
+                  </>
+                ) : null}
+              </div>
             </Tabs.Root>
           </div>
         </div>

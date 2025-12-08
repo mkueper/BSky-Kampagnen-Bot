@@ -28,31 +28,39 @@
 - Die About-Ansicht („Über Kampagnen‑Tool“) verwendet nun denselben Card- und Abschnittsstil wie Einstellungs-Views; Produktnamen („Kampagnen‑Tool“) und Beschreibungstexte sind aktualisiert und konsistent.
 - Sprachrichtlinie in `docs/ui.md` ergänzt: UI-Texte werden neutral formuliert, direkte Anrede („du“/„Sie“) wird vermieden.
 - Alle Änderungen sind über i18n abgedeckt; `npm test` läuft grün durch.
+ - Für den `bsky-client` ist das Theme-/Layout-Setup an das Dashboard angeglichen (Tailwind-Config, CSS-Variablen, Fonts); Ports und Vite-Proxy sind auf das Backend auf Port 3000 abgestimmt.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff, Dashboard-Polling, Zugangsdaten, Zeitzonen) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus auf verbleibende Kandidaten im Dashboard liegen (insbesondere Import/Export) sowie auf Layout-Themen bei Einstellungs-Views (einheitliche Abstände, konsistente Cards) und auf einheitliche Button-Gruppen (Breite, Hierarchie von „Planen“ vs. „Sofort senden“) und auf der Frage, ob `InfoDialog` in anderen Frontends (bsky-client, Admin-Views) eingesetzt werden soll.
+Der InfoDialog-Pattern ist im Dashboard etabliert (Posts-Formulare, Scheduler/Cron, Wiederholversuche & Backoff, Dashboard-Polling, Zugangsdaten, Zeitzonen) und im UI-Guide dokumentiert. In der nächsten Session soll der Fokus zunächst auf leichten bis mittleren Unstimmigkeiten bei der Aktualisierung von Reaktionen/Engagement im Kampagnen-Tool liegen; im Anschluss können verbleibende Kandidaten im Dashboard (insbesondere Import/Export), Layout-Themen bei Einstellungs-Views (einheitliche Abstände, konsistente Cards) sowie einheitliche Button-Gruppen (Breite, Hierarchie von „Planen“ vs. „Sofort senden“) weiter bearbeitet werden.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Bereichsabstände:
+1. Reaktions-/Engagement-Updates prüfen:
+  - Stellen im Dashboard/Kampagnen-Tool sammeln, an denen Reaktionen oder Engagement-Werte angezeigt bzw. aktualisiert werden (Übersichten, Detail-Ansichten, Planner) und das erwartete Verhalten gegenüber Backend-Logs und bestehenden Tests abgleichen.
+  - Konkrete Fälle dokumentieren, in denen Zähler/Status nicht konsistent aktualisiert werden, und daraus gezielte UI- oder API-Anpassungen ableiten.
+
+2. Bereichsabstände:
   - Vertikale Abstände der optischen Bereichstrennungen in Einstellungs-Views vereinheitlichen, sodass alle Einstellungsblöcke dieselbe `space-y`-Logik und dieselbe Box-Optik (`rounded-2xl border border-border-muted bg-background-subtle p-4`) verwenden.
 
-2. Priorisierung:
+3. Priorisierung:
   - Im Dashboard sind ConfigPanel-Tabs und About-Ansicht bereits auf das einheitliche Abstands- und Box-Pattern umgestellt. Für künftige Einstellungs-Views in anderen Frontends (z. B. `bsky-client`) sollte dieses Pattern übernommen werden; eine erneute Anpassung des Kampagnen-Tools ist dafür nicht notwendig.
 
-3. Button-Gruppen (Planen / Sofort senden):
+4. Button-Gruppen (Planen / Sofort senden):
   - Im Dashboard erfassen, wo relevante Button-Gruppen existieren (z. B. `SkeetForm`, `ThreadForm`, `ConfigPanel`, Header-Aktionsgruppen) und prüfen, ob Höhe/Mindestbreite und die Hierarchie zwischen Standard-Aktion („Planen“/„Übernehmen“) und seltenen Aktionen („Sofort senden“) konsistent sind. Grundlage sind die in `docs/ui.md` ergänzten Richtlinien zu Buttons in Formularen und Einstellungsansichten.
   - Für „Sofort senden“ und andere irreversible/risikoreiche Aktionen den gemeinsamen `ConfirmDialog` aus `@bsky-kampagnen-bot/shared-ui` einsetzen: Titel, Beschreibung, Buttontexte und Button-Variante werden pro Anwendungsfall konfiguriert, sodass der Dialog klar, aber nicht überdramatisiert wirkt und der Fokus weiterhin auf dem Standard-Workflow (Planen/Übernehmen) liegt.
 
-4. Icon-Buttons vereinheitlichen:
+5. Icon-Buttons vereinheitlichen:
    - Die im Planner verwendeten Buttons „Bild hinzufügen“, „GIF hinzufügen“ und „Emoji einfügen“ (in `SkeetForm`/`ThreadForm`) an den gemeinsamen Icon-Button-Stil anpassen (gleicher Icon-Satz, Container, Größen), damit sie optisch zu Info-/Import-/Export-Buttons passen. Grundlage sind die in `docs/ui.md` ergänzten Richtlinien zu Icon-Buttons.
 
-5. Thread-Vorschaukarten im Planner:
-   - In `ThreadForm` das Layout der Vorschaukarten überarbeiten: Bereich mit „Post x“, Zeichenzähler und Bild/Media-Buttons optisch zusammenfassen (einheitlicher Abstand, konsistente Icon-Buttons, bessere Trennung zwischen Inhalt und Aktionen), damit die Karten ruhiger und klarer strukturiert wirken.
+6. Thread-Vorschaukarten im Planner:
+  - In `ThreadForm` das Layout der Vorschaukarten überarbeiten: Bereich mit „Post x“, Zeichenzähler und Bild/Media-Buttons optisch zusammenfassen (einheitlicher Abstand, konsistente Icon-Buttons, bessere Trennung zwischen Inhalt und Aktionen), damit die Karten ruhiger und klarer strukturiert wirken.
 
-6. App-Struktur rund um Planer vereinfachen:
-   - `App.jsx` schrittweise entlasten, ohne Verhalten zu ändern: zuerst den Import/Export-Headerblock (Buttons + InfoDialog) in eine eigene, klar abgegrenzte Komponente auslagern; nach Abschluss der UI-Feinschliffe optional schlanke Container-Views für „Post planen“ (`SkeetForm`) und „Thread planen` (`ThreadForm`) einführen, die Routing und Daten an die Form-Komponenten weiterreichen.
+7. App-Struktur rund um Planer vereinfachen:
+  - `App.jsx` schrittweise entlasten, ohne Verhalten zu ändern: zuerst den Import/Export-Headerblock (Buttons + InfoDialog) in eine eigene, klar abgegrenzte Komponente auslagern; nach Abschluss der UI-Feinschliffe optional schlanke Container-Views für „Post planen“ (`SkeetForm`) und „Thread planen` (`ThreadForm`) einführen, die Routing und Daten an die Form-Komponenten weiterreichen.
+
+8. Formularaktionen beobachten:
+   - Der Button „Formular zurücksetzen“ wirkt aktuell noch deplatziert; prüfen, ob Platzierung/Variante (z. B. neben „Abbrechen“ oder dezent im Footer) im Rahmen der Button-Gruppen-Überarbeitung angepasst werden sollte.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
