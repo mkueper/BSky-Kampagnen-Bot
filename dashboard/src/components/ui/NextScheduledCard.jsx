@@ -64,9 +64,10 @@ function NextScheduledCard ({
         title: ariaLabel || title
       }
     : {}
-  const cardClassName = `${
-    className || ''
-  }${interactive ? ' cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary' : ''}`.trim()
+  const baseClasses = 'border-border-muted bg-background-subtle/60'
+  const cardClassName = `${baseClasses} ${className || ''}${
+    interactive ? ' cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary' : ''
+  }`.trim()
 
   return (
     <Card padding='p-6' className={cardClassName || undefined} {...interactionHandlers}>
@@ -74,7 +75,7 @@ function NextScheduledCard ({
         {title}
       </h3>
       {hasSchedule ? (
-        <div className='mt-3 space-y-2 text-sm'>
+        <div className='mt-4 space-y-3 text-sm'>
           <div className='flex flex-col'>
             <p className='text-base font-semibold text-foreground leading-tight break-words'>
               {dateText}
@@ -90,7 +91,7 @@ function NextScheduledCard ({
           </p>
         </div>
       ) : (
-        <p className='mt-3 text-sm text-foreground-muted'>
+        <p className='mt-4 text-sm text-foreground-muted'>
           {emptyLabel}
         </p>
       )}

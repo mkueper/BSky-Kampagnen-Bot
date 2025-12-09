@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, InfoDialog } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
 import NextScheduledCard from "../ui/NextScheduledCard.jsx";
+import { useTheme } from "../ui/ThemeContext.jsx";
 
 function formatDate(value) {
   if (!value) return null;
@@ -28,6 +29,7 @@ function MainOverviewView({
   onOpenThreadsOverview
 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [pendingInfoOpen, setPendingInfoOpen] = useState(false);
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
@@ -88,10 +90,13 @@ function MainOverviewView({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+      <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4">
-            <Card padding="px-5 py-4">
+            <Card
+              padding="px-5 py-4"
+              className="border-border-muted bg-background-subtle/60"
+            >
               <h3 className="text-lg font-semibold text-foreground">
                 {t('overview.cards.plannedPosts', 'Geplante Posts')}
               </h3>
@@ -99,7 +104,10 @@ function MainOverviewView({
                 {skeetStats.plannedCount}
               </p>
             </Card>
-            <Card padding="px-5 py-4">
+            <Card
+              padding="px-5 py-4"
+              className="border-border-muted bg-background-subtle/60"
+            >
               <h3 className="text-lg font-semibold text-foreground">
                 {t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}
               </h3>
@@ -108,52 +116,52 @@ function MainOverviewView({
               </p>
             </Card>
             <Card
-            padding="px-5 py-4"
-            onClick={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? () => onOpenPendingSkeets()
-                : undefined
-            }
-            onKeyDown={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onOpenPendingSkeets()
+              padding="px-5 py-4"
+              onClick={
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? () => onOpenPendingSkeets()
+                  : undefined
+              }
+              onKeyDown={
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onOpenPendingSkeets()
+                      }
                     }
-                  }
-                : undefined
-            }
-            className={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? 'cursor-pointer outline-none focus:ring-2 focus:ring-primary'
-                : undefined
-            }
-            aria-label={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? t(
-                    'overview.aria.toPendingPosts',
-                    'Freizugebende Posts anzeigen'
-                  )
-                : undefined
-            }
-            title={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? t(
-                    'overview.aria.toPendingPosts',
-                    'Freizugebende Posts anzeigen'
-                  )
-                : undefined
-            }
-            role={
-              hasPending && typeof onOpenPendingSkeets === 'function'
-                ? 'button'
-                : undefined
-            }
-            tabIndex={
-              hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
-            }
-          >
+                  : undefined
+              }
+              className={`border-border-muted bg-background-subtle/60${
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? ' cursor-pointer outline-none focus:ring-2 focus:ring-primary'
+                  : ''
+              }`}
+              aria-label={
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? t(
+                      'overview.aria.toPendingPosts',
+                      'Freizugebende Posts anzeigen'
+                    )
+                  : undefined
+              }
+              title={
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? t(
+                      'overview.aria.toPendingPosts',
+                      'Freizugebende Posts anzeigen'
+                    )
+                  : undefined
+              }
+              role={
+                hasPending && typeof onOpenPendingSkeets === 'function'
+                  ? 'button'
+                  : undefined
+              }
+              tabIndex={
+                hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
+              }
+            >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">
                 {t('overview.cards.pendingPosts', 'Freizugebende Posts')}
@@ -192,7 +200,10 @@ function MainOverviewView({
           </Card>
           </div>
           <div className="space-y-4">
-            <Card padding="px-5 py-4">
+            <Card
+              padding="px-5 py-4"
+              className="border-border-muted bg-background-subtle/60"
+            >
               <h3 className="text-lg font-semibold text-foreground">
                 {t('overview.cards.plannedThreads', 'Geplante Threads')}
               </h3>
@@ -200,7 +211,10 @@ function MainOverviewView({
                 {threadStats.planned}
               </p>
             </Card>
-            <Card padding="px-5 py-4">
+            <Card
+              padding="px-5 py-4"
+              className="border-border-muted bg-background-subtle/60"
+            >
               <h3 className="text-lg font-semibold text-foreground">
                 {t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}
               </h3>
@@ -226,7 +240,7 @@ function MainOverviewView({
         )}
       />
 
-      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+      <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
         <div className="grid gap-4 md:grid-cols-2">
           <NextScheduledCard
             title={t('overview.next.postTitle', 'Nächster Post')}
@@ -260,53 +274,80 @@ function MainOverviewView({
         </div>
       </section>
 
-      <section className="rounded-3xl border border-border-muted bg-background-subtle/60 p-4">
+      <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card padding="p-6">
-          <h3 className="text-lg font-semibold">
-            {t('overview.upcoming.postsTitle', 'Bevorstehende Posts')}
-          </h3>
-          {upcomingSkeets.length ? (
-            <ul className="mt-3 space-y-3 text-sm">
-              {upcomingSkeets.map((skeet) => (
-                <li key={skeet.id} className="rounded-2xl border border-border bg-background-subtle p-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(skeet.scheduledAt)}</p>
-                  <p className="mt-1 text-foreground">
-                    {skeet.content?.toString().trim() || t('overview.upcoming.noPostContent', '(kein Inhalt)')}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-foreground-muted">
-              {t('overview.upcoming.noPosts', 'Keine anstehenden Posts.')}
-            </p>
-          )}
-        </Card>
+          <Card
+            padding="p-6"
+            className="border-border-muted bg-background-subtle/60"
+          >
+            <h3 className="text-lg font-semibold">
+              {t('overview.upcoming.postsTitle', 'Bevorstehende Posts')}
+            </h3>
+            {upcomingSkeets.length ? (
+              <ul className="mt-4 space-y-3 text-sm">
+                {upcomingSkeets.map((skeet) => (
+                  <li
+                    key={skeet.id}
+                    className="rounded-2xl border border-border bg-background-subtle p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">
+                      {formatDate(skeet.scheduledAt)}
+                    </p>
+                    <p className="mt-1 text-foreground">
+                      {skeet.content?.toString().trim() ||
+                        t(
+                          'overview.upcoming.noPostContent',
+                          '(kein Inhalt)'
+                        )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-foreground-muted">
+                {t('overview.upcoming.noPosts', 'Keine anstehenden Posts.')}
+              </p>
+            )}
+          </Card>
 
-        <Card padding="p-6">
-          <h3 className="text-lg font-semibold">
-            {t('overview.upcoming.threadsTitle', 'Bevorstehende Threads')}
-          </h3>
-          {upcomingThreads.length ? (
-            <ul className="mt-3 space-y-3 text-sm">
-              {upcomingThreads.map((thread) => (
-                <li key={thread.id} className="rounded-2xl border border-border bg-background-subtle p-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">{formatDate(thread.scheduledAt)}</p>
-                  <p className="mt-1 text-foreground">
-                    {(thread.title || thread.segments?.[0]?.content || "")
-                      .toString()
-                      .trim() || t('overview.upcoming.noThreadTitle', '(kein Titel)')}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-foreground-muted">
-              {t('overview.upcoming.noThreads', 'Keine anstehenden Threads.')}
-            </p>
-          )}
-        </Card>
+          <Card
+            padding="p-6"
+            className="border-border-muted bg-background-subtle/60"
+          >
+            <h3 className="text-lg font-semibold">
+              {t('overview.upcoming.threadsTitle', 'Bevorstehende Threads')}
+            </h3>
+            {upcomingThreads.length ? (
+              <ul className="mt-4 space-y-3 text-sm">
+                {upcomingThreads.map((thread) => (
+                  <li
+                    key={thread.id}
+                    className="rounded-2xl border border-border bg-background-subtle p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.2em] text-foreground-muted">
+                      {formatDate(thread.scheduledAt)}
+                    </p>
+                    <p className="mt-1 text-foreground">
+                      {(thread.title || thread.segments?.[0]?.content || '')
+                        .toString()
+                        .trim() ||
+                        t(
+                          'overview.upcoming.noThreadTitle',
+                          '(kein Titel)'
+                        )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-foreground-muted">
+                {t(
+                  'overview.upcoming.noThreads',
+                  'Keine anstehenden Threads.'
+                )}
+              </p>
+            )}
+          </Card>
         </div>
       </section>
     </div>

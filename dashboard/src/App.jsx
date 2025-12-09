@@ -24,6 +24,7 @@ import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider as UiThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
 import SummaryCard from './components/ui/SummaryCard'
+import NextScheduledCard from './components/ui/NextScheduledCard.jsx'
 import ActivityPanel from './components/ui/ActivityPanel'
 import { useSkeets } from './hooks/useSkeets'
 import { useThreadDetail, useThreads } from './hooks/useThreads'
@@ -814,21 +815,23 @@ function DashboardApp ({ onLogout }) {
             )}
             items={overviewStatsSkeets}
           />
-          <SummaryCard
+          <NextScheduledCard
             title={t(
               'postsExtra.overview.next.title',
               'Nächster Post'
             )}
-            value={upcomingSkeetDate}
-            time={upcomingSkeetTime ? `${upcomingSkeetTime} Uhr` : null}
-            snippet={
-              typeof upcomingSkeetSnippet !== 'undefined' && upcomingSkeet
-                ? upcomingSkeetSnippet
-                : t(
-                    'postsExtra.overview.next.none',
-                    'Noch nichts geplant'
-                  )
+            scheduledAt={
+              upcomingSkeet?.scheduledAt || upcomingSkeet?.scheduledDate || null
             }
+            content={upcomingSkeetSnippet}
+            emptyLabel={t(
+              'postsExtra.overview.next.none',
+              'Noch nichts geplant'
+            )}
+            noContentLabel={t(
+              'threads.overview.next.noContent',
+              'Kein Inhalt hinterlegt'
+            )}
           />
         </section>
 
@@ -848,24 +851,22 @@ function DashboardApp ({ onLogout }) {
             )}
             items={activityStatsThreads}
           />
-          <SummaryCard
+          <NextScheduledCard
             title={t('threads.overview.next.title', 'Nächster Thread')}
-            value={nextThreadDate}
-            time={nextThreadTime || null}
-            snippet={
+            scheduledAt={nextScheduledThread?.thread?.scheduledAt || null}
+            content={
               nextScheduledThread
                 ? (nextScheduledThread.thread.segments?.[0]?.content || '')
-                    .toString()
-                    .trim() ||
-                  t(
-                    'threads.overview.next.noContent',
-                    'Kein Inhalt hinterlegt'
-                  )
-                : t(
-                    'threads.overview.next.none',
-                    'Noch nichts geplant'
-                  )
+                : ''
             }
+            emptyLabel={t(
+              'threads.overview.next.none',
+              'Noch nichts geplant'
+            )}
+            noContentLabel={t(
+              'threads.overview.next.noContent',
+              'Kein Inhalt hinterlegt'
+            )}
           />
         </section>
       </>

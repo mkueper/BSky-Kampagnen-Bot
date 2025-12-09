@@ -1071,8 +1071,8 @@ export default function ConfigPanel () {
                         {t('posts.form.infoButtonLabel', 'Info')}
                       </button>
                     </div>
-                    <div className='grid gap-4 md:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]'>
-                      <div className='space-y-2'>
+                    <div className='grid gap-4 md:grid-cols-3'>
+                      <div className='space-y-2 md:col-span-2'>
                         <div className='flex items-center justify-between gap-2'>
                           <label
                             htmlFor='scheduleTime'
@@ -1096,7 +1096,8 @@ export default function ConfigPanel () {
                           placeholder={defaults.scheduleTime}
                         />
                       </div>
-                      <div className='space-y-1 text-xs text-foreground-muted md:text-sm'>
+
+                      <div className='border-l border-solid pl-4 md:col-span-1 space-y-2 text-xs text-foreground-muted md:text-sm'>
                         <div className='font-semibold'>
                           {t('config.scheduler.examplesTitle', 'Beispiele:')}
                         </div>
@@ -1255,7 +1256,7 @@ export default function ConfigPanel () {
                           />
                         </div>
                       </div>
-                      <div className='md:col-span-1 md:flex md:items-center'>
+                      <div className='border-l border-solid pl-4 md:col-span-1 md:flex md:items-center'>
                         <p className='text-xs text-foreground-muted md:text-sm whitespace-pre-line'>
                           {t(
                             'config.scheduler.retryInfoInline',
