@@ -12,6 +12,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 * Wenn du dir über die Absicht der Nutzer:in unsicher bist, **frage nach**, bevor du handelst.
 * Wenn Datei- oder Pfadangaben nicht sicher verifiziert werden können, **fordere eine Bestätigung** an, bevor du Änderungen vornimmst.
 * **Interaktionsregel bei Rückfragen:** Wenn die Nutzer:in eine Frage stellt oder ausdrücklich eine Einschätzung erbeten hat, musst du zunächst eine **klare Antwort oder Bewertung** geben. Erst nachdem die Nutzer:in dieser Antwort zugestimmt oder ausdrücklich um Umsetzung gebeten hat, darfst du Aktionen ausführen (z. B. Dateien ändern, Skripte/Kommandozeilen ausführen, Migrationsschritte planen).
+* Wir sprechen deutsch miteinander
 
 ---
 

@@ -6,6 +6,55 @@ import { useVirtualList } from '../hooks/useVirtualList'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 
+function splitSourceIntoSegments (source) {
+  const normalized = String(source || '').replace(/\r\n/g, '\n')
+  const lines = normalized.split('\n')
+  const segments = []
+  let buffer = []
+
+  for (const line of lines) {
+    if (line.trim() === '---') {
+      segments.push(buffer.join('\n'))
+      buffer = []
+    } else {
+      buffer.push(line)
+    }
+  }
+
+  segments.push(buffer.join('\n'))
+  return segments.length > 0 ? segments : ['']
+}
+
+function buildSegmentsFromMetadata (thread) {
+  const source = thread?.metadata?.source
+  if (typeof source !== 'string' || !source.trim()) return []
+  const rawSegments = splitSourceIntoSegments(source)
+  const total = rawSegments.length || 1
+  const shouldAppendNumbering =
+    thread?.appendNumbering === false ? false : true
+  return rawSegments.map((segment, index) => {
+    const trimmed = segment.replace(/\s+$/u, '')
+    const numbering = shouldAppendNumbering ? `\n\n${index + 1}/${total}` : ''
+    const content = shouldAppendNumbering ? `${trimmed}${numbering}` : trimmed
+    return {
+      id: `meta-${thread?.id ?? 'unknown'}-${index}`,
+      sequence: index,
+      content,
+      characterCount: content.length,
+      appendNumbering: shouldAppendNumbering,
+      reactions: [],
+      media: []
+    }
+  })
+}
+
+function getThreadSegments (thread) {
+  if (Array.isArray(thread?.segments) && thread.segments.length > 0) {
+    return thread.segments
+  }
+  return buildSegmentsFromMetadata(thread)
+}
+
 function parseThreadMetadata (thread) {
   const raw = thread?.metadata
   if (!raw) return {}
@@ -185,7 +234,7 @@ function ThreadOverview ({
   }
 
   const renderThreadCard = (thread, refOverride) => {
-        const segments = Array.isArray(thread.segments) ? thread.segments : []
+        const segments = getThreadSegments(thread)
         const firstSegment = segments[0] || {
           content: '',
           characterCount: 0,

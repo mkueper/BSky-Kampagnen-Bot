@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ConfirmDialog, InfoDialog, InlineField, Modal, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import {
+  Button,
+  ConfirmDialog,
+  InfoDialog,
+  InlineField,
+  Modal,
+  MediaDialog
+} from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
@@ -14,21 +21,28 @@ import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
-  panel: 'relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated shadow-soft',
-  header: 'flex flex-col gap-3 border-b border-border/80 bg-background px-4 py-3',
+  panel:
+    'relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-background-elevated shadow-soft',
+  header:
+    'flex flex-col gap-3 border-b border-border/80 bg-background px-4 py-3',
   title: 'text-base font-semibold text-foreground',
   searchBar: 'flex w-full items-center gap-2',
-  input: 'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
-  buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
-  button: 'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
+  input:
+    'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
+  buttonPrimary:
+    'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
+  button:
+    'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
   content: 'flex-1 overflow-y-auto bg-background px-4 py-4',
   grid: 'grid grid-cols-3 gap-3',
-  itemButton: 'overflow-hidden rounded-xl border border-border bg-background-subtle transition hover:ring-2 hover:ring-primary/40',
+  itemButton:
+    'overflow-hidden rounded-xl border border-border bg-background-subtle transition hover:ring-2 hover:ring-primary/40',
   image: 'h-24 w-full object-cover',
   statusText: 'text-xs text-foreground-muted',
   loadingMore: 'text-xs text-foreground-muted',
   footer: 'hidden',
-  skeleton: 'h-24 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
+  skeleton:
+    'h-24 w-full animate-pulse rounded-xl border border-border bg-background-subtle',
   error: 'text-sm text-destructive'
 }
 
@@ -47,8 +61,59 @@ const PLATFORM_OPTIONS = [
   { id: 'mastodon', label: 'Mastodon', limit: 500 }
 ]
 
+function isStandaloneListMarker (text) {
+  if (typeof text !== 'string') {
+    return false
+  }
+  const trimmed = text.trim()
+  if (!trimmed) {
+    return false
+  }
+  const sanitized = trimmed.replace(/^[^\d]{0,6}\s*/, '')
+  return /^\d+[.)]\s*$/.test(sanitized)
+}
+
+function startsWithListMarker (text) {
+  if (typeof text !== 'string') return false
+
+  const trimmed = text.trimStart()
+
+  // Wir betrachten nur die erste Zeile
+  const firstLine = trimmed.split('\n')[0]
+
+  // Alle Emojis und Symbol-Zeichen entfernen
+  const sanitized = firstLine
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, '')
+    .trimStart()
+
+  // Einfache Regel:
+  // Beginn mit Zahl + Punkt oder Zahl + Klammer
+  return /^\d+[.)](\s|$)/.test(sanitized)
+}
+
+function mergeListMarkers (parts) {
+  if (!Array.isArray(parts) || parts.length === 0) {
+    return ['']
+  }
+  const merged = []
+  for (let index = 0; index < parts.length; index += 1) {
+    const current = parts[index]
+    const next = parts[index + 1]
+    if (isStandaloneListMarker(current) && typeof next === 'string') {
+      merged.push(`${current}${next}`)
+      index += 1
+    } else {
+      merged.push(current)
+    }
+  }
+  return merged
+}
+
 function splitIntoSentences (text) {
-  const normalized = text.replace(/\s+/g, ' ')
+  const normalized = text.replace(/\r\n/g, '\n')
+  if (!normalized.trim()) {
+    return ['']
+  }
   const pattern = /[^.!?]+[.!?]*(?:\s+|$)/g
   const sentences = []
   let match
@@ -58,18 +123,118 @@ function splitIntoSentences (text) {
   if (sentences.length === 0) {
     return [normalized]
   }
-  return sentences
+  return mergeListMarkers(sentences)
 }
 
-function hardSplit (text, limit) {
+function splitAtWordBoundaries (text, limit) {
   if (!text) return ['']
   const chunks = []
-  let cursor = 0
-  while (cursor < text.length) {
-    chunks.push(text.slice(cursor, cursor + limit))
-    cursor += limit
+  let remaining = text
+
+  while (remaining.length > limit) {
+    const window = remaining.slice(0, limit + 1)
+
+    // Nur Whitespace als Trennkandidaten – kein Bindestrich
+    const whitespaceRegex = /\s/g
+    let splitIndex = -1
+    let match
+
+    while ((match = whitespaceRegex.exec(window)) !== null) {
+      const candidateIndex = match.index
+
+      const beforeAll = remaining.slice(0, candidateIndex)
+      const afterAll = remaining.slice(candidateIndex)
+
+      // Nur die aktuelle Zeile vor dem Split betrachten
+      const lastNewline = beforeAll.lastIndexOf('\n')
+      const linePrefix =
+        lastNewline >= 0 ? beforeAll.slice(lastNewline + 1) : beforeAll
+
+      const trimmedLinePrefix = linePrefix.trimEnd()
+      const trimmedAfter = afterAll.trimStart()
+
+      // 1. Kein Split direkt VOR einer nummerierten Zeile (🔥 3. ...)
+      if (startsWithListMarker(trimmedAfter)) {
+        continue
+      }
+
+      // 2. Kein Split direkt HINTER einem List-Marker auf dieser Zeile (🔥 3.)
+      if (isStandaloneListMarker(trimmedLinePrefix)) {
+        continue
+      }
+
+      // gültiger Break-Kandidat – wir merken uns immer den letzten
+      splitIndex = candidateIndex
+    }
+
+    // Fallback, wenn im Fenster kein geeigneter Whitespace gefunden wurde
+    if (splitIndex <= 0) {
+      const aheadMatch = remaining.slice(limit).match(/\s/)
+      splitIndex =
+        aheadMatch && typeof aheadMatch.index === 'number'
+          ? limit + aheadMatch.index
+          : limit
+
+      // Sicherheitsnetz: nicht mitten in/um einen Marker landen
+      const beforeAll = remaining.slice(0, splitIndex)
+      const afterAll = remaining.slice(splitIndex)
+      const lastNewline = beforeAll.lastIndexOf('\n')
+      const linePrefix =
+        lastNewline >= 0 ? beforeAll.slice(lastNewline + 1) : beforeAll
+
+      const trimmedLinePrefix = linePrefix.trimEnd()
+      const trimmedAfter = afterAll.trimStart()
+
+      if (
+        isStandaloneListMarker(trimmedLinePrefix) ||
+        startsWithListMarker(trimmedAfter)
+      ) {
+        const backWindow = remaining.slice(0, splitIndex)
+        const backWhitespace = /\s/g
+        let m2
+        let altIndex = -1
+
+        while ((m2 = backWhitespace.exec(backWindow)) !== null) {
+          const cand2 = m2.index
+          const before2All = remaining.slice(0, cand2)
+          const after2All = remaining.slice(cand2)
+
+          const lastNewline2 = before2All.lastIndexOf('\n')
+          const linePrefix2 =
+            lastNewline2 >= 0
+              ? before2All.slice(lastNewline2 + 1)
+              : before2All
+
+          const trimmedLinePrefix2 = linePrefix2.trimEnd()
+          const trimmedAfter2 = after2All.trimStart()
+
+          if (
+            !isStandaloneListMarker(trimmedLinePrefix2) &&
+            !startsWithListMarker(trimmedAfter2)
+          ) {
+            altIndex = cand2
+          }
+        }
+
+        if (altIndex > 0) {
+          splitIndex = altIndex
+        }
+      }
+    }
+
+    const safeIndex = Math.max(1, Math.min(splitIndex, remaining.length))
+    const chunk = remaining.slice(0, safeIndex).trimEnd()
+    if (chunk) {
+      chunks.push(chunk)
+    }
+    remaining = remaining.slice(safeIndex).replace(/^\s+/, '')
   }
-  return chunks
+
+  if (remaining.trim()) {
+    chunks.push(remaining.trim())
+  }
+
+  return chunks.length ? chunks : ['']
 }
 
 function splitRawSegments (source) {
@@ -135,7 +300,9 @@ function ThreadForm ({
   )
   const [threadId, setThreadId] = useState(null)
   const [sending, setSending] = useState(false)
-  const [targetPlatforms, setTargetPlatforms] = useState(defaultPlatformFallback)
+  const [targetPlatforms, setTargetPlatforms] = useState(
+    defaultPlatformFallback
+  )
   const [source, setSource] = useState('')
   const [appendNumbering, setAppendNumbering] = useState(true)
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt)
@@ -149,58 +316,66 @@ function ThreadForm ({
   const dateInputRef = useRef(null)
   const timeInputRef = useRef(null)
   const [saving, setSaving] = useState(false)
-  const [singleSegDialog, setSingleSegDialog] = useState({ open: false, proceed: null })
+  const [singleSegDialog, setSingleSegDialog] = useState({
+    open: false,
+    proceed: null
+  })
   const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const textareaRef = useRef(null)
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
-  const imagePolicy = clientConfig?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false }
+  const imagePolicy = clientConfig?.images || {
+    maxCount: 4,
+    maxBytes: 8 * 1024 * 1024,
+    allowedMimes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    requireAltText: false
+  }
 
-  const applyScheduledParts = useCallback(
-    (nextDate, nextTime) => {
-      setScheduledDate(nextDate)
-      setScheduledTime(nextTime)
-      if (nextDate && nextTime) {
-        setScheduledAt(`${nextDate}T${nextTime}`)
+  const applyScheduledParts = useCallback((nextDate, nextTime) => {
+    setScheduledDate(nextDate)
+    setScheduledTime(nextTime)
+    if (nextDate && nextTime) {
+      setScheduledAt(`${nextDate}T${nextTime}`)
+    } else {
+      setScheduledAt('')
+    }
+  }, [])
+
+  const restoreFromThread = useCallback(
+    thread => {
+      if (thread && thread.id) {
+        setThreadId(thread.id)
+        setTargetPlatforms(
+          Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
+            ? thread.targetPlatforms
+            : defaultPlatformFallback
+        )
+        setAppendNumbering(Boolean(thread.appendNumbering ?? true))
+        setScheduledAt(
+          thread.scheduledAt
+            ? formatDateTimeLocal(thread.scheduledAt, timeZone)
+            : ''
+        )
+        const sourceValue =
+          typeof thread?.metadata?.source === 'string' &&
+          thread.metadata.source.trim().length
+            ? thread.metadata.source
+            : Array.isArray(thread.segments)
+            ? thread.segments
+                .map(segment => segment?.content || '')
+                .join('\n---\n')
+            : ''
+        setSource(sourceValue)
       } else {
-        setScheduledAt('')
+        setThreadId(null)
+        setTargetPlatforms(defaultPlatformFallback)
+        setAppendNumbering(true)
+        setScheduledAt(defaultScheduledAt)
+        setSource('')
       }
     },
-    []
+    [defaultScheduledAt, timeZone]
   )
-
-  const restoreFromThread = useCallback((thread) => {
-    if (thread && thread.id) {
-      setThreadId(thread.id)
-      setTargetPlatforms(
-        Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
-          ? thread.targetPlatforms
-          : defaultPlatformFallback
-      )
-      setAppendNumbering(Boolean(thread.appendNumbering ?? true))
-      setScheduledAt(
-        thread.scheduledAt
-          ? formatDateTimeLocal(thread.scheduledAt, timeZone)
-          : ''
-      )
-      const sourceValue =
-        typeof thread?.metadata?.source === 'string' &&
-        thread.metadata.source.trim().length
-          ? thread.metadata.source
-          : Array.isArray(thread.segments)
-          ? thread.segments
-              .map(segment => segment?.content || '')
-              .join('\n---\n')
-          : ''
-      setSource(sourceValue)
-    } else {
-      setThreadId(null)
-      setTargetPlatforms(defaultPlatformFallback)
-      setAppendNumbering(true)
-      setScheduledAt(defaultScheduledAt)
-      setSource('')
-    }
-  }, [defaultScheduledAt, timeZone])
 
   useEffect(() => {
     if (loading) return
@@ -214,7 +389,10 @@ function ThreadForm ({
   }, [initialThread, loading, threadId, restoreFromThread])
 
   useEffect(() => {
-    if (!threadId && (!scheduledAt || scheduledAt === scheduledDefaultRef.current)) {
+    if (
+      !threadId &&
+      (!scheduledAt || scheduledAt === scheduledDefaultRef.current)
+    ) {
       setScheduledAt(defaultScheduledAt)
     }
     scheduledDefaultRef.current = defaultScheduledAt
@@ -240,13 +418,13 @@ function ThreadForm ({
   // Mastodon aus Zielplattformen entfernen, wenn nicht konfiguriert
   useEffect(() => {
     if (mastodonStatus === false) {
-      setTargetPlatforms((current) => current.filter((id) => id !== 'mastodon'))
+      setTargetPlatforms(current => current.filter(id => id !== 'mastodon'))
     }
   }, [mastodonStatus])
 
   useEffect(() => {
     if (mastodonStatus === true && !threadId) {
-      setTargetPlatforms((current) =>
+      setTargetPlatforms(current =>
         current.includes('mastodon') ? current : [...current, 'mastodon']
       )
     }
@@ -285,9 +463,9 @@ function ThreadForm ({
           }
           let fallback = sentence.trim()
           if (fallback.length > effectiveLimit) {
-            const hardChunks = hardSplit(fallback, effectiveLimit)
-            result.push(...hardChunks.slice(0, -1).map(chunk => chunk.trim()))
-            fallback = hardChunks[hardChunks.length - 1]
+            const wordChunks = splitAtWordBoundaries(fallback, effectiveLimit)
+            result.push(...wordChunks.slice(0, -1))
+            fallback = wordChunks[wordChunks.length - 1]
           }
           buffer = fallback
         }
@@ -328,55 +506,60 @@ function ThreadForm ({
   }, [effectiveSegments, appendNumbering, totalSegments, limit])
 
   // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
-  const [mediaAlt] = useState({});
-  const [pendingMedia, setPendingMedia] = useState({}); // create-mode media per segment id/index
-  const getMediaCount = (index) => {
-    const pending = Array.isArray(pendingMedia[index]) ? pendingMedia[index].length : 0;
-    let existing = 0;
+  const [mediaAlt] = useState({})
+  const [pendingMedia, setPendingMedia] = useState({}) // create-mode media per segment id/index
+  const getMediaCount = index => {
+    const pending = Array.isArray(pendingMedia[index])
+      ? pendingMedia[index].length
+      : 0
+    let existing = 0
     if (isEditMode && initialThread && Array.isArray(initialThread.segments)) {
-      const seg = initialThread.segments.find((s) => Number(s.sequence) === Number(index));
-      existing = Array.isArray(seg?.media) ? seg.media.length : 0;
+      const seg = initialThread.segments.find(
+        s => Number(s.sequence) === Number(index)
+      )
+      existing = Array.isArray(seg?.media) ? seg.media.length : 0
     }
-    return pending + existing;
-  };
+    return pending + existing
+  }
   const handleUploadMedia = async (index, file, altTextOverride) => {
-    if (!file) return;
+    if (!file) return
     try {
       if (isEditMode && threadId) {
         // Direkt am Segment des existierenden Threads hochladen
         try {
-          const formData = new FormData();
-          formData.append('media', file);
-          formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '');
+          const formData = new FormData()
+          formData.append('media', file)
+          formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '')
 
-          const res = await fetch(`/api/threads/${threadId}/segments/${index}/media`, {
-            method: 'POST',
-            body: formData,
-          });
+          const res = await fetch(
+            `/api/threads/${threadId}/segments/${index}/media`,
+            {
+              method: 'POST',
+              body: formData
+            }
+          )
 
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
+            const data = await res.json().catch(() => ({}))
             throw new Error(
               data.error ||
                 t(
                   'threads.form.media.uploadErrorExistingFallback',
                   'Upload fehlgeschlagen.'
                 )
-            );
+            )
           }
           toast.success({
-            title: t(
-              'threads.form.media.segmentSuccessTitle',
-              'Post {index}',
-              { index: index + 1 }
-            ),
+            title: t('threads.form.media.segmentSuccessTitle', 'Post {index}', {
+              index: index + 1
+            }),
             description: t(
               'threads.form.media.addedDescription',
               'Bild hinzugefügt.'
             )
-          });
+          })
         } catch (e) {
-          const msg = e?.message || '';
+          const msg = e?.message || ''
           if (/zu groß|too large|413/i.test(msg)) {
             setUploadError({
               open: true,
@@ -387,7 +570,7 @@ function ThreadForm ({
                   mb: (imagePolicy.maxBytes / (1024 * 1024)).toFixed(0)
                 }
               )
-            });
+            })
           } else {
             toast.error({
               title: t(
@@ -400,50 +583,53 @@ function ThreadForm ({
                   'threads.form.media.uploadErrorDescription',
                   'Fehler beim Upload.'
                 )
-            });
+            })
           }
         }
       } else {
         // Entwurf: Temporär hochladen und Vorschau sofort anzeigen
         try {
-          const formData = new FormData();
-          formData.append('media', file);
-          formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '');
+          const formData = new FormData()
+          formData.append('media', file)
+          formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '')
 
           const res = await fetch('/api/uploads/temp', {
             method: 'POST',
-            body: formData,
-          });
+            body: formData
+          })
 
           if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
+            const data = await res.json().catch(() => ({}))
             throw new Error(
               data.error ||
                 t(
                   'threads.form.media.uploadTempErrorFallback',
                   'Temporärer Upload fehlgeschlagen.'
                 )
-            );
+            )
           }
-          const info = await res.json();
-          setPendingMedia((s) => {
-            const arr = Array.isArray(s[index]) ? s[index].slice() : [];
-            arr.push({ tempId: info.tempId, mime: info.mime, previewUrl: info.previewUrl, altText: info.altText || '' });
-            return { ...s, [index]: arr };
-          });
+          const info = await res.json()
+          setPendingMedia(s => {
+            const arr = Array.isArray(s[index]) ? s[index].slice() : []
+            arr.push({
+              tempId: info.tempId,
+              mime: info.mime,
+              previewUrl: info.previewUrl,
+              altText: info.altText || ''
+            })
+            return { ...s, [index]: arr }
+          })
           toast.success({
-            title: t(
-              'threads.form.media.segmentSuccessTitle',
-              'Post {index}',
-              { index: index + 1 }
-            ),
+            title: t('threads.form.media.segmentSuccessTitle', 'Post {index}', {
+              index: index + 1
+            }),
             description: t(
               'threads.form.media.addedDescription',
               'Bild hinzugefügt.'
             )
-          });
+          })
         } catch (e) {
-          const msg = e?.message || '';
+          const msg = e?.message || ''
           if (/zu groß|too large|413/i.test(msg)) {
             setUploadError({
               open: true,
@@ -454,7 +640,7 @@ function ThreadForm ({
                   mb: (imagePolicy.maxBytes / (1024 * 1024)).toFixed(0)
                 }
               )
-            });
+            })
           } else {
             toast.error({
               title: t(
@@ -467,12 +653,12 @@ function ThreadForm ({
                   'threads.form.media.uploadErrorDescription',
                   'Fehler beim Upload.'
                 )
-            });
+            })
           }
         }
       }
     } catch (e) {
-      console.error("Fehler beim Hochladen des Bildes im Thread", e)
+      console.error('Fehler beim Hochladen des Bildes im Thread', e)
       toast.error({
         title: t(
           'threads.form.media.uploadTempErrorTitle',
@@ -482,7 +668,7 @@ function ThreadForm ({
           e?.message || t('common.errors.unknown', 'Unbekannter Fehler')
       })
     }
-  };
+  }
 
   // Media Dialog State
   const [mediaDialog, setMediaDialog] = useState({
@@ -512,50 +698,64 @@ function ThreadForm ({
   const [emojiPicker, setEmojiPicker] = useState({ open: false })
 
   // Overlay helpers for existing media edits (without full reload)
-  const [editedMediaAlt, setEditedMediaAlt] = useState({}); // key: mediaId => alt text
-  const [removedMedia, setRemovedMedia] = useState({}); // key: mediaId => true
+  const [editedMediaAlt, setEditedMediaAlt] = useState({}) // key: mediaId => alt text
+  const [removedMedia, setRemovedMedia] = useState({}) // key: mediaId => true
 
-  const [altDialog, setAltDialog] = useState({ open: false, segmentIndex: null, item: null });
+  const [altDialog, setAltDialog] = useState({
+    open: false,
+    segmentIndex: null,
+    item: null
+  })
   const openAltDialog = (segmentIndex, item) => {
-    setAltDialog({ open: true, segmentIndex, item });
-  };
-  const closeAltDialog = () => setAltDialog({ open: false, segmentIndex: null, item: null });
-  const [uploadError, setUploadError] = useState({ open: false, message: '' });
-  const [infoThreadOpen, setInfoThreadOpen] = useState(false);
-  const [infoPreviewOpen, setInfoPreviewOpen] = useState(false);
+    setAltDialog({ open: true, segmentIndex, item })
+  }
+  const closeAltDialog = () =>
+    setAltDialog({ open: false, segmentIndex: null, item: null })
+  const [uploadError, setUploadError] = useState({ open: false, message: '' })
+  const [infoThreadOpen, setInfoThreadOpen] = useState(false)
+  const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
 
   const handleRemoveMedia = async (segmentIndex, item) => {
     if (item.type === 'existing') {
       try {
-        const res = await fetch(`/api/media/${item.id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Löschen fehlgeschlagen');
-        setRemovedMedia((s) => ({ ...s, [item.id]: true }));
-        toast.success({ title: 'Bild entfernt' });
+        const res = await fetch(`/api/media/${item.id}`, { method: 'DELETE' })
+        if (!res.ok)
+          throw new Error(
+            (await res.json().catch(() => ({}))).error ||
+              'Löschen fehlgeschlagen'
+          )
+        setRemovedMedia(s => ({ ...s, [item.id]: true }))
+        toast.success({ title: 'Bild entfernt' })
       } catch (e) {
-        toast.error({ title: 'Entfernen fehlgeschlagen', description: e?.message || 'Unbekannter Fehler' });
+        toast.error({
+          title: 'Entfernen fehlgeschlagen',
+          description: e?.message || 'Unbekannter Fehler'
+        })
       }
     } else {
-      setPendingMedia((s) => {
-        const arr = Array.isArray(s[segmentIndex]) ? s[segmentIndex].slice() : [];
+      setPendingMedia(s => {
+        const arr = Array.isArray(s[segmentIndex])
+          ? s[segmentIndex].slice()
+          : []
         if (item.pendingIndex >= 0 && item.pendingIndex < arr.length) {
-          arr.splice(item.pendingIndex, 1);
+          arr.splice(item.pendingIndex, 1)
         }
-        return { ...s, [segmentIndex]: arr };
-      });
+        return { ...s, [segmentIndex]: arr }
+      })
     }
-  };
+  }
 
-  const handleTogglePlatform = (platformId) => {
+  const handleTogglePlatform = platformId => {
     if (platformId === 'mastodon' && !mastodonConfigured) return
-    setTargetPlatforms((current) => {
+    setTargetPlatforms(current => {
       if (current.includes(platformId)) {
         // Mindestens eine Plattform muss aktiv bleiben
-        if (current.length === 1) return current;
-        return current.filter((id) => id !== platformId);
+        if (current.length === 1) return current
+        return current.filter(id => id !== platformId)
       }
-      return [...current, platformId];
-    });
-  };
+      return [...current, platformId]
+    })
+  }
 
   const handleInsertSeparator = () => {
     const textarea = textareaRef.current
@@ -565,11 +765,14 @@ function ThreadForm ({
     const before = value.slice(0, selectionStart)
     const after = value.slice(selectionEnd)
     const prevChar = selectionStart > 0 ? value.charAt(selectionStart - 1) : ''
-    const nextChar = selectionEnd < value.length ? value.charAt(selectionEnd) : ''
+    const nextChar =
+      selectionEnd < value.length ? value.charAt(selectionEnd) : ''
 
     const needsPrefixNl = selectionStart > 0 && prevChar !== '\n'
     const needsSuffixNl = nextChar !== '\n'
-    const separator = `${needsPrefixNl ? '\n' : ''}---${needsSuffixNl ? '\n' : ''}`
+    const separator = `${needsPrefixNl ? '\n' : ''}---${
+      needsSuffixNl ? '\n' : ''
+    }`
 
     const nextValue = `${before}${separator}${after}`
     setSource(nextValue)
@@ -584,7 +787,10 @@ function ThreadForm ({
 
   const handleKeyDown = event => {
     // Ctrl+. öffnet Emoji-Picker
-    if ((event.ctrlKey || event.metaKey) && (event.key === '.' || event.code === 'Period')) {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      (event.key === '.' || event.code === 'Period')
+    ) {
       event.preventDefault()
       setEmojiPicker({ open: true })
       return
@@ -607,7 +813,13 @@ function ThreadForm ({
       if (textMissingButMediaPresent) return false
       return noText || segment.exceedsLimit
     })
-  }, [previewSegments, targetPlatforms.length, pendingMedia, initialThread, isEditMode])
+  }, [
+    previewSegments,
+    targetPlatforms.length,
+    pendingMedia,
+    initialThread,
+    isEditMode
+  ])
 
   const hasAnySegmentContentOrMedia = useMemo(() => {
     return previewSegments.some(segment => {
@@ -628,7 +840,7 @@ function ThreadForm ({
     )
   }
 
-  async function doSubmitThread() {
+  async function doSubmitThread () {
     const status = scheduledAt ? 'scheduled' : 'draft'
     const scheduledValue = scheduledAt ? scheduledAt : null
     const titleCandidate = previewSegments[0]?.raw || ''
@@ -705,7 +917,7 @@ function ThreadForm ({
       if (!isEditMode) {
         restoreFromThread(null)
       }
-    } catch (error) { 
+    } catch (error) {
       console.error('Thread konnte nicht gespeichert werden:', error)
       toast.error({
         title: isEditMode
@@ -713,10 +925,7 @@ function ThreadForm ({
               'threads.form.saveErrorUpdateTitle',
               'Aktualisierung fehlgeschlagen'
             )
-          : t(
-              'threads.form.saveErrorCreateTitle',
-              'Speichern fehlgeschlagen'
-            ),
+          : t('threads.form.saveErrorCreateTitle', 'Speichern fehlgeschlagen'),
         description:
           error?.message ||
           t(
@@ -729,7 +938,7 @@ function ThreadForm ({
     }
   }
 
-  async function doSendNowThread() {
+  async function doSendNowThread () {
     if (saving || loading || sending) return
     if (hasValidationIssues || !hasAnySegmentContentOrMedia) {
       toast.error({
@@ -793,7 +1002,9 @@ function ThreadForm ({
         }
       }
 
-      const resPub = await fetch(`/api/threads/${id}/publish-now`, { method: 'POST' })
+      const resPub = await fetch(`/api/threads/${id}/publish-now`, {
+        method: 'POST'
+      })
       if (!resPub.ok) {
         const data = await resPub.json().catch(() => ({}))
         throw new Error(
@@ -818,7 +1029,11 @@ function ThreadForm ({
       })
 
       if (typeof onThreadSaved === 'function') {
-        try { onThreadSaved(published) } catch (cbErr) { console.error('onThreadSaved Fehler:', cbErr) }
+        try {
+          onThreadSaved(published)
+        } catch (cbErr) {
+          console.error('onThreadSaved Fehler:', cbErr)
+        }
       }
       if (!isEditMode) {
         restoreFromThread(null)
@@ -826,10 +1041,7 @@ function ThreadForm ({
     } catch (e) {
       console.error('Sofort senden fehlgeschlagen:', e)
       toast.error({
-        title: t(
-          'threads.form.sendNow.errorTitle',
-          'Senden fehlgeschlagen'
-        ),
+        title: t('threads.form.sendNow.errorTitle', 'Senden fehlgeschlagen'),
         description:
           e?.message ||
           t(
@@ -875,7 +1087,9 @@ function ThreadForm ({
       </div>
       <div className='grid gap-6 lg:grid-cols-2 lg:items-start lg:min-h-0'>
         <div className='space-y-4'>
-          <div className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}>
+          <div
+            className={`rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft`}
+          >
             <header className='space-y-3'>
               <div className='flex items-center justify-between'>
                 <h3 className='text-lg font-semibold'>
@@ -889,10 +1103,7 @@ function ThreadForm ({
                     'Hinweis zu Thread-Inhalt anzeigen'
                   )}
                   onClick={() => setInfoThreadOpen(true)}
-                  title={t(
-                    'threads.form.infoButtonTitle',
-                    'Hinweis anzeigen'
-                  )}
+                  title={t('threads.form.infoButtonTitle', 'Hinweis anzeigen')}
                 >
                   <InfoCircledIcon width={14} height={14} />{' '}
                   {t('threads.form.infoButtonLabel', 'Info')}
@@ -950,9 +1161,10 @@ function ThreadForm ({
                     'Zielplattformen wählen'
                   )}
                 >
-                  {PLATFORM_OPTIONS.map((option) => {
-                    const isActive = targetPlatforms.includes(option.id);
-                    const disabled = option.id === 'mastodon' && !mastodonConfigured;
+                  {PLATFORM_OPTIONS.map(option => {
+                    const isActive = targetPlatforms.includes(option.id)
+                    const disabled =
+                      option.id === 'mastodon' && !mastodonConfigured
                     const title = disabled
                       ? t(
                           'threads.form.platforms.mastodonDisabledTitle',
@@ -962,7 +1174,7 @@ function ThreadForm ({
                           'threads.form.platforms.optionTitle',
                           '{label} ({limit})',
                           { label: option.label, limit: option.limit }
-                        );
+                        )
                     return (
                       <label
                         key={option.id}
@@ -970,7 +1182,11 @@ function ThreadForm ({
                           isActive
                             ? 'border-primary bg-primary/10 text-primary shadow-soft'
                             : 'border-border text-foreground-muted hover:border-primary/50'
-                        } ${disabled ? 'opacity-60 cursor-not-allowed hover:border-border' : ''}`}
+                        } ${
+                          disabled
+                            ? 'opacity-60 cursor-not-allowed hover:border-border'
+                            : ''
+                        }`}
                         title={title}
                         aria-disabled={disabled || undefined}
                       >
@@ -990,7 +1206,7 @@ function ThreadForm ({
                           </span>
                         </span>
                       </label>
-                    );
+                    )
                   })}
                 </div>
               </fieldset>
@@ -1013,14 +1229,14 @@ function ThreadForm ({
                       onClick={() => {
                         try {
                           dateInputRef.current?.showPicker?.()
-                        } catch { 
+                        } catch {
                           // showPicker nicht verfügbar
                         }
                       }}
                       onFocus={() => {
                         try {
                           dateInputRef.current?.showPicker?.()
-                        } catch { 
+                        } catch {
                           // showPicker nicht verfügbar
                         }
                       }}
@@ -1029,7 +1245,7 @@ function ThreadForm ({
                         applyScheduledParts(value, scheduledTime)
                         try {
                           dateInputRef.current?.blur?.()
-                        } catch { 
+                        } catch {
                           // blur nicht möglich
                         }
                       }}
@@ -1049,14 +1265,14 @@ function ThreadForm ({
                       onClick={() => {
                         try {
                           timeInputRef.current?.showPicker?.()
-                        } catch { 
+                        } catch {
                           // showPicker nicht verfügbar
                         }
                       }}
                       onFocus={() => {
                         try {
                           timeInputRef.current?.showPicker?.()
-                        } catch { 
+                        } catch {
                           // showPicker nicht verfügbar
                         }
                       }}
@@ -1065,7 +1281,7 @@ function ThreadForm ({
                         applyScheduledParts(scheduledDate, value)
                         try {
                           timeInputRef.current?.blur?.()
-                        } catch { 
+                        } catch {
                           // blur nicht möglich
                         }
                       }}
@@ -1135,10 +1351,7 @@ function ThreadForm ({
                   disabled={saving || sending}
                   className='min-w-[8rem]'
                 >
-                  {t(
-                    'threads.form.actions.reset',
-                    'Formular zurücksetzen'
-                  )}
+                  {t('threads.form.actions.reset', 'Formular zurücksetzen')}
                 </Button>
                 {isEditMode && typeof onCancel === 'function' ? (
                   <Button
@@ -1162,11 +1375,8 @@ function ThreadForm ({
                       ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
                       : t('threads.form.submitCreateBusy', 'Planen…')
                     : isEditMode
-                      ? t(
-                          'threads.form.submitUpdate',
-                          'Thread aktualisieren'
-                        )
-                      : t('threads.form.submitCreate', 'Planen')}
+                    ? t('threads.form.submitUpdate', 'Thread aktualisieren')
+                    : t('threads.form.submitCreate', 'Planen')}
                 </Button>
               </div>
             </div>
@@ -1174,7 +1384,9 @@ function ThreadForm ({
         </div>
 
         <aside className='space-y-4'>
-          <div className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}>
+          <div
+            className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}
+          >
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>
                 <h3 className='text-lg font-semibold'>
@@ -1188,24 +1400,17 @@ function ThreadForm ({
                     'Hinweis zur Vorschau anzeigen'
                   )}
                   onClick={() => setInfoPreviewOpen(true)}
-                  title={t(
-                    'threads.form.infoButtonTitle',
-                    'Hinweis anzeigen'
-                  )}
+                  title={t('threads.form.infoButtonTitle', 'Hinweis anzeigen')}
                 >
                   <InfoCircledIcon width={14} height={14} />{' '}
                   {t('threads.form.infoButtonLabel', 'Info')}
                 </button>
               </div>
               <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-                {t(
-                  'threads.form.preview.counter',
-                  '{count} Post{suffix}',
-                  {
-                    count: totalSegments,
-                    suffix: totalSegments !== 1 ? 's' : ''
-                  }
-                )}
+                {t('threads.form.preview.counter', '{count} Post{suffix}', {
+                  count: totalSegments,
+                  suffix: totalSegments !== 1 ? 's' : ''
+                })}
               </span>
             </div>
 
@@ -1227,9 +1432,7 @@ function ThreadForm ({
                 return (
                   <article
                     key={segment.id}
-                    className={`rounded-2xl border ${
-                      'border-border bg-background-subtle'
-                    } p-4 shadow-soft`}
+                    className={`rounded-2xl border ${'border-border bg-background-subtle'} p-4 shadow-soft`}
                   >
                     <header className='flex items-center justify-between text-sm'>
                       <span className='font-semibold text-foreground'>
@@ -1237,26 +1440,30 @@ function ThreadForm ({
                       </span>
                       <div className='flex items-center gap-2'>
                         <span
-                        className={`font-medium ${
-                          segment.exceedsLimit
-                            ? 'text-destructive'
-                            : segment.characterCount >
-                              (limit ? limit * 0.9 : Infinity)
-                            ? 'text-amber-500'
-                            : 'text-foreground-muted'
-                        }`}
-                      >
-                        {segment.characterCount}
-                        {limit ? ` / ${limit}` : null}
+                          className={`font-medium ${
+                            segment.exceedsLimit
+                              ? 'text-destructive'
+                              : segment.characterCount >
+                                (limit ? limit * 0.9 : Infinity)
+                              ? 'text-amber-500'
+                              : 'text-foreground-muted'
+                          }`}
+                        >
+                          {segment.characterCount}
+                          {limit ? ` / ${limit}` : null}
                         </span>
                         <button
                           type='button'
                           className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
                           onClick={() => openMediaDialog(segment.id)}
-                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
+                          title={
+                            getMediaCount(segment.id) >= imagePolicy.maxCount
                               ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
-                              : 'Bild hinzufügen'}
-                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
+                              : 'Bild hinzufügen'
+                          }
+                          disabled={
+                            getMediaCount(segment.id) >= imagePolicy.maxCount
+                          }
                           aria-label={t(
                             'threads.form.media.addImageAria',
                             'Bild hinzufügen'
@@ -1265,17 +1472,21 @@ function ThreadForm ({
                           <ImageIcon className='h-4 w-4' aria-hidden='true' />
                         </button>
                         {tenorAvailable ? (
-                        <button
-                          type='button'
-                          className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
-                          onClick={() => setGifPicker({ open: true, index })}
-                          title={getMediaCount(segment.id) >= imagePolicy.maxCount
-                              ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
-                              : 'GIF hinzufügen'}
-                          disabled={getMediaCount(segment.id) >= imagePolicy.maxCount}
-                        >
-                          GIF
-                        </button>
+                          <button
+                            type='button'
+                            className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                            onClick={() => setGifPicker({ open: true, index })}
+                            title={
+                              getMediaCount(segment.id) >= imagePolicy.maxCount
+                                ? `Maximal ${imagePolicy.maxCount} Bilder je Post erreicht`
+                                : 'GIF hinzufügen'
+                            }
+                            disabled={
+                              getMediaCount(segment.id) >= imagePolicy.maxCount
+                            }
+                          >
+                            GIF
+                          </button>
                         ) : null}
                         {/* Emoji-Button entfällt: Emojis werden im Text eingefügt */}
                       </div>
@@ -1287,23 +1498,49 @@ function ThreadForm ({
                     </div>
                     {(() => {
                       // Build preview list: existing (edit) + pending (create)
-                      const list = [];
-                      if (isEditMode && initialThread && Array.isArray(initialThread.segments)) {
-                        const seg = initialThread.segments.find((s) => Number(s.sequence) === Number(segment.id));
+                      const list = []
+                      if (
+                        isEditMode &&
+                        initialThread &&
+                        Array.isArray(initialThread.segments)
+                      ) {
+                        const seg = initialThread.segments.find(
+                          s => Number(s.sequence) === Number(segment.id)
+                        )
                         if (seg && Array.isArray(seg.media)) {
-                          seg.media.forEach((m) => {
-                            if (m?.previewUrl && !removedMedia[m.id]) list.push({ type: 'existing', id: m.id, src: m.previewUrl, alt: editedMediaAlt[m.id] ?? (m.altText || ''), pendingIndex: null });
-                          });
+                          seg.media.forEach(m => {
+                            if (m?.previewUrl && !removedMedia[m.id])
+                              list.push({
+                                type: 'existing',
+                                id: m.id,
+                                src: m.previewUrl,
+                                alt: editedMediaAlt[m.id] ?? (m.altText || ''),
+                                pendingIndex: null
+                              })
+                          })
                         }
                       }
-                      const pend = Array.isArray(pendingMedia[segment.id]) ? pendingMedia[segment.id] : [];
-                      pend.forEach((m, idx) => list.push({ type: 'pending', id: null, src: (m.previewUrl || m.data), alt: m.altText || '', pendingIndex: idx }));
-                      const items = list.slice(0, imagePolicy.maxCount || 4);
-                      if (items.length === 0) return null;
+                      const pend = Array.isArray(pendingMedia[segment.id])
+                        ? pendingMedia[segment.id]
+                        : []
+                      pend.forEach((m, idx) =>
+                        list.push({
+                          type: 'pending',
+                          id: null,
+                          src: m.previewUrl || m.data,
+                          alt: m.altText || '',
+                          pendingIndex: idx
+                        })
+                      )
+                      const items = list.slice(0, imagePolicy.maxCount || 4)
+                      if (items.length === 0) return null
                       return (
                         <div className='mt-2 grid grid-cols-2 gap-2'>
                           {items.map((it, idx) => (
-                            <div key={idx} className='relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle'>
+                            <div
+                              key={idx}
+                              className='relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle'
+                            >
                               <img
                                 src={it.src}
                                 alt={
@@ -1317,7 +1554,12 @@ function ThreadForm ({
                                 className='absolute inset-0 h-full w-full object-contain'
                               />
                               <div className='pointer-events-none absolute left-1 top-1 z-10'>
-                                <span className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
+                                <span
+                                  className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${
+                                    it.alt
+                                      ? 'bg-black/60'
+                                      : 'bg-black/90 ring-1 ring-white/30'
+                                  }`}
                                   title={
                                     it.alt
                                       ? t(
@@ -1329,7 +1571,11 @@ function ThreadForm ({
                                           'Alt‑Text hinzufügen'
                                         )
                                   }
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAltDialog(segment.id, it); }}
+                                  onClick={e => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    openAltDialog(segment.id, it)
+                                  }}
                                   role='button'
                                   tabIndex={0}
                                   aria-label={
@@ -1345,10 +1591,7 @@ function ThreadForm ({
                                   }
                                 >
                                   {it.alt
-                                    ? t(
-                                        'threads.form.media.altBadge',
-                                        'ALT'
-                                      )
+                                    ? t('threads.form.media.altBadge', 'ALT')
                                     : t(
                                         'threads.form.media.altAddBadge',
                                         '+ ALT'
@@ -1363,7 +1606,11 @@ function ThreadForm ({
                                     'threads.form.media.removeButtonTitle',
                                     'Bild entfernen'
                                   )}
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveMedia(segment.id, it); }}
+                                  onClick={e => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleRemoveMedia(segment.id, it)
+                                  }}
                                   aria-label={t(
                                     'threads.form.media.removeButtonTitle',
                                     'Bild entfernen'
@@ -1375,7 +1622,7 @@ function ThreadForm ({
                             </div>
                           ))}
                         </div>
-                      );
+                      )
                     })()}
                     <div className='mt-2 text-xs text-foreground-muted'>
                       {t(
@@ -1405,12 +1652,16 @@ function ThreadForm ({
       <MediaDialog
         open={mediaDialog.open}
         title={mediaDialog.title}
-        mode="upload"
+        mode='upload'
         accept={mediaDialog.accept}
         requireAltText={Boolean(imagePolicy.requireAltText)}
         maxBytes={imagePolicy.maxBytes}
         allowedMimes={imagePolicy.allowedMimes}
-        onConfirm={(file, alt) => { const idx = mediaDialog.index; closeMediaDialog(); handleUploadMedia(idx, file, alt); }}
+        onConfirm={(file, alt) => {
+          const idx = mediaDialog.index
+          closeMediaDialog()
+          handleUploadMedia(idx, file, alt)
+        }}
         onClose={closeMediaDialog}
       />
       <EmojiPicker
@@ -1418,14 +1669,20 @@ function ThreadForm ({
         onClose={() => setEmojiPicker({ open: false })}
         anchorRef={textareaRef}
         verticalAlign='center'
-        onPick={(emoji) => {
+        onPick={emoji => {
           const value = emoji?.native || emoji?.shortcodes || emoji?.id
           if (!value) return
           try {
             const ta = textareaRef.current
             if (!ta) return
-            const { selectionStart = source.length, selectionEnd = source.length } = ta
-            const next = `${source.slice(0, selectionStart)}${value}${source.slice(selectionEnd)}`
+            const {
+              selectionStart = source.length,
+              selectionEnd = source.length
+            } = ta
+            const next = `${source.slice(
+              0,
+              selectionStart
+            )}${value}${source.slice(selectionEnd)}`
             setSource(next)
             setEmojiPicker({ open: false })
             setTimeout(() => {
@@ -1434,11 +1691,11 @@ function ThreadForm ({
                 ta.selectionStart = pos
                 ta.selectionEnd = pos
                 ta.focus()
-              } catch { 
+              } catch {
                 // Cursor konnte nicht neu gesetzt werden
               }
             }, 0)
-          } catch { 
+          } catch {
             // Einfügen fehlgeschlagen; Eingabe sauber lassen
           }
         }}
@@ -1511,14 +1768,14 @@ function ThreadForm ({
             'Upload fehlgeschlagen'
           )}
           onClose={() => setUploadError({ open: false, message: '' })}
-          actions={(
+          actions={
             <Button
               variant='secondary'
               onClick={() => setUploadError({ open: false, message: '' })}
             >
               {t('common.actions.close', 'Schließen')}
             </Button>
-          )}
+          }
         >
           <p className='text-sm text-foreground'>
             {uploadError.message ||
@@ -1534,13 +1791,10 @@ function ThreadForm ({
       {infoThreadOpen ? (
         <InfoDialog
           open={infoThreadOpen}
-          title={t(
-            'threads.form.infoSource.title',
-            'Hinweis: Thread-Inhalt'
-          )}
+          title={t('threads.form.infoSource.title', 'Hinweis: Thread-Inhalt')}
           onClose={() => setInfoThreadOpen(false)}
           closeLabel={t('common.actions.close', 'Schließen')}
-          content={(
+          content={
             <>
               <p>
                 {t(
@@ -1568,7 +1822,7 @@ function ThreadForm ({
                 )}
               </p>
             </>
-          )}
+          }
         />
       ) : null}
 
@@ -1576,13 +1830,10 @@ function ThreadForm ({
       {infoPreviewOpen ? (
         <InfoDialog
           open={infoPreviewOpen}
-          title={t(
-            'threads.form.infoPreview.title',
-            'Hinweis: Vorschau'
-          )}
+          title={t('threads.form.infoPreview.title', 'Hinweis: Vorschau')}
           onClose={() => setInfoPreviewOpen(false)}
           closeLabel={t('common.actions.close', 'Schließen')}
-          content={(
+          content={
             <>
               <p>
                 {t(
@@ -1610,7 +1861,7 @@ function ThreadForm ({
                 )}
               </p>
             </>
-          )}
+          }
         />
       ) : null}
       {altDialog.open && altDialog.item ? (
@@ -1618,25 +1869,23 @@ function ThreadForm ({
           open={altDialog.open}
           title={
             altDialog.item.alt
-              ? t(
-                  'threads.form.media.altEditTitle',
-                  'Alt‑Text bearbeiten'
-                )
-              : t(
-                  'threads.form.media.altAddTitle',
-                  'Alt‑Text hinzufügen'
-                )
+              ? t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten')
+              : t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen')
           }
-          mode="alt"
+          mode='alt'
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}
           requireAltText={Boolean(imagePolicy.requireAltText)}
           onConfirm={async (_file, newAlt) => {
-            const segIdx = altDialog.segmentIndex;
-            const item = altDialog.item;
+            const segIdx = altDialog.segmentIndex
+            const item = altDialog.item
             try {
               if (item.type === 'existing') {
-                const res = await fetch(`/api/media/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ altText: newAlt }) });
+                const res = await fetch(`/api/media/${item.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ altText: newAlt })
+                })
                 if (!res.ok) {
                   throw new Error(
                     (await res.json().catch(() => ({}))).error ||
@@ -1644,22 +1893,26 @@ function ThreadForm ({
                         'threads.form.media.altSaveErrorFallback',
                         'Alt‑Text konnte nicht gespeichert werden.'
                       )
-                  );
+                  )
                 }
-                setEditedMediaAlt((s) => ({ ...s, [item.id]: newAlt }));
+                setEditedMediaAlt(s => ({ ...s, [item.id]: newAlt }))
               } else {
-                setPendingMedia((s) => {
-                  const arr = Array.isArray(s[segIdx]) ? s[segIdx].slice() : [];
-                  if (arr[item.pendingIndex]) arr[item.pendingIndex] = { ...arr[item.pendingIndex], altText: newAlt };
-                  return { ...s, [segIdx]: arr };
-                });
+                setPendingMedia(s => {
+                  const arr = Array.isArray(s[segIdx]) ? s[segIdx].slice() : []
+                  if (arr[item.pendingIndex])
+                    arr[item.pendingIndex] = {
+                      ...arr[item.pendingIndex],
+                      altText: newAlt
+                    }
+                  return { ...s, [segIdx]: arr }
+                })
               }
               toast.success({
                 title: t(
                   'threads.form.media.altSaveSuccessTitle',
                   'Alt‑Text gespeichert'
                 )
-              });
+              })
             } catch (e) {
               toast.error({
                 title: t(
@@ -1667,11 +1920,10 @@ function ThreadForm ({
                   'Fehler beim Alt‑Text'
                 ),
                 description:
-                  e?.message ||
-                  t('common.errors.unknown', 'Unbekannter Fehler')
-              });
+                  e?.message || t('common.errors.unknown', 'Unbekannter Fehler')
+              })
             } finally {
-              closeAltDialog();
+              closeAltDialog()
             }
           }}
           onClose={closeAltDialog}
