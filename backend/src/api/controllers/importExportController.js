@@ -24,7 +24,12 @@ async function exportPlannedSkeets(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="skeets-${timestamp}.json"`);
     res.send(JSON.stringify(payload, null, 2));
   } catch (error) {
-    res.status(500).json({ error: error?.message || 'Fehler beim Export der Skeets.' });
+    const message = error?.message || 'Fehler beim Export der Skeets.';
+    res.status(500).json({
+      error: message,
+      code: 'IMPORT_EXPORT_SKEETS_EXPORT_FAILED',
+      message,
+    });
   }
 }
 
@@ -41,7 +46,13 @@ async function importPlannedSkeets(req, res) {
     const created = await importExportService.importPlannedSkeets(req.body);
     res.status(201).json({ imported: created.length, ids: created.map((entry) => entry.id) });
   } catch (error) {
-    res.status(400).json({ error: error?.message || 'Fehler beim Import der Skeets.' });
+    const message = error?.message || 'Fehler beim Import der Skeets.';
+    const statusCode = error?.name === 'SyntaxError' ? 400 : 400;
+    res.status(statusCode).json({
+      error: message,
+      code: 'IMPORT_EXPORT_SKEETS_IMPORT_FAILED',
+      message,
+    });
   }
 }
 
@@ -64,7 +75,12 @@ async function exportThreads(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="threads${suffix}-${timestamp}.json"`);
     res.send(JSON.stringify(payload, null, 2));
   } catch (error) {
-    res.status(500).json({ error: error?.message || 'Fehler beim Export der Threads.' });
+    const message = error?.message || 'Fehler beim Export der Threads.';
+    res.status(500).json({
+      error: message,
+      code: 'IMPORT_EXPORT_THREADS_EXPORT_FAILED',
+      message,
+    });
   }
 }
 
@@ -81,7 +97,13 @@ async function importThreads(req, res) {
     const created = await importExportService.importThreads(req.body);
     res.status(201).json({ imported: created.length, ids: created.map((entry) => entry.id) });
   } catch (error) {
-    res.status(400).json({ error: error?.message || 'Fehler beim Import der Threads.' });
+    const message = error?.message || 'Fehler beim Import der Threads.';
+    const statusCode = error?.name === 'SyntaxError' ? 400 : 400;
+    res.status(statusCode).json({
+      error: message,
+      code: 'IMPORT_EXPORT_THREADS_IMPORT_FAILED',
+      message,
+    });
   }
 }
 

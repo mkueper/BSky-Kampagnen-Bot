@@ -478,7 +478,12 @@ async function getTimeline(req, res) {
       feedUri: feedUri || tabConfig?.feedUri || null,
       limit
     })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Bluesky-Timeline.' })
+    const message = error?.message || 'Fehler beim Laden der Bluesky-Timeline.'
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_TIMELINE_FAILED',
+      message
+    })
   }
 }
 
@@ -564,8 +569,13 @@ async function getNotifications (req, res) {
       unreadCount: globalUnreadCount
     })
   } catch (error) {
-    log.error('notifications failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Mitteilungen.' })
+    const message = error?.message || 'Fehler beim Laden der Mitteilungen.'
+    log.error('notifications failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_NOTIFICATIONS_FAILED',
+      message
+    })
   }
 }
 
@@ -582,8 +592,13 @@ async function getBlocks (req, res) {
       cursor: data?.cursor || null
     })
   } catch (error) {
+    const message = error?.message || 'Fehler beim Laden deiner Blockliste.'
     log.error('blocks failed', { ...serializeErrorForLog(error), limit, cursor })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden deiner Blockliste.' })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_BLOCKS_FAILED',
+      message
+    })
   }
 }
 
@@ -593,35 +608,69 @@ async function getNotificationsUnreadCount (req, res) {
     const unreadCount = Number(data?.unreadCount) || 0
     res.json({ unreadCount })
   } catch (error) {
-    log.error('notifications unread count failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden des Mitteilungsstatus.' })
+    const message = error?.message || 'Fehler beim Laden des Mitteilungsstatus.'
+    log.error('notifications unread count failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_NOTIFICATIONS_UNREAD_FAILED',
+      message
+    })
   }
 }
 
 async function getThread(req, res) {
   try {
     const uri = String(req.query?.uri || '').trim()
-    if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
+    if (!uri) {
+      const message = 'uri erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_THREAD_URI_REQUIRED',
+        message
+      })
+    }
     const depth = Math.min(Math.max(parseInt(req.query?.depth || '', 10) || 40, 1), 100)
     const parentHeight = Math.min(Math.max(parseInt(req.query?.parentHeight || '', 10) || 40, 1), 100)
     const thread = await bsky.getReplies(uri, { depth, parentHeight })
     if (!thread || thread.$type !== THREAD_NODE_TYPE) {
-      return res.status(404).json({ error: 'Thread nicht gefunden.' })
+      return res.status(404).json({
+        error: 'Thread nicht gefunden.',
+        code: 'BLSKY_THREAD_NOT_FOUND',
+        message: 'Thread nicht gefunden.'
+      })
     }
     const focus = mapThreadNode(thread)
-    if (!focus) return res.status(404).json({ error: 'Thread nicht gefunden.' })
+    if (!focus) {
+      return res.status(404).json({
+        error: 'Thread nicht gefunden.',
+        code: 'BLSKY_THREAD_NOT_FOUND',
+        message: 'Thread nicht gefunden.'
+      })
+    }
     const parents = extractParentChain(thread)
     res.json({ focus, parents })
   } catch (error) {
-    log.error('thread failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden des Threads.' })
+    const message = error?.message || 'Fehler beim Laden des Threads.'
+    log.error('thread failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_THREAD_FAILED',
+      message
+    })
   }
 }
 
 async function getReactions(req, res) {
   try {
     const uri = String(req.query?.uri || req.body?.uri || '').trim()
-    if (!uri) return res.status(400).json({ error: 'uri erforderlich' })
+    if (!uri) {
+      const message = 'uri erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_REACTIONS_URI_REQUIRED',
+        message
+      })
+    }
     const r = await bsky.getReactions(uri)
     const likesCount = typeof r?.likesCount === 'number' ? r.likesCount : 0
     const repostsCount = typeof r?.repostsCount === 'number' ? r.repostsCount : 0
@@ -638,8 +687,20 @@ async function getReactions(req, res) {
       }
     })
   } catch (error) {
-    log.error('reactions failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Reaktionen.' })
+    const statusCode = typeof error?.statusCode === 'number'
+      ? error.statusCode
+      : (typeof error?.status === 'number' ? error.status : 500)
+    const message = error?.message || 'Fehler beim Laden der Reaktionen.'
+    let code = 'BLSKY_REACTIONS_FAILED'
+    if (statusCode === 404) {
+      code = 'BLSKY_REACTIONS_NOT_FOUND'
+    } else if (statusCode === 429) {
+      code = 'BLSKY_REACTIONS_RATE_LIMITED'
+    } else if (statusCode === 401 || statusCode === 403) {
+      code = 'BLSKY_REACTIONS_UNAUTHORIZED'
+    }
+    log.error('reactions failed', { error: message, statusCode })
+    res.status(statusCode).json({ error: message, code, message })
   }
 }
 
@@ -652,8 +713,13 @@ async function registerPushSubscription (req, res) {
     const statusCode = typeof error?.statusCode === 'number'
       ? error.statusCode
       : (typeof error?.status === 'number' ? error.status : 500)
-    log.error('registerPushSubscription failed', { error: error?.message || String(error) })
-    res.status(statusCode).json({ error: error?.message || 'Fehler bei der Push-Registrierung.' })
+    const message = error?.message || 'Fehler bei der Push-Registrierung.'
+    log.error('registerPushSubscription failed', { error: message, statusCode })
+    res.status(statusCode).json({
+      error: message,
+      code: 'BLSKY_PUSH_REGISTER_FAILED',
+      message
+    })
   }
 }
 
@@ -666,8 +732,13 @@ async function unregisterPushSubscription (req, res) {
     const statusCode = typeof error?.statusCode === 'number'
       ? error.statusCode
       : (typeof error?.status === 'number' ? error.status : 500)
-    log.error('unregisterPushSubscription failed', { error: error?.message || String(error) })
-    res.status(statusCode).json({ error: error?.message || 'Fehler beim Entfernen der Push-Registrierung.' })
+    const message = error?.message || 'Fehler beim Entfernen der Push-Registrierung.'
+    log.error('unregisterPushSubscription failed', { error: message, statusCode })
+    res.status(statusCode).json({
+      error: message,
+      code: 'BLSKY_PUSH_UNREGISTER_FAILED',
+      message
+    })
   }
 }
 
@@ -675,7 +746,14 @@ async function search (req, res) {
   try {
     const type = String(req.query?.type || 'top').toLowerCase()
     const q = String(req.query?.q || '').trim()
-    if (!q) return res.status(400).json({ error: 'q erforderlich' })
+    if (!q) {
+      const message = 'q erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_SEARCH_QUERY_REQUIRED',
+        message
+      })
+    }
     const limit = Math.min(Math.max(parseInt(req.query?.limit || '25', 10) || 25, 1), 50)
     const cursor = req.query?.cursor || undefined
 
@@ -685,7 +763,7 @@ async function search (req, res) {
       return res.json({ items, cursor: data?.cursor || null, type: 'people' })
     }
 
-  if (type === 'feeds') {
+    if (type === 'feeds') {
       try {
         const data = await bsky.searchFeeds({ q, limit, cursor })
         const items = Array.isArray(data?.feeds) ? data.feeds.map(mapSearchFeed).filter(Boolean) : []
@@ -693,7 +771,12 @@ async function search (req, res) {
       } catch (err) {
         if (err?.code === 'BSKY_FEED_SEARCH_UNSUPPORTED') {
           const status = err?.statusCode || 501
-          return res.status(status).json({ error: err.message || 'Feeds-Suche wird nicht unterstützt.' })
+          const message = err.message || 'Feeds-Suche wird nicht unterstützt.'
+          return res.status(status).json({
+            error: message,
+            code: 'BLSKY_SEARCH_FEEDS_UNSUPPORTED',
+            message
+          })
         }
         throw err
       }
@@ -704,17 +787,36 @@ async function search (req, res) {
     const posts = Array.isArray(data?.posts) ? data.posts.map(mapSearchPost).filter(Boolean) : []
     return res.json({ items: posts, cursor: data?.cursor || null, type: sort })
   } catch (error) {
-    log.error('search failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Suche fehlgeschlagen.' })
+    const message = error?.message || 'Suche fehlgeschlagen.'
+    log.error('search failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_SEARCH_FAILED',
+      message
+    })
   }
 }
 
 async function getProfile (req, res) {
   const actor = String(req.query?.actor || '').trim()
-  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  if (!actor) {
+    const message = 'actor erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_PROFILE_ACTOR_REQUIRED',
+      message
+    })
+  }
   try {
     const data = await bsky.getProfile(actor)
-    if (!data) return res.status(404).json({ error: 'Profil wurde nicht gefunden.' })
+    if (!data) {
+      const message = 'Profil wurde nicht gefunden.'
+      return res.status(404).json({
+        error: message,
+        code: 'BLSKY_PROFILE_NOT_FOUND',
+        message
+      })
+    }
     const profile = {
       did: data.did || null,
       handle: data.handle || '',
@@ -731,14 +833,26 @@ async function getProfile (req, res) {
     }
     return res.json({ profile })
   } catch (error) {
-    log.error('getProfile failed', { error: error?.message || String(error), actor })
-    return res.status(500).json({ error: error?.message || 'Profil konnte nicht geladen werden.' })
+    const message = error?.message || 'Profil konnte nicht geladen werden.'
+    log.error('getProfile failed', { error: message, actor })
+    return res.status(500).json({
+      error: message,
+      code: 'BLSKY_PROFILE_FAILED',
+      message
+    })
   }
 }
 
 async function getProfileFeed (req, res) {
   const actor = String(req.query?.actor || '').trim()
-  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  if (!actor) {
+    const message = 'actor erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_PROFILE_FEED_ACTOR_REQUIRED',
+      message
+    })
+  }
   const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
   const cursor = req.query.cursor || undefined
   const rawFilter = typeof req.query.filter === 'string' ? req.query.filter.trim() : ''
@@ -773,14 +887,26 @@ async function getProfileFeed (req, res) {
     })
     return res.json({ items, cursor: data?.cursor || null })
   } catch (error) {
-    log.error('getProfileFeed failed', { error: error?.message || String(error), actor })
-    return res.status(500).json({ error: error?.message || 'Beiträge konnten nicht geladen werden.' })
+    const message = error?.message || 'Beiträge konnten nicht geladen werden.'
+    log.error('getProfileFeed failed', { error: message, actor })
+    return res.status(500).json({
+      error: message,
+      code: 'BLSKY_PROFILE_FEED_FAILED',
+      message
+    })
   }
 }
 
 async function getProfileLikes (req, res) {
   const actor = String(req.query?.actor || '').trim()
-  if (!actor) return res.status(400).json({ error: 'actor erforderlich' })
+  if (!actor) {
+    const message = 'actor erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_PROFILE_LIKES_ACTOR_REQUIRED',
+      message
+    })
+  }
   const limit = Math.min(Math.max(parseInt(req.query.limit || '30', 10) || 30, 1), 100)
   const cursor = req.query.cursor || undefined
   try {
@@ -817,10 +943,18 @@ async function getProfileLikes (req, res) {
     const isHidden = error?.status === 400 && /profile not found/i.test(message)
     if (isHidden) {
       log.warn('getProfileLikes unavailable', { error: message, actor })
-      return res.status(404).json({ error: 'Likes sind nicht verfügbar oder versteckt.' })
+      return res.status(404).json({
+        error: 'Likes sind nicht verfügbar oder versteckt.',
+        code: 'BLSKY_PROFILE_LIKES_HIDDEN',
+        message: 'Likes sind nicht verfügbar oder versteckt.'
+      })
     }
     log.error('getProfileLikes failed', { error: message, actor })
-    return res.status(500).json({ error: message })
+    return res.status(500).json({
+      error: message,
+      code: 'BLSKY_PROFILE_LIKES_FAILED',
+      message
+    })
   }
 }
 
@@ -858,8 +992,13 @@ async function getBookmarks (req, res) {
     });
     return res.json({ items, cursor: data?.cursor || null });
   } catch (error) {
-    log.error('getBookmarks failed', { error: error?.message || String(error) });
-    return res.status(500).json({ error: error?.message || 'Bookmarks konnten nicht geladen werden.' });
+    const message = error?.message || 'Bookmarks konnten nicht geladen werden.'
+    log.error('getBookmarks failed', { error: message });
+    return res.status(500).json({
+      error: message,
+      code: 'BLSKY_BOOKMARKS_FAILED',
+      message
+    });
   }
 }
 
@@ -868,16 +1007,35 @@ async function postReply(req, res) {
     const text = String(req.body?.text || '').trim()
     const root = req.body?.root || {}
     const parent = req.body?.parent || {}
-    if (!text) return res.status(400).json({ error: 'text erforderlich' })
+    if (!text) {
+      const message = 'text erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_REPLY_TEXT_REQUIRED',
+        message
+      })
+    }
     if (!root?.uri || !root?.cid || !parent?.uri || !parent?.cid) {
-      return res.status(400).json({ error: 'root/parent (uri,cid) erforderlich' })
+      const message = 'root/parent (uri,cid) erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_REPLY_CONTEXT_REQUIRED',
+        message
+      })
     }
     const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('@core/services/platformContext')
     const { sendPost } = require('@core/services/postService')
     ensurePlatforms()
     const env = resolvePlatformEnv('bluesky')
     const envErr = validatePlatformEnv('bluesky', env)
-    if (envErr) return res.status(500).json({ error: envErr })
+    if (envErr) {
+      const message = envErr
+      return res.status(500).json({
+        error: message,
+        code: 'BLSKY_REPLY_ENV_INVALID',
+        message
+      })
+    }
     // Medien (optional) aus temp übernehmen und an sendPost übergeben
     const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
     const media = await collectMediaFromTemp(mediaInput, 'postReply')
@@ -891,15 +1049,25 @@ async function postReply(req, res) {
     try {
       const result = await sendPost(payload, 'bluesky', env)
       if (!result?.ok) {
-        return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+        const message = result?.error || 'Senden fehlgeschlagen'
+        return res.status(500).json({
+          error: message,
+          code: 'BLSKY_REPLY_SEND_FAILED',
+          message
+        })
       }
       res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
     } finally {
       await cleanupMediaFiles(mediaPaths, 'postReply')
     }
   } catch (error) {
-    log.error('postReply failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Senden der Antwort.' })
+    const message = error?.message || 'Fehler beim Senden der Antwort.'
+    log.error('postReply failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_REPLY_UNEXPECTED',
+      message
+    })
   }
 }
 
@@ -909,13 +1077,27 @@ async function postNow(req, res) {
     const quoteUri = typeof req.body?.quote?.uri === 'string' ? req.body.quote.uri.trim() : ''
     const quoteCid = typeof req.body?.quote?.cid === 'string' ? req.body.quote.cid.trim() : ''
     const hasQuote = Boolean(quoteUri && quoteCid)
-    if (!text && !hasQuote) return res.status(400).json({ error: 'text oder quote erforderlich' })
+    if (!text && !hasQuote) {
+      const message = 'text oder quote erforderlich'
+      return res.status(400).json({
+        error: message,
+        code: 'BLSKY_POST_TEXT_OR_QUOTE_REQUIRED',
+        message
+      })
+    }
     const { ensurePlatforms, resolvePlatformEnv, validatePlatformEnv } = require('@core/services/platformContext')
     const { sendPost } = require('@core/services/postService')
     ensurePlatforms()
     const env = resolvePlatformEnv('bluesky')
     const envErr = validatePlatformEnv('bluesky', env)
-    if (envErr) return res.status(500).json({ error: envErr })
+    if (envErr) {
+      const message = envErr
+      return res.status(500).json({
+        error: message,
+        code: 'BLSKY_POST_ENV_INVALID',
+        message
+      })
+    }
 
     // Optionale Medien aus temp übernehmen
     const mediaInput = Array.isArray(req.body?.media) ? req.body.media : []
@@ -930,14 +1112,26 @@ async function postNow(req, res) {
     const mediaPaths = media.map((item) => item?.path).filter(Boolean)
     try {
       const result = await sendPost(payload, 'bluesky', env)
-      if (!result?.ok) return res.status(500).json({ error: result?.error || 'Senden fehlgeschlagen' })
+      if (!result?.ok) {
+        const message = result?.error || 'Senden fehlgeschlagen'
+        return res.status(500).json({
+          error: message,
+          code: 'BLSKY_POST_SEND_FAILED',
+          message
+        })
+      }
       res.json({ ok: true, uri: result.uri, cid: result.cid, postedAt: result.postedAt })
     } finally {
       await cleanupMediaFiles(mediaPaths, 'postNow')
     }
   } catch (error) {
-    log.error('postNow failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Fehler beim Senden.' })
+    const message = error?.message || 'Fehler beim Senden.'
+    log.error('postNow failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_POST_UNEXPECTED',
+      message
+    })
   }
 }
 
@@ -952,32 +1146,63 @@ async function getFeeds (req, res) {
       errors: lists.errors
     })
   } catch (error) {
-    log.error('feeds failed', { error: error?.message || String(error) })
-    res.status(500).json({ error: error?.message || 'Feeds konnten nicht geladen werden.' })
+    const message = error?.message || 'Feeds konnten nicht geladen werden.'
+    log.error('feeds failed', { error: message })
+    res.status(500).json({
+      error: message,
+      code: 'BLSKY_FEEDS_FAILED',
+      message
+    })
   }
 }
 
 async function pinFeed (req, res) {
   const feedUri = getFeedUriFromRequest(req)
-  if (!feedUri) return res.status(400).json({ error: 'feedUri erforderlich' })
+  if (!feedUri) {
+    const message = 'feedUri erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_FEED_URI_REQUIRED',
+      message
+    })
+  }
   try {
     const savedFeeds = await bsky.pinSavedFeed(feedUri)
     const lists = await buildFeedLists(savedFeeds)
     res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
   } catch (error) {
-    return handleFeedError(res, error, 'Feed konnte nicht angepinnt werden.', 'pinFeed failed')
+    return handleFeedError(
+      res,
+      error,
+      'Feed konnte nicht angepinnt werden.',
+      'pinFeed failed',
+      'BLSKY_FEEDS_PIN_FAILED'
+    )
   }
 }
 
 async function unpinFeed (req, res) {
   const feedUri = getFeedUriFromRequest(req)
-  if (!feedUri) return res.status(400).json({ error: 'feedUri erforderlich' })
+  if (!feedUri) {
+    const message = 'feedUri erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_FEED_URI_REQUIRED',
+      message
+    })
+  }
   try {
     const savedFeeds = await bsky.unpinSavedFeed(feedUri)
     const lists = await buildFeedLists(savedFeeds)
     res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
   } catch (error) {
-    return handleFeedError(res, error, 'Feed konnte nicht entfernt werden.', 'unpinFeed failed')
+    return handleFeedError(
+      res,
+      error,
+      'Feed konnte nicht entfernt werden.',
+      'unpinFeed failed',
+      'BLSKY_FEEDS_UNPIN_FAILED'
+    )
   }
 }
 
@@ -986,13 +1211,26 @@ async function reorderPinnedFeeds (req, res) {
   const order = orderInput
     .map((id) => (typeof id === 'string' ? id.trim() : String(id || '').trim()))
     .filter(Boolean)
-  if (!order.length) return res.status(400).json({ error: 'order erforderlich' })
+  if (!order.length) {
+    const message = 'order erforderlich'
+    return res.status(400).json({
+      error: message,
+      code: 'BLSKY_FEEDS_ORDER_REQUIRED',
+      message
+    })
+  }
   try {
     const savedFeeds = await bsky.reorderPinnedFeeds(order)
     const lists = await buildFeedLists(savedFeeds)
     res.json({ pinned: lists.pinned, saved: lists.saved, errors: lists.errors })
   } catch (error) {
-    return handleFeedError(res, error, 'Reihenfolge konnte nicht gespeichert werden.', 'reorderPinnedFeeds failed')
+    return handleFeedError(
+      res,
+      error,
+      'Reihenfolge konnte nicht gespeichert werden.',
+      'reorderPinnedFeeds failed',
+      'BLSKY_FEEDS_REORDER_FAILED'
+    )
   }
 }
 
@@ -1205,12 +1443,18 @@ function getFeedUriFromRequest (req) {
   return bodyValue || queryValue || ''
 }
 
-function handleFeedError (res, error, fallback, scope) {
+function handleFeedError (res, error, fallback, scope, code) {
   const statusCode = error?.statusCode || 500
   const logPayload = { error: error?.message || String(error) }
   if (statusCode >= 500) log.error(scope, logPayload)
   else log.warn(scope, logPayload)
-  return res.status(statusCode).json({ error: error?.message || fallback })
+  const message = error?.message || fallback
+  const payload = { error: message }
+  if (code) {
+    payload.code = code
+    payload.message = message
+  }
+  return res.status(statusCode).json(payload)
 }
 
 function isPostUri (value) {

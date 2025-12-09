@@ -130,9 +130,19 @@ describe('bsky API', () => {
     vi.spyOn(bsky, 'unpinSavedFeed').mockRejectedValue(err)
     const ctrl = loadController()
     let payload = null
-    const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
+    let statusCode = 200
+    const res = {
+      json: (o) => { payload = o },
+      status: (c) => {
+        statusCode = c
+        return {
+          json: (o) => { payload = o }
+        }
+      }
+    }
     await ctrl.unpinFeed({ body: { feedUri: 'at://missing/feed' }, query: {} }, res)
-    expect(payload?.code).toBe(404)
+    expect(statusCode).toBe(404)
+    expect(payload?.code).toBe('BLSKY_FEEDS_UNPIN_FAILED')
     expect(payload?.error).toMatch(/nicht gefunden/i)
   })
 
@@ -188,7 +198,16 @@ describe('bsky API', () => {
     vi.spyOn(bsky, 'unregisterPushSubscription').mockRejectedValue(err)
     const ctrl = loadController()
     let payload = null
-    const res = { json: (o) => { payload = o }, status: (c) => ({ json: (o) => { payload = { code: c, ...o } } }) }
+    let statusCode = 200
+    const res = {
+      json: (o) => { payload = o },
+      status: (c) => {
+        statusCode = c
+        return {
+          json: (o) => { payload = o }
+        }
+      }
+    }
     await ctrl.unregisterPushSubscription({
       body: {
         serviceDid: 'did:web:push',
@@ -203,7 +222,8 @@ describe('bsky API', () => {
       platform: 'web',
       appId: 'client-app'
     })
-    expect(payload?.code).toBe(422)
+    expect(statusCode).toBe(422)
+    expect(payload?.code).toBe('BLSKY_PUSH_UNREGISTER_FAILED')
     expect(payload?.error).toMatch(/invalid token/i)
   })
 })

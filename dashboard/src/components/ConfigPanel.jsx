@@ -96,6 +96,99 @@ export default function ConfigPanel () {
   const [pollLoading, setPollLoading] = useState(true)
   const [pollSaving, setPollSaving] = useState(false)
 
+  const mapGeneralErrorMessage = (data) => {
+    const rawCode = typeof data?.error === 'string' ? data.error : null
+    const code = rawCode && rawCode.startsWith('SETTINGS_GENERAL_') ? rawCode : null
+    const backendMessage = typeof data?.message === 'string' ? data.message : null
+
+    if (code === 'SETTINGS_GENERAL_TIME_ZONE_REQUIRED') {
+      return t(
+        'config.general.errors.timeZoneRequired',
+        'TIME_ZONE muss angegeben werden.'
+      )
+    }
+    if (code === 'SETTINGS_GENERAL_LOCALE_REQUIRED') {
+      return t(
+        'config.general.errors.localeRequired',
+        'LOCALE muss angegeben werden.'
+      )
+    }
+    if (code === 'SETTINGS_GENERAL_LOCALE_UNSUPPORTED') {
+      return t(
+        'config.general.errors.localeUnsupported',
+        'LOCALE muss entweder "de" oder "en" sein.'
+      )
+    }
+
+    if (backendMessage) return backendMessage
+    if (rawCode && !code) return rawCode
+
+    return t(
+      'config.general.saveErrorFallback',
+      'Fehler beim Speichern der allgemeinen Einstellungen.'
+    )
+  }
+
+  const mapSchedulerErrorMessage = (data) => {
+    const rawCode = typeof data?.error === 'string' ? data.error : null
+    const code = rawCode && rawCode.startsWith('SETTINGS_SCHEDULER_') ? rawCode : null
+    const backendMessage = typeof data?.message === 'string' ? data.message : null
+
+    if (code === 'SETTINGS_SCHEDULER_INVALID_CRON') {
+      return t(
+        'config.scheduler.errors.invalidCron',
+        'Ungültiger Cron-Ausdruck für den Scheduler.'
+      )
+    }
+    if (code === 'SETTINGS_SCHEDULER_INVALID_NUMBERS') {
+      return t(
+        'config.scheduler.errors.invalidNumbers',
+        'POST_RETRIES und Backoff-Werte müssen positive Zahlen sein.'
+      )
+    }
+    if (code === 'SETTINGS_SCHEDULER_INVALID_GRACE_WINDOW') {
+      return t(
+        'config.scheduler.errors.invalidGraceWindow',
+        'SCHEDULER_GRACE_WINDOW_MINUTES muss mindestens 2 Minuten betragen.'
+      )
+    }
+
+    if (backendMessage) return backendMessage
+    if (rawCode && !code) return rawCode
+
+    return t(
+      'config.scheduler.saveErrorFallback',
+      'Speichern fehlgeschlagen.'
+    )
+  }
+
+  const mapPollingErrorMessage = (data) => {
+    const rawCode = typeof data?.error === 'string' ? data.error : null
+    const code = rawCode && rawCode.startsWith('SETTINGS_POLLING_') ? rawCode : null
+    const backendMessage = typeof data?.message === 'string' ? data.message : null
+
+    if (code === 'SETTINGS_POLLING_INVALID_NUMBERS') {
+      return t(
+        'config.polling.errors.invalidNumbers',
+        'Polling-Intervalle und Backoff-Werte müssen positive Zahlen sein.'
+      )
+    }
+    if (code === 'SETTINGS_POLLING_INVALID_JITTER') {
+      return t(
+        'config.polling.errors.invalidJitter',
+        'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.'
+      )
+    }
+
+    if (backendMessage) return backendMessage
+    if (rawCode && !code) return rawCode
+
+    return t(
+      'config.polling.saveErrorFallback',
+      'Fehler beim Speichern der Client-Konfiguration.'
+    )
+  }
+
   const hasChanges = useMemo(() => {
     return Object.keys(formValues).some(
       key => String(formValues[key]) !== String(initialValues[key] ?? '')
@@ -316,13 +409,8 @@ export default function ConfigPanel () {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(
-          data.error ||
-            t(
-              'config.general.saveErrorFallback',
-              'Fehler beim Speichern der allgemeinen Einstellungen.'
-            )
-        )
+        const message = mapGeneralErrorMessage(data)
+        throw new Error(message)
       }
       const data = await res.json()
       const nextValues = {
@@ -424,10 +512,8 @@ export default function ConfigPanel () {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(
-          data.error ||
-            t('config.scheduler.saveErrorFallback', 'Speichern fehlgeschlagen.')
-        )
+        const message = mapSchedulerErrorMessage(data)
+        throw new Error(message)
       }
 
       const data = await res.json()
@@ -561,13 +647,8 @@ export default function ConfigPanel () {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(
-          data.error ||
-            t(
-              'config.polling.saveErrorFallback',
-              'Fehler beim Speichern der Client-Konfiguration.'
-            )
-        )
+        const message = mapPollingErrorMessage(data)
+        throw new Error(message)
       }
       const data = await res.json()
       const v = data.values || {}

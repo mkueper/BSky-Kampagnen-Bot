@@ -47,7 +47,7 @@ describe('settingsController API', () => {
 
   it('PUT /api/settings/scheduler with invalid cron returns 400', async () => {
     const svc = require('@core/services/settingsService')
-    const spy = vi.spyOn(svc, 'saveSchedulerSettings').mockRejectedValue(new Error('Ungültiger Cron-Ausdruck'))
+    const spy = vi.spyOn(svc, 'saveSchedulerSettings').mockRejectedValue(new Error('Ungültiger Cron-Ausdruck für den Scheduler.'))
     const req = { body: { scheduleTime: 'invalid', timeZone: 'Europe/Berlin' } }
     let statusCode = 200
     let payload = null
@@ -55,7 +55,8 @@ describe('settingsController API', () => {
     const settingsController = loadController()
     await settingsController.updateSchedulerSettings(req, res)
     expect(statusCode).toBe(400)
-    expect(String(payload?.error || '')).toMatch(/Cron/i)
+    expect(payload?.error).toBe('SETTINGS_SCHEDULER_INVALID_CRON')
+    expect(String(payload?.message || '')).toMatch(/Cron/i)
     expect(spy).toHaveBeenCalledOnce()
   })
 })

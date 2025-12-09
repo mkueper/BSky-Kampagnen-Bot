@@ -219,7 +219,18 @@ export function useBskyEngagement({
       }
       setError('');
     } catch (err) {
-      setError(err?.message || 'Aktualisieren fehlgeschlagen');
+      const code = err?.data?.code || err?.data?.error || null;
+      if (code === 'BLSKY_REACTIONS_NOT_FOUND') {
+        setError('Beitrag wurde entfernt oder ist nicht mehr verfügbar.');
+      } else if (code === 'BLSKY_REACTIONS_RATE_LIMITED') {
+        setError('Reaktionen konnten wegen eines Rate-Limits vorübergehend nicht geladen werden.');
+      } else if (code === 'BLSKY_REACTIONS_UNAUTHORIZED') {
+        setError('Reaktionen konnten nicht geladen werden (nicht angemeldet oder Zugangsdaten ungültig).');
+      } else if (code === 'BLSKY_REACTIONS_URI_REQUIRED') {
+        setError('Reaktionen konnten nicht geladen werden (URI fehlt).');
+      } else {
+        setError(err?.message || 'Aktualisieren fehlgeschlagen');
+      }
     } finally {
       setRefreshing(false);
     }

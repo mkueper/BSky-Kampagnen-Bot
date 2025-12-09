@@ -549,7 +549,32 @@ const messages = {
         'ALT-Texte aus dem Export werden beim Import übernommen und den betroffenen Medien wieder zugeordnet. Wenn Medien nicht im Export enthalten sind, können sie nach dem Import in den Formularen wie gewohnt ergänzt werden.',
       infoHint:
         'In der Praxis ist es sinnvoll, Import und Export zunächst mit einem kleineren Ausschnitt oder in einer Testumgebung auszuprobieren, bevor größere Kampagnenbestände migriert werden.',
-      infoAria: 'Hinweis zu Import & Export anzeigen'
+      infoAria: 'Hinweis zu Import & Export anzeigen',
+      labels: {
+        posts: 'Posts',
+        threads: 'Threads'
+      },
+      errors: {
+        invalidJson:
+          'Die ausgewählte Datei enthält kein gültiges JSON.',
+        skeetsExportFailed: 'Fehler beim Export der Posts.',
+        threadsExportFailed: 'Fehler beim Export der Threads.',
+        skeetsImportFailed: 'Fehler beim Import der Posts.',
+        threadsImportFailed: 'Fehler beim Import der Threads.',
+        genericExportFailed: 'Fehler beim Export.',
+        genericImportFailed: 'Fehler beim Import.'
+      },
+      success: {
+        skeetsExportReadyTitle: 'Post-Export bereit',
+        threadsExportReadyTitle: 'Thread-Export bereit',
+        skeetsImportDoneTitle: 'Post-Import abgeschlossen',
+        threadsImportDoneTitle: 'Thread-Import abgeschlossen',
+        fileSaved: 'Datei {filename} wurde gespeichert.',
+        exportAbortedTitle: 'Export abgebrochen',
+        exportAbortedDescription: 'Der Speichervorgang wurde abgebrochen.',
+        genericImportSuccess:
+          'Alle Einträge wurden erfolgreich importiert.'
+      }
     },
     auth: {
       logout: {
@@ -593,7 +618,12 @@ const messages = {
           'Datums- und Zeitfelder in den Planungsformularen verwenden die Standard-Zeitzone für Vorschlagswerte und Darstellung.',
         timeZoneInfoHint:
           'In den meisten Installationen ist die Zeitzone des Deployment-Standorts (z. B. Europe/Berlin) sinnvoll. UTC eignet sich für rein technische Umgebungen.',
-        timeZoneInfoAria: 'Hinweis zur Zeitzone anzeigen'
+        timeZoneInfoAria: 'Hinweis zur Zeitzone anzeigen',
+        errors: {
+          timeZoneRequired: 'TIME_ZONE muss angegeben werden.',
+          localeRequired: 'LOCALE muss angegeben werden.',
+          localeUnsupported: 'LOCALE muss entweder "de" oder "en" sein.'
+        }
       },
       scheduler: {
         toastTitle: 'Konfiguration',
@@ -671,7 +701,14 @@ const messages = {
         },
         resetButton: 'Zurücksetzen auf Standard',
         saveBusy: 'Übernehmen…',
-        saveLabel: 'Übernehmen'
+        saveLabel: 'Übernehmen',
+        errors: {
+          invalidCron: 'Ungültiger Cron-Ausdruck für den Scheduler.',
+          invalidNumbers:
+            'POST_RETRIES und Backoff-Werte müssen positive Zahlen sein.',
+          invalidGraceWindow:
+            'SCHEDULER_GRACE_WINDOW_MINUTES muss mindestens 2 Minuten betragen.'
+        }
       },
       polling: {
         toastTitle: 'Konfiguration',
@@ -732,7 +769,12 @@ const messages = {
           'Der Heartbeat signalisiert dem Backend, ob ein aktiver Client vorhanden ist. Nur bei aktiven Clients wird Polling für Engagement-Updates häufiger ausgeführt.',
         infoHint:
           'Für die meisten Setups sind moderate Intervalle ausreichend. Aggressives Polling erhöht die Serverlast und ist meist nur für Debug- oder Testumgebungen sinnvoll.',
-        infoAria: 'Hinweis zum Dashboard-Polling anzeigen'
+        infoAria: 'Hinweis zum Dashboard-Polling anzeigen',
+        errors: {
+          invalidNumbers:
+            'Polling-Intervalle und Backoff-Werte müssen positive Zahlen sein.',
+          invalidJitter: 'POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.'
+        }
       },
       credentials: {
         toastTitle: 'Zugangsdaten',
@@ -1311,7 +1353,32 @@ const messages = {
         'ALT texts from the export are restored on import and assigned to the corresponding media again. If media are not included in the export, they can be added as usual in the forms after import.',
       infoHint:
         'In practice, it is a good idea to try import and export first with a smaller sample or in a test environment before migrating larger campaign sets.',
-      infoAria: 'Show hint for import & export'
+      infoAria: 'Show hint for import & export',
+      labels: {
+        posts: 'posts',
+        threads: 'threads'
+      },
+      errors: {
+        invalidJson:
+          'The selected file does not contain valid JSON.',
+        skeetsExportFailed: 'Failed to export posts.',
+        threadsExportFailed: 'Failed to export threads.',
+        skeetsImportFailed: 'Failed to import posts.',
+        threadsImportFailed: 'Failed to import threads.',
+        genericExportFailed: 'Export failed.',
+        genericImportFailed: 'Import failed.'
+      },
+      success: {
+        skeetsExportReadyTitle: 'Post export ready',
+        threadsExportReadyTitle: 'Thread export ready',
+        skeetsImportDoneTitle: 'Post import completed',
+        threadsImportDoneTitle: 'Thread import completed',
+        fileSaved: 'File {filename} has been saved.',
+        exportAbortedTitle: 'Export cancelled',
+        exportAbortedDescription: 'The save operation was cancelled.',
+        genericImportSuccess:
+          'All entries have been imported successfully.'
+      }
     },
     auth: {
       logout: {
@@ -1355,7 +1422,12 @@ const messages = {
           'Date and time fields in scheduling forms use the default time zone for suggested values and display.',
         timeZoneInfoHint:
           'In most installations, the time zone of the deployment location (e.g. Europe/Berlin) is appropriate. UTC is suitable for purely technical environments.',
-        timeZoneInfoAria: 'Show hint for time zone'
+        timeZoneInfoAria: 'Show hint for time zone',
+        errors: {
+          timeZoneRequired: 'TIME_ZONE must be provided.',
+          localeRequired: 'LOCALE must be provided.',
+          localeUnsupported: 'LOCALE must be either "de" or "en".'
+        }
       },
       scheduler: {
         toastTitle: 'Configuration',
@@ -1435,7 +1507,14 @@ const messages = {
         },
         resetButton: 'Reset to defaults',
         saveBusy: 'Applying…',
-        saveLabel: 'Apply'
+        saveLabel: 'Apply',
+        errors: {
+          invalidCron: 'Invalid cron expression for scheduler.',
+          invalidNumbers:
+            'POST_RETRIES and backoff values must be positive numbers.',
+          invalidGraceWindow:
+            'SCHEDULER_GRACE_WINDOW_MINUTES must be at least 2 minutes.'
+        }
       },
       polling: {
         toastTitle: 'Configuration',
@@ -1489,7 +1568,12 @@ const messages = {
           'The heartbeat signals to the backend whether an active client is present. Polling for engagement updates is more frequent only when there is an active client.',
         infoHint:
           'For most setups, moderate intervals are sufficient. Aggressive polling increases server load and is mainly useful for debugging or tests.',
-        infoAria: 'Show hint for dashboard polling'
+        infoAria: 'Show hint for dashboard polling',
+        errors: {
+          invalidNumbers:
+            'Polling intervals and backoff values must be positive numbers.',
+          invalidJitter: 'POLL_JITTER_RATIO must be between 0 and 1.'
+        }
       },
       credentials: {
         toastTitle: 'Credentials',

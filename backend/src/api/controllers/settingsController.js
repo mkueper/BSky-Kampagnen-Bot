@@ -9,6 +9,91 @@
 const settingsService = require("@core/services/settingsService");
 const { restartScheduler } = require("@core/services/scheduler");
 
+function mapSchedulerSaveError(error) {
+  const message = error?.message || "Fehler beim Speichern der Einstellungen.";
+  if (message.includes("Ungültiger Cron-Ausdruck")) {
+    return {
+      status: 400,
+      code: "SETTINGS_SCHEDULER_INVALID_CRON",
+      message,
+    };
+  }
+  if (message.includes("POST_RETRIES und Backoff-Werte müssen positive Zahlen sein.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_SCHEDULER_INVALID_NUMBERS",
+      message,
+    };
+  }
+  if (message.includes("SCHEDULER_GRACE_WINDOW_MINUTES muss mindestens 2 Minuten betragen.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_SCHEDULER_INVALID_GRACE_WINDOW",
+      message,
+    };
+  }
+  return {
+    status: 500,
+    code: "SETTINGS_SCHEDULER_SAVE_FAILED",
+    message,
+  };
+}
+
+function mapGeneralSaveError(error) {
+  const message =
+    error?.message || "Fehler beim Speichern der allgemeinen Einstellungen.";
+  if (message.includes("TIME_ZONE muss angegeben werden.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_GENERAL_TIME_ZONE_REQUIRED",
+      message,
+    };
+  }
+  if (message.includes("LOCALE muss angegeben werden.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_GENERAL_LOCALE_REQUIRED",
+      message,
+    };
+  }
+  if (message.includes('LOCALE muss entweder "de" oder "en" sein.')) {
+    return {
+      status: 400,
+      code: "SETTINGS_GENERAL_LOCALE_UNSUPPORTED",
+      message,
+    };
+  }
+  return {
+    status: 500,
+    code: "SETTINGS_GENERAL_SAVE_FAILED",
+    message,
+  };
+}
+
+function mapClientPollingSaveError(error) {
+  const message =
+    error?.message || "Fehler beim Speichern der Client-Konfiguration.";
+  if (message.includes("Polling-Intervalle und Backoff-Werte müssen positive Zahlen sein.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_POLLING_INVALID_NUMBERS",
+      message,
+    };
+  }
+  if (message.includes("POLL_JITTER_RATIO muss zwischen 0 und 1 liegen.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_POLLING_INVALID_JITTER",
+      message,
+    };
+  }
+  return {
+    status: 500,
+    code: "SETTINGS_POLLING_SAVE_FAILED",
+    message,
+  };
+}
+
 /**
  * GET /api/settings/scheduler
  *
@@ -21,7 +106,12 @@ async function getSchedulerSettings(req, res) {
     const data = await settingsService.getSchedulerSettings();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: error?.message || "Fehler beim Laden der Einstellungen." });
+    const message =
+      error?.message || "Fehler beim Laden der Einstellungen.";
+    res.status(500).json({
+      error: "SETTINGS_SCHEDULER_LOAD_FAILED",
+      message,
+    });
   }
 }
 
@@ -43,9 +133,8 @@ async function updateSchedulerSettings(req, res) {
     await restartScheduler();
     res.json(data);
   } catch (error) {
-    const message = error?.message || "Fehler beim Speichern der Einstellungen.";
-    const status = message.includes("Ungültiger Cron") || message.includes("müssen") ? 400 : 500;
-    res.status(status).json({ error: message });
+    const { status, code, message } = mapSchedulerSaveError(error);
+    res.status(status).json({ error: code, message });
   }
 }
 
@@ -59,9 +148,12 @@ async function getGeneralSettings(req, res) {
     const data = await settingsService.getGeneralSettings();
     res.json(data);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: error?.message || "Fehler beim Laden der allgemeinen Einstellungen." });
+    const message =
+      error?.message || "Fehler beim Laden der allgemeinen Einstellungen.";
+    res.status(500).json({
+      error: "SETTINGS_GENERAL_LOAD_FAILED",
+      message,
+    });
   }
 }
 
@@ -76,9 +168,8 @@ async function updateGeneralSettings(req, res) {
     await restartScheduler();
     res.json(data);
   } catch (error) {
-    const message = error?.message || "Fehler beim Speichern der allgemeinen Einstellungen.";
-    const status = message.includes("TIME_ZONE") ? 400 : 500;
-    res.status(status).json({ error: message });
+    const { status, code, message } = mapGeneralSaveError(error);
+    res.status(status).json({ error: code, message });
   }
 }
 
@@ -93,7 +184,12 @@ module.exports = {
       const data = await settingsService.getClientPollingSettings();
       res.json(data);
     } catch (error) {
-      res.status(500).json({ error: error?.message || "Fehler beim Laden der Client-Konfiguration." });
+      const message =
+        error?.message || "Fehler beim Laden der Client-Konfiguration.";
+      res.status(500).json({
+        error: "SETTINGS_POLLING_LOAD_FAILED",
+        message,
+      });
     }
   },
   async updateClientPollingSettings(req, res) {
@@ -101,9 +197,8 @@ module.exports = {
       const data = await settingsService.saveClientPollingSettings(req.body || {});
       res.json(data);
     } catch (error) {
-      const message = error?.message || "Fehler beim Speichern der Client-Konfiguration.";
-      const status = message.includes("müssen") || message.includes("zwischen 0 und 1") ? 400 : 500;
-      res.status(status).json({ error: message });
+      const { status, code, message } = mapClientPollingSaveError(error);
+      res.status(status).json({ error: code, message });
     }
   },
 };

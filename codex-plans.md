@@ -24,7 +24,9 @@ Buttons, Edit-Handling und Terminologie sind durchgängig; InfoDialog + neue i18
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-- Backend: Fehler- und Statusmeldungen (insbesondere Login/Auth) perspektivisch auf lokalisierbare Codes oder i18n umstellen; dafür ggf. eine eigene Datei `codex-plans-backend.md` anlegen, sobald wir konkret ins Backend einsteigen.
+1. Desktop/Electron: Option für einen externen Bluesky-Client vorbereiten (konfigurierbarer Pfad/Command wie `/usr/local/bin/bsky-client`), Start ausschließlich über den Electron-Main-Prozess ohne Abhängigkeit zum Web-Dashboard; Umsetzung separat planen, sobald die Desktop-Variante wieder im Fokus steht.
+2. Dashboard/PWA: Perspektivisch das Dashboard als PWA nutzbar machen (Manifest, Service-Worker, Icons), zunächst mit Fokus auf Installierbarkeit und einfachem Offline-Verhalten ohne komplexes Caching der API-Aufrufe.
+3. Deployment: Idee festhalten, Backend und Dashboard zusätzlich als klassische systemd-Services (ohne Docker) betreibbar zu machen (z. B. eigene Unit-Files, Log-Rotation, Restart-Policy); konkrete Ausgestaltung später planen, wenn ein non-Docker-Setup benötigt wird.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

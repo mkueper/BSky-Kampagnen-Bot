@@ -44,6 +44,106 @@
   - `ping` – Keepalive alle 25 s.  
   Client sollte `EventSource` verwenden und bei Abbruch reconnecten.
 
+### Fehlerformat (`{ error, message }`)
+
+Ein wachsender Teil der Konfigurations- und Auth-Endpunkte verwendet ein einheitliches Fehlerformat:
+
+```json
+{
+  "error": "EIN_FEHLERCODE",
+  "message": "Menschenlesbare Beschreibung (lokalisierbar)."
+}
+```
+
+- `error` ist ein stabiler, maschinenlesbarer Code (z. B. `AUTH_INVALID_CREDENTIALS`), den Frontends über i18n in Benutzertexte übersetzen können.
+- `message` ist eine menschenlesbare Beschreibung, die sich an der Projektsprache orientiert (aktuell Deutsch); das Dashboard nutzt sie als Fallback, wenn kein spezifischer i18n-Text existiert.
+
+Aktuell gelten u. a. folgende Codes:
+
+- **Auth / Login**
+  - `AUTH_NOT_CONFIGURED` – Login noch nicht konfiguriert (`AUTH_*` fehlt); `/api/auth/login` liefert `503`.
+  - `AUTH_MISSING_CREDENTIALS` – Benutzername oder Passwort nicht übermittelt; `400`.
+  - `AUTH_INVALID_CREDENTIALS` – Kombination aus Benutzer/Passwort ist ungültig; `401`.
+  - `AUTH_SESSION_REQUIRED` – Session fehlt oder ist abgelaufen; `401` (z. B. aus `requireAuth`).
+- **Settings – Scheduler (`/api/settings/scheduler`)**
+  - `SETTINGS_SCHEDULER_LOAD_FAILED` – Fehler beim Laden der Scheduler-Einstellungen; `500`.
+  - `SETTINGS_SCHEDULER_INVALID_CRON` – ungültiger Cron-Ausdruck; `400`.
+  - `SETTINGS_SCHEDULER_INVALID_NUMBERS` – Retry-/Backoff-Werte sind keine positiven Zahlen; `400`.
+  - `SETTINGS_SCHEDULER_INVALID_GRACE_WINDOW` – `SCHEDULER_GRACE_WINDOW_MINUTES` kleiner als 2; `400`.
+  - `SETTINGS_SCHEDULER_SAVE_FAILED` – sonstiger Fehler beim Speichern der Scheduler-Einstellungen; `500`.
+- **Settings – Allgemein (`/api/settings/general`)**
+  - `SETTINGS_GENERAL_LOAD_FAILED` – Fehler beim Laden der allgemeinen Einstellungen; `500`.
+  - `SETTINGS_GENERAL_TIME_ZONE_REQUIRED` – `TIME_ZONE` fehlt; `400`.
+  - `SETTINGS_GENERAL_LOCALE_REQUIRED` – `LOCALE` fehlt; `400`.
+  - `SETTINGS_GENERAL_LOCALE_UNSUPPORTED` – `LOCALE` ist nicht `de` oder `en`; `400`.
+  - `SETTINGS_GENERAL_SAVE_FAILED` – generischer Fehler beim Speichern; `500`.
+- **Settings – Client-Polling (`/api/settings/client-polling`)**
+  - `SETTINGS_POLLING_LOAD_FAILED` – Fehler beim Laden der Client-Polling-Konfiguration; `500`.
+  - `SETTINGS_POLLING_INVALID_NUMBERS` – Polling-Intervalle/Backoff-Werte sind keine positiven Zahlen; `400`.
+  - `SETTINGS_POLLING_INVALID_JITTER` – `POLL_JITTER_RATIO` liegt nicht im Intervall `[0, 1]`; `400`.
+  - `SETTINGS_POLLING_SAVE_FAILED` – generischer Fehler beim Speichern; `500`.
+
+Ältere Endpunkte geben teilweise noch nur ein Feld `error` mit freiem Text zurück. Das Dashboard behandelt diese Fälle weiterhin über generische Fallback-Meldungen. Neue oder überarbeitete Routen sollten nach Möglichkeit das oben beschriebene Schema verwenden und ihre Fehlercodes in der Dokumentation ergänzen.
+
+- **Bluesky – Reactions (`/api/bsky/reactions`)**
+  - Die Route liefert bei Fehlern neben einem menschenlesbaren `error`/`message`-Text zusätzlich ein Feld `code` für Maschinen:
+    - `BLSKY_REACTIONS_URI_REQUIRED` – `uri`-Parameter fehlt; `400`.
+    - `BLSKY_REACTIONS_NOT_FOUND` – die angefragte URI konnte bei Bluesky nicht gefunden werden; `404`.
+    - `BLSKY_REACTIONS_RATE_LIMITED` – Abruf wurde von Bluesky aufgrund von Rate-Limits abgelehnt; `429`.
+    - `BLSKY_REACTIONS_UNAUTHORIZED` – fehlende oder ungültige Zugangsdaten für Bluesky; `401`/`403`.
+    - `BLSKY_REACTIONS_FAILED` – sonstiger Fehler beim Laden der Reaktionen; `500`.
+
+- **Bluesky – Direktes Posten (`/api/bsky/post`, `/api/bsky/reply`)**
+  - Beim direkten Senden von Beiträgen/Replies werden u. a. folgende Codes verwendet:
+    - `BLSKY_POST_TEXT_OR_QUOTE_REQUIRED` – weder `text` noch gültige `quote`-Angaben vorhanden; `400`.
+    - `BLSKY_POST_ENV_INVALID` – Bluesky-Umgebung nicht korrekt konfiguriert (z. B. fehlender Identifier/App-Passwort); `500`.
+    - `BLSKY_POST_SEND_FAILED` – der Versand über die Bluesky-API war nicht erfolgreich; `500`.
+    - `BLSKY_POST_UNEXPECTED` – unerwarteter Fehler beim Senden.
+    - `BLSKY_REPLY_TEXT_REQUIRED` – Reply-Text fehlt; `400`.
+    - `BLSKY_REPLY_CONTEXT_REQUIRED` – `root`/`parent` (jeweils `uri`/`cid`) fehlen oder sind unvollständig; `400`.
+    - `BLSKY_REPLY_ENV_INVALID` – Bluesky-Umgebung für Replies nicht korrekt konfiguriert; `500`.
+    - `BLSKY_REPLY_SEND_FAILED` – Versand der Antwort über die Bluesky-API fehlgeschlagen; `500`.
+    - `BLSKY_REPLY_UNEXPECTED` – unerwarteter Fehler beim Senden der Antwort; `500`.
+
+- **Bluesky – Timeline, Threads, Profile**
+  - `BLSKY_TIMELINE_FAILED` – Fehler beim Laden der Bluesky-Timeline (`/api/bsky/timeline`); `500`.
+  - `BLSKY_THREAD_URI_REQUIRED` – `uri`-Parameter für `GET /api/bsky/thread` fehlt; `400`.
+  - `BLSKY_THREAD_NOT_FOUND` – Thread konnte nicht geladen werden (falsche oder gelöschte URI); `404`.
+  - `BLSKY_THREAD_FAILED` – unerwarteter Fehler beim Laden eines Threads; `500`.
+  - `BLSKY_PROFILE_ACTOR_REQUIRED` – `actor`-Parameter fehlt (`/api/bsky/profile`); `400`.
+  - `BLSKY_PROFILE_NOT_FOUND` – Profil wurde nicht gefunden; `404`.
+  - `BLSKY_PROFILE_FAILED` – generischer Fehler beim Laden eines Profils; `500`.
+  - `BLSKY_PROFILE_FEED_ACTOR_REQUIRED` – `actor`-Parameter fehlt (`/api/bsky/profile/feed`); `400`.
+  - `BLSKY_PROFILE_FEED_FAILED` – Fehler beim Laden des Profil-Feeds; `500`.
+  - `BLSKY_PROFILE_LIKES_ACTOR_REQUIRED` – `actor`-Parameter fehlt (`/api/bsky/profile/likes`); `400`.
+  - `BLSKY_PROFILE_LIKES_HIDDEN` – Likes sind versteckt oder nicht verfügbar; `404`.
+  - `BLSKY_PROFILE_LIKES_FAILED` – Fehler beim Laden der Likes; `500`.
+
+- **Bluesky – Bookmarks, Feeds & Suche**
+  - `BLSKY_BOOKMARKS_FAILED` – Fehler beim Laden der Bookmarks (`/api/bsky/bookmarks`); `500`.
+  - `BLSKY_FEEDS_FAILED` – Fehler beim Laden gespeicherter Feeds (`/api/bsky/feeds`); `500`.
+  - `BLSKY_FEED_URI_REQUIRED` – `feedUri` fehlt bei Pin/Unpin (`/api/bsky/feeds/pin`); `400`.
+  - `BLSKY_FEEDS_PIN_FAILED` – Fehler beim Anpinnen eines Feeds; `5xx`.
+  - `BLSKY_FEEDS_UNPIN_FAILED` – Fehler beim Entfernen eines Pins; `5xx`.
+  - `BLSKY_FEEDS_ORDER_REQUIRED` – `order` fehlt oder leer bei `PATCH /api/bsky/feeds/pin-order`; `400`.
+  - `BLSKY_FEEDS_REORDER_FAILED` – Fehler beim Speichern der Pin-Reihenfolge; `5xx`.
+  - `BLSKY_SEARCH_QUERY_REQUIRED` – `q`-Parameter fehlt (`/api/bsky/search`); `400`.
+  - `BLSKY_SEARCH_FEEDS_UNSUPPORTED` – Feed-Suche wird von der aktuellen Bluesky-Instanz nicht unterstützt; `501` (oder API-spezifischer Status).
+  - `BLSKY_SEARCH_FAILED` – generischer Fehler bei der Suche; `500`.
+
+- **Bluesky – Notifications, Blocks & Push**
+  - `BLSKY_NOTIFICATIONS_FAILED` – Fehler beim Laden von Mitteilungen (`/api/bsky/notifications`); `500`.
+  - `BLSKY_NOTIFICATIONS_UNREAD_FAILED` – Fehler beim Laden des Mitteilungsstatus (`/api/bsky/notifications/unread-count`); `500`.
+  - `BLSKY_BLOCKS_FAILED` – Fehler beim Laden der Blockliste (`/api/bsky/blocks`); `500`.
+  - `BLSKY_PUSH_REGISTER_FAILED` – Fehler bei der Registrierung einer Push-Subscription (`/api/bsky/notifications/register-push`); Status z. B. `4xx`/`5xx` aus der Bluesky-API.
+  - `BLSKY_PUSH_UNREGISTER_FAILED` – Fehler beim Entfernen einer Push-Subscription (`/api/bsky/notifications/unregister-push`); Status entsprechend Bluesky-API.
+
+- **Import/Export – Skeets & Threads**
+  - `IMPORT_EXPORT_SKEETS_EXPORT_FAILED` – Fehler beim Export geplanter Skeets (`GET /api/skeets/export`); `500`.
+  - `IMPORT_EXPORT_SKEETS_IMPORT_FAILED` – Fehler beim Import geplanter Skeets (`POST /api/skeets/import`); `400`.
+  - `IMPORT_EXPORT_THREADS_EXPORT_FAILED` – Fehler beim Export von Threads (`GET /api/threads/export`); `500`.
+  - `IMPORT_EXPORT_THREADS_IMPORT_FAILED` – Fehler beim Import von Threads (`POST /api/threads/import`); `400`.
+
 ---
 
 ## Skeets (Einzelposts)

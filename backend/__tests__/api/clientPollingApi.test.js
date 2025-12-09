@@ -43,7 +43,8 @@ describe('settingsController client-polling API', () => {
     const res = { status: (c) => { statusCode = c; return { json: (o) => { payload = o } } }, json: (o) => { payload = o } }
     await settingsController.updateClientPollingSettings(req, res)
     expect(statusCode).toBe(400)
-    expect(String(payload?.error || '')).toMatch(/zwischen 0 und 1/i)
+    expect(payload?.error).toBe('SETTINGS_POLLING_INVALID_JITTER')
+    expect(String(payload?.message || '')).toMatch(/zwischen 0 und 1/i)
     expect(spy).toHaveBeenCalledOnce()
   })
 })
