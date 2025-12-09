@@ -13,6 +13,8 @@
 - Die Settings-API (`/api/settings/scheduler`, `/api/settings/general`, `/api/settings/client-polling`) verwendet konsistente Fehlercodes der Form `SETTINGS_*`; das Dashboard zeigt diese über dedizierte i18n-Keys an.
 - Die wichtigsten Bluesky-Endpunkte (Reaktionen, Post/Reply, Timeline, Threads, Profile, Feeds, Suche, Notifications, Blocks, Push) liefern nun eindeutige `BLSKY_*`-Fehlercodes; die Reaktionen werden im `bsky-client` bereits codesensitiv ausgewertet.
 - Import/Export von Skeets und Threads (`/api/skeets/…`, `/api/threads/…`) gibt strukturierte Fehler mit `IMPORT_EXPORT_*`-Codes zurück; das Dashboard verwendet diese für lokaliserte Toast-Meldungen beim Import/Export.
+- Upload- und Tenor-Endpunkte liefern einheitliche Fehlercodes (`UPLOAD_*`, `TENOR_*`) zusätzlich zu menschenlesbaren Texten; das Verhalten bestehender Clients bleibt unverändert.
+- Für temporäre Uploads (`TEMP_UPLOAD_DIR`) existiert ein Garbage-Collector (`cleanupOldTempUploads`) und ein Maintenance-Endpunkt (`POST /api/maintenance/cleanup-temp-uploads`), der alte Dateien (Standard: älter als 24 h) entfernt.
 - Backend-Tests für Auth, Settings, Bluesky-API und Import/Export sind auf das neue Fehlerformat aktualisiert; `npm test` und `npm run lint` laufen grün.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
@@ -21,9 +23,7 @@ Login/Auth und Settings dienen inzwischen als Referenz für Backend-Fehlercodes 
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Upload-/Tenor-Fehler strukturieren:
-   - Upload-Controller und Tenor-Proxy auf ein einheitliches Fehlerformat `{ error, message }` umstellen (z. B. `UPLOAD_FAILED`, `UPLOAD_UNSUPPORTED_TYPE`, `TENOR_DOWNLOAD_FAILED`).
-   - Bestehende UI-Hinweise zu GIF- und Medienfehlern im i18n-Bundle an die neuen Codes koppeln.
+1. Bestehende UI-Hinweise zu GIF- und Medienfehlern im Dashboard und `bsky-client` an die neuen `UPLOAD_*`- und `TENOR_*`-Fehlercodes koppeln, damit Upload-/GIF-Probleme konsistent lokalisiert angezeigt werden.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

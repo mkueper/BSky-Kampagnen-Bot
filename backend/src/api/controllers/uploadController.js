@@ -23,7 +23,12 @@ async function uploadTemp(req, res) {
     if (req.file) {
       const { originalname, mimetype, buffer } = req.file;
       if (buffer?.length > limitBytes) {
-        return res.status(413).json({ error: 'Datei ist zu groß.' });
+        const message = 'Datei ist zu groß.';
+        return res.status(413).json({
+          error: message,
+          code: 'UPLOAD_TOO_LARGE',
+          message,
+        });
       }
       const stored = writeBufferToTemp(buffer, { filename: originalname, mime: mimetype, altText: req.body?.altText });
       return res.status(201).json(stored);
@@ -31,25 +36,50 @@ async function uploadTemp(req, res) {
 
     const { filename, mime, data, altText } = req.body || {};
     if (typeof data !== 'string') {
-      return res.status(400).json({ error: 'Keine Datei hochgeladen.' });
+      const message = 'Keine Datei hochgeladen.';
+      return res.status(400).json({
+        error: message,
+        code: 'UPLOAD_MISSING_DATA',
+        message,
+      });
     }
 
     const match = data.match(/^data:([^;]+);base64,(.+)$/i);
     if (!match) {
-      return res.status(400).json({ error: 'Ungültiges Datenformat.' });
+      const message = 'Ungültiges Datenformat.';
+      return res.status(400).json({
+        error: message,
+        code: 'UPLOAD_INVALID_DATA_URL',
+        message,
+      });
     }
     const [, dataMime, base64Payload] = match;
     let buffer;
     try {
       buffer = Buffer.from(base64Payload, 'base64');
     } catch {
-      return res.status(400).json({ error: 'Ungültige Datei.' });
+      const message = 'Ungültige Datei.';
+      return res.status(400).json({
+        error: message,
+        code: 'UPLOAD_INVALID_BASE64',
+        message,
+      });
     }
     if (!buffer || buffer.length === 0) {
-      return res.status(400).json({ error: 'Ungültige Datei.' });
+      const message = 'Ungültige Datei.';
+      return res.status(400).json({
+        error: message,
+        code: 'UPLOAD_INVALID_BUFFER',
+        message,
+      });
     }
     if (buffer.length > limitBytes) {
-      return res.status(413).json({ error: 'Datei ist zu groß.' });
+      const message = 'Datei ist zu groß.';
+      return res.status(413).json({
+        error: message,
+        code: 'UPLOAD_TOO_LARGE',
+        message,
+      });
     }
 
     const stored = writeBufferToTemp(buffer, {
@@ -60,9 +90,19 @@ async function uploadTemp(req, res) {
     return res.status(201).json(stored);
   } catch (error) {
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'Datei ist zu groß.' });
+      const message = 'Datei ist zu groß.';
+      return res.status(413).json({
+        error: message,
+        code: 'UPLOAD_TOO_LARGE',
+        message,
+      });
     }
-    return res.status(500).json({ error: error?.message || 'Upload fehlgeschlagen.' });
+    const message = error?.message || 'Upload fehlgeschlagen.';
+    return res.status(500).json({
+      error: message,
+      code: 'UPLOAD_FAILED',
+      message,
+    });
   }
 }
 

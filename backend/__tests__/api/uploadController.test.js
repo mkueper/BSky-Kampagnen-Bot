@@ -18,6 +18,8 @@ describe('uploadController.uploadTemp', () => {
     const res = mockRes();
     await uploadController.uploadTemp(req, res);
     expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('error', 'Ungültiges Datenformat.');
+    expect(res.body).toHaveProperty('code', 'UPLOAD_INVALID_DATA_URL');
   });
 
   it('returns 413 for payload exceeding limit', async () => {
@@ -29,6 +31,8 @@ describe('uploadController.uploadTemp', () => {
       const res = mockRes();
       await uploadController.uploadTemp(req, res);
       expect(res.statusCode).toBe(413);
+      expect(res.body).toHaveProperty('error', 'Datei ist zu groß.');
+      expect(res.body).toHaveProperty('code', 'UPLOAD_TOO_LARGE');
     } finally {
       process.env.UPLOAD_MAX_BYTES = prev;
     }

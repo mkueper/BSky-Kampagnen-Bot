@@ -144,6 +144,20 @@ Aktuell gelten u. a. folgende Codes:
   - `IMPORT_EXPORT_THREADS_EXPORT_FAILED` – Fehler beim Export von Threads (`GET /api/threads/export`); `500`.
   - `IMPORT_EXPORT_THREADS_IMPORT_FAILED` – Fehler beim Import von Threads (`POST /api/threads/import`); `400`.
 
+- **Uploads & Tenor**
+  - `UPLOAD_MISSING_DATA` – weder Multipart-Datei noch gültige `data`-Payload vorhanden (`POST /api/uploads/temp`); `400`.
+  - `UPLOAD_INVALID_DATA_URL` – `data` ist keine gültige Data-URL (`data:<mime>;base64,...`); `400`.
+  - `UPLOAD_INVALID_BASE64` – Base64-Payload konnte nicht dekodiert werden; `400`.
+  - `UPLOAD_INVALID_BUFFER` – dekodierter Buffer ist leer oder ungültig; `400`.
+  - `UPLOAD_TOO_LARGE` – Datei überschreitet `UPLOAD_MAX_BYTES` oder multer-Limit; `413`.
+  - `UPLOAD_FAILED` – generischer Fehler beim Upload (`/api/uploads/temp`); `500`.
+  - `TENOR_API_KEY_REQUIRED` – Tenor-Proxy wurde ohne gültigen API-Key aufgerufen (`TENOR_API_KEY`/`VITE_TENOR_API_KEY` fehlt); `400`.
+  - `TENOR_UPSTREAM_FAILED` – Fehler/Statuscode aus der Tenor-API beim Laden von `featured`/`search`; `4xx`/`5xx`.
+  - `TENOR_PROXY_FAILED` – generischer Fehler im Tenor-Proxy (z. B. Netzwerkfehler); `500`.
+  - `TENOR_DOWNLOAD_URL_REQUIRED` – im Body von `POST /api/tenor/download` fehlt eine gültige `url`; `400`.
+  - `TENOR_DOWNLOAD_FAILED` – GIF konnte nicht geladen oder gespeichert werden (`/api/tenor/download`); `4xx`/`5xx`.
+  - `TENOR_DOWNLOAD_TOO_LARGE` – geladenes GIF überschreitet das Upload-Limit; `413`.
+
 ---
 
 ## Skeets (Einzelposts)
@@ -300,6 +314,8 @@ Aktuell gelten u. a. folgende Codes:
 
 - **POST `/api/maintenance/cleanup-mastodon`**  
   Hilfsroute ohne Auth – entfernt Waisen in Mastodon-Daten. Nur in vertrauenswürdigen Netzen ausführen!
+- **POST `/api/maintenance/cleanup-temp-uploads`**  
+  Entfernt alte temporäre Upload-Dateien aus `TEMP_UPLOAD_DIR`. Optionaler Body: `{ "maxAgeHours": 24 }` (Standard 24 h). Antwort enthält u. a. Listen von entfernten (`removed`) und behaltenen (`kept`) Dateien.
 
 - **GET `/health`**  
   Health-Check (Version, Environment). Verwendet von Docker-Healthcheck.

@@ -82,6 +82,7 @@ router.patch("/bsky/feeds/pin-order", bskyController.reorderPinnedFeeds);
 
 // Maintenance
 router.post("/maintenance/cleanup-mastodon", maintenanceController.cleanupMastodon);
+router.post("/maintenance/cleanup-temp-uploads", maintenanceController.cleanupTempUploads);
 
 // Credentials
 router.get("/config/credentials", credentialsController.getCredentials);

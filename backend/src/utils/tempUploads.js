@@ -1,4 +1,5 @@
 const fs = require('fs')
+const fsp = require('fs/promises')
 const path = require('path')
 
 function ensureTempDir () {
@@ -34,8 +35,64 @@ function writeBufferToTemp (buffer, { filename, mime, altText } = {}) {
   }
 }
 
+function parseTempTimestamp (name = '') {
+  try {
+    const m = /^tmp-(\d+)-/.exec(String(name))
+    if (!m) return null
+    const ts = Number(m[1])
+    return Number.isFinite(ts) ? ts : null
+  } catch {
+    return null
+  }
+}
+
+async function cleanupOldTempUploads ({ maxAgeMs = 24 * 60 * 60 * 1000, nowMs } = {}) {
+  const now = typeof nowMs === 'number' && Number.isFinite(nowMs) ? nowMs : Date.now()
+  const dir = ensureTempDir()
+  let entries
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true })
+  } catch (error) {
+    console.error('cleanupOldTempUploads: konnte Verzeichnis nicht lesen', {
+      dir,
+      error: error?.message || String(error)
+    })
+    return { removed: [], kept: [] }
+  }
+
+  const removed = []
+  const kept = []
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    const ts = parseTempTimestamp(entry.name)
+    if (!ts) {
+      kept.push(entry.name)
+      continue
+    }
+    if (now - ts < maxAgeMs) {
+      kept.push(entry.name)
+      continue
+    }
+    const filePath = path.join(dir, entry.name)
+    try {
+      await fsp.unlink(filePath)
+      removed.push(entry.name)
+    } catch (error) {
+      console.error('cleanupOldTempUploads: Datei konnte nicht gelöscht werden', {
+        filePath,
+        error: error?.message || String(error)
+      })
+      kept.push(entry.name)
+    }
+  }
+
+  return { removed, kept }
+}
+
 module.exports = {
   writeBufferToTemp,
   ensureTempDir,
-  sanitizeFilename
+  sanitizeFilename,
+  cleanupOldTempUploads
 }

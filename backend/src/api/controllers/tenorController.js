@@ -21,6 +21,7 @@ async function callTenor(endpoint, query) {
   if (!key) {
     const err = new Error('Tenor API‑Key fehlt. Bitte TENOR_API_KEY setzen.')
     err.status = 400
+    err.code = 'TENOR_API_KEY_REQUIRED'
     throw err
   }
   const base = `https://tenor.googleapis.com/v2/${endpoint}`
@@ -38,9 +39,36 @@ async function callTenor(endpoint, query) {
     const text = await res.text().catch(() => '')
     const err = new Error(`Tenor Fehler: HTTP ${res.status} ${text}`.trim())
     err.status = res.status
+    err.code = 'TENOR_UPSTREAM_FAILED'
     throw err
   }
   return res.json()
+}
+
+function mapTenorError(error, fallbackMessage) {
+  const status = typeof error?.status === 'number' ? error.status : 500
+  const message = error?.message || fallbackMessage || 'Tenor Proxy Fehler'
+
+  if (error?.code === 'TENOR_API_KEY_REQUIRED') {
+    return {
+      status,
+      code: 'TENOR_API_KEY_REQUIRED',
+      message,
+    }
+  }
+  if (error?.code === 'TENOR_UPSTREAM_FAILED') {
+    return {
+      status,
+      code: 'TENOR_UPSTREAM_FAILED',
+      message,
+    }
+  }
+
+  return {
+    status,
+    code: 'TENOR_PROXY_FAILED',
+    message,
+  }
 }
 
 async function featured(req, res) {
@@ -48,7 +76,15 @@ async function featured(req, res) {
     const data = await callTenor('featured', req.query)
     res.json(data)
   } catch (e) {
-    res.status(e.status || 500).json({ error: e.message || 'Tenor Proxy Fehler' })
+    const { status, code, message } = mapTenorError(
+      e,
+      'Tenor Proxy Fehler'
+    )
+    res.status(status).json({
+      error: message,
+      code,
+      message,
+    })
   }
 }
 
@@ -57,7 +93,15 @@ async function search(req, res) {
     const data = await callTenor('search', req.query)
     res.json(data)
   } catch (e) {
-    res.status(e.status || 500).json({ error: e.message || 'Tenor Proxy Fehler' })
+    const { status, code, message } = mapTenorError(
+      e,
+      'Tenor Proxy Fehler'
+    )
+    res.status(status).json({
+      error: message,
+      code,
+      message,
+    })
   }
 }
 
@@ -65,17 +109,32 @@ async function download (req, res) {
   try {
     const { url, filename, mode } = req.body || {}
     if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: 'GIF-URL fehlt.' })
+      const message = 'GIF-URL fehlt.'
+      return res.status(400).json({
+        error: message,
+        code: 'TENOR_DOWNLOAD_URL_REQUIRED',
+        message,
+      })
     }
     const response = await fetch(url)
     if (!response.ok) {
-      return res.status(response.status).json({ error: 'GIF konnte nicht geladen werden.' })
+      const message = 'GIF konnte nicht geladen werden.'
+      return res.status(response.status).json({
+        error: message,
+        code: 'TENOR_DOWNLOAD_FAILED',
+        message,
+      })
     }
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 8 * 1024 * 1024)
     if (buffer.length > maxBytes) {
-      return res.status(413).json({ error: 'GIF ist zu groß.' })
+      const message = 'GIF ist zu groß.'
+      return res.status(413).json({
+        error: message,
+        code: 'TENOR_DOWNLOAD_TOO_LARGE',
+        message,
+      })
     }
     const mime = response.headers.get('content-type') || 'image/gif'
     const safeName = filename || 'tenor.gif'
@@ -93,7 +152,12 @@ async function download (req, res) {
     const stored = writeBufferToTemp(buffer, { filename: safeName, mime })
     return res.status(201).json(stored)
   } catch (error) {
-    return res.status(500).json({ error: error?.message || 'GIF-Download fehlgeschlagen.' })
+    const message = error?.message || 'GIF-Download fehlgeschlagen.'
+    return res.status(500).json({
+      error: message,
+      code: 'TENOR_DOWNLOAD_FAILED',
+      message,
+    })
   }
 }
 
