@@ -23,7 +23,7 @@ Login/Auth und Settings dienen inzwischen als Referenz für Backend-Fehlercodes 
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Bestehende UI-Hinweise zu GIF- und Medienfehlern im Dashboard und `bsky-client` an die neuen `UPLOAD_*`- und `TENOR_*`-Fehlercodes koppeln, damit Upload-/GIF-Probleme konsistent lokalisiert angezeigt werden.
+1. Optional: Für zukünftige Backend-Änderungen einen kleinen, zentral gepflegten Fehlercode-Katalog (z. B. `backend/src/constants/errorCodes.js`) vorbereiten, um Dopplungen und Tippfehler bei neuen Endpunkten zu vermeiden.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

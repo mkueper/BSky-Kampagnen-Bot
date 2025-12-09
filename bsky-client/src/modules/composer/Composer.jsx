@@ -159,7 +159,16 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       body: JSON.stringify({ filename: file.name, mime: file.type || 'application/octet-stream', data: dataUrl })
     })
     const info = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(info?.error || 'Upload fehlgeschlagen')
+    if (!res.ok) {
+      const code = typeof info?.code === 'string' ? info.code : null
+      if (code === 'UPLOAD_TOO_LARGE') {
+        throw new Error('Datei ist zu groß. Bitte ein kleineres Bild wählen.')
+      }
+      if (code === 'UPLOAD_MISSING_DATA') {
+        throw new Error('Keine Datei-Daten übermittelt.')
+      }
+      throw new Error(info?.error || 'Upload fehlgeschlagen')
+    }
     setPendingMedia((arr) => [...arr, { tempId: info.tempId, previewUrl: info.previewUrl || fallbackPreview, mime: info.mime }])
     requestAnimationFrame(() => {
       const el = textareaRef.current
@@ -215,7 +224,19 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         body: JSON.stringify({ url: downloadUrl, filename: `tenor-${id || 'gif'}.gif` })
       })
       const info = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(info?.error || 'GIF konnte nicht geladen werden')
+      if (!res.ok) {
+        const code = typeof info?.code === 'string' ? info.code : null
+        if (code === 'TENOR_DOWNLOAD_TOO_LARGE') {
+          throw new Error('GIF ist zu groß. Bitte ein kleineres GIF wählen.')
+        }
+        if (code === 'TENOR_DOWNLOAD_URL_REQUIRED') {
+          throw new Error('GIF-URL fehlt oder ist ungültig.')
+        }
+        if (code === 'TENOR_API_KEY_REQUIRED') {
+          throw new Error('GIF-Suche ist nicht konfiguriert (API-Key fehlt).')
+        }
+        throw new Error(info?.error || 'GIF konnte nicht geladen werden')
+      }
       let added = false
       setPendingMedia((arr) => {
         if (arr.length >= MAX_MEDIA_COUNT) return arr

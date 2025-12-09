@@ -457,13 +457,19 @@ function ThreadForm ({
 
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
-            throw new Error(
-              data.error ||
+            const error = new Error(
+              data.message ||
+                data.error ||
                 t(
                   'threads.form.media.uploadTempErrorFallback',
                   'Temporärer Upload fehlgeschlagen.'
                 )
             )
+            if (typeof data.code === 'string') {
+              error.code = data.code
+            }
+            error.data = data
+            throw error
           }
           const info = await res.json()
           setPendingMedia(s => {
@@ -486,8 +492,9 @@ function ThreadForm ({
             )
           })
         } catch (e) {
+          const code = e?.code
           const msg = e?.message || ''
-          if (/zu groß|too large|413/i.test(msg)) {
+          if (code === 'UPLOAD_TOO_LARGE' || /zu groß|too large|413/i.test(msg)) {
             setUploadError({
               open: true,
               message: t(
