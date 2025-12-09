@@ -33,6 +33,10 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
 
 5. README/Developer‑Hinweis:
    - Kurz dokumentieren, dass `bsky-client` und Dashboard getrennte Frontends sind, die nur über `shared-ui`/`shared-logic` verbunden sind, und wie man jeden Teil im Dev‑Modus startet (`dev`, `dev:frontend`, `dev:bsky-client`).
+6. Generischen `ThreadComposer` in `shared-ui` vorbereiten:
+   - Eine generische UI‑Komponente `ThreadComposer` entwerfen, die über Props wie `value`, `onChange`, `maxLength`, `locale`, `hardBreakMarker` und `onSubmit(segments)` arbeitet und keinerlei Plattform‑ oder Scheduling‑Wissen enthält.
+   - Die Split‑Logik nach `shared-logic` auslagern (`splitThread({ text, maxLength, hardBreakMarker })`), so dass Dashboard, `bsky-client` und spätere Mastodon‑Unterstützung die gleiche Logik nutzen können.
+   - Im `bsky-client` den heutigen „+“‑Pfad perspektivisch durch einen „Sofort posten“-Einsatz von `ThreadComposer` ersetzen, während das Kampagnen‑Dashboard weiter seinen geplanten Scheduler nutzt.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
@@ -46,4 +50,3 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
 - Soll der `bsky-client` mittelfristig einen vollständigen Standalone‑Modus bekommen, der ohne Backend direkt gegen Bluesky (`@atproto/api`) arbeitet, oder soll der Backend‑Proxy die primäre Betriebsart bleiben?
 - Welche Features des heutigen `bsky-client` sind für einen Standalone‑Modus wirklich essentiell (Timeline, Profil, Notifications, Interaktionen) und welche bleiben bewusst Backend‑gebunden (z. B. Upload‑Proxy, Tenor‑Proxy)?
 - Wie stabil und öffentlich soll `shared-ui` perspektivisch werden (nur internes Monorepo‑API oder eigenständig versionierte Bibliothek, die auch von einem ausgelagerten Client genutzt werden kann)?
-

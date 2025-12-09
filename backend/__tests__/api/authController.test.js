@@ -144,7 +144,8 @@ describe('authController.login', () => {
     authController.login(req, res)
 
     expect(statusCode).toBe(503)
-    expect(String(payload?.error || '')).toMatch(/konfiguriert/i)
+    expect(payload?.error).toBe('AUTH_NOT_CONFIGURED')
+    expect(String(payload?.message || '')).toMatch(/konfiguriert/i)
   })
 
   it('gibt 400 zurück, wenn Benutzername oder Passwort fehlen', () => {
@@ -172,7 +173,8 @@ describe('authController.login', () => {
     authController.login(req, res)
 
     expect(statusCode).toBe(400)
-    expect(String(payload?.error || '')).toMatch(/benutzername.*passwort/i)
+    expect(payload?.error).toBe('AUTH_MISSING_CREDENTIALS')
+    expect(String(payload?.message || '')).toMatch(/benutzername.*passwort/i)
   })
 
   it('gibt 401 zurück, wenn Credentials ungültig sind', () => {
@@ -201,7 +203,8 @@ describe('authController.login', () => {
     authController.login(req, res)
 
     expect(statusCode).toBe(401)
-    expect(String(payload?.error || '')).toMatch(/ungültig/i)
+    expect(payload?.error).toBe('AUTH_INVALID_CREDENTIALS')
+    expect(String(payload?.message || '')).toMatch(/ungültig/i)
   })
 
   it('gibt ok=true und expiresInSeconds zurück, wenn Login erfolgreich ist', () => {

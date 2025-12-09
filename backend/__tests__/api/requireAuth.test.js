@@ -64,7 +64,8 @@ describe('requireAuth middleware', () => {
     requireAuth(req, res, next)
 
     expect(statusCode).toBe(503)
-    expect(String(payload?.error || '')).toMatch(/nicht konfiguriert/i)
+    expect(payload?.error).toBe('AUTH_NOT_CONFIGURED')
+    expect(String(payload?.message || '')).toMatch(/nicht konfiguriert/i)
     expect(next).not.toHaveBeenCalled()
   })
 
@@ -92,7 +93,8 @@ describe('requireAuth middleware', () => {
     requireAuth(req, res, next)
 
     expect(statusCode).toBe(401)
-    expect(String(payload?.error || '')).toMatch(/nicht angemeldet|sitzung abgelaufen/i)
+    expect(payload?.error).toBe('AUTH_SESSION_REQUIRED')
+    expect(String(payload?.message || '')).toMatch(/nicht angemeldet|sitzung abgelaufen/i)
     expect(next).not.toHaveBeenCalled()
   })
 

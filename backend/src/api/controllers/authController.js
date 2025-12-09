@@ -32,18 +32,27 @@ function session(req, res) {
 function login(req, res) {
   const status = getStatus();
   if (!status.configured) {
-    return res.status(503).json({ error: 'Login ist noch nicht konfiguriert.' });
+    return res.status(503).json({
+      error: 'AUTH_NOT_CONFIGURED',
+      message: 'Login ist noch nicht konfiguriert.',
+    });
   }
 
   const { username, password } = req.body || {};
   if (!username || !password) {
-    return res.status(400).json({ error: 'Bitte Benutzername und Passwort übermitteln.' });
+    return res.status(400).json({
+      error: 'AUTH_MISSING_CREDENTIALS',
+      message: 'Bitte Benutzername und Passwort übermitteln.',
+    });
   }
 
   const valid = validateCredentials(username, password);
   if (!valid) {
     log.warn('Fehlgeschlagener Loginversuch', { username });
-    return res.status(401).json({ error: 'Benutzername oder Passwort ist ungültig.' });
+    return res.status(401).json({
+      error: 'AUTH_INVALID_CREDENTIALS',
+      message: 'Benutzername oder Passwort ist ungültig.',
+    });
   }
 
   const token = issueSession(username);

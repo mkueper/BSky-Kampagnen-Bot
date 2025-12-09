@@ -12,6 +12,47 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
   const configured = session?.configured ?? true
   const errorMessage = loginError?.message || sessionError?.message || null
 
+  const mapBackendErrorMessage = (data) => {
+    const rawCode = typeof data?.error === 'string' ? data.error : null
+    const code = rawCode && rawCode.startsWith('AUTH_') ? rawCode : null
+    const backendMessage = typeof data?.message === 'string' ? data.message : null
+
+    if (code === 'AUTH_INVALID_CREDENTIALS') {
+      return t(
+        'login.errors.invalidCredentials',
+        'Benutzername oder Passwort ist ungültig.'
+      )
+    }
+    if (code === 'AUTH_MISSING_CREDENTIALS') {
+      return t(
+        'login.errors.missingCredentials',
+        'Bitte Benutzername und Passwort übermitteln.'
+      )
+    }
+    if (code === 'AUTH_NOT_CONFIGURED') {
+      return t(
+        'login.errors.notConfigured',
+        'Login ist noch nicht konfiguriert.'
+      )
+    }
+    if (code === 'AUTH_SESSION_REQUIRED') {
+      return t(
+        'login.errors.sessionRequired',
+        'Nicht angemeldet oder Sitzung abgelaufen.'
+      )
+    }
+
+    if (backendMessage) {
+      return backendMessage
+    }
+
+    if (rawCode && !code) {
+      return rawCode
+    }
+
+    return t('login.errorFallback', 'Login fehlgeschlagen.')
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (!configured) return
@@ -25,10 +66,8 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-          t('login.errorFallback', 'Login fehlgeschlagen.')
-        )
+        const message = mapBackendErrorMessage(data)
+        throw new Error(message)
       }
       setPassword('')
       await refreshSession()

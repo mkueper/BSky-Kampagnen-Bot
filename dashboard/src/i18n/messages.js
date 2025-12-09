@@ -72,6 +72,12 @@ const messages = {
     login: {
       heading: 'Kampagnen‑Tool Login',
       subtitle: 'Zugangsdaten werden serverseitig verwaltet.',
+      errors: {
+        invalidCredentials: 'Benutzername oder Passwort ist ungültig.',
+        missingCredentials: 'Bitte Benutzername und Passwort übermitteln.',
+        notConfigured: 'Login ist noch nicht konfiguriert.',
+        sessionRequired: 'Nicht angemeldet oder Sitzung abgelaufen.'
+      },
       unconfigured: {
         intro:
           'Bevor sich jemand anmelden kann, muss der Login im Backend konfiguriert werden:',
@@ -938,6 +944,12 @@ const messages = {
     login: {
       heading: 'Campaign Tool login',
       subtitle: 'Credentials are managed on the server.',
+      errors: {
+        invalidCredentials: 'Username or password is invalid.',
+        missingCredentials: 'Please provide both username and password.',
+        notConfigured: 'Login is not configured yet.',
+        sessionRequired: 'Not signed in or session expired.'
+      },
       unconfigured: {
         intro:
           'Before anyone can log in, the login has to be configured in the backend:',

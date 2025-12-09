@@ -45,7 +45,27 @@ cd BSky-Kampagnen-Bot
    BLUESKY_IDENTIFIER=dein_handle.bsky.social
    BLUESKY_APP_PASSWORD=dein_app_passwort
    ```
-3. Optional: weitere Variablen setzen (Ports, Zeitzone, Retry-Strategie, zusätzliche Plattformen):
+3. Admin-Login für Dashboard/API konfigurieren (dringend empfohlen, bevor Container starten):
+   1. Gewünschten Admin-Benutzernamen setzen:
+      ```ini
+      AUTH_USERNAME=admin
+      ```
+   2. Passwort-Hash erzeugen (auf dem Host im Projektordner ausführen):
+      ```bash
+      npm install
+      npm run tools:hash-password
+      ```
+      Die CLI fragt das Passwort ab und gibt einen `salt:hash`-String aus. Diesen in `.env` hinterlegen:
+      ```ini
+      AUTH_PASSWORD_HASH=salt:hash_aus_der_cli
+      ```
+   3. Ein starkes Secret für Session-Cookies setzen (z. B. mit `openssl rand -base64 32` erzeugt):
+      ```ini
+      AUTH_TOKEN_SECRET=zufaelliges_langes_secret
+      ```
+   Ohne gültig gesetzte `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` und `AUTH_TOKEN_SECRET` verweigert das Backend geschützte `/api/*`-Aufrufe, und das Dashboard bleibt im Login-/Fehlerzustand.
+
+4. Optional: weitere Variablen setzen (Ports, Zeitzone, Retry-Strategie, zusätzliche Plattformen):
    ```ini
    BACKEND_PORT=3000
    FRONTEND_PORT=8080

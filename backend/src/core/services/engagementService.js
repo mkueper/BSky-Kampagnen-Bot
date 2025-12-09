@@ -153,8 +153,14 @@ async function collectReactions(skeetId) {
   if (blueskySent && blueskyUri) {
     try {
       const reactions = await getBlueskyReactions(blueskyUri);
-      const likes = reactions.likesCount;
-      const reposts = reactions.repostsCount;
+      const likes =
+        typeof reactions.likesCount === 'number'
+          ? reactions.likesCount
+          : Number(reactions.likeCount) || 0;
+      const reposts =
+        typeof reactions.repostsCount === 'number'
+          ? reactions.repostsCount
+          : Number(reactions.repostCount) || 0;
       perPlatform.bluesky = { likes, reposts };
       totalLikes += likes;
       totalReposts += reposts;
