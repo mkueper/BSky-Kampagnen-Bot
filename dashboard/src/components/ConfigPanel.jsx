@@ -2065,12 +2065,12 @@ function CredentialsSection () {
           <section className='space-y-4'>
             <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
               <h4 className='text-lg font-semibold'>
-                {t('config.credentials.tenor.heading', 'Tenor (GIF Suche)')}
+                {t('config.credentials.tenor.heading', 'Externe API-Keys')}
               </h4>
               <div className='grid gap-4 md:grid-cols-2'>
                 <label className='space-y-1 md:w-1/2'>
                   <span className='text-sm font-medium'>
-                    {t('config.credentials.tenor.apiKeyLabel', 'API Key')}
+                    {t('config.credentials.tenor.apiKeyLabel', 'Tenor API-Key')}
                   </span>
                   <input
                     type='password'
@@ -2082,7 +2082,7 @@ function CredentialsSection () {
                   <p className='text-xs text-foreground-muted'>
                     {t(
                       'config.credentials.tenor.apiKeyHint',
-                      'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
+                      'Leer lassen, um den bestehenden Key zu behalten.'
                     )}
                   </p>
                 </label>

@@ -242,6 +242,7 @@ function Example() {
 - Farben/Typografie folgen dem globalen Theme (Light/Dark/Midnight/Dimmed).
 - Für themenabhängige Styles bevorzugt CSS-Variablen (`bg-background`, `text-foreground`, …) statt fixer Hex-Werte verwenden.
 - Bitte neue Oberflächen bevorzugt auf diesen Bausteinen aufbauen.
+- Nach Änderungen an UI-Komponenten oder Views sollten mindestens `npm test` und direkt im Anschluss `npm run lint` laufen, damit Layout-/Interaktionsfehler und Lint-Warnungen früh sichtbar werden.
 
 ### Abstände in Einstellungs-Karten
 

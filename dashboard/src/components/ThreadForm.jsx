@@ -91,39 +91,14 @@ function startsWithListMarker (text) {
   return /^\d+[.)](\s|$)/.test(sanitized)
 }
 
-function mergeListMarkers (parts) {
-  if (!Array.isArray(parts) || parts.length === 0) {
-    return ['']
-  }
-  const merged = []
-  for (let index = 0; index < parts.length; index += 1) {
-    const current = parts[index]
-    const next = parts[index + 1]
-    if (isStandaloneListMarker(current) && typeof next === 'string') {
-      merged.push(`${current}${next}`)
-      index += 1
-    } else {
-      merged.push(current)
-    }
-  }
-  return merged
-}
-
 function splitIntoSentences (text) {
   const normalized = text.replace(/\r\n/g, '\n')
   if (!normalized.trim()) {
     return ['']
   }
-  const pattern = /[^.!?]+[.!?]*(?:\s+|$)/g
-  const sentences = []
-  let match
-  while ((match = pattern.exec(normalized)) !== null) {
-    sentences.push(match[0])
-  }
-  if (sentences.length === 0) {
-    return [normalized]
-  }
-  return mergeListMarkers(sentences)
+  // Satzzeichen werden für das automatische Splitten nicht mehr speziell berücksichtigt.
+  // Wir behandeln den gesamten Block als eine Einheit und teilen nur noch an Wortgrenzen.
+  return [normalized]
 }
 
 function splitAtWordBoundaries (text, limit) {
@@ -133,101 +108,13 @@ function splitAtWordBoundaries (text, limit) {
 
   while (remaining.length > limit) {
     const window = remaining.slice(0, limit + 1)
-
-    // Nur Whitespace als Trennkandidaten – kein Bindestrich
-    const whitespaceRegex = /\s/g
-    let splitIndex = -1
-    let match
-
-    while ((match = whitespaceRegex.exec(window)) !== null) {
-      const candidateIndex = match.index
-
-      const beforeAll = remaining.slice(0, candidateIndex)
-      const afterAll = remaining.slice(candidateIndex)
-
-      // Nur die aktuelle Zeile vor dem Split betrachten
-      const lastNewline = beforeAll.lastIndexOf('\n')
-      const linePrefix =
-        lastNewline >= 0 ? beforeAll.slice(lastNewline + 1) : beforeAll
-
-      const trimmedLinePrefix = linePrefix.trimEnd()
-      const trimmedAfter = afterAll.trimStart()
-
-      // 1. Kein Split direkt VOR einer nummerierten Zeile (🔥 3. ...)
-      if (startsWithListMarker(trimmedAfter)) {
-        continue
-      }
-
-      // 2. Kein Split direkt HINTER einem List-Marker auf dieser Zeile (🔥 3.)
-      if (isStandaloneListMarker(trimmedLinePrefix)) {
-        continue
-      }
-
-      // gültiger Break-Kandidat – wir merken uns immer den letzten
-      splitIndex = candidateIndex
-    }
-
-    // Fallback, wenn im Fenster kein geeigneter Whitespace gefunden wurde
-    if (splitIndex <= 0) {
-      const aheadMatch = remaining.slice(limit).match(/\s/)
-      splitIndex =
-        aheadMatch && typeof aheadMatch.index === 'number'
-          ? limit + aheadMatch.index
-          : limit
-
-      // Sicherheitsnetz: nicht mitten in/um einen Marker landen
-      const beforeAll = remaining.slice(0, splitIndex)
-      const afterAll = remaining.slice(splitIndex)
-      const lastNewline = beforeAll.lastIndexOf('\n')
-      const linePrefix =
-        lastNewline >= 0 ? beforeAll.slice(lastNewline + 1) : beforeAll
-
-      const trimmedLinePrefix = linePrefix.trimEnd()
-      const trimmedAfter = afterAll.trimStart()
-
-      if (
-        isStandaloneListMarker(trimmedLinePrefix) ||
-        startsWithListMarker(trimmedAfter)
-      ) {
-        const backWindow = remaining.slice(0, splitIndex)
-        const backWhitespace = /\s/g
-        let m2
-        let altIndex = -1
-
-        while ((m2 = backWhitespace.exec(backWindow)) !== null) {
-          const cand2 = m2.index
-          const before2All = remaining.slice(0, cand2)
-          const after2All = remaining.slice(cand2)
-
-          const lastNewline2 = before2All.lastIndexOf('\n')
-          const linePrefix2 =
-            lastNewline2 >= 0
-              ? before2All.slice(lastNewline2 + 1)
-              : before2All
-
-          const trimmedLinePrefix2 = linePrefix2.trimEnd()
-          const trimmedAfter2 = after2All.trimStart()
-
-          if (
-            !isStandaloneListMarker(trimmedLinePrefix2) &&
-            !startsWithListMarker(trimmedAfter2)
-          ) {
-            altIndex = cand2
-          }
-        }
-
-        if (altIndex > 0) {
-          splitIndex = altIndex
-        }
-      }
-    }
-
-    const safeIndex = Math.max(1, Math.min(splitIndex, remaining.length))
-    const chunk = remaining.slice(0, safeIndex).trimEnd()
+    const lastWhitespace = window.lastIndexOf(' ')
+    const splitIndex = lastWhitespace > 0 ? lastWhitespace : limit
+    const chunk = remaining.slice(0, splitIndex).trimEnd()
     if (chunk) {
       chunks.push(chunk)
     }
-    remaining = remaining.slice(safeIndex).replace(/^\s+/, '')
+    remaining = remaining.slice(splitIndex).replace(/^\s+/, '')
   }
 
   if (remaining.trim()) {

@@ -776,10 +776,10 @@ const messages = {
             'Leer lassen, um das bestehende Token zu behalten.'
         },
         tenor: {
-          heading: 'Tenor (GIF Suche)',
-          apiKeyLabel: 'API Key',
+          heading: 'Externe API-Keys',
+          apiKeyLabel: 'Tenor API-Key',
           apiKeyHint:
-            'Leer lassen, um den bestehenden Key zu behalten. Aktiviert die GIF-Suche (Tenor).'
+            'Leer lassen, um den bestehenden Key zu behalten.'
         },
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen'
