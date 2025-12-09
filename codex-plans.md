@@ -24,7 +24,7 @@ Buttons, Edit-Handling und Terminologie sind durchgängig; InfoDialog + neue i18
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-Aktuell keine offenen ToDos; bei neuen Anforderungen oder UI-Ideen werden die nächsten Schritte hier neu festgelegt.
+- Backend: Fehler- und Statusmeldungen (insbesondere Login/Auth) perspektivisch auf lokalisierbare Codes oder i18n umstellen; dafür ggf. eine eigene Datei `codex-plans-backend.md` anlegen, sobald wir konkret ins Backend einsteigen.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

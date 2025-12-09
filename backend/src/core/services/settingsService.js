@@ -41,6 +41,12 @@ function defaults() {
   };
 }
 
+function resolveDefaultLocale() {
+  const raw = (config.LOCALE || "de-DE").toLowerCase();
+  if (raw.startsWith("en")) return "en";
+  return "de";
+}
+
 async function getSettingsMap(keys) {
   const rows = await Setting.findAll({ where: { key: { [Op.in]: keys } } });
   return rows.reduce((acc, row) => {
@@ -147,13 +153,16 @@ async function saveSchedulerSettings(payload) {
 async function getGeneralSettings() {
   const defaults = {
     timeZone: config.TIME_ZONE,
+    locale: resolveDefaultLocale(),
   };
-  const map = await getSettingsMap([KEYS.timeZone]);
+  const map = await getSettingsMap([KEYS.timeZone, "LOCALE"]);
   const values = {
     timeZone: map[KEYS.timeZone] || defaults.timeZone,
+    locale: map.LOCALE || defaults.locale,
   };
   const overrides = {
     timeZone: map[KEYS.timeZone] ?? null,
+    locale: map.LOCALE ?? null,
   };
   return { values, defaults, overrides };
 }
@@ -162,11 +171,21 @@ async function saveGeneralSettings(payload = {}) {
   const { values, defaults } = await getGeneralSettings();
   const next = {
     timeZone: payload.timeZone ?? values.timeZone,
+    locale: payload.locale ?? values.locale,
   };
   if (!next.timeZone || typeof next.timeZone !== "string") {
     throw new Error("TIME_ZONE muss angegeben werden.");
   }
+  if (!next.locale || typeof next.locale !== "string") {
+    throw new Error("LOCALE muss angegeben werden.");
+  }
+  const normalizedLocale = next.locale.toLowerCase();
+  if (normalizedLocale !== "de" && normalizedLocale !== "en") {
+    throw new Error("LOCALE muss entweder \"de\" oder \"en\" sein.");
+  }
+  next.locale = normalizedLocale;
   await setSetting(KEYS.timeZone, next.timeZone, defaults.timeZone);
+  await setSetting("LOCALE", next.locale, defaults.locale);
   return getGeneralSettings();
 }
 

@@ -130,8 +130,10 @@ const messages = {
         authorMissing: 'Autorinformationen wurden nicht mitgeliefert.',
         status: {
           blocked: 'Dieser Beitrag ist geschützt oder blockiert.',
-          not_found: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
-          detached: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.',
+          not_found:
+            'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
+          detached:
+            'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.',
           unavailable: 'Der Original-Beitrag kann nicht angezeigt werden.'
         }
       },
@@ -192,7 +194,8 @@ const messages = {
       },
       card: {
         authorUnknown: 'Unbekannt',
-        authorMissing: 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.',
+        authorMissing:
+          'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.',
         actions: {
           reply: 'Antworten',
           like: 'Gefällt mir'
@@ -207,8 +210,10 @@ const messages = {
           authorMissing: 'Autorinformationen wurden nicht mitgeliefert.',
           status: {
             blocked: 'Dieser Beitrag ist geschützt oder blockiert.',
-            not_found: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
-            detached: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+            not_found:
+              'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
+            detached:
+              'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
           }
         }
       },
@@ -218,7 +223,8 @@ const messages = {
           targetSubject: 'deinen {subjectType}',
           targetRepost: 'deinen Repost',
           single: 'gefällt {target}.',
-          multi: 'und {count} weitere haben {target} mit „Gefällt mir“ markiert.'
+          multi:
+            'und {count} weitere haben {target} mit „Gefällt mir“ markiert.'
         },
         likeViaRepost: {
           label: 'Like via Repost'
@@ -271,6 +277,73 @@ const messages = {
       titleQuote: 'Post zitieren',
       cancel: 'Abbrechen',
       submit: 'Posten',
+      discardTitle: 'Entwurf verwerfen',
+      discardMessage:
+        'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
+      discardConfirm: 'Verwerfen'
+    }
+  },
+  en: {
+    en: {
+      reason: {
+        like: {
+          label: 'Like',
+          targetSubject: 'your {subjectType}',
+          targetRepost: 'your repost',
+          single: 'liked {target}.',
+          multi: 'and {count} others liked {target}.'
+        },
+        likeViaRepost: {
+          label: 'Like via repost'
+        },
+        repost: {
+          label: 'Repost',
+          actionSubject: 'reshared your {subjectType}',
+          actionRepost: 'reshared your repost',
+          single: '{action}.',
+          multi: 'and {count} others {action}.'
+        },
+        repostViaRepost: {
+          label: 'Repost via repost'
+        },
+        follow: {
+          label: 'Follow',
+          single: 'is now following you.',
+          multi: 'and {count} others are now following you.'
+        },
+        reply: {
+          label: 'Reply',
+          single: 'replied to your {subjectType}.'
+        },
+        mention: {
+          label: 'Mention',
+          single: 'mentioned you in a {subjectType}.'
+        },
+        quote: {
+          label: 'Quote',
+          single: 'quoted your {subjectType}.',
+          multi: 'and {count} others quoted your {subjectType}.'
+        },
+        subscribedPost: {
+          label: 'Subscribed post',
+          single: 'posted a subscribed post.'
+        },
+        system: {
+          label: 'System ({name})',
+          description: 'System notification from Bluesky.'
+        },
+        activity: {
+          label: 'Activity',
+          description: 'performed an action.'
+        }
+      }
+    },
+    compose: {
+      titleNew: 'New post',
+      titleReply: 'Reply',
+      titleQuote: 'Quote post',
+      cancel: 'Cancel',
+      submit: 'Post',
       discardTitle: 'Entwurf verwerfen',
       discardMessage: 'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
       discardConfirm: 'Verwerfen'

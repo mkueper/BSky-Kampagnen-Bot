@@ -278,13 +278,38 @@ function normalizeRepeatFields(payload, existing) {
   const repeat = payload.repeat ?? existing?.repeat ?? 'none';
   let repeatDayOfWeek = null;
   let repeatDayOfMonth = null;
+   let repeatDaysOfWeek = null;
 
   if (repeat === 'weekly') {
-    const value = Number(payload.repeatDayOfWeek ?? existing?.repeatDayOfWeek);
-    if (!Number.isInteger(value) || value < 0 || value > 6) {
-      throw new Error("repeatDayOfWeek muss zwischen 0 (Sonntag) und 6 liegen.");
+    const rawDays =
+      Array.isArray(payload.repeatDaysOfWeek) && payload.repeatDaysOfWeek.length
+        ? payload.repeatDaysOfWeek
+        : Array.isArray(existing?.repeatDaysOfWeek) &&
+            existing.repeatDaysOfWeek.length
+          ? existing.repeatDaysOfWeek
+          : null;
+
+    if (rawDays && rawDays.length) {
+      const normalized = Array.from(
+        new Set(
+          rawDays
+            .map(v => Number(v))
+            .filter(v => Number.isInteger(v) && v >= 0 && v <= 6)
+        )
+      ).sort((a, b) => a - b);
+
+      if (!normalized.length) {
+        throw new Error("repeatDaysOfWeek muss mindestens einen gültigen Wochentag (0–6) enthalten.");
+      }
+      repeatDaysOfWeek = normalized;
+      repeatDayOfWeek = normalized[0];
+    } else {
+      const value = Number(payload.repeatDayOfWeek ?? existing?.repeatDayOfWeek);
+      if (!Number.isInteger(value) || value < 0 || value > 6) {
+        throw new Error("repeatDayOfWeek muss zwischen 0 (Sonntag) und 6 liegen.");
+      }
+      repeatDayOfWeek = value;
     }
-    repeatDayOfWeek = value;
   }
 
   if (repeat === 'monthly') {
@@ -295,7 +320,7 @@ function normalizeRepeatFields(payload, existing) {
     repeatDayOfMonth = value;
   }
 
-  return { repeat, repeatDayOfWeek, repeatDayOfMonth };
+  return { repeat, repeatDayOfWeek, repeatDayOfMonth, repeatDaysOfWeek };
 }
 
 function buildSkeetAttributes(payload, existing = null) {
@@ -327,7 +352,7 @@ function buildSkeetAttributes(payload, existing = null) {
     scheduledAt = existing?.scheduledAt ?? null;
   }
 
-  const { repeat, repeatDayOfWeek, repeatDayOfMonth } = normalizeRepeatFields(payload, existing);
+  const { repeat, repeatDayOfWeek, repeatDayOfMonth, repeatDaysOfWeek } = normalizeRepeatFields(payload, existing);
 
   if (repeat === 'none' && !scheduledAt) {
     throw new Error("scheduledAt ist erforderlich, wenn repeat = 'none' ist.");
@@ -338,6 +363,7 @@ function buildSkeetAttributes(payload, existing = null) {
     repeat,
     repeatDayOfWeek,
     repeatDayOfMonth,
+    repeatDaysOfWeek,
     threadId: payload.threadId ?? existing?.threadId ?? null,
     isThreadPost: Boolean(payload.isThreadPost ?? existing?.isThreadPost ?? false),
     targetPlatforms: normalizedPlatforms,

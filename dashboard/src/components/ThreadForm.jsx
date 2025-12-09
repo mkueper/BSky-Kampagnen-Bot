@@ -61,36 +61,6 @@ const PLATFORM_OPTIONS = [
   { id: 'mastodon', label: 'Mastodon', limit: 500 }
 ]
 
-function isStandaloneListMarker (text) {
-  if (typeof text !== 'string') {
-    return false
-  }
-  const trimmed = text.trim()
-  if (!trimmed) {
-    return false
-  }
-  const sanitized = trimmed.replace(/^[^\d]{0,6}\s*/, '')
-  return /^\d+[.)]\s*$/.test(sanitized)
-}
-
-function startsWithListMarker (text) {
-  if (typeof text !== 'string') return false
-
-  const trimmed = text.trimStart()
-
-  // Wir betrachten nur die erste Zeile
-  const firstLine = trimmed.split('\n')[0]
-
-  // Alle Emojis und Symbol-Zeichen entfernen
-  const sanitized = firstLine
-    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, '')
-    .trimStart()
-
-  // Einfache Regel:
-  // Beginn mit Zahl + Punkt oder Zahl + Klammer
-  return /^\d+[.)](\s|$)/.test(sanitized)
-}
-
 function splitIntoSentences (text) {
   const normalized = text.replace(/\r\n/g, '\n')
   if (!normalized.trim()) {

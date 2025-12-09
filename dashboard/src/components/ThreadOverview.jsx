@@ -592,19 +592,25 @@ function ThreadOverview ({
                     ) : (
                       <>
                         {(thread.status === 'published' || hasSentPlatforms) && flatReplies.length > 0 ? (
-                          <Button
-                            variant='secondary'
-                            onClick={() =>
-                              setShowReplies(c => ({
-                                ...c,
-                                [thread.id]: !c[thread.id]
-                              }))
-                            }
-                          >
-                            {showReplies[thread.id]
-                              ? 'Antworten verbergen'
-                              : `Antworten anzeigen (${flatReplies.length})`}
-                          </Button>
+                        <Button
+                          variant='secondary'
+                          onClick={() =>
+                            setShowReplies(c => ({
+                              ...c,
+                              [thread.id]: !c[thread.id]
+                            }))
+                          }
+                        >
+                          {showReplies[thread.id]
+                              ? t(
+                                  'threads.card.repliesToggleHide',
+                                  'Antworten ausblenden'
+                                )
+                              : `${t(
+                                  'threads.card.repliesToggleLabel',
+                                  'Antworten anzeigen'
+                                )} (${flatReplies.length})`}
+                        </Button>
                         ) : null}
                         {canRetract ? (
                           <Button

@@ -252,8 +252,38 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           : defaultPlatformFallback
       )
       setRepeat(editingSkeet.repeat ?? 'none')
-      if (editingSkeet.repeat === 'weekly' && editingSkeet.repeatDayOfWeek != null) {
-        setRepeatDaysOfWeek([Number(editingSkeet.repeatDayOfWeek)])
+      if (editingSkeet.repeat === 'weekly') {
+        let rawDays = []
+        if (
+          Array.isArray(editingSkeet.repeatDaysOfWeek) &&
+          editingSkeet.repeatDaysOfWeek.length
+        ) {
+          rawDays = editingSkeet.repeatDaysOfWeek
+        } else if (typeof editingSkeet.repeatDaysOfWeek === 'string') {
+          try {
+            const parsed = JSON.parse(editingSkeet.repeatDaysOfWeek)
+            if (Array.isArray(parsed) && parsed.length) {
+              rawDays = parsed
+            }
+          } catch {
+            // ignorieren, Fallback unten
+          }
+        }
+        if (
+          (!Array.isArray(rawDays) || !rawDays.length) &&
+          editingSkeet.repeatDayOfWeek != null
+        ) {
+          rawDays = [editingSkeet.repeatDayOfWeek]
+        }
+
+        const normalizedDays = Array.from(
+          new Set(
+            rawDays
+              .map(v => Number(v))
+              .filter(v => Number.isInteger(v) && v >= 0 && v <= 6)
+          )
+        )
+        setRepeatDaysOfWeek(normalizedDays)
       } else {
         setRepeatDaysOfWeek([])
       }

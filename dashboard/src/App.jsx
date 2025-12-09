@@ -23,7 +23,6 @@ import {
 import AppLayout from './components/layout/AppLayout'
 import { ThemeProvider as UiThemeProvider } from './components/ui/ThemeContext'
 import { useClientConfig } from './hooks/useClientConfig'
-import SummaryCard from './components/ui/SummaryCard'
 import NextScheduledCard from './components/ui/NextScheduledCard.jsx'
 import ActivityPanel from './components/ui/ActivityPanel'
 import { useSkeets } from './hooks/useSkeets'
@@ -125,7 +124,7 @@ function LoadingBlock ({ message }) {
 }
 
 function DashboardApp ({ onLogout }) {
-  const { t } = useTranslation()
+  const { t, setLocale } = useTranslation()
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
@@ -173,6 +172,15 @@ function DashboardApp ({ onLogout }) {
     activeView === 'threads-overview'
   const refreshSkeetsNowRef = useRef(async () => {})
   const refreshThreadsNowRef = useRef(async () => {})
+  // Locale aus Client-Config auf den i18n-Context spiegeln (persistente Auswahl)
+  useEffect(() => {
+    const cfgLocale = clientConfigPreset?.locale
+    if (!cfgLocale) return
+    const short = String(cfgLocale).split('-')[0].toLowerCase()
+    if (short) {
+      setLocale(short)
+    }
+  }, [clientConfigPreset?.locale, setLocale])
   const handleSkeetEvent = useCallback(async () => {
     if (!skeetViewsEnabled) return
     try {
@@ -445,18 +453,6 @@ function DashboardApp ({ onLogout }) {
     return entries[0] ?? null
   }, [plannedSkeetsWithoutPending])
 
-  const upcomingSkeetDate = upcomingSkeet
-    ? formatTime(
-        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
-        'dateOnly'
-      )
-    : '-'
-  const upcomingSkeetTime = upcomingSkeet
-    ? formatTime(
-        upcomingSkeet.scheduledAt || upcomingSkeet.scheduledDate,
-        'timeOnly'
-      )
-    : null
   const upcomingSkeetSnippet = useMemo(() => {
     if (!upcomingSkeet) return null
     const normalized = (upcomingSkeet.content ?? '').replace(/\s+/g, ' ').trim()
@@ -508,14 +504,6 @@ function DashboardApp ({ onLogout }) {
       .sort((a, b) => a.date - b.date)
     return candidates[0] ?? null
   }, [threads])
-
-  const nextThreadFormatted = nextScheduledThread
-    ? formatTime(nextScheduledThread.thread.scheduledAt, 'dateTime')
-    : null
-  const [nextThreadDate, nextThreadTimeRaw] = nextThreadFormatted
-    ? nextThreadFormatted.split(',').map(p => p.trim())
-    : ['-', '']
-  const nextThreadTime = nextThreadTimeRaw ? `${nextThreadTimeRaw} Uhr` : ''
 
   const handleEdit = skeet => {
     try {

@@ -23,7 +23,7 @@ function normalizeFormPayload (values) {
 
 export default function ConfigPanel () {
   const toast = useToast()
-  const { t, locale, setLocale } = useTranslation()
+  const { t, setLocale } = useTranslation()
   const [cronInfoOpen, setCronInfoOpen] = useState(false)
   const [retryInfoOpen, setRetryInfoOpen] = useState(false)
   const [pollInfoOpen, setPollInfoOpen] = useState(false)
@@ -64,7 +64,8 @@ export default function ConfigPanel () {
 
   // Allgemeine Einstellungen (Zeitzone)
   const [generalValues, setGeneralValues] = useState({
-    timeZone: ''
+    timeZone: '',
+    locale: 'de'
   })
   const [generalInitialValues, setGeneralInitialValues] = useState(
     generalValues
@@ -103,7 +104,9 @@ export default function ConfigPanel () {
   const generalHasChanges = useMemo(() => {
     return (
       String(generalValues.timeZone ?? '') !==
-      String(generalInitialValues.timeZone ?? '')
+        String(generalInitialValues.timeZone ?? '') ||
+      String(generalValues.locale ?? '') !==
+        String(generalInitialValues.locale ?? '')
     )
   }, [generalValues, generalInitialValues])
 
@@ -177,15 +180,20 @@ export default function ConfigPanel () {
         }
         const data = await res.json()
         const nextValues = {
-          timeZone: data.values?.timeZone ?? data.defaults?.timeZone ?? ''
+          timeZone: data.values?.timeZone ?? data.defaults?.timeZone ?? '',
+          locale: data.values?.locale ?? data.defaults?.locale ?? 'de'
         }
         const nextDefaults = {
-          timeZone: data.defaults?.timeZone ?? ''
+          timeZone: data.defaults?.timeZone ?? '',
+          locale: data.defaults?.locale ?? 'de'
         }
         if (!ignore) {
           setGeneralValues(nextValues)
           setGeneralInitialValues(nextValues)
           setGeneralDefaults(nextDefaults)
+          if (nextValues.locale && typeof nextValues.locale === 'string') {
+            setLocale(nextValues.locale)
+          }
         }
       } catch (error) {
         console.error('Fehler beim Laden der allgemeinen Einstellungen:', error)
@@ -206,7 +214,7 @@ export default function ConfigPanel () {
     return () => {
       ignore = true
     }
-  }, [toast, t])
+  }, [toast, setLocale])
 
   // Client-Polling laden
   useEffect(() => {
@@ -298,7 +306,8 @@ export default function ConfigPanel () {
     setGeneralSaving(true)
     try {
       const payload = {
-        timeZone: generalValues.timeZone?.trim() || null
+        timeZone: generalValues.timeZone?.trim() || null,
+        locale: generalValues.locale || null
       }
       const res = await fetch('/api/settings/general', {
         method: 'PUT',
@@ -317,14 +326,19 @@ export default function ConfigPanel () {
       }
       const data = await res.json()
       const nextValues = {
-        timeZone: data.values?.timeZone ?? payload.timeZone ?? ''
+        timeZone: data.values?.timeZone ?? payload.timeZone ?? '',
+        locale: data.values?.locale ?? payload.locale ?? generalValues.locale ?? 'de'
       }
       const nextDefaults = {
-        timeZone: data.defaults?.timeZone ?? generalDefaults.timeZone
+        timeZone: data.defaults?.timeZone ?? generalDefaults.timeZone,
+        locale: data.defaults?.locale ?? generalDefaults.locale ?? 'de'
       }
       setGeneralValues(nextValues)
       setGeneralInitialValues(nextValues)
       setGeneralDefaults(nextDefaults)
+      if (nextValues.locale && typeof nextValues.locale === 'string') {
+        setLocale(nextValues.locale)
+      }
       toast.success({
         title: t(
           'config.general.saveSuccessTitle',
@@ -852,6 +866,12 @@ export default function ConfigPanel () {
               {t('config.tabs.general', 'Allgemein')}
             </Tabs.Trigger>
             <Tabs.Trigger
+              value='credentials'
+              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
+            >
+              {t('config.tabs.credentials', 'Zugangsdaten')}
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value='scheduler'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
@@ -862,12 +882,6 @@ export default function ConfigPanel () {
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
               {t('config.tabs.polling', 'Dashboard-Polling')}
-            </Tabs.Trigger>
-            <Tabs.Trigger
-              value='credentials'
-              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
-            >
-              {t('config.tabs.credentials', 'Zugangsdaten')}
             </Tabs.Trigger>
           </Tabs.List>
         </div>
@@ -899,8 +913,11 @@ export default function ConfigPanel () {
                   </label>
                   <select
                     id='general-locale'
-                    value={locale}
-                    onChange={e => setLocale(e.target.value)}
+                    value={generalValues.locale || 'de'}
+                    onChange={e => {
+                      const value = e.target.value
+                      setGeneralValues(prev => ({ ...prev, locale: value }))
+                    }}
                     disabled={generalLoading || generalSaving}
                     className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                   >

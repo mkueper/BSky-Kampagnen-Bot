@@ -38,22 +38,34 @@ async function getClientConfig(req, res) {
       String(process.env.BLUESKY_APP_PASSWORD || '').trim()
     );
 
-    // Standard-Zeitzone aus den allgemeinen Settings ermitteln (falls gesetzt),
+    // Standard-Zeitzone und Locale aus den allgemeinen Settings ermitteln (falls gesetzt),
     // ansonsten auf die Konfiguration zurückfallen.
     let timeZone = config.TIME_ZONE;
+    let locale = config.LOCALE;
     try {
       const general = await settingsService.getGeneralSettings();
       if (general?.values?.timeZone) {
         timeZone = general.values.timeZone;
       }
+      if (general?.values?.locale) {
+        locale = general.values.locale;
+      }
     } catch {
-      // Fallback: config.TIME_ZONE verwenden, wenn allgemeine Settings nicht gelesen werden können.
+      // Fallback: config-Werte verwenden, wenn allgemeine Settings nicht gelesen werden können.
     }
+
+    const normalizeLocale = (value) => {
+      if (!value || typeof value !== "string") return "de";
+      const lower = value.toLowerCase();
+      if (lower.startsWith("en")) return "en";
+      if (lower.startsWith("de")) return "de";
+      return "de";
+    };
 
     res.json({
       polling,
       images: config.CLIENT_CONFIG?.images || { maxCount: 4, maxBytes: 8 * 1024 * 1024, allowedMimes: ['image/jpeg','image/png','image/webp','image/gif'], requireAltText: false },
-      locale: config.LOCALE,
+      locale: normalizeLocale(locale),
       timeZone,
       needsCredentials,
       platforms: {

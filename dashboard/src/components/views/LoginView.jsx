@@ -25,7 +25,10 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(data.error || 'Login fehlgeschlagen.')
+        throw new Error(
+          data.error ||
+          t('login.errorFallback', 'Login fehlgeschlagen.')
+        )
       }
       setPassword('')
       await refreshSession()
@@ -84,8 +87,12 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
                 {t(
                   'login.unconfigured.step2.suffix',
                   'generieren und als'
+                )}{' '}
+                <code className='ml-1 rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_PASSWORD_HASH</code>{' '}
+                {t(
+                  'login.unconfigured.step2.afterEnv',
+                  'hinterlegen.'
                 )}
-                <code className='ml-1 rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_PASSWORD_HASH</code> hinterlegen.
               </li>
               <li>
                 {t(

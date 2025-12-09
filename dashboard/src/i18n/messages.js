@@ -41,7 +41,8 @@ const messages = {
         publishedPosts: 'Veröffentlichte Posts',
         pendingPosts: 'Freizugebende Posts',
         pendingPostsInfoTitle: 'Freizugebende Posts',
-        pendingPostsInfoBody: 'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den regulären Versand übernommen.',
+        pendingPostsInfoBody:
+          'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den regulären Versand übernommen.',
         pendingPostsInfoAria: 'Hinweis zu freizugebenden Posts anzeigen',
         plannedThreads: 'Geplante Threads',
         publishedThreads: 'Veröffentlichte Threads'
@@ -91,6 +92,8 @@ const messages = {
       passwordLabel: 'Passwort',
       submitBusy: 'Anmeldung läuft…',
       submitLabel: 'Anmelden',
+      errorFallback: 'Login fehlgeschlagen.',
+      'unconfigured.step2.afterEnv': 'hinterlegen.',
       footerHint:
         'Tipp: Mehrere Admins sind möglich, wenn die Cookies geteilt oder der Login via Proxy abgesichert wird.'
     },
@@ -452,7 +455,12 @@ const messages = {
         loadErrorFallback: 'Unbekannter Fehler',
         emptyTitle: 'Noch keine Threads gespeichert',
         emptyBody:
-          'Lege im Thread-Editor einen Thread an, um hier eine Vorschau zu sehen.'
+          'Lege im Thread-Editor einen Thread an, um hier eine Vorschau zu sehen.',
+        next: {
+          title: 'Nächster Thread',
+          none: 'Noch nichts geplant',
+          noContent: 'Kein Inhalt hinterlegt'
+        }
       },
       card: {
         noPlatforms: 'Keine Plattformen',
@@ -812,6 +820,763 @@ const messages = {
       actions: {
         ok: 'OK',
         cancel: 'Abbrechen'
+      }
+    }
+  },
+  en: {
+    nav: {
+      overview: 'Overview',
+      skeets: 'Posts',
+      'skeets-overview': 'Activity',
+      'skeets-plan': 'Schedule',
+      threads: 'Threads',
+      'threads-overview': 'Activity',
+      'threads-plan': 'Schedule thread',
+      config: 'Configuration',
+      about: 'About Campaign Tool'
+    },
+    header: {
+      caption: {
+        overview: 'Campaigns – Overview',
+        skeets: 'Posts – Overview',
+        'skeets-overview': 'Posts – Overview',
+        'skeets-plan': 'Schedule post',
+        threads: 'Threads – Overview',
+        'threads-overview': 'Threads – Overview',
+        'threads-plan': 'Schedule thread',
+        config: 'Configuration',
+        about: 'About Campaign Tool'
+      },
+      title: {
+        overview: 'Campaigns – Overview',
+        skeets: 'Posts – Overview',
+        'skeets-overview': 'Posts – Overview',
+        'skeets-plan': 'Schedule post',
+        threads: 'Threads – Overview',
+        'threads-overview': 'Threads – Overview',
+        'threads-plan': 'Schedule thread',
+        config: 'Settings & Automation',
+        about: 'About Campaign Tool'
+      }
+    },
+    overview: {
+      cards: {
+        plannedPosts: 'Scheduled posts',
+        publishedPosts: 'Published posts',
+        pendingPosts: 'Posts awaiting approval',
+        pendingPostsInfoTitle: 'Posts awaiting approval',
+        pendingPostsInfoBody:
+          'Posts in this area require manual approval before they are added to the regular schedule.',
+        pendingPostsInfoAria: 'Show hint for posts awaiting approval',
+        plannedThreads: 'Scheduled threads',
+        publishedThreads: 'Published threads'
+      },
+      next: {
+        postTitle: 'Next post',
+        threadTitle: 'Next thread',
+        noPost: 'No scheduled post.',
+        noThread: 'No scheduled thread.',
+        noPostContent: 'No content available',
+        noThreadTitle: 'No title set'
+      },
+      upcoming: {
+        postsTitle: 'Upcoming posts',
+        threadsTitle: 'Upcoming threads',
+        noPosts: 'No upcoming posts.',
+        noThreads: 'No upcoming threads.',
+        noPostContent: '(no content)',
+        noThreadTitle: '(no title)'
+      },
+      aria: {
+        toPostsOverview: 'Switch to posts overview',
+        toThreadsOverview: 'Switch to threads overview',
+        toPendingPosts: 'Show posts awaiting approval'
+      }
+    },
+    login: {
+      heading: 'Campaign Tool login',
+      subtitle: 'Credentials are managed on the server.',
+      unconfigured: {
+        intro:
+          'Before anyone can log in, the login has to be configured in the backend:',
+        step1:
+          'Set the desired admin user in `.env` via `AUTH_USERNAME`.',
+        step2: {
+          prefix: 'Generate a password hash with',
+          suffix: 'and store it as'
+        },
+        step3: {
+          prefix: 'Set a random key as',
+          suffix: 'and restart the backend.'
+        },
+        checkConfig: 'Check configuration'
+      },
+      usernameLabel: 'Username',
+      usernamePlaceholder: 'admin',
+      passwordLabel: 'Password',
+      submitBusy: 'Signing in…',
+      submitLabel: 'Sign in',
+      errorFallback: 'Login failed.',
+      'unconfigured.step2.afterEnv': 'store it.',
+      footerHint:
+        'Tip: Multiple admins are possible if cookies are shared or login is protected via a proxy.'
+    },
+    posts: {
+      form: {
+        headingEdit: 'Edit post',
+        headingCreate: 'Schedule new post',
+        maxLengthHint:
+          'Maximum {limit} characters for the selected platforms.',
+        previewDisabledReason:
+          'Link previews cannot be sent together with image attachments.',
+        limitExceededTitle: 'Character limit exceeded',
+        limitExceededDescription:
+          'The post may contain at most {limit} characters for the selected platforms.',
+        limitExceededShort: 'Max. {limit} characters.',
+        invalidScheduleTitle: 'Invalid schedule',
+        invalidScheduleDescription: 'Please check date and time.',
+        weeklyMissingDaysTitle: 'Please select weekdays',
+        weeklyMissingDaysDescription: 'Select at least one day.',
+        monthlyInvalidDayTitle: 'Invalid day of month',
+        monthlyInvalidDayDescription:
+          'Please choose a value between 1 and 31.',
+        noPlatformTitle: 'No platform selected',
+        noPlatformDescription:
+          'Please select at least one target platform.',
+        saveSuccessUpdateTitle: 'Post updated',
+        saveSuccessCreateTitle: 'Post scheduled',
+        saveSuccessDescription: 'Changes have been saved.',
+        saveErrorTitle: 'Saving failed',
+        saveErrorDescription: 'Error while saving post.',
+        content: {
+          label: 'Post text',
+          infoAria: 'Show hint for post text',
+          placeholder:
+            'Write your post here…\nMentions and links are supported.',
+          shortHint: 'CTRL+Enter inserts a line break.',
+          counterLabel: 'Characters'
+        },
+        schedule: {
+          heading: 'Schedule',
+          infoAria: 'Show hint for scheduling',
+          repeatLabel: 'Repeat pattern',
+          dateLabel: 'Scheduled date',
+          timeLabel: 'Scheduled time',
+          timezoneHint:
+            'Times are interpreted in the configured default time zone.',
+          repeatNone: 'No repeat',
+          repeatDaily: 'Daily',
+          repeatWeekly: 'Weekly',
+          repeatMonthly: 'Monthly'
+        },
+        preview: {
+          heading: 'Preview',
+          infoAria: 'Show hint for preview'
+        },
+        infoButtonLabel: 'Info',
+        infoButtonTitle: 'Show hint',
+        platforms: {
+          groupLabel: 'Select platforms',
+          mastodonDisabledTitle: 'Mastodon access not configured',
+          bluesky: 'Bluesky',
+          mastodon: 'Mastodon'
+        },
+        media: {
+          counterLabel: 'Media',
+          addImageTitle: 'Add image',
+          addImageAria: 'Add image',
+          limitReachedTitle: 'Maximum {count} images',
+          addGifTitle: 'Add GIF',
+          addGifAria: 'Add GIF',
+          addGifLabel: 'GIF',
+          gifLoadErrorTitle: 'GIF could not be loaded',
+          removeSuccessTitle: 'Image removed',
+          removeErrorTitle: 'Removal failed',
+          removeErrorFallback: 'Image could not be removed.',
+          removeButtonTitle: 'Remove image',
+          imageAltFallback: 'Image {index}',
+          altEditTitle: 'Edit ALT text',
+          altAddTitle: 'Add ALT text',
+          altSaveErrorFallback: 'ALT text could not be saved.',
+          altSaveErrorTitle: 'Error while saving ALT text',
+          altBadge: 'ALT',
+          altAddBadge: '+ ALT'
+        },
+        emoji: {
+          insertAria: 'Insert emoji',
+          insertTitle: 'Insert emoji (Ctrl+.)'
+        },
+        repeat: {
+          label: 'Repeat pattern',
+          none: 'No repeat',
+          daily: 'Daily',
+          weekly: 'Weekly',
+          monthly: 'Monthly'
+        },
+        time: {
+          label: 'Scheduled time'
+        },
+        weekdays: {
+          label: 'Weekdays'
+        },
+        monthlyDay: {
+          label: 'Day of month (1–31)'
+        },
+        date: {
+          label: 'Scheduled date'
+        },
+        cancel: 'Cancel',
+        submitUpdate: 'Update post',
+        submitCreate: 'Schedule',
+        sendNow: {
+          buttonBusy: 'Sending…',
+          buttonDefault: 'Send now',
+          createErrorFallback: 'Post could not be created.',
+          unexpectedCreateResponse:
+            'Unexpected response while creating post.',
+          publishErrorFallback: 'Direct publishing failed.',
+          successTitle: 'Published (immediately)',
+          successDescription: 'The post was sent immediately.',
+          errorTitle: 'Sending failed'
+        },
+        infoContent: {
+          title: 'Hint: Post text',
+          body1:
+            'Target platforms define the character limit. The smallest value (e.g. Bluesky 300, Mastodon 500) applies.',
+          body2:
+            'For recurring posts, choose the appropriate pattern (none/weekly/monthly) and provide the required fields.'
+        },
+        infoPreview: {
+          title: 'Hint: Preview',
+          body1:
+            'Use the buttons to add images or GIFs. Maximum {max} images per post.',
+          body2:
+            'Images are uploaded when saving. The counter shows the current character count relative to the limit.'
+        }
+      },
+      activity: {
+        title: 'Post activity',
+        description:
+          'Manage scheduled and published posts including replies & reactions.',
+        tabs: {
+          planned: 'Scheduled',
+          published: 'Published',
+          pending: 'To approve',
+          deleted: 'Trash'
+        },
+        toolbar: {
+          sortNewFirst: 'Newest first',
+          sortOldFirst: 'Oldest first',
+          refreshVisible: 'Refresh all visible',
+          noVisibleTitle: 'No visible entries',
+          noVisibleDescription:
+            'Scroll the list to make entries visible.',
+          refreshErrorTitle: 'Refresh failed',
+          refreshErrorDescription: 'Error while refreshing.',
+          refreshSuccessTitle: 'Visible entries updated',
+          refreshSuccessDescriptionPrefix: 'Posts: ',
+          refreshSuccessDescriptionSuffix: ' updated',
+          refreshSuccessFailedPart: ' · {count} failed',
+          refreshBackendErrorFallback:
+            'Error while refreshing visible posts.'
+        }
+      },
+      lists: {
+        planned: {
+          emptyTitle: 'No posts scheduled yet.',
+          emptyBody:
+            'Use the planner to schedule your first posts.',
+          edit: 'Edit',
+          remove: 'Delete',
+          publishNow: 'Send',
+          skipOnce: 'Discard',
+          publishNowTitle: 'Send missed post once',
+          skipOnceTitle: 'Discard missed post (do not catch up)'
+        },
+        published: {
+          emptyTitle: 'No published posts yet.',
+          emptyBody:
+            'Once posts are live, they appear here with all metrics.',
+          tabPost: 'Post',
+          tabReplies: 'Replies',
+          loadingReplies: 'Loading replies…',
+          noReplies: 'No replies available.',
+          repliesErrorPrefix: 'Error',
+          reactionsRefresh: 'Refresh reactions',
+          reactionsLoading: 'Loading…',
+          retract: 'Withdraw',
+          summaryLikes: 'Likes',
+          summaryReposts: 'Reposts',
+          reactionsErrorPrefix: 'Error: ',
+          sentAtPrefix: 'Sent on ',
+          platformLikesReposts: 'Likes {likes} · Reposts {reposts}'
+        },
+        deleted: {
+          emptyTitle: 'No deleted posts.',
+          emptyBody:
+            'Deleted posts appear here and can be reactivated or removed permanently.',
+          deletedAtPrefix: 'Deleted on ',
+          restore: 'Restore',
+          destroy: 'Delete permanently'
+        }
+      }
+    },
+    threads: {
+      activity: {
+        title: 'Thread activity',
+        description:
+          'Manage scheduled and published threads including replies & reactions.',
+        tabs: {
+          planned: 'Scheduled',
+          published: 'Published',
+          deleted: 'Trash'
+        },
+        toolbar: {
+          sortNewFirst: 'Newest first',
+          sortOldFirst: 'Oldest first',
+          refreshVisible: 'Refresh all visible',
+          noVisibleTitle: 'No visible entries',
+          noVisibleDescription:
+            'Scroll the list to make entries visible.',
+          refreshErrorTitle: 'Refresh failed',
+          refreshErrorDescription: 'Error while refreshing.',
+          refreshSuccessTitle: 'Visible entries updated',
+          refreshSuccessDescriptionPrefix: 'Threads: ',
+          refreshSuccessDescriptionSuffix: ' updated',
+          refreshSuccessFailedPart: ' · {count} failed',
+          refreshBackendErrorFallback:
+            'Error while refreshing visible threads.',
+          mobileSortLabel: 'Sorting of published threads',
+          includeRepliesLabel: 'Replies'
+        },
+        emptyTrash: 'Trash is empty.'
+      },
+      form: {
+        saveSuccessUpdateTitle: 'Thread updated',
+        saveSuccessCreateTitle: 'Thread scheduled',
+        saveSuccessDescription:
+          'Thread contains {count} post{suffix}.',
+        headingCreate: 'Schedule thread',
+        headingEdit: 'Edit thread',
+        headingHint:
+          'Maximum {limit} characters per post for the selected platforms.',
+        saveErrorUpdateTitle: 'Update failed',
+        saveErrorCreateTitle: 'Saving failed',
+        saveErrorDescription:
+          'Unknown error while saving thread.',
+        source: {
+          heading: 'Thread content',
+          infoAria: 'Show hint for thread content',
+          limitLabel: 'Limit: {label}',
+          placeholder:
+            'Example:\nIntro to the thread…\n---\nNext post…',
+          shortHint:
+            'CTRL+Enter inserts a separator. Long sections are split automatically. Numbering can be disabled.'
+        },
+        platforms: {
+          legend: 'Target platforms',
+          groupLabel: 'Select target platforms',
+          mastodonDisabledTitle: 'Mastodon access not configured',
+          optionTitle: '{label} ({limit})',
+          bluesky: 'Bluesky',
+          mastodon: 'Mastodon'
+        },
+        numbering: {
+          label: 'Append automatic numbering (`1/x`)'
+        },
+        schedule: {
+          label: 'Scheduled send',
+          hint: 'Default: tomorrow at 09:00'
+        },
+        emoji: {
+          insertAria: 'Insert emoji',
+          insertTitle: 'Insert emoji (Ctrl+.)'
+        },
+        actions: {
+          cancel: 'Cancel',
+          reset: 'Reset form'
+        },
+        submitUpdateBusy: 'Updating…',
+        submitCreateBusy: 'Scheduling…',
+        submitUpdate: 'Update thread',
+        submitCreate: 'Schedule',
+        preview: {
+          heading: 'Preview',
+          infoAria: 'Show hint for preview',
+          counter: '{count} post{suffix}'
+        },
+        media: {
+          uploadErrorExistingFallback: 'Upload failed.',
+          uploadExistingErrorTitle: 'Media upload failed',
+          uploadErrorDescription: 'Error while uploading.',
+          uploadTempErrorFallback: 'Temporary upload failed.',
+          uploadTempErrorTitle: 'Upload failed',
+          tooLargeMessage:
+            'The file is too large. Maximum {mb} MB allowed.',
+          gifTooLargeMessage: 'GIF too large. Maximum {mb} MB.',
+          gifLoadErrorMessage: 'GIF could not be loaded.',
+          uploadErrorDialogTitle: 'Upload failed',
+          uploadErrorDialogBody:
+            'The image file could not be uploaded.',
+          addImageTitle: 'Add image',
+          addGifTitle: 'Add GIF'
+        }
+      },
+      activityExtra: {
+        descriptionShort:
+          'Status of scheduled and published threads.',
+        loading: 'Thread activity is loading…'
+      },
+      overview: {
+        loading: 'Threads are loading…',
+        loadErrorTitle: 'Threads could not be loaded',
+        loadErrorRetry: 'Retry',
+        loadErrorFallback: 'Unknown error',
+        emptyTitle: 'No threads stored yet',
+        emptyBody:
+          'Create a thread in the editor to see a preview here.',
+        next: {
+          title: 'Next thread',
+          none: 'Nothing scheduled yet',
+          noContent: 'No content available'
+        }
+      },
+      card: {
+        noPlatforms: 'No platforms',
+        publishedAtPrefix: 'Published on: ',
+        publishedFallback: 'Published',
+        noSchedule: 'No date scheduled',
+        scheduledAtPrefix: 'Will be posted at: ',
+        scheduledForPrefix: 'Scheduled for: ',
+        scheduledInvalidPrefix: 'Scheduled for ',
+        postLabel: 'Post {index}',
+        charactersSuffix: ' characters',
+        metricsUpdatedAtPrefix: 'Metrics updated on: ',
+        plannedBadge: 'Scheduled',
+        showMorePosts: 'Show more posts',
+        hideMorePosts: 'Hide additional posts',
+        noMorePosts: 'No further posts',
+        totalsTitle: 'Total overview',
+        totalsLikes: 'Likes',
+        totalsReposts: 'Reposts',
+        totalsReplies: 'Replies',
+        totalsFallback: 'Metrics have been reloaded.',
+        perPlatformLine: 'Likes {likes} · Reposts {reposts}',
+        repliesToggleLabel: 'Show replies',
+        repliesToggleHide: 'Hide replies',
+        repliesHeader: 'Replies (newest first)',
+        replyPostLabel: 'Post {index}',
+        refreshButton: 'Refresh reactions',
+        refreshLoading: 'Loading…',
+        edit: 'Edit',
+        retract: 'Withdraw',
+        delete: 'Delete',
+        refreshSuccessTitle: 'Reactions updated',
+        refreshSuccessDescription:
+          'Likes {likes} · Reposts {reposts} · Replies {replies}',
+        refreshSuccessFallback: 'Metrics have been reloaded.',
+        refreshErrorTitle: 'Update failed',
+        refreshErrorDescription:
+          'Error while updating reactions.'
+      }
+    },
+    postsExtra: {
+      overview: {
+        next: {
+          title: 'Next post',
+          none: 'Nothing scheduled yet'
+        }
+      },
+      activity: {
+        descriptionShort:
+          'Status of scheduled and published posts.',
+        loading: 'Post activity is loading…'
+      },
+      export: {
+        buttonLabel: 'Export posts'
+      },
+      import: {
+        buttonLabel: 'Import posts'
+      }
+    },
+    importExport: {
+      infoTitle: 'Import & export of posts and threads',
+      infoIntro:
+        'Posts and threads can be exported as JSON files and imported again later – for example for backups, migrations or testing in another environment.',
+      infoFormat:
+        'Exported files contain scheduled posts or threads with all their fields (e.g. content, time points, repeat rules) and optionally embedded media as data URLs (with MIME type, optional ALT text and binary data). The structure matches the schema described in the API documentation and should not be modified manually.',
+      infoDuplicates:
+        'When importing, the file is processed as a whole. Duplicates – for example the same combination of content/title, schedule and repeat rules or identical thread segments – are ignored. Importing the same file multiple times does not create duplicate entries.',
+      infoAltText:
+        'ALT texts from the export are restored on import and assigned to the corresponding media again. If media are not included in the export, they can be added as usual in the forms after import.',
+      infoHint:
+        'In practice, it is a good idea to try import and export first with a smaller sample or in a test environment before migrating larger campaign sets.',
+      infoAria: 'Show hint for import & export'
+    },
+    auth: {
+      logout: {
+        button: 'Sign out'
+      }
+    },
+    config: {
+      loading: 'Loading configuration…',
+      general: {
+        heading: 'General',
+        subtitle:
+          'Base settings for language and time zone of the campaign tool.',
+        labels: {
+          locale: 'Display language',
+          timeZone: 'Default time zone'
+        },
+        localeHint: 'Controls the display language of the campaign tool.',
+        timeZoneHint:
+          'Example: Europe/Berlin or UTC (IANA time zone).',
+        toastTitle: 'General settings',
+        loadErrorDescription:
+          'General settings could not be loaded.',
+        saveErrorFallback:
+          'Error while saving general settings.',
+        saveSuccessTitle: 'General settings saved',
+        saveSuccessDescription:
+          'Time zone has been updated. The scheduler will use the new setting.',
+        saveErrorTitle: 'Saving failed',
+        saveErrorDescription:
+          'General settings could not be saved.',
+        summary: 'Current time zone: {tz}',
+        resetButton: 'Reset to default',
+        saveBusy: 'Applying…',
+        saveLabel: 'Apply',
+        timeZoneInfoTitle: 'Time zone in scheduler',
+        timeZoneInfoIntro:
+          'The default time zone defines the reference time zone for scheduler and dashboard.',
+        timeZoneInfoServer:
+          'Cron expressions and scheduler execution are based on the configured server time zone. The local browser time zone remains independent of this.',
+        timeZoneInfoForms:
+          'Date and time fields in scheduling forms use the default time zone for suggested values and display.',
+        timeZoneInfoHint:
+          'In most installations, the time zone of the deployment location (e.g. Europe/Berlin) is appropriate. UTC is suitable for purely technical environments.',
+        timeZoneInfoAria: 'Show hint for time zone'
+      },
+      scheduler: {
+        toastTitle: 'Configuration',
+        loadErrorDescription: 'Settings could not be loaded.',
+        noChangesTitle: 'No changes',
+        noChangesDescription: 'Settings are already up to date.',
+        cronMissingTitle: 'Cron expression missing',
+        cronMissingDescription:
+          'Please provide a valid cron expression.',
+        timeZoneMissingTitle: 'Time zone missing',
+        timeZoneMissingDescription:
+          'Please provide a time zone.',
+        invalidNumberTitle: 'Invalid value',
+        invalidNumberDescription:
+          '{label} must be a positive number.',
+        saveErrorFallback: 'Saving failed.',
+        saveSuccessTitle: 'Settings saved',
+        saveSuccessDescription:
+          'Scheduler and retry strategy have been updated.',
+        saveErrorTitle: 'Saving failed',
+        saveErrorDescription:
+          'Settings could not be saved.',
+        heading: 'Scheduler & retry',
+        subtitle:
+          'Adjust cron, time zone and retry strategy for the campaign tool.',
+        hintDefaults:
+          'Defaults are based on the current .env.',
+        labels: {
+          scheduleCronBlockTitle: 'Cron',
+          scheduleTime: 'Cron expression',
+          timeZone: 'Time zone',
+          postRetries: 'Maximum retries',
+          postBackoffMs: 'Base backoff (ms)',
+          postBackoffMaxMs: 'Maximum backoff (ms)',
+          graceWindowMinutes:
+            'Grace period for missed runs (minutes)'
+        },
+        examples:
+          'Examples:\n0 * * * * (hourly)\n*/5 * * * * (every 5 minutes)',
+        summary:
+          'Defaults: Cron {cron}, time zone {tz}, retries {retries}, backoff {backoffMs}ms (max. {backoffMaxMs}ms)',
+        cronInfoBody:
+          'Examples:\n' +
+          '0   *    *    *    *      – every full hour\n' +
+          '*/5 *    *    *    *      – every 5 minutes\n' +
+          '0   12   *    *    *      – daily at 12:00\n' +
+          '30  7    *    *    *      – daily at 07:30\n' +
+          '0   9    *    *    1      – every Monday at 09:00\n' +
+          '0   8    1    *    *      – on the 1st of the month at 08:00\n\n',
+        cronInfoSummary:
+          'Cron expressions control when the campaign tool processes scheduled posts.',
+        retryInfoInline:
+          'For temporary errors (e.g. rate limits) posts are retried automatically. Retries, backoff and grace period define how long catch-up is allowed.',
+        retryInfoIntro:
+          'Retries help to absorb temporary errors when sending posts – such as rate limits or short network issues.',
+        retryInfoRetriesHeading: 'Maximum retries',
+        retryInfoRetries:
+          'Defines how often a post is retried after an error before it is considered failed.',
+        retryInfoBackoffHeading: 'Base backoff & maximum backoff',
+        retryInfoBackoff:
+          'The base backoff defines the initial wait time between attempts. The maximum backoff limits how far this wait time can increase with repeated errors.',
+        retryInfoGraceHeading: 'Grace period for missed runs',
+        retryInfoGrace:
+          'The grace period defines how long after a restart missed send times are still caught up. If a time is outside this window, the post is no longer sent automatically.',
+        retryInfoHint:
+          'For most setups a small number of retries (e.g. 2–3) and a moderate grace period are enough to absorb short outages without delaying old posts too much.',
+        graceHint:
+          'Within this window after the scheduled time, missed posts/threads are still caught up. Minimum: 2 minutes.',
+        infoHeading: 'Hints',
+        tips: {
+          serverTime:
+            'Cron expressions refer to server time – make sure the correct time zone is configured when deploying.',
+          backoff:
+            'Backoff values control wait times between retries and help with rate limits.',
+          apply:
+            'Changes take effect immediately – the scheduler is restarted automatically.'
+        },
+        resetButton: 'Reset to defaults',
+        saveBusy: 'Applying…',
+        saveLabel: 'Apply'
+      },
+      polling: {
+        toastTitle: 'Configuration',
+        loadErrorDescription:
+          'Client config could not be loaded.',
+        noChangesTitle: 'No changes',
+        noChangesDescription:
+          'Client polling settings are already up to date.',
+        invalidValuesTitle: 'Invalid values',
+        invalidValuesDescription:
+          'Intervals and backoff must be positive numbers.',
+        invalidJitterTitle: 'Invalid jitter',
+        invalidJitterDescription:
+          'POLL_JITTER_RATIO must be between 0 and 1.',
+        saveErrorFallback:
+          'Error while saving client configuration.',
+        saveSuccessTitle: 'Client configuration saved',
+        saveSuccessDescription: 'Polling & backoff updated.',
+        saveErrorTitle: 'Saving failed',
+        saveErrorDescription:
+          'Client polling settings could not be saved.',
+        heading: 'Dashboard polling',
+        subtitle:
+          'Control intervals and backoff for thread & post lists.',
+        hintDefaults:
+          'Polling complements live updates (SSE) and is mainly used when connectivity is poor.',
+        labels: {
+          threadActiveMs: 'Threads: Active (ms)',
+          threadIdleMs: 'Threads: Idle (ms)',
+          threadHiddenMs: 'Threads: Hidden (ms)',
+          threadMinimalHidden: 'Threads: Minimal ping hidden',
+          skeetActiveMs: 'Posts: Active (ms)',
+          skeetIdleMs: 'Posts: Idle (ms)',
+          skeetHiddenMs: 'Posts: Hidden (ms)',
+          skeetMinimalHidden: 'Posts: Minimal ping hidden',
+          backoffStartMs: 'Backoff start (ms)',
+          backoffMaxMs: 'Backoff max (ms)',
+          jitterRatio: 'Jitter ratio (0..1)'
+        },
+        infoTitle: 'Dashboard polling',
+        infoIntro:
+          'Dashboard polling complements live updates (SSE) so that thread and post lists can be updated even when connectivity is limited.',
+        infoIntervalsHeading: 'Intervals for threads & posts',
+        infoIntervals:
+          'Active, idle and hidden intervals define how often threads and posts are fetched in each state.',
+        infoBackoffHeading: 'Backoff & jitter',
+        infoBackoff:
+          'Backoff values define how much polling is slowed down after repeated errors. Jitter slightly varies intervals to avoid synchronized requests from multiple clients.',
+        infoHeartbeatHeading: 'Heartbeat & active tab',
+        infoHeartbeat:
+          'The heartbeat signals to the backend whether an active client is present. Polling for engagement updates is more frequent only when there is an active client.',
+        infoHint:
+          'For most setups, moderate intervals are sufficient. Aggressive polling increases server load and is mainly useful for debugging or tests.',
+        infoAria: 'Show hint for dashboard polling'
+      },
+      credentials: {
+        toastTitle: 'Credentials',
+        heading: 'Credentials',
+        subtitle:
+          'Server URLs and logins for Bluesky and Mastodon.',
+        loading: 'Loading…',
+        loadErrorFallback: 'Error while loading credentials.',
+        loadErrorDescription:
+          'Credentials could not be loaded.',
+        saveErrorFallback: 'Error while saving credentials.',
+        saveSuccessTitle: 'Saved',
+        saveSuccessDescription: 'Credentials updated.',
+        saveErrorTitle: 'Saving failed',
+        saveErrorDescription:
+          'Credentials could not be saved.',
+        infoTitle: 'Credentials & security',
+        infoIntro:
+          'The campaign tool requires credentials for Bluesky (and optionally Mastodon). Without valid credentials, scheduler and dashboard are only partially usable.',
+        infoBluesky:
+          'Bluesky uses server URL, identifier (handle/email) and an app password. The app password is a separate password that should only be used for API access.',
+        infoMastodon:
+          'Mastodon requires the API URL of the instance and an access token. The access token should only have the permissions required to publish and manage posts.',
+        infoTenor:
+          'Optionally, a Tenor API key can be stored to enable GIF search in the dashboard. Without a key, GIF search stays disabled; scheduling posts is unaffected.',
+        infoSecurity:
+          'Credentials are stored on the server. Password and token fields can be left empty to keep existing values.',
+        infoHint:
+          'In practice, credentials should be set up and tested first before adjusting scheduler and polling settings.',
+        infoAria: 'Show hint for credentials',
+        required: {
+          heading: 'Credentials required',
+          body:
+            'First, credentials for Bluesky (and optionally Mastodon) should be configured. Afterwards, further options can be adjusted as needed.'
+        },
+        bluesky: {
+          heading: 'Bluesky',
+          serverUrlLabel: 'Server URL',
+          identifierLabel: 'Identifier (handle/email)',
+          appPasswordLabel: 'App password',
+          appPasswordHint:
+            'Leave empty to keep existing password.'
+        },
+        mastodon: {
+          heading: 'Mastodon',
+          apiUrlLabel: 'API URL',
+          accessTokenLabel: 'Access token',
+          accessTokenHint:
+            'Leave empty to keep existing token.'
+        },
+        tenor: {
+          heading: 'External API keys',
+          apiKeyLabel: 'Tenor API key',
+          apiKeyHint:
+            'Leave empty to keep existing key.'
+        },
+        saveBusy: 'Applying…',
+        saveLabel: 'Apply'
+      },
+      tabs: {
+        ariaLabel: 'Configuration topics',
+        general: 'General',
+        scheduler: 'Scheduler & retry',
+        polling: 'Dashboard polling',
+        credentials: 'Credentials'
+      }
+    },
+    about: {
+      loading: 'Loading info view…'
+    },
+    layout: {
+      nav: {
+        ariaLabel: 'Main navigation',
+        tagline: 'Control Center',
+        appName: 'Campaign Tool',
+        close: 'Close navigation',
+        open: 'Open navigation',
+        restore: 'Show navigation'
+      }
+    },
+    common: {
+      errors: {
+        unknown: 'Unknown error'
+      },
+      actions: {
+        ok: 'OK',
+        cancel: 'Cancel'
       }
     }
   }
