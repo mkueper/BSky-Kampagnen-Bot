@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -eu
 set -o pipefail 2>/dev/null || true
 
@@ -27,6 +27,7 @@ PROJECT_CONTENT=(
   "migrations"
   "packages/shared-ui"
   "packages/media-pickers"
+  "packages/shared-logic"
   "tsconfig.json"
   "tsconfig.build.json"
   "README.md"
