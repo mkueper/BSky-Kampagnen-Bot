@@ -85,8 +85,11 @@ const INDEX_HTML = path.join(DIST_DIR, "index.html");
 // Statische Dateien
 // Uploads (Bilder) bereitstellen
 try {
-  const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'medien');
+  const LEGACY_UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads');
   app.use('/uploads', express.static(UPLOAD_DIR));
+  // Legacy-Verzeichnis für bestehende Installationen weiter ausliefern
+  app.use('/uploads', express.static(LEGACY_UPLOAD_DIR));
 } catch (e) { appLog.error("Fehler beim Bereitstellen des Upload-Verzeichnisses", { error: e?.message || String(e) }); }
 // Temporäre Uploads (Entwurf) bereitstellen
 try {

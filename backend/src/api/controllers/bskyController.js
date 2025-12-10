@@ -315,7 +315,7 @@ function mapSearchFeed (feed) {
 
 async function collectMediaFromTemp (mediaInput = [], contextLabel = 'post') {
   if (!Array.isArray(mediaInput) || mediaInput.length === 0) return []
-  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads')
+  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'medien')
   const tempDir = process.env.TEMP_UPLOAD_DIR || path.join(process.cwd(), 'data', 'temp')
 
   try {

@@ -4,7 +4,7 @@ const multer = require('multer');
 const { Thread, ThreadSkeet, ThreadSkeetMedia, Skeet, SkeetMedia } = require('@data/models');
 
 function ensureUploadDir() {
-  const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+  const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'medien');
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }

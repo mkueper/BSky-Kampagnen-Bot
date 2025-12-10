@@ -17,10 +17,11 @@
 - Die gemeinsame `NextScheduledCard`-Komponente wird sowohl in der Übersicht als auch in den Tabs „Posts“/„Threads“ genutzt; Datum/Uhrzeit stehen kompakt über dem Inhaltsauszug.
 - Im ConfigPanel wurden die Blöcke „Cron“ sowie „Wiederholversuche & Backoff“ so neu arrangiert, dass Hilfstexte in der selben Spalte und im selben Stil wie andere Inline-Hinweise erscheinen.
 - Nach jeder JavaScript-Änderung laufen `npm test` und `npm run lint`, weil Linting zusätzliche Fehler früh sichtbar macht.
+- Backend-Fehlercodes (Auth, Settings, Bluesky, Import/Export, Upload/Tenor) sind konsolidiert, Temp-Uploads werden per Maintenance-Route bereinigt und `npm run maintest` bündelt Build, Tests und Lint in einem Schritt.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Buttons, Edit-Handling und Terminologie sind durchgängig; InfoDialog + neue i18n-Texte erklären den Freigabe-Status, Planner wirken durch die kleineren Felder ruhiger und Tabs lassen sich auf kleinen Displays scrollen. Die Post-/Thread-Übersichten sind in Panels, Kartenrhythmus und „Nächster …“/„Bevorstehende …“-Kacheln harmonisiert; Scheduler-Blöcke im ConfigPanel nutzen konsistente Hilfstextlayouts. Test-/Lint-Routine und ThreadForm-Splitter sind dokumentiert bzw. bereinigt; nächste Sessions können sich bei Bedarf neuen UI-Details oder Features widmen.
+Buttons, Edit-Handling und Terminologie sind durchgängig; InfoDialog + neue i18n-Texte erklären den Freigabe-Status, Planner wirken durch die kleineren Felder ruhiger und Tabs lassen sich auf kleinen Displays scrollen. Die Post-/Thread-Übersichten sind in Panels, Kartenrhythmus und „Nächster …“/„Bevorstehende …“-Kacheln harmonisiert; Scheduler-Blöcke im ConfigPanel nutzen konsistente Hilfstextlayouts. Backend und Clients sind in Bezug auf Fehlercodes und Upload-/Tenor-Handling aufgeräumt und nach `main` gemergt; nächste Sessions können sich auf PWA/Deployment oder den künftigen ThreadComposer und gemeinsame Utils konzentrieren.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 

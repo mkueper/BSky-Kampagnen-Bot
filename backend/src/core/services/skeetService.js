@@ -413,7 +413,7 @@ async function createSkeet(payload) {
   try {
     const mediaItems = Array.isArray(payload.media) ? payload.media : [];
     if (mediaItems.length > 0) {
-      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'medien');
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       let order = await SkeetMedia.count({ where: { skeetId: skeet.id } });
       const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024);
@@ -453,7 +453,7 @@ async function updateSkeet(id, payload) {
   try {
     const mediaItems = Array.isArray(payload.media) ? payload.media : [];
     if (mediaItems.length > 0) {
-      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'uploads');
+      const dir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'data', 'medien');
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       let order = await SkeetMedia.count({ where: { skeetId: skeet.id } });
       const maxBytes = Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024);

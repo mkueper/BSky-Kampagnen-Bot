@@ -76,15 +76,15 @@ Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Intera
 
 ## 9. Erinnerung
 
-* Wenn eine Datei `codex-plans.md` im Projekt vorhanden ist, **lies sie zu Beginn jeder neuen Session vollständig ein** und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
-* Wenn die Nutzer:in im Gespräch „Feierabend“ oder „Gute Nacht“ sagt, **erstelle oder aktualisiere** die Datei `codex-plans.md` und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
+* Wenn eine Datei `codex-plans*.md` im Projekt vorhanden ist (z. B. `codex-plans.md`, `codex-plans-backend.md`, `codex-plans-client.md`), **lies sie zu Beginn jeder neuen Session vollständig ein** und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
+* Wenn die Nutzer:in im Gespräch „Feierabend“ oder „Gute Nacht“ sagt, **erstelle oder aktualisiere** die passende `codex-plans*.md`-Datei (z. B. `codex-plans.md` im Dashboard-Kontext, `codex-plans-backend.md` im Backend-Kontext) und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
 * Diese Aktion ist eine **zulässige Ausnahme** von den allgemeinen Regeln zur Dateimodifikation und darf **ohne Rückfrage** ausgeführt werden.
 
 ---
 
-## 10. Struktur von `codex-plans.md`
+## 10. Struktur von `codex-plans*.md`
 
-* Wenn `codex-plans.md` erstellt oder aktualisiert wird, muss **immer** die folgende Struktur in **genau dieser Reihenfolge** eingehalten werden:
+* Wenn eine `codex-plans*.md`-Datei erstellt oder aktualisiert wird, muss **immer** die folgende Struktur in **genau dieser Reihenfolge** eingehalten werden:
 
   1. Datum (TT.MM.JJJJ)
   2. Status (aktueller Stand, keine To-Dos)

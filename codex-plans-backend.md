@@ -37,3 +37,4 @@ Login/Auth und Settings dienen inzwischen als Referenz für Backend-Fehlercodes 
 - Welche Fehlercodes sollen als „stabil“ gelten und in zukünftigen Major-Versionen unverändert bleiben, damit externe Integrationen sich darauf verlassen können?
 - Sollen wir mittelfristig einen zentralen Katalog für Fehlercodes (z. B. `backend/src/constants/errorCodes.js`) einführen, um Dopplungen und Tippfehler zu vermeiden?
 - Wie weit wollen wir mit Backend-i18n bei Fehlermeldungen gehen, wenn primär die Frontends für die Darstellung zuständig sind – reichen Codes + technische `message`, oder wünschen wir serverseitig ebenfalls lokalisierte Varianten?
+- Wie soll ein optionaler WebDAV-/Nextcloud‑Speicher integriert werden (z. B. reine Auslagerung der Mediendateien bei unveränderten Metadaten in der bestehenden Datenbank), ohne den lokalen Upload-Flow und bestehende Deployments zu brechen?

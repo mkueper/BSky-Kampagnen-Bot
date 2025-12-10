@@ -11,6 +11,31 @@ const messages = {
       config: 'Konfiguration',
       about: 'Über Kampagnen‑Tool'
     },
+    about: {
+      introTitle: 'Was das {project} macht',
+      introBody1:
+        'Das {project} hilft dabei, Posts und Threads für verbundene Plattformen zu planen und im Blick zu behalten. Im Mittelpunkt stehen eine übersichtliche Steuerung geplanter Inhalte, klare Statusansichten und ein nachvollziehbarer Versandverlauf.',
+      introBody2:
+        'Zusätzlich zum Planer bietet das {project} einen eingebetteten Bluesky‑Client für direkte Interaktionen sowie Bereiche zur Konfiguration von Scheduler, Dashboard‑Polling und Zugangsdaten. Ziel ist ein zentrales Control Center für Kampagnenarbeit, das sich an unterschiedliche Umgebungen anpassen lässt.',
+      contributorsTitle: 'Mitwirkende',
+      roleOwner: 'Konzeption, Entwicklung & Betreuung',
+      roleArchitecture: 'Architektur & UI',
+      roleAssistant: 'Agentische Unterstützung bei Code, Architektur & UI',
+      roleTextAssistant: 'Unterstützung bei Texten & Übersetzungen',
+      licenseTitle: 'Open Source & Lizenz',
+      licenseBody:
+        'Das {project} wird als Open‑Source‑Projekt unter der MIT‑Lizenz entwickelt. Details zur Lizenz finden sich in der Datei LICENSE im Projektverzeichnis. Quellcode & Issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+      supportTitle: 'Support & Feedback',
+      supportBody:
+        'Feedback, Fehler und Ideen können als Issue im GitHub‑Repo gemeldet werden. Bitte keine Zugangsdaten oder vertraulichen Inhalte in Issues posten.',
+      dataTitle: 'Daten & Betrieb',
+      dataBody:
+        'Inhalte, Planungen und Zugangsdaten werden in deiner eigenen Umgebung gespeichert (Datenbank/Dateisystem). Externe Dienste sind Bluesky (optional Mastodon sowie die Tenor‑GIF‑Suche), die nur im Rahmen der konfigurierten Konten angesprochen werden.',
+      deploymentTitle: 'Version & Deployment',
+      deploymentBody:
+        'Welche Version im Einsatz ist, ergibt sich aus dem jeweiligen Deployment (z. B. Docker‑Tag oder package.json im Repository). Hinweise zu typischen Setups (Docker‑Compose, Node.js + SQLite/Postgres) finden sich im README des Projekts.',
+      loading: 'Infoansicht wird geladen…'
+    },
     header: {
       caption: {
         overview: 'Kampagnen – Übersicht',
@@ -848,9 +873,6 @@ const messages = {
         credentials: 'Zugangsdaten'
       }
     },
-    about: {
-      loading: 'Infoansicht wird geladen…'
-    },
     layout: {
       nav: {
         ariaLabel: 'Hauptnavigation',
@@ -1654,6 +1676,28 @@ const messages = {
       }
     },
     about: {
+      introTitle: 'What {project} does',
+      introBody1:
+        '{project} helps you plan and keep track of posts and threads across connected platforms. The focus is on clear scheduling, transparent status views, and a traceable sending history.',
+      introBody2:
+        'In addition to the scheduler, {project} includes an embedded Bluesky client for direct interactions and configuration areas for the scheduler, dashboard polling, and credentials. The goal is to provide a central control center for campaign work that can adapt to different environments.',
+      contributorsTitle: 'Contributors',
+      roleOwner: 'Concept, development & maintenance',
+      roleArchitecture: 'Architecture & UI',
+      roleAssistant: 'Agentic support for code, architecture & UI',
+      roleTextAssistant: 'Support for wording & translations',
+      licenseTitle: 'Open source & license',
+      licenseBody:
+        '{project} is developed as an open‑source project under the MIT license. License details can be found in the LICENSE file in the project directory. Source code & issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+      supportTitle: 'Support & feedback',
+      supportBody:
+        'Feedback, bugs, and ideas can be reported as issues in the GitHub repository. Please avoid posting credentials or other sensitive data in issues.',
+      dataTitle: 'Data & operation',
+      dataBody:
+        'Content, schedules, and credentials are stored in your own environment (database/file system). External services are Bluesky (and optionally Mastodon and the Tenor GIF search), which are only contacted using the configured accounts.',
+      deploymentTitle: 'Version & deployment',
+      deploymentBody:
+        'The running version is determined by your deployment (for example Docker image tag or package.json in the repository). Typical setups (Docker Compose, Node.js + SQLite/Postgres) are described in the project README.',
       loading: 'Loading info view…'
     },
     layout: {
