@@ -1,6 +1,8 @@
 # Dokumentationsübersicht (Bestandsaufnahme) – Stand 2025-12-02
 
-Diese Datei listet alle im Projekt vorhandenen Markdown-Dokumentationsdateien (ohne `node_modules` und `dist`) mit ihren Bezeichnungen und Pfaden relativ zum Projektroot auf.
+Hinweis: Diese Datei ist eine Momentaufnahme und dient vor allem der internen Bestandsaufnahme. Für den inhaltlichen Einstieg und die aktuelle Struktur der Projektdokumentation siehe [`docs/README.md`](./README.md).
+
+Die Tabellen unten listen alle im Projekt vorhandenen Markdown-Dokumentationsdateien (ohne `node_modules` und `dist`) mit ihren Bezeichnungen und Pfaden relativ zum Projektroot auf.
 
 ## Übersicht
 
@@ -68,4 +70,3 @@ Diese Datei listet alle im Projekt vorhandenen Markdown-Dokumentationsdateien (o
 | README.md | packages/shared-ui/README.md | Doc | nein | Asset/Doku – nicht anrühren |
 | README.md | scripts/README.md | Doc | nein | Asset/Doku – nicht anrühren |
 | notification-badge-regression.md | tests/notification-badge-regression.md | Doc | nein | Asset/Doku – nicht anrühren |
-

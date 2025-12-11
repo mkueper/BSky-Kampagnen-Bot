@@ -62,19 +62,6 @@ if [[ -d dashboard ]]; then
     -cf - dashboard | tar -xf - -C "${APP_DIR}"
 fi
 
-# Workspace: bsky-client als Geschwister von dashboard einbinden (für Vite-Alias/Workspaces)
-if [[ -d bsky-client ]]; then
-  echo "Füge bsky-client hinzu (ohne node_modules/dist)" >&2
-  tar \
-    --exclude='./bsky-client/node_modules' \
-    --exclude='./bsky-client/dist' \
-    --exclude='./bsky-client/.env' \
-    --exclude='./bsky-client/.env.local' \
-    --exclude='./bsky-client/.env.dev' \
-    --exclude='./bsky-client/.env.prod' \
-    -cf - bsky-client | tar -xf - -C "${APP_DIR}"
-fi
-
 # Entferne alle node_modules-Verzeichnisse, um Bundle schlank zu halten
 find "${APP_DIR}" -type d -name 'node_modules' -prune -exec rm -rf '{}' +
 
@@ -112,6 +99,153 @@ fi
 if [[ -f "${IMAGE_TAR}" ]]; then
   cp "${IMAGE_TAR}" "${WORK_DIR}/"
 fi
+
+cat <<'SETUP' > "${WORK_DIR}/setup-kampagnen-tool.sh"
+#!/bin/bash
+set -eu
+set -o pipefail 2>/dev/null || true
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${SCRIPT_DIR}/app"
+ENV_FILE="${SCRIPT_DIR}/.env"
+SAMPLE_FILE="${SCRIPT_DIR}/.env.sample"
+
+echo "=== Kampagnen-Tool Setup (Docker) ==="
+echo
+
+if [[ ! -d "${APP_DIR}" ]]; then
+  echo "Fehler: app/-Verzeichnis nicht gefunden. Bitte im entpackten Bundle ausführen." >&2
+  exit 1
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Fehler: Docker wird benötigt, ist aber nicht installiert oder nicht im PATH." >&2
+  exit 1
+fi
+
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker-compose"
+else
+  echo "Fehler: Weder 'docker compose' noch 'docker-compose' gefunden." >&2
+  exit 1
+fi
+
+if [[ -f "${ENV_FILE}" ]]; then
+  echo ".env existiert bereits."
+  read -r -p "Vorhandene .env unverändert verwenden? [J/n] " KEEP_ENV
+  KEEP_ENV=${KEEP_ENV:-J}
+  if [[ "${KEEP_ENV}" = "J" || "${KEEP_ENV}" = "j" ]]; then
+    echo "Verwende bestehende .env ohne Änderungen."
+  else
+    echo "Bestehende .env wird aktualisiert."
+  fi
+else
+  if [[ -f "${SAMPLE_FILE}" ]]; then
+    echo "Erzeuge neue .env auf Basis von .env.sample"
+    cp "${SAMPLE_FILE}" "${ENV_FILE}"
+  else
+    echo "Erzeuge neue .env"
+    touch "${ENV_FILE}"
+  fi
+fi
+
+update_or_append() {
+  local key="$1"
+  local value="$2"
+
+  if [[ -z "${value}" ]]; then
+    return 0
+  fi
+
+  if grep -qE "^${key}=" "${ENV_FILE}" 2>/dev/null; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
+  else
+    printf '\n%s=%s\n' "${key}" "${value}" >> "${ENV_FILE}"
+  fi
+}
+
+echo
+echo "--- Basis-Konfiguration ---"
+read -r -p "Bluesky Server URL [https://bsky.social]: " BSKY_URL
+BSKY_URL=${BSKY_URL:-https://bsky.social}
+read -r -p "Bluesky Identifier (Handle/E-Mail): " BSKY_IDENT
+read -r -s -p "Bluesky App Password: " BSKY_APP_PW
+echo
+read -r -p "Admin-Benutzername [admin]: " AUTH_USER
+AUTH_USER=${AUTH_USER:-admin}
+
+echo
+echo "--- Admin-Passwort für Dashboard/API ---"
+while true; do
+  read -r -s -p "Passwort eingeben: " AUTH_PW_1
+  echo
+  read -r -s -p "Passwort wiederholen: " AUTH_PW_2
+  echo
+  if [[ -z "${AUTH_PW_1}" ]]; then
+    echo "Passwort darf nicht leer sein."
+    continue
+  fi
+  if [[ "${AUTH_PW_1}" != "${AUTH_PW_2}" ]]; then
+    echo "Passwörter stimmen nicht überein – bitte erneut versuchen."
+    continue
+  fi
+  AUTH_PW="${AUTH_PW_1}"
+  unset AUTH_PW_1 AUTH_PW_2
+  break
+done
+
+echo
+read -r -p "AUTH_TOKEN_SECRET automatisch generieren? [J/n] " GEN_SECRET
+GEN_SECRET=${GEN_SECRET:-J}
+if [[ "${GEN_SECRET}" = "J" || "${GEN_SECRET}" = "j" ]]; then
+  if command -v openssl >/dev/null 2>&1; then
+    AUTH_TOKEN_SECRET="$(openssl rand -base64 32 | tr -d '\n')"
+  else
+    AUTH_TOKEN_SECRET="$(head -c 32 /dev/urandom | base64 | tr -d '\n' | head -c 43)"
+  fi
+  echo "AUTH_TOKEN_SECRET wurde generiert."
+else
+  read -r -p "AUTH_TOKEN_SECRET manuell eingeben: " AUTH_TOKEN_SECRET
+fi
+
+echo
+echo "Erzeuge Passwort-Hash über Backend-Container (dies kann den ersten Build auslösen)…"
+pushd "${APP_DIR}" > /dev/null
+HASH_OUTPUT=$(${COMPOSE_CMD} run --rm backend node scripts/hashPassword.js "${AUTH_PW}" 2>/dev/null || true)
+popd > /dev/null
+
+AUTH_HASH="$(echo "${HASH_OUTPUT}" | tail -n1 | tr -d '\r\n')"
+if [[ -z "${AUTH_HASH}" ]]; then
+  echo "Fehler: Konnte Passwort-Hash nicht erzeugen. Ausgabe war:"
+  echo "${HASH_OUTPUT}"
+  exit 1
+fi
+
+update_or_append "BLUESKY_SERVER_URL" "${BSKY_URL}"
+update_or_append "BLUESKY_IDENTIFIER" "${BSKY_IDENT}"
+update_or_append "BLUESKY_APP_PASSWORD" "${BSKY_APP_PW}"
+update_or_append "AUTH_USERNAME" "${AUTH_USER}"
+update_or_append "AUTH_PASSWORD_HASH" "${AUTH_HASH}"
+update_or_append "AUTH_TOKEN_SECRET" "${AUTH_TOKEN_SECRET}"
+
+echo
+echo "Konfiguration in .env aktualisiert."
+echo
+echo "--- Starte Container & führe Migrationen aus ---"
+pushd "${APP_DIR}" > /dev/null
+${COMPOSE_CMD} up -d
+${COMPOSE_CMD} exec backend npm run migrate:prod
+popd > /dev/null
+
+echo
+echo "Setup abgeschlossen."
+echo "Backend und Dashboard sollten jetzt über die in .env konfigurierten Ports erreichbar sein."
+echo "Zum Anpassen der Konfiguration kannst du die Datei .env im Bundle-Verzeichnis bearbeiten."
+
+SETUP
+chmod +x "${WORK_DIR}/setup-kampagnen-tool.sh"
 
 cat <<'INSTRUCTIONS' > "${WORK_DIR}/BUNDLE_USAGE.txt"
 Bundle-Inhalt:

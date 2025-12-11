@@ -85,7 +85,17 @@ Sollte ein Testfall nicht eindeutig definierbar sein:
 
 ---
 
-## 7. Kurzreferenz
+## 7. Tests aus Anforderungen ableiten
+
+- Primäre Quelle für Testfälle sind fachliche Anforderungen (z. B. in `docs/development/test/tests-*.md`), nicht der aktuelle Implementierungsstand.
+- Die Blöcke **„Anforderungen (Architektur/Fachkonzept)“** beschreiben, was fachlich gelten soll; daraus werden neue Tests abgeleitet.
+- Die Blöcke **„Anforderungen (aus Implementierung)“** dokumentieren beobachtetes Verhalten und dürfen angepasst werden, wenn sich die fachliche Anforderung ändert.
+- Wenn eine Komponente nur `**TBD**` oder keine fachliche Anforderung hat, werden keine neuen Tests „aus dem Code heraus“ erfunden; stattdessen muss die Anforderung zuerst ergänzt bzw. geklärt werden.
+- Refactorings sind erlaubt, solange bestehende Tests die dokumentierten fachlichen Anforderungen weiterhin erfüllen – interne Implementierungsdetails sollen nicht zum alleinigen Testtreiber werden.
+
+---
+
+## 8. Kurzreferenz
 
 Tests werden immer dort abgelegt, wo sie logisch hingehören:
 

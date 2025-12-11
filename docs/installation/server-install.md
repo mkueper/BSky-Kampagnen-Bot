@@ -91,5 +91,5 @@ Alternativ kann ein systemd-Service erstellt werden, der `npm start` ausführt.
 
 - **Datenbank:** SQLite-Datei regelmäßig sichern (`data/bluesky_campaign_production.sqlite`). Bei Tests mit alternativen Datenbanken (z. B. PostgreSQL) müssen Firewall und Backups separat gepflegt werden.
 - **HTTPS:** Reverse Proxy mit Zertifikatsverwaltung (z. B. Let’s Encrypt) vor das Backend schalten.
-- **Backups:** Neben der SQLite-Datei auch Upload-Verzeichnis (`data/uploads`) und `.env` sichern.
+- **Backups:** Neben der SQLite-Datei auch das Medienverzeichnis (`data/medien`) und `.env` sichern. Bestehende Installationen mit `data/uploads` sollten diesen Ordner zusätzlich sichern, solange noch Dateien darin liegen.
 - **Updates:** Vor Updates `pm2 stop bsky-bot`, Repository aktualisieren (`git pull`), Abhängigkeiten prüfen, erneut bauen, `npm run migrate:prod` ausführen und anschließend den Dienst starten.

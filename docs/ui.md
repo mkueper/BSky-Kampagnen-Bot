@@ -84,10 +84,10 @@ function CronInfo({ open, onClose }) {
 ## Terminologie
 
 - Im UI sprechen wir durchgängig von **Posts** (statt „Skeets“), um plattformneutral zu bleiben:
-  - Beispiele: „Geplante Posts“, „Veröffentlichte Posts“, „Wartende Posts“, „Nächster Post“.
+  - Beispiele: „Geplante Posts“, „Veröffentlichte Posts“, „Freizugebende Posts“, „Nächster Post“.
   - Technische Begriffe wie `Skeet`, `SkeetModel` etc. bleiben im Backend und in der internen Doku bestehen.
-- Für den Status „pending_manual“ verwenden wir im UI die Bezeichnung **„wartend“**:
-  - Tab-Label: z. B. `Wartend` (statt „Freigabe“/„Pending“).
+- Für den Status `pending_manual` verwenden wir im UI die Bezeichnung **„Freizugebend“**:
+  - Tab-Label: `Freizugeben` (statt „Wartend“/„Pending“).
   - Hinweistexte: Formulierungen wie „Auf Freigabe wartende Posts“ bzw. „Posts, die auf Freigabe warten“.
 
 ### Produktname
@@ -110,7 +110,7 @@ function CronInfo({ open, onClose }) {
   - Posts - Übersicht: großer Header **„Posts – Übersicht“**.
   - Planer: großer Header **„Post planen“**.
   - Panels innerhalb der Übersicht:
-    - z. B. **„Post-Aktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“.
+    - z. B. **„Post-Aktivität“** als Panel-Titel für den Bereich mit Tabs „Geplant“, „Veröffentlicht“, „Freizugeben“, „Papierkorb“.
 
 ### Datenhaltung: veröffentlichte Posts
 
@@ -146,13 +146,12 @@ Diese Begriffe werden insbesondere für:
 
 verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibel bleibt.
 
-**Navigations- und Bereichsnamen im Kampagnen-Bot**
 **Navigations- und Bereichsnamen im Kampagnen‑Tool**
 
 - Hier verwenden wir bewusst **„Posts“** als Oberbegriff (siehe oben), um eine verständliche, deutschsprachige Navigation zu haben:
   - NAV: „Posts“ → Unterpunkte „Aktivität“, „Planen“.
   - Header: „Posts – Übersicht“, „Post planen“.
-  - Panels: „Post-Aktivität“, „Geplant“, „Veröffentlicht“, „Wartend“ usw.
+  - Panels: „Post-Aktivität“, „Geplant“, „Veröffentlicht“, „Freizugeben“ usw.
 - Thread-spezifische Bereiche dürfen `Thread` im Namen behalten:
   - z. B. „Threads – Übersicht“, „Thread planen“, mit erläuternden Unterzeilen wie „mehrteilige Posts (Threads)“.
 
@@ -168,7 +167,7 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
 ### Tabs und Zähler (Beispiele Post-Aktivität)
 
 - Tabs innerhalb eines ActivityPanels verwenden eine einheitliche Struktur:
-  - Linksbündiges Label (z. B. „Geplant“, „Veröffentlicht“, „Wartend“, „Papierkorb“).
+  - Linksbündiges Label (z. B. „Geplant“, „Veröffentlicht“, „Freizugeben“, „Papierkorb“).
   - Optional ein **Badge rechts im Tab**, wenn eine Anzahl dargestellt werden soll (z. B. Anzahl wartender Posts).
 - Wenn ein Tab einen Zähler anzeigt, sollten **alle Tabs desselben Blocks** grundsätzlich die Möglichkeit für einen Badge haben, auch wenn der Wert häufig `0` ist.
 - Umgang mit leeren Zuständen:
@@ -179,7 +178,7 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
 ### Hinweistexte
 
 - Buttons, Tabs und kritische Aktionen sollten sprechende Titel/Tooltips erhalten:
-  - Beispiel Tab „Wartend“: Tooltip/Hinweistext „Auf Freigabe wartende Posts“.
+  - Beispiel Tab „Freizugeben“: Tooltip/Hinweistext „Auf Freigabe wartende Posts“.
   - Beispiel Buttons in Toolbars: `aria-label` + `title` setzen, damit die Bedeutung auch ohne sichtbaren Text klar ist.
 - Leere Listen/States immer mit einem kurzen erklärenden Hinweistext versehen (nicht einfach „leer“ lassen).
 - Persönliche Anredeformen wie „du“ oder „Sie“ vermeiden; Texte neutral formulieren:

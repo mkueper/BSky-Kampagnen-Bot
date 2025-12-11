@@ -20,6 +20,7 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 | `SkeetMedia`         | Medien je Skeet                                                       |
 | `SkeetReactions`     | Pro-Segment-Reaktionen (Replies, Likes etc.)                          |
 | `Replies`            | Aggregierte Antworten auf veröffentlichte Skeets                      |
+| `PostSendLogs`       | Historie von Versandversuchen je Skeet/Plattform                      |
 | `Settings`           | Key-Value-Store für Scheduler-/Client-Konfiguration                   |
 
 ---
@@ -39,7 +40,7 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 
 ### Thread-Segment-Medien (`ThreadSkeetMedia`)
 - **Felder:** `threadSkeetId`, `order`, `path`, `mime`, `size`, `altText`
-- **Anwendung:** Dateien liegen im Upload-Verzeichnis (`UPLOAD_DIR`, Standard `data/uploads`). Reihenfolge wird über `order` gesteuert.
+- **Anwendung:** Dateien liegen im Upload-Verzeichnis (`UPLOAD_DIR`, Standard `data/medien`). Reihenfolge wird über `order` gesteuert.
 
 ### Skeets (`Skeets`)
 - **Felder:** `content`, `scheduledAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
@@ -57,6 +58,11 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 ### Replies (`Replies`)
 - Antworten auf Einzel-Skeets (nicht auf Thread-Segmente): `skeetId`, `authorHandle`, `content` (bereits von HTML befreit), `platform`.
 - Bei jedem Refresh wird der Satz für den Skeet komplett neu geschrieben (`DELETE` + `INSERT`).
+
+### Versand-Logs (`PostSendLogs`)
+- Protokolliert Versandversuche für Skeets je Plattform.
+- Wichtige Felder: `skeetId`, `platform`, `eventType` (`send|delete`), `status` (`success|failed|skipped`), `postedAt`, `postUri`, `postCid`, `attempt`, `error`, `contentSnapshot`, `mediaSnapshot`.
+- Wird vom Scheduler (`logPostSendAttempt`) und von Lösch-/Retract-Operationen (`logPlatformEvent`) beschrieben und dient u. a. als Grundlage für die Sendehistorie im Dashboard.
 
 ### Settings (`Settings`)
 - Key-Value-Speicher (`key` eindeutig). Aktuelle Keys siehe `backend/src/core/services/settingsService.js` (`SCHEDULE_TIME`, `TIME_ZONE`, `POST_RETRIES`, `POST_BACKOFF_MS`, `POST_BACKOFF_MAX_MS`, sowie Client-Polling-Overrides).
@@ -94,7 +100,7 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 ## Backups & Betrieb
 
 - **SQLite:** Reicht eine Kopie der `.sqlite`-Datei. Bei laufender Anwendung kurzzeitig stoppen oder `sqlite3 .dump` verwenden, um inkonsistente Snapshots zu vermeiden.
-- **Uploads:** Medien werden in `data/uploads` (Skeets & Threads) bzw. `data/temp` (Draft-Uploads) abgelegt. Für Voll-Backups beide Ordner einbeziehen.
+- **Uploads:** Medien werden in `data/medien` (Skeets & Threads) bzw. `data/temp` (Draft-Uploads) abgelegt. Für Voll-Backups beide Ordner einbeziehen. Bestehende Installationen mit `data/uploads` sollten diesen Ordner zusätzlich sichern, solange dort noch Dateien liegen.
 - **Engagement-Daten:** `SkeetReactions` und `Replies` können bei Bedarf neu aufgebaut werden (`refresh`-Endpunkte), haben daher geringere Backup-Priorität.
 - **Docker:** Volume `data` beinhaltet sowohl Datenbank als auch Uploads.
 

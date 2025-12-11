@@ -1,6 +1,6 @@
 # BSky Kampagnen-Bot – Benutzerhandbuch für das Dashboard
 
-Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es erklärt, wie Skeets und Threads geplant, veröffentlicht, Engagement beobachtet und der integrierte Bluesky-Client genutzt wird.
+Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es erklärt, wie Posts (Skeets) und Threads geplant, veröffentlicht, Engagement beobachtet und der integrierte Bluesky-Client genutzt wird.
 
 > Sprachstil: In der UI und in diesem Handbuch werden neutrale Formulierungen verwendet. Direkte Anreden („du“, „Sie“) werden vermieden und durch beschreibende Texte ersetzt.
 
@@ -22,39 +22,42 @@ Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es 
 
 ## 2. Hauptnavigation im Überblick
 
-- **Übersicht** – Kennzahlen (geplante/veröffentlichte Skeets & Threads, Reaktionssummen) sowie „Nächster Skeet/Thread“ und kommende Veröffentlichungen.
-- **Skeets**
-  - *Aktivität*: Geplante, veröffentlichte und gelöschte Skeets inkl. Reaktionskarten und Plattform-Badges.
-  - *Skeet planen*: Formular zum Erstellen/Bearbeiten einzelner Posts.
+- **Übersicht** – Kennzahlen (geplante/veröffentlichte Posts & Threads, Reaktionssummen) sowie „Nächster Post/Thread“ und kommende Veröffentlichungen.
+- **Posts**
+  - *Aktivität*: Geplante, veröffentlichte, freizugebende und gelöschte Posts inkl. Reaktionskarten und Plattform-Badges.
+  - *Post planen*: Formular zum Erstellen/Bearbeiten einzelner Posts.
 - **Threads**
   - *Aktivität*: Mehrteilige Kampagnen nach Status (Entwurf, geplant, Veröffentlichungsfortschritt).
   - *Thread planen*: Editor für mehrsegmentige Kampagnen mit Medienunterstützung.
 - **Bluesky Client** – Direktzugriff auf Discover/Following/Mutuals-Feeds inkl. Composer für Sofort-Posts (nutzt dieselben Credentials wie der Scheduler).
 - **Konfiguration**
   - Tabs für *Scheduler & Retries*, *Dashboard-Polling* und *Zugangsdaten*.
-- **Über Kampagnenbot** – Release-Hinweise, Tastenkürzel, Links zur Dokumentation.
+- **Über Kampagnen‑Tool** – Überblick über Zweck, Mitwirkende, Open-Source/Lizenzhinweise sowie Links zur Dokumentation.
 
 Alle Ansichten reagieren primär auf Server-Sent Events (SSE). Das Dashboard aktualisiert Listen automatisch, sobald das Backend Ereignisse wie `skeet:updated` oder `thread:updated` auslöst; Polling dient nur noch als Fallback und lässt sich unter **Konfiguration → Dashboard-Polling** feinjustieren.
 
 ---
 
-## 3. Skeets verwalten
+## 3. Posts verwalten
 
 ### 3.1 Anlegen
-1. Navigation: **Skeets → Skeet planen**.
+1. Navigation: **Posts → Planen**.
 2. Text eingeben; Zeichenbegrenzung wird live geprüft.
 3. Optional: Termin (`scheduledAt`), Wiederholung (`täglich`, `wöchentlich`, `monatlich`), Plattformen (Bluesky/Mastodon).
+   - Standardvorschlag für geplante Posts ist „morgen, 09:00 Uhr“ in der konfigurierten Zeitzone.
+   - Wird ein Post für „heute“ geplant, sind im Zeitpicker nur Uhrzeiten ab der aktuellen lokalen Zeit auswählbar; Eingaben in der Vergangenheit werden automatisch auf den nächstmöglichen Zeitpunkt korrigiert.
 4. Medien anhängen (bis zu vier Bilder). Dateien lassen sich jederzeit neu ordnen oder mit ALT-Texten versehen.
 5. Speichern – der Eintrag erscheint in der geplanten Liste und in der Übersicht.
 
 ### 3.2 Bearbeiten, Status & Schnellaktionen
-- Über das Stift-Icon lässt sich ein Skeet anpassen. Bereits veröffentlichte Skeets können aus dem Dashboard heraus erneut geplant oder auf Plattformen zurückgezogen werden.
+- Über das Stift-Icon lässt sich ein Post anpassen. Bereits veröffentlichte Posts können aus dem Dashboard heraus erneut geplant oder auf Plattformen zurückgezogen werden.
 - Der Button **Jetzt veröffentlichen** umgeht den Scheduler und sendet sofort (praktisch für Last-Minute-Posts).
 - Plattform-Badges zeigen den jeweiligen Plattformstatus (`pending`, `sent`, `failed`, `deleted`, `partial`) und liefern Tooltips mit Fehlermeldungen oder URIs; der globale Skeet-Status folgt dem Modell `draft`, `scheduled`, `pending_manual`, `sent`, `skipped`, `error` (siehe Lebenszyklus-Diagramm).
 
 ### 3.3 Engagement & Replies
 - In der Registerkarte *Veröffentlicht* lässt sich die Sortierung (neu/alt) umschalten.
 - Buttons **Reaktionen aktualisieren** und **Replies anzeigen** triggern On-Demand-Abrufe (`/api/reactions/:id`, `/api/replies/:id`).
+- Für wiederholende Posts blendet die Aktivität zusätzlich eine **Sendehistorie** ein, die die einzelnen Versandversuche pro Plattform zeigt.
 - Sichtbare Einträge können gesammelt aktualisiert werden (Floating Toolbar → „Alle sichtbaren aktualisieren“); das Backend führt dann `/api/engagement/refresh-many` aus.
 
 ---
@@ -65,7 +68,10 @@ Alle Ansichten reagieren primär auf Server-Sent Events (SSE). Das Dashboard akt
 1. Navigation: **Threads → Thread planen**.
 2. Text eingeben; Segmentierung erfolgt automatisch per `---` (oder `Strg + Enter`). Segmentkarten lassen sich verschieben oder löschen.
 3. Optional: Medien pro Segment anhängen (max. vier), Nummerierung ein-/ausschalten, Termin festlegen.
+   - Standardvorschlag für geplante Threads ist „morgen, 09:00 Uhr“ in der konfigurierten Zeitzone.
+   - Wird ein Thread für „heute“ geplant, sind im Zeitpicker nur Uhrzeiten ab der aktuellen lokalen Zeit auswählbar; Eingaben in der Vergangenheit werden automatisch auf den nächstmöglichen Zeitpunkt korrigiert.
 4. Speichern. Der Thread erscheint als Entwurf oder geplante Kampagne.
+5. Beim Scrollen oder Bearbeiten im Textfeld bleibt die Vorschau rechts mit den Segmenten synchron. Beim Klicken auf ein Vorschauelement („Post n“) springt der Cursor im Textfeld an den Beginn des zugehörigen Posts; je nach vorherigem Fokuszustand kann ein zweiter Klick nötig sein, damit der Textbereich sichtbar und direkt bearbeitbar ist.
 
 ### 4.2 Statusverlauf
 - Statuswerte: `draft`, `scheduled`, `publishing`, `published`, `failed`, `deleted`.
@@ -81,15 +87,15 @@ Alle Ansichten reagieren primär auf Server-Sent Events (SSE). Das Dashboard akt
 ## 5. Import & Export
 
 ### 5.1 Export
-- Kontextmenü (oben rechts) → *Skeets exportieren* oder *Threads exportieren*.
+- Kontextmenü (oben rechts) → *Posts exportieren* oder *Threads exportieren*.
 - Exporte enthalten standardmäßig eingebettete Medien (`data:<mime>;base64,…`). Große Kampagnen können dadurch mehrere MB umfassen.
 - Über die API lässt sich `?includeMedia=0` setzen, wenn nur Metadaten benötigt werden.
 
 ### 5.2 Import
-- *Skeets importieren* bzw. *Threads importieren* öffnet den Dateidialog.
+- *Posts importieren* bzw. *Threads importieren* öffnet den Dateidialog.
 - Erwartete Struktur: identisch mit dem Exportformat (`skeets[].media[]`, `threads[].segments[].media[]`).
 - Duplikate werden automatisch übersprungen:
-  - Skeets: gleicher Inhalt + Termin oder gleiche Wiederholungsregel.
+  - Posts: gleicher Inhalt + Termin oder gleiche Wiederholungsregel.
   - Threads: gleicher Titel, Termin und identische Segmenttexte.
 - ALT-Texte bleiben erhalten; Medien werden im Upload-Verzeichnis persistiert.
 

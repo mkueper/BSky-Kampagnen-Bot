@@ -378,7 +378,8 @@ const messages = {
         },
         schedule: {
           label: 'Geplanter Versand',
-          hint: 'Standard: morgen um 09:00 Uhr'
+          hint: 'Standard: morgen um 09:00 Uhr.',
+          todayHint: 'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
         },
         emoji: {
           insertAria: 'Emoji einfügen',
@@ -1040,6 +1041,8 @@ const messages = {
           timeLabel: 'Scheduled time',
           timezoneHint:
             'Times are interpreted in the configured default time zone.',
+          todayHint:
+            'For today, only times from the current time onwards can be selected.',
           repeatNone: 'No repeat',
           repeatDaily: 'Daily',
           repeatWeekly: 'Weekly',

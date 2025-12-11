@@ -16,7 +16,7 @@ Hier findest du einen Überblick über die verfügbaren Installationswege für d
 
 - Prüfe vorab die Systemvoraussetzungen der gewählten Anleitung (Node.js-Version, Docker, etc.). SQLite wird out of the box unterstützt; andere SQL-Dialekte gelten als experimentell.
 - Sensible Konfigurationsdateien wie `.env` niemals ins Versionskontrollsystem hochladen.
-- Für produktive Umgebungen empfehlen wir einen regelmäßigen Backup-Plan für Datenbank und Konfiguration.
+- Für produktive Umgebungen empfehlen wir einen regelmäßigen Backup-Plan für Datenbank, Konfiguration und Mediendateien (`data/medien` bzw. Volume `data` im Docker-Setup).
 - Nach Deployments stets die neuesten Migrationen ausführen (z. B. `npm run migrate:prod` bzw. via Docker `docker compose exec backend npm run migrate:prod`). Weitere Details siehe [`../database.md`](../database.md).
 
 ---

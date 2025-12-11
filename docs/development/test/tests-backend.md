@@ -69,8 +69,8 @@ Neue Tests sollten durch Hinzufügen eines weiteren Abschnitts im selben Format 
 - **TBD**
 
 **Anforderungen (aus Implementierung):**
-- Die Route MUSS `config.CLIENT_CONFIG` als JSON ausliefern.
-- Die ausgelieferte Konfiguration DARF keine sensiblen Daten (Secrets) enthalten.
+- Die Route MUSS die Client-Konfiguration aus `config.CLIENT_CONFIG`, Datenbank-Overrides (Client-Polling/General Settings) und Laufzeitinformationen (z. B. `needsCredentials`, `platforms.mastodonConfigured`, `gifs.tenorAvailable`) zusammenführen.
+- Die ausgelieferte Konfiguration DARF keine sensiblen Daten (Secrets) enthalten und MUSS ausschließlich nicht-sensitive Werte (Polling, Locale/Zeitzone, Limits, Feature-Flags) exponieren.
 
 **Konzept-Abgleich:** offen
 

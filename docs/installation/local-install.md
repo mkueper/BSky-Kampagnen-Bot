@@ -37,7 +37,7 @@ npm run build:frontend
 
 > Das Dashboard wird durch `npm run build:frontend` in den Ordner `dashboard/dist` gebaut und vom Express-Server ausgeliefert.
 
-## 4. Konfiguration einrichten
+## 4. Konfiguration einrichten (inkl. Admin-Login)
 
 1. Beispiel-Environment kopieren:
    ```bash
@@ -54,7 +54,16 @@ npm run build:frontend
    BACKEND_PORT=3000
    FRONTEND_PORT=8080
    ```
-3. Optional: Zeitzone, Retry-Strategie und Datenbanktyp anpassen (siehe Kommentare in `.env`).
+3. Admin-Login für Dashboard und API konfigurieren:
+   ```ini
+   AUTH_USERNAME=admin
+   # Passwort-Hash mit `npm run tools:hash-password` erzeugen
+   AUTH_PASSWORD_HASH=salt:hash_aus_der_cli
+   AUTH_TOKEN_SECRET=zufaelliges_langes_secret
+   ```
+   Ohne gültig gesetzte `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` und `AUTH_TOKEN_SECRET` verweigert das Backend geschützte `/api/*`-Aufrufe, und das Dashboard bleibt im Login-/Fehlerzustand.
+
+4. Optional: Zeitzone, Retry-Strategie und Datenbanktyp anpassen (siehe Kommentare in `.env`).
 
 > Hinweis zu Env-Priorität: Serverseitige Variablen ohne `VITE_` überschreiben Build‑Zeit‑Werte (`VITE_*`). Beispiel: `TIME_ZONE` hat Vorrang vor `VITE_TIME_ZONE`. Polling‑Werte können zur Laufzeit über `THREAD_POLL_*`/`SKEET_POLL_*` die `VITE_*`‑Werte ersetzen. Ports werden in dieser Reihenfolge ermittelt: `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
 

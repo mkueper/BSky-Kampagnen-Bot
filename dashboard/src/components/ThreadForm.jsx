@@ -17,6 +17,7 @@ import {
   getDefaultDateParts,
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
+import { clampTimeToNowForToday } from '../utils/scheduling'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
@@ -60,6 +61,114 @@ const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
   { id: 'mastodon', label: 'Mastodon', limit: 500 }
 ]
+
+function buildEffectiveSegments (rawSegments, limit, appendNumbering) {
+  if (!Number.isFinite(limit)) {
+    const effectiveSegments = rawSegments.map(segment =>
+      segment.replace(/\s+$/u, '')
+    )
+    const rawToEffectiveStartIndex = rawSegments.map((_, index) => index)
+    const effectiveOffsets = new Array(effectiveSegments.length)
+
+    rawSegments.forEach((segment, rawIndex) => {
+      const raw = segment.replace(/\r\n/g, '\n')
+      const start = rawToEffectiveStartIndex[rawIndex]
+      const end =
+        rawIndex + 1 < rawToEffectiveStartIndex.length
+          ? rawToEffectiveStartIndex[rawIndex + 1]
+          : effectiveSegments.length
+      let searchFrom = 0
+      for (let i = start; i < end; i++) {
+        const chunk = effectiveSegments[i]
+        const needle = chunk.trimStart()
+        let idx = raw.indexOf(needle, searchFrom)
+        if (idx === -1) idx = searchFrom
+        effectiveOffsets[i] = { rawIndex, offsetInRaw: idx }
+        searchFrom = idx + needle.length
+      }
+    })
+
+    return {
+      effectiveSegments: rawSegments.map(segment =>
+        segment.replace(/\s+$/u, '')
+      ),
+      rawToEffectiveStartIndex,
+      effectiveOffsets
+    }
+  }
+
+  const reservedForNumbering = appendNumbering ? 8 : 0
+  const effectiveLimit = Math.max(20, limit - reservedForNumbering)
+  const effectiveSegments = []
+  const rawToEffectiveStartIndex = []
+  const effectiveOffsets = []
+  let totalCount = 0
+
+  rawSegments.forEach((segment, rawIndex) => {
+    rawToEffectiveStartIndex.push(totalCount)
+    const trimmed = segment.replace(/\s+$/u, '')
+    const raw = segment.replace(/\r\n/g, '\n')
+    let searchFrom = 0
+
+    if (!trimmed) {
+      effectiveSegments.push('')
+      effectiveOffsets.push({ rawIndex, offsetInRaw: 0 })
+      totalCount += 1
+      return
+    }
+    if (trimmed.length <= effectiveLimit) {
+      effectiveSegments.push(trimmed)
+      effectiveOffsets.push({ rawIndex, offsetInRaw: 0 })
+      totalCount += 1
+      return
+    }
+    const sentences = splitIntoSentences(trimmed)
+    let buffer = ''
+    sentences.forEach(sentence => {
+      const candidate = buffer ? `${buffer}${sentence}` : sentence
+      if (candidate.trim().length <= effectiveLimit) {
+        buffer = candidate
+      } else {
+        if (buffer.trim()) {
+          const chunk = buffer.trim()
+          effectiveSegments.push(chunk)
+          const needle = chunk.trimStart()
+          let idx = raw.indexOf(needle, searchFrom)
+          if (idx === -1) idx = searchFrom
+          effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
+          searchFrom = idx + needle.length
+          totalCount += 1
+        }
+        let fallback = sentence.trim()
+        if (fallback.length > effectiveLimit) {
+          const wordChunks = splitAtWordBoundaries(fallback, effectiveLimit)
+          wordChunks.slice(0, -1).forEach(chunk => {
+            const needle = chunk.trimStart()
+            let idx = raw.indexOf(needle, searchFrom)
+            if (idx === -1) idx = searchFrom
+            effectiveSegments.push(chunk)
+            effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
+            searchFrom = idx + needle.length
+            totalCount += 1
+          })
+          fallback = wordChunks[wordChunks.length - 1]
+        }
+        buffer = fallback
+      }
+    })
+    if (buffer.trim()) {
+      const chunk = buffer.trim()
+      effectiveSegments.push(chunk)
+      const needle = chunk.trimStart()
+      let idx = raw.indexOf(needle, searchFrom)
+      if (idx === -1) idx = searchFrom
+      effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
+      totalCount += 1
+    }
+  })
+
+  return { effectiveSegments, rawToEffectiveStartIndex, effectiveOffsets }
+}
 
 function splitIntoSentences (text) {
   const normalized = text.replace(/\r\n/g, '\n')
@@ -179,6 +288,8 @@ function ThreadForm ({
   })
   const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const textareaRef = useRef(null)
+  const previewContainerRef = useRef(null)
+  const previewSegmentRefs = useRef([])
   const toast = useToast()
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
   const imagePolicy = clientConfig?.images || {
@@ -188,15 +299,34 @@ function ThreadForm ({
     requireAltText: false
   }
 
-  const applyScheduledParts = useCallback((nextDate, nextTime) => {
-    setScheduledDate(nextDate)
-    setScheduledTime(nextTime)
-    if (nextDate && nextTime) {
-      setScheduledAt(`${nextDate}T${nextTime}`)
-    } else {
-      setScheduledAt('')
-    }
-  }, [])
+  const nowLocal = formatDateTimeLocal(new Date(), timeZone)
+  const [todayDate, nowTime] = nowLocal ? nowLocal.split('T') : ['', '']
+
+  const applyScheduledParts = useCallback(
+    (nextDate, nextTime) => {
+      let date = nextDate
+      let time = nextTime
+
+      if (date && time) {
+        const clamped = clampTimeToNowForToday({
+          date,
+          time,
+          todayDate,
+          nowTime
+        })
+        date = clamped.date
+        time = clamped.time
+        setScheduledDate(date)
+        setScheduledTime(time)
+        setScheduledAt(`${date}T${time}`)
+      } else {
+        setScheduledDate(date)
+        setScheduledTime(time)
+        setScheduledAt('')
+      }
+    },
+    [todayDate, nowTime]
+  )
 
   const restoreFromThread = useCallback(
     thread => {
@@ -291,51 +421,110 @@ function ThreadForm ({
 
   const rawSegments = useMemo(() => splitRawSegments(source), [source])
 
-  const effectiveSegments = useMemo(() => {
-    if (!Number.isFinite(limit)) {
-      return rawSegments.map(segment => segment.replace(/\s+$/u, ''))
-    }
-    const reservedForNumbering = appendNumbering ? 8 : 0
-    const effectiveLimit = Math.max(20, limit - reservedForNumbering)
-    const result = []
-    rawSegments.forEach(segment => {
-      const trimmed = segment.replace(/\s+$/u, '')
-      if (!trimmed) {
-        result.push('')
-        return
-      }
-      if (trimmed.length <= effectiveLimit) {
-        result.push(trimmed)
-        return
-      }
-      const sentences = splitIntoSentences(trimmed)
-      let buffer = ''
-      sentences.forEach(sentence => {
-        const candidate = buffer ? `${buffer}${sentence}` : sentence
-        if (candidate.trim().length <= effectiveLimit) {
-          buffer = candidate
-        } else {
-          if (buffer.trim()) {
-            result.push(buffer.trim())
-          }
-          let fallback = sentence.trim()
-          if (fallback.length > effectiveLimit) {
-            const wordChunks = splitAtWordBoundaries(fallback, effectiveLimit)
-            result.push(...wordChunks.slice(0, -1))
-            fallback = wordChunks[wordChunks.length - 1]
-          }
-          buffer = fallback
-        }
-      })
-      if (buffer.trim()) {
-        result.push(buffer.trim())
-      }
-    })
-    return result
-  }, [rawSegments, limit, appendNumbering])
+  const { effectiveSegments, rawToEffectiveStartIndex, effectiveOffsets } = useMemo(
+    () => buildEffectiveSegments(rawSegments, limit, appendNumbering),
+    [rawSegments, limit, appendNumbering]
+  )
 
   const totalSegments = effectiveSegments.length
   const isEditMode = Boolean(threadId)
+  const lastPreviewIndexRef = useRef(null)
+
+  const scrollPreviewToActiveSegment = useCallback(() => {
+    const textarea = textareaRef.current
+    const container = previewContainerRef.current
+    if (!textarea || !container || !source || rawSegments.length === 0) return
+
+    const cursorPos = textarea.selectionStart ?? 0
+    const normalized = source.replace(/\r\n/g, '\n')
+    const beforeCursor = normalized.slice(0, cursorPos)
+    const delimiter = '\n---\n'
+
+    const partsBeforeCursor = beforeCursor.split(delimiter)
+    let rawIndex = partsBeforeCursor.length - 1
+    if (rawIndex < 0) rawIndex = 0
+    if (rawIndex >= rawSegments.length) rawIndex = rawSegments.length - 1
+
+    const rawText = (rawSegments[rawIndex] || '').replace(/\r\n/g, '\n')
+    const rawLength = rawText.length || 1
+    const positionWithinRaw =
+      partsBeforeCursor[partsBeforeCursor.length - 1]?.length ?? 0
+    const ratio = Math.min(
+      Math.max(positionWithinRaw / rawLength, 0),
+      0.9999
+    )
+
+    const startIndex = rawToEffectiveStartIndex[rawIndex] ?? 0
+    const endIndex =
+      rawIndex + 1 < rawToEffectiveStartIndex.length
+        ? rawToEffectiveStartIndex[rawIndex + 1]
+        : totalSegments
+    const segmentCount = Math.max(endIndex - startIndex, 1)
+    const relativeIndex = Math.floor(ratio * segmentCount)
+    const previewIndex = Math.min(
+      startIndex + relativeIndex,
+      Math.max(endIndex - 1, startIndex)
+    )
+
+    const target = previewSegmentRefs.current[previewIndex]
+    if (!target) return
+
+    if (lastPreviewIndexRef.current === previewIndex) return
+    lastPreviewIndexRef.current = previewIndex
+
+    const containerRect = container.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const above = targetRect.top < containerRect.top
+    const below = targetRect.bottom > containerRect.bottom
+
+    if (!above && !below) return
+
+    const scrollOffset = target.offsetTop - container.clientHeight / 3
+    container.scrollTo({
+      top: Math.max(scrollOffset, 0),
+      behavior: 'smooth'
+    })
+  }, [source, rawSegments, rawToEffectiveStartIndex, totalSegments])
+
+  const handlePreviewSegmentClick = useCallback(
+    previewIndex => {
+      const textarea = textareaRef.current
+      if (
+        !textarea ||
+        !source ||
+        !Array.isArray(effectiveOffsets) ||
+        !effectiveOffsets[previewIndex]
+      ) {
+        return
+      }
+
+      const { rawIndex, offsetInRaw } = effectiveOffsets[previewIndex]
+      if (rawIndex == null || offsetInRaw == null) return
+
+      const delimiter = '\n---\n'
+      let globalIndex = 0
+      for (let i = 0; i < rawIndex; i++) {
+        globalIndex += rawSegments[i]?.length || 0
+        if (i < rawIndex) {
+          globalIndex += delimiter.length
+        }
+      }
+      globalIndex += offsetInRaw
+
+      const normalizedSource = source.replace(/\r\n/g, '\n')
+      const maxIndex = normalizedSource.length
+      const cursorIndex = Math.min(Math.max(globalIndex, 0), maxIndex)
+
+      try {
+        textarea.focus()
+        textarea.selectionStart = cursorIndex
+        textarea.selectionEnd = cursorIndex
+      } catch {
+        // Cursor konnte nicht gesetzt werden
+      }
+    },
+    [source, rawSegments, effectiveOffsets]
+  )
 
   const previewSegments = useMemo(() => {
     return effectiveSegments.map((segment, index) => {
@@ -361,6 +550,11 @@ function ThreadForm ({
       }
     })
   }, [effectiveSegments, appendNumbering, totalSegments, limit])
+
+  useEffect(() => {
+    lastPreviewIndexRef.current = null
+    scrollPreviewToActiveSegment()
+  }, [previewSegments.length, scrollPreviewToActiveSegment])
 
   // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
   const [mediaAlt] = useState({})
@@ -986,6 +1180,8 @@ function ThreadForm ({
               value={source}
               onChange={event => setSource(event.target.value)}
               onKeyDown={handleKeyDown}
+              onClick={scrollPreviewToActiveSegment}
+              onKeyUp={scrollPreviewToActiveSegment}
               className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
               placeholder={t(
                 'threads.form.source.placeholder',
@@ -1076,9 +1272,6 @@ function ThreadForm ({
               </fieldset>
 
               <div className='space-y-3'>
-                <p className='text-sm font-semibold text-foreground'>
-                  {t('threads.form.schedule.label', 'Geplanter Versand')}
-                </p>
                 <div className='grid gap-4 md:grid-cols-2'>
                   <InlineField
                     htmlFor='thread-schedule-date'
@@ -1126,6 +1319,7 @@ function ThreadForm ({
                       type='time'
                       value={scheduledTime}
                       ref={timeInputRef}
+                      min={scheduledDate === todayDate ? nowTime : undefined}
                       onClick={() => {
                         try {
                           timeInputRef.current?.showPicker?.()
@@ -1156,8 +1350,14 @@ function ThreadForm ({
                 <p className='text-xs text-foreground-muted'>
                   {t(
                     'threads.form.schedule.hint',
-                    'Standard: morgen um 09:00 Uhr'
-                  )}
+                    'Standard: morgen um 09:00 Uhr.'
+                  )}{' '}
+                  {scheduledDate === todayDate
+                    ? t(
+                        'threads.form.schedule.todayHint',
+                        'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
+                      )
+                    : null}
                 </p>
               </div>
 
@@ -1291,11 +1491,22 @@ function ThreadForm ({
               )}
             </label>
 
-            <div className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'>
+            <div
+              ref={previewContainerRef}
+              className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'
+            >
               {previewSegments.map((segment, index) => {
                 return (
                   <article
                     key={segment.id}
+                    onClick={event => {
+                      const target = event.target
+                      if (target?.closest?.('button, input, a')) return
+                      handlePreviewSegmentClick(index)
+                    }}
+                    ref={el => {
+                      previewSegmentRefs.current[index] = el
+                    }}
                     className={`rounded-2xl border ${'border-border bg-background-subtle'} p-4 shadow-soft`}
                   >
                     <header className='flex items-center justify-between text-sm'>

@@ -247,10 +247,11 @@ Die UI nutzt diese Routen bereits; sie können auch für Integrationen/Tests ver
 
 ---
 
-## Mitwirken
+## Dokumentation & Mitwirken
 
 Issues, Ideen und Pull Requests sind willkommen! Bitte beachte die bestehenden Dokumente:
 
+- `docs/README.md` – Einstiegspunkt und Überblick über die Projektdokumentation.
 - `docs/ROADMAP.md` – geplanter Funktionsumfang.
 - `docs/Agent.md` – Überblick über den Kampagnen-Agenten.
 - `docs/database.md` – aktuelles Schema, Migrationen und Pflegehinweise.

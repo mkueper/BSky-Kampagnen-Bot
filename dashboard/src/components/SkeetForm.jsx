@@ -14,6 +14,7 @@ import {
   getInputPartsFromUtc,
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
+import { clampTimeToNowForToday } from '../utils/scheduling'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -77,6 +78,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     () => getDefaultDateParts(timeZone) ?? { date: '', time: '' },
     [timeZone]
   )
+  const nowLocal = useMemo(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hour = String(now.getHours()).padStart(2, '0')
+    const minute = String(now.getMinutes()).padStart(2, '0')
+    return { todayDate: `${year}-${month}-${day}`, nowTime: `${hour}:${minute}` }
+  }, [])
+  const { todayDate, nowTime } = nowLocal
   const mastodonStatus = clientConfig?.platforms?.mastodonConfigured
   const mastodonConfigured = mastodonStatus !== false
   const defaultPlatformFallback = useMemo(
@@ -307,17 +318,23 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
   useEffect(() => {
     if (editingSkeet?.scheduledAt) {
-      const parts =
+      const rawParts =
         getInputPartsFromUtc(editingSkeet.scheduledAt, timeZone) ??
         (getDefaultDateParts(timeZone) || { date: '', time: '' })
-      setScheduledDate(parts.date)
-      setScheduledTime(parts.time)
+      const clamped = clampTimeToNowForToday({
+        date: rawParts.date,
+        time: rawParts.time,
+        todayDate,
+        nowTime
+      })
+      setScheduledDate(clamped.date)
+      setScheduledTime(clamped.time)
     } else if (!editingSkeet) {
       const defaults = getDefaultDateParts(timeZone) ?? { date: '', time: '' }
       setScheduledDate(defaults.date)
       setScheduledTime(defaults.time)
     }
-  }, [editingSkeet, timeZone])
+  }, [editingSkeet, timeZone, todayDate, nowTime])
   
   // Mastodon deaktivieren, wenn keine Zugangsdaten vorhanden
   useEffect(() => {
@@ -1017,7 +1034,17 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                     // showPicker nicht verfügbar
                   }
                 }}
-                onChange={e => setScheduledDate(e.target.value)}
+                onChange={e => {
+                  const value = e.target.value
+                  const clamped = clampTimeToNowForToday({
+                    date: value,
+                    time: scheduledTime,
+                    todayDate,
+                    nowTime
+                  })
+                  setScheduledDate(clamped.date)
+                  setScheduledTime(clamped.time)
+                }}
                 className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
               />
             </InlineField>
@@ -1046,13 +1073,21 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   }
                 }}
                 onChange={e => {
-                  setScheduledTime(e.target.value)
+                  const value = e.target.value
+                  const clamped = clampTimeToNowForToday({
+                    date: scheduledDate,
+                    time: value,
+                    todayDate,
+                    nowTime
+                  })
+                  setScheduledTime(clamped.time)
                   try {
                     timeInputRef.current?.blur?.()
                   } catch { 
                     // blur konnte nicht erzwungen werden
                   }
                 }}
+                min={scheduledDate === todayDate ? nowTime : undefined}
                 className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
               />
             </InlineField>
@@ -1093,6 +1128,15 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
             />
           </InlineField>
+        )}
+
+        {repeat === 'none' && scheduledDate === todayDate && (
+          <p className='mt-1 text-xs text-foreground-muted'>
+            {t(
+              'posts.form.schedule.todayHint',
+              'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
+            )}
+          </p>
         )}
 
         {repeat === 'weekly' && (

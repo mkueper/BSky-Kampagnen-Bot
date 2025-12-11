@@ -1,6 +1,6 @@
 # Dokumentationsübersicht
 
-Dieser Bereich bündelt die begleitende Dokumentation für den **BSky-Kampagnen-Bot**. Sie richtet sich an Entwickler:innen, Operator:innen und Beitragende, die Architektur, Installation und Planung nachvollziehen möchten.
+Dieser Bereich bündelt die begleitende Dokumentation für den **BSky-Kampagnen-Bot**. Sie richtet sich an Entwickler:innen, Operator:innen und Beitragende, die Architektur, Installation, Betrieb und Planung nachvollziehen möchten.
 
 ---
 
@@ -46,6 +46,12 @@ Eine vollständige Übersicht der Diagramme findest du in [`diagramme/README.md`
 Eine aktuelle Screenshot‑Sammlung findest du im Abschnitt "Screenshots" des
 [Frontend‑Benutzerhandbuchs](./frontend-user-guide.md) sowie direkt im Ordner
 [`docs/Screenshots`](./Screenshots/).
+
+---
+
+## Meta-Dokumentation
+
+Die Datei [`DOCS.md`](./DOCS.md) enthält eine Bestandsaufnahme aller Markdown-Dokumente im Repository (Stand 2025‑12‑02). Für die inhaltliche Navigation ist diese Übersichtsseite (`docs/README.md`) maßgeblich.
 
 ---
 

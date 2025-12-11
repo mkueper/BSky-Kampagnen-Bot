@@ -92,7 +92,7 @@ docker compose exec backend npm run migrate:prod
 
 - Frontend: <http://localhost:${FRONTEND_PORT:-8080}>
 - Backend-API: <http://localhost:${BACKEND_PORT:-3000}>
-- SQLite-Datenbank und Uploads liegen im benannten Volume `data` (`/app/data` im Backend-Container).
+- SQLite-Datenbank und Mediendateien liegen im benannten Volume `data` (`/app/data` im Backend-Container). Innerhalb des Containers werden Medien standardmäßig im Verzeichnis `data/medien` abgelegt.
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).
 
@@ -132,10 +132,38 @@ Wenn du mit einer externen Datenbank experimentieren möchtest, kannst du den au
 
 ---
 
+## Alternative: Deployment über Bundle + Setup-Skript
+
+Für Server, auf die kein Git-Checkout erfolgen soll, kann ein vorgepacktes Bundle mit Setup-Skript verwendet werden:
+
+1. Auf dem Entwicklungsrechner im Projektroot:
+   ```bash
+   npm run docker:bundle
+   ```
+   Dadurch entsteht unter `dist/bundles/` ein ZIP mit einer Struktur wie:
+   - `app/` – Projekt (Backend, Dashboard, Dockerfiles, `docker-compose.yml`, ohne `node_modules`)
+   - `.env.sample` – Beispielkonfiguration
+   - `setup-kampagnen-tool.sh` – interaktives Setup-Skript für `.env` + Containerstart
+2. ZIP auf den Zielserver kopieren und entpacken.
+3. Im entpackten Verzeichnis:
+   ```bash
+   bash setup-kampagnen-tool.sh
+   ```
+   Das Skript:
+   - überprüft die Verfügbarkeit von Docker/`docker compose`,
+   - legt eine `.env` im Bundle-Verzeichnis an (bzw. aktualisiert eine vorhandene),
+   - fragt Bluesky-Credentials (`BLUESKY_*`) und Admin-Login (`AUTH_*`) ab,
+   - erzeugt den Passwort-Hash über `scripts/hashPassword.js`,
+   - startet anschließend `docker compose up -d` im Unterordner `app/` und führt `npm run migrate:prod` im Backend-Container aus.
+
+Diese Variante eignet sich insbesondere, wenn das Kampagnen‑Tool auf Servern ausgerollt wird, auf denen kein direktes Arbeiten im Git-Repository gewünscht ist.
+
+---
+
 ## Hinweise für den Produktivbetrieb
 
 - **Netzwerk:** Reverse Proxy (z. B. Traefik/Nginx) mit HTTPS vorschalten. Domains und Zertifikate außerhalb von Docker verwalten.
-- **Backups:** Volume `data` regelmäßig sichern (enthält SQLite + Uploads). Bei experimentellen Fremd-Datenbanken zusätzlich DB-spezifische Dumps einplanen.
+- **Backups:** Volume `data` regelmäßig sichern (enthält SQLite und Medien). Bei experimentellen Fremd-Datenbanken zusätzlich DB-spezifische Dumps einplanen.
 - **Updates:** Bei neuen Versionen `git pull`, anschließend `docker compose build`, `docker compose up -d` und `docker compose exec backend npm run migrate:prod` ausführen.
 - **Monitoring:** Docker-Healthchecks und Log-Aggregation (z. B. Loki, Elastic) einrichten, um Scheduler-Fehler früh zu erkennen.
 - **Schema & Migrationen:** Details zu Tabellen und Abläufen findest du in `../database.md`.
