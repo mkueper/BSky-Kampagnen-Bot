@@ -23,7 +23,10 @@ export default function TimeZonePicker ({
   name,
   className,
   favoriteTimeZones,
-  timeZones: allowedTimeZones
+  timeZones: allowedTimeZones,
+  placeholderLabel = placeholder || 'Select time zone',
+  favoritesLabel = 'Favorites',
+  allTimezonesLabel = 'All time zones'
 }) {
   const zones = useMemo(() => {
     const allZones = getTimeZones()
@@ -85,9 +88,9 @@ export default function TimeZonePicker ({
           onChange={handleChange}
           className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
         >
-          <option value=''>{placeholder || 'Zeitzone auswählen'}</option>
+          <option value=''>{placeholderLabel}</option>
           {zones.favorites.length > 0 ? (
-            <optgroup label='Favoriten'>
+            <optgroup label={favoritesLabel}>
               {zones.favorites.map(zone => (
                 <option key={zone.id} value={zone.id}>
                   {zone.label}
@@ -96,7 +99,7 @@ export default function TimeZonePicker ({
             </optgroup>
           ) : null}
           {zones.rest.length > 0 ? (
-            <optgroup label='Alle Zeitzonen'>
+            <optgroup label={allTimezonesLabel}>
               {zones.rest.map(zone => (
                 <option key={zone.id} value={zone.id}>
                   {zone.label}
@@ -128,5 +131,8 @@ TimeZonePicker.propTypes = {
   name: PropTypes.string,
   className: PropTypes.string,
   favoriteTimeZones: PropTypes.arrayOf(PropTypes.string),
-  timeZones: PropTypes.arrayOf(PropTypes.string)
+  timeZones: PropTypes.arrayOf(PropTypes.string),
+  placeholderLabel: PropTypes.string,
+  favoritesLabel: PropTypes.string,
+  allTimezonesLabel: PropTypes.string
 }

@@ -5,12 +5,18 @@ function classNames (...parts) {
   return parts.filter(Boolean).join(' ')
 }
 
-const baseClasses = 'inline-flex items-center gap-3 rounded-2xl border border-border bg-background-subtle text-sm font-medium text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50'
+const baseClasses = 'inline-flex items-center gap-3 rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50'
 
-const variantClasses = {
+const sizeClasses = {
   default: 'w-full px-4 py-2',
   compact: 'px-3 py-1.5',
   icon: 'h-11 w-11 p-0 justify-center'
+}
+
+const appearanceClasses = {
+  default: 'border border-border bg-background-subtle text-foreground hover:bg-background focus-visible:ring-primary/60',
+  inverted: 'border border-foreground bg-foreground text-background hover:bg-foreground/90 focus-visible:ring-background/60',
+  subtle: 'border border-border/60 bg-transparent text-foreground hover:bg-background-subtle focus-visible:ring-foreground/40'
 }
 
 export default function ThemeToggle ({
@@ -23,34 +29,62 @@ export default function ThemeToggle ({
   ariaLabel,
   disabled = false,
   className = '',
-  variant = 'default'
+  variant = 'default',
+  size = 'default',
+  layout = 'detailed',
+  hideIcon = false,
+  iconStyle = 'boxed'
 }) {
   const indicatorColor = nextColor || 'var(--theme-toggle-next, currentColor)'
   const indicatorBorder = nextBorderColor || indicatorColor
-  const resolvedVariant = variantClasses[variant] || variantClasses.default
-  const isIconVariant = variant === 'icon'
+  const isAppearanceVariant = Boolean(appearanceClasses[variant])
+  const resolvedAppearance = isAppearanceVariant ? variant : 'default'
+  const inferredSize = !isAppearanceVariant && sizeClasses[variant] ? variant : size
+  const resolvedSize = sizeClasses[inferredSize] ? inferredSize : 'default'
+  const sizeClassName = sizeClasses[resolvedSize] || sizeClasses.default
+  const appearanceClassName = appearanceClasses[resolvedAppearance] || appearanceClasses.default
+  const isIconSize = resolvedSize === 'icon'
+  const showSimpleLayout = !isIconSize && layout === 'simple'
+  const accessibleLabel = `${label}: ${modeLabel || '—'}`
+  const resolvedAriaLabel = ariaLabel || accessibleLabel
+  const showIcon = Boolean(Icon) && !hideIcon
+  const useBoxedIcon = iconStyle !== 'inline' || isIconSize
+  const iconWrapperClassName = useBoxedIcon
+    ? classNames(
+      'inline-flex items-center justify-center rounded-2xl border border-border bg-background p-1 text-foreground',
+      isIconSize || showSimpleLayout ? 'h-8 w-8' : 'h-10 w-10 shrink-0'
+    )
+    : 'inline-flex h-4 w-4 shrink-0 items-center justify-center text-foreground'
+  const iconInnerClassName = classNames('h-4 w-4', isIconSize ? '' : 'md:h-5 md:w-5')
 
   return (
     <button
       type='button'
       onClick={onToggle}
       disabled={disabled}
-      aria-label={ariaLabel}
-      className={classNames(baseClasses, resolvedVariant, className)}
+      aria-label={resolvedAriaLabel}
+      className={classNames(baseClasses, sizeClassName, appearanceClassName, className)}
     >
-      {Icon ? (
-        <span className={classNames('inline-flex items-center justify-center rounded-2xl border border-border bg-background p-1 text-foreground', isIconVariant ? 'h-9 w-9' : 'h-10 w-10 shrink-0')}>
-          <Icon className={classNames('h-4 w-4', isIconVariant ? '' : 'md:h-5 md:w-5')} />
+      {showIcon ? (
+        <span className={iconWrapperClassName}>
+          <Icon className={iconInnerClassName} />
         </span>
       ) : null}
 
-      {!isIconVariant ? (
-        <span className='flex min-w-0 flex-col leading-tight'>
-          <span className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>{label}</span>
-          <span className='text-sm font-semibold text-foreground truncate'>{modeLabel || '—'}</span>
-        </span>
+      {!isIconSize ? (
+        showSimpleLayout ? (
+          <span className='inline-flex flex-1 items-center justify-between gap-2'>
+            <span className='text-sm font-semibold text-foreground'>{label}</span>
+            <span className='text-xs font-medium text-foreground-muted'>{modeLabel || '—'}</span>
+          </span>
+        ) : (
+          <span className='flex min-w-0 flex-col leading-tight'>
+            <span className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>{label}</span>
+            <span className='text-sm font-semibold text-foreground truncate'>{modeLabel || '—'}</span>
+          </span>
+        )
       ) : (
-        <span className='sr-only'>{label}: {modeLabel || '—'}</span>
+        <span className='sr-only'>{accessibleLabel}</span>
       )}
       <span className='ml-auto flex items-center gap-2'>        
         <span
@@ -73,5 +107,9 @@ ThemeToggle.propTypes = {
   ariaLabel: PropTypes.string,
   disabled: PropTypes.bool,
   className: PropTypes.string,
-  variant: PropTypes.oneOf(['default', 'compact', 'icon'])
+  variant: PropTypes.oneOf(['default', 'inverted', 'subtle', 'compact', 'icon']),
+  size: PropTypes.oneOf(['default', 'compact', 'icon']),
+  layout: PropTypes.oneOf(['detailed', 'simple']),
+  hideIcon: PropTypes.bool,
+  iconStyle: PropTypes.oneOf(['boxed', 'inline'])
 }

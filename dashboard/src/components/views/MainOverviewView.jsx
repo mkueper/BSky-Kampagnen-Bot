@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Card } from "@bsky-kampagnen-bot/shared-ui";
+import React, { useMemo, useState } from "react";
+import { Card, InfoDialog } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
 import NextScheduledCard from "../ui/NextScheduledCard.jsx";
 import { useTheme } from "../ui/ThemeContext.jsx";
@@ -25,11 +25,11 @@ function MainOverviewView({
   publishedSkeets,
   pendingCount = 0,
   onOpenSkeetsOverview,
-  onOpenPendingSkeets,
   onOpenThreadsOverview
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const [overviewInfoOpen, setOverviewInfoOpen] = useState(false);
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -88,35 +88,73 @@ function MainOverviewView({
     <div className="space-y-4">
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-lg font-bold text-foreground">
+              {t('overview.summary.title', 'Post- und Thread-Statistik')}
+            </div>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated"
+              aria-label={t(
+                'overview.summary.infoButtonAria',
+                'Hinweis zur Post- und Thread-Statistik anzeigen'
+              )}
+              title={t(
+                'overview.summary.infoButtonAria',
+                'Hinweis zur Post- und Thread-Statistik anzeigen'
+              )}
+              onClick={() => setOverviewInfoOpen(true)}
+            >
+              <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z" fill="currentColor" />
+                <path fillRule="evenodd" clipRule="evenodd" d="M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z" fill="currentColor" />
+              </svg>
+              {t('posts.form.infoButtonLabel', 'Info')}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
               <span>{t('overview.cards.plannedPosts', 'Geplante Posts')}</span>
               <span className="font-semibold text-right">{skeetStats.plannedCount}</span>
             </div>
-            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
               <span>{t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}</span>
               <span className="font-semibold text-right">{skeetStats.publishedCount}</span>
             </div>
-            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
               <span>{t('overview.cards.pendingPosts', 'Freizugebende Posts')}</span>
               <span className="font-semibold text-right">{pendingCount}</span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
               <span>{t('overview.cards.plannedThreads', 'Geplante Threads')}</span>
               <span className="font-semibold text-right">{threadStats.planned}</span>
             </div>
-            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
               <span>{t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}</span>
               <span className="font-semibold text-right">{threadStats.published}</span>
             </div>
-            <div className="flex items-center justify-between ">
-              <span className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 text-foreground-subtle">{t('overview.cards.pendingThreadsLabel', 'Freizugebende Threads')}</span>
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 px-4 py-2 flex items-center justify-between">
+              <span className="text-foreground-subtle">
+                {t('overview.cards.pendingThreadsLabel', 'Freizugebende Threads')}
+              </span>
               <span className="font-semibold text-foreground-subtle text-right">—</span>
             </div>
           </div>
         </div>
+        <InfoDialog
+          open={overviewInfoOpen}
+          title={t('overview.summary.infoTitle', 'Post- und Thread-Statistik')}
+          onClose={() => setOverviewInfoOpen(false)}
+          closeLabel={t('common.actions.close', 'Schließen')}
+          content={(
+            <>
+              <p>{t('overview.summary.infoBodyPosts', 'Die oberen drei Kennzahlen zeigen geplante, veröffentlichte und freizugebende Posts. Jede Kachel entspricht dem aktuellen Zählerstand im Kampagnen-Planer.')}</p>
+              <p>{t('overview.summary.infoBodyThreads', 'Darunter folgen dieselben Werte für Threads. „Freizugebende Threads“ dient als Platzhalter für künftige Genehmigungsabläufe.')}</p>
+            </>
+          )}
+        />
       </section>
 
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>

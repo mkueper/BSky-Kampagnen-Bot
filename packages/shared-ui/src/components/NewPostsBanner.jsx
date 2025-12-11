@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 
-export default function NewPostsBanner ({ visible, onClick, busy }) {
+export default function NewPostsBanner ({ visible, onClick, busy, buttonLabel }) {
   if (!visible || busy) return null
   return (
     <div
@@ -13,7 +13,7 @@ export default function NewPostsBanner ({ visible, onClick, busy }) {
         onClick={onClick}
         disabled={busy}
       >
-        Neue Beitraege anzeigen
+        {buttonLabel}
       </button>
     </div>
   )
@@ -22,11 +22,13 @@ export default function NewPostsBanner ({ visible, onClick, busy }) {
 NewPostsBanner.propTypes = {
   visible: PropTypes.bool,
   onClick: PropTypes.func,
-  busy: PropTypes.bool
+  busy: PropTypes.bool,
+  buttonLabel: PropTypes.string
 }
 
 NewPostsBanner.defaultProps = {
   visible: false,
   onClick: undefined,
-  busy: false
+  busy: false,
+  buttonLabel: 'Show new posts'
 }

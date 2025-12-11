@@ -10,7 +10,7 @@ describe('NewPostsBanner (shared-ui)', () => {
 
   it('renders button when visible', () => {
     render(<NewPostsBanner visible />)
-    expect(screen.getByRole('button', { name: /Neue Beitraege anzeigen/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Show new posts/i })).toBeInTheDocument()
   })
 
   it('hides banner when busy', () => {
@@ -20,8 +20,8 @@ describe('NewPostsBanner (shared-ui)', () => {
 
   it('invokes onClick when pressed', () => {
     const handler = vi.fn()
-    render(<NewPostsBanner visible onClick={handler} />)
-    fireEvent.click(screen.getByRole('button', { name: /Neue Beitraege anzeigen/i }))
+    render(<NewPostsBanner visible onClick={handler} buttonLabel='Neue Beiträge anzeigen' />)
+    fireEvent.click(screen.getByRole('button', { name: /Neue Beiträge anzeigen/i }))
     expect(handler).toHaveBeenCalled()
   })
 })

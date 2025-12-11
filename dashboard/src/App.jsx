@@ -8,7 +8,8 @@ import {
   Pencil2Icon,
   UploadIcon,
   ViewHorizontalIcon,
-  InfoCircledIcon
+  InfoCircledIcon,
+  ExitIcon
 } from '@radix-ui/react-icons'
 import {
   Button,
@@ -726,11 +727,14 @@ function DashboardApp ({ onLogout }) {
   )
 
   const navFooter = (
-    <div className='flex flex-col items-center gap-3'>
+    <div className='flex w-full flex-col gap-3'>
       <ThemeToggle
         {...themeToggleProps}
-        variant='icon'
-        className='self-center'
+        layout='simple'
+        variant='subtle'
+        size='default'
+        iconStyle='inline'
+        className='w-full justify-between'
       />
       <Button
         type='button'
@@ -739,7 +743,8 @@ function DashboardApp ({ onLogout }) {
         onClick={handleLogoutClick}
         disabled={logoutPending}
       >
-        {t('auth.logout.button', 'Abmelden')}
+        <ExitIcon className='h-4 w-4' />
+        <span>{t('auth.logout.button', 'Abmelden')}</span>
       </Button>
     </div>
   )

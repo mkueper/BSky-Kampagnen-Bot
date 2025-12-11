@@ -61,6 +61,15 @@ const messages = {
       }
     },
     overview: {
+      summary: {
+        title: 'Post- und Thread-Statistik',
+        infoButtonAria: 'Hinweis zur Post- und Thread-Statistik anzeigen',
+        infoTitle: 'Post- und Thread-Statistik',
+        infoBodyPosts:
+          'Die oberen drei Kennzahlen zeigen geplante, veröffentlichte und freizugebende Posts. Die Freizugebenden erfordern eine manuelle Freigabe, bevor sie versendet werden. Jede Kachel entspricht dem aktuellen Zählerstand im Kampagnen-Planer.',
+        infoBodyThreads:
+          'Darunter folgen dieselben Werte für Threads. „Freizugebende Threads“ dient als Platzhalter für künftige Freigabeabläufe.'
+      },
       cards: {
         plannedPosts: 'Geplante Posts',
         publishedPosts: 'Veröffentlichte Posts',
@@ -70,7 +79,8 @@ const messages = {
           'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den regulären Versand übernommen.',
         pendingPostsInfoAria: 'Hinweis zu freizugebenden Posts anzeigen',
         plannedThreads: 'Geplante Threads',
-        publishedThreads: 'Veröffentlichte Threads'
+        publishedThreads: 'Veröffentlichte Threads',
+        pendingThreadsLabel: 'Freizugebende Threads'
       },
       next: {
         postTitle: 'Nächster Post',
@@ -931,6 +941,15 @@ const messages = {
       }
     },
     overview: {
+      summary: {
+        title: 'Posts & Threads – snapshot',
+        infoButtonAria: 'Show hint for the posts & threads snapshot',
+        infoTitle: 'Posts & threads snapshot',
+        infoBodyPosts:
+          'The top row shows scheduled, published, and approval-pending posts. Items awaiting approval must be reviewed manually before leaving the queue. Each tile reflects the current counters from the campaign planner.',
+        infoBodyThreads:
+          'The bottom row mirrors these values for threads. “Threads awaiting approval” is a placeholder for upcoming approval flows.'
+      },
       cards: {
         plannedPosts: 'Scheduled posts',
         publishedPosts: 'Published posts',
@@ -940,7 +959,8 @@ const messages = {
           'Posts in this area require manual approval before they are added to the regular schedule.',
         pendingPostsInfoAria: 'Show hint for posts awaiting approval',
         plannedThreads: 'Scheduled threads',
-        publishedThreads: 'Published threads'
+        publishedThreads: 'Published threads',
+        pendingThreadsLabel: 'Threads awaiting approval'
       },
       next: {
         postTitle: 'Next post',

@@ -14,7 +14,7 @@ function cn(...parts) {
  * - position: 'bottom-right' | 'bottom-left' (default 'bottom-right')
  * - offset: number px (default 16)
  * - safeArea: include iOS safe-area bottom (default true)
- * - ariaLabel: string (default 'Nach oben')
+ * - ariaLabel: string (default 'Scroll to top')
  * - className: extra classes
  * - variant: 'elevated' | 'primary' (default 'primary')
  * - children: optional custom content (defaults to ChevronUpIcon)
@@ -39,7 +39,7 @@ export default function ScrollTopButton({
   offset = 16,
   horizontalOffset,
   safeArea = true,
-  ariaLabel = "Nach oben",
+  ariaLabel = "Scroll to top",
   className,
   variant = "primary",
   forceVisible = false,
@@ -111,7 +111,7 @@ export default function ScrollTopButton({
         ro.observe(container);
       }
     } catch (e) {
-      console.error("Fehler beim Initialisieren des ResizeObserver:", e);
+      console.error("Failed to initialize ResizeObserver for ScrollTopButton:", e);
     }
 
     return () => {
