@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
 
+> Hinweis: Dieses Projekt unterstützt verantwortungsvolle, faktenbasierte Kampagnenkommunikation.  
+> Die ethischen Leitlinien findest du in `ETHICS.en.md` und `ETHICS.de.md`.
+
 Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (Standard), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert. Andere SQL-Dialekte lassen sich prinzipiell über `DATABASE_URL` einbinden, gelten aber noch als experimentell, weil die Baseline-Migration aktuell SQLite-Pragmas verwendet.
 
 > Hinweis (Sicherheit & Reifegrad)
@@ -277,6 +280,21 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 - Environments
   - Entwicklung/Test über `.env.dev` (Test-Accounts ohne Follower), Produktion `.env.prod` (echter Bot/User).
   - Umschalten: `npm run switchenv:dev` / `npm run switchenv:prod`.
+
+---
+
+## Ethical Use & Project Intent  
+*(Kurzfassung – vollständige Leitlinien siehe `ETHICS.en.md` und `ETHICS.de.md`)*
+
+Dieses Projekt verfolgt das Ziel, verantwortungsvolle und nachvollziehbare digitale Kommunikation zu unterstützen.  
+Der Kampagnen-Bot richtet sich an Akteur:innen, die faktenbasierte Inhalte veröffentlichen, transparente Prozesse fördern und eine medienkompetente Nutzung automatisierter Werkzeuge schätzen.
+
+Wir bitten alle Nutzer:innen und Beitragenden, das Tool nicht für manipulative Praktiken, verdeckte Automatisierung, künstliche Reichweitenverstärkung oder die Verbreitung von Desinformation einzusetzen.
+
+Der vollständige Ethik-Leitfaden beschreibt detailliert die Werte, Erwartungen und Orientierungsprinzipien dieses Projekts.  
+Er formuliert **keine rechtlichen Einschränkungen**, sondern eine klare Selbstverpflichtung für verantwortungsbewusste Nutzung.
+
+---
 
 ## Lizenz
 

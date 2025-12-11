@@ -111,7 +111,7 @@
   }
 
   .skeet-history-list {
-    @apply mt-3 flex flex-col gap-3;
+    @apply mt-3 flex flex-col gap-3 max-h-64 overflow-y-auto pr-1;
   }
 
   .skeet-history-item {
