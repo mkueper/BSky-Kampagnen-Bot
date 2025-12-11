@@ -3,7 +3,7 @@
 [![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
 
 > Hinweis: Dieses Projekt unterstützt verantwortungsvolle, faktenbasierte Kampagnenkommunikation.  
-> Die ethischen Leitlinien findest du in `ETHICS.en.md` und `ETHICS.de.md`.
+> Die ethischen Leitlinien findest du in [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md).
 
 Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (Standard), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert. Andere SQL-Dialekte lassen sich prinzipiell über `DATABASE_URL` einbinden, gelten aber noch als experimentell, weil die Baseline-Migration aktuell SQLite-Pragmas verwendet.
 
@@ -284,7 +284,7 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 ---
 
 ## Ethical Use & Project Intent  
-*(Kurzfassung – vollständige Leitlinien siehe `ETHICS.en.md` und `ETHICS.de.md`)*
+*(Kurzfassung – vollständige Leitlinien siehe [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md))*
 
 Dieses Projekt verfolgt das Ziel, verantwortungsvolle und nachvollziehbare digitale Kommunikation zu unterstützen.  
 Der Kampagnen-Bot richtet sich an Akteur:innen, die faktenbasierte Inhalte veröffentlichen, transparente Prozesse fördern und eine medienkompetente Nutzung automatisierter Werkzeuge schätzen.

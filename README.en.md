@@ -6,6 +6,9 @@ The **Bluesky Campaign Bot** provides a reliable workflow for planning, scheduli
 
 The project is built on a Node.js/Express backend with SQLite as the primary database engine, a React-based dashboard, and a scheduler optimized for accuracy, resilience, and operational clarity.
 
+> Note: This project supports responsible, evidence-based campaign communication.  
+> The ethical guidelines are documented in [ETHICS.en.md](ETHICS.en.md) and [ETHICS.de.md](ETHICS.de.md).
+
 > **Security & Stability Notice**
 >
 > This project is actively developed and continues to evolve. The dashboard and all production `/api/*` routes are protected by an admin login (`AUTH_*` variables, session cookies, `requireAuth` middleware). Deployments on publicly reachable servers require additional hardening (rate limiting, security headers, HTTPS via reverse proxy). Running the system without proper protection is **not recommended**.
@@ -251,7 +254,7 @@ Contributions, issues, and ideas are welcome.
 
 ## Ethical Use & Project Intent
 
-*(Summary — see `ETHICS.en.md` for the full policy)*
+*(Summary — see [ETHICS.en.md](ETHICS.en.md) or [ETHICS.de.md](ETHICS.de.md) for the full policy)*
 
 This project aims to support responsible and transparent digital communication. It is intended for users who value evidence-based messaging, clarity, and media literacy. We ask contributors and users to refrain from using this tool for manipulative automation, artificial amplification, or the spread of disinformation.
 
