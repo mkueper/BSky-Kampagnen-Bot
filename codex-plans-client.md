@@ -4,7 +4,7 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-07.12.2025
+11.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
@@ -25,19 +25,22 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
 2. API‑Abhängigkeiten sichtbar machen:
    - Alle aktuellen `/api/...`‑Aufrufe im `bsky-client` zentral dokumentieren (Auth/Session, `/api/me`, `/api/bsky/*`, `/api/uploads/*`, `/api/tenor/*`, `/api/client-config`) und im Code klar als „Backend‑Proxy für Bluesky“ kennzeichnen.
 
-3. Client‑Modi vorbereiten:
-   - Ein Konfigurationsflag entwerfen (z. B. `VITE_CLIENT_MODE=backend|standalone`), das langfristig zwischen „Backend‑Modus“ (heutiges Verhalten) und „Standalone‑Modus“ (direkte Bluesky‑API) unterscheiden kann, ohne das UI zu verzweigen.
+3. Standalone-Modus vorbereiten:
+   - Ein Konfigurationsflag entwerfen (z. B. `VITE_CLIENT_MODE=backend|standalone`), das langfristig zwischen „Backend‑Modus“ (heutiges Verhalten) und „Standalone‑Modus“ (direkte Bluesky‑API) unterscheidet. Ziel: Schrittweise Entkopplung vom Backend, beginnend mit Auth/Session.
 
-4. Config sauber trennen:
+4. Standalone Auth + API-Layer (Schritt 1):
+   - Einen neuen Auth-Store (`useBskyAuth`) implementieren, der `@atproto/api` direkt nutzt, Sessions speichert und UI-Status liefert (unauthenticated/authenticated/loading). Bestehende Hooks (LoginView etc.) darauf umstellen, ohne andere Module zu beeinflussen.
+
+5. Client-Config & .env Bereinigung:
    - In `.env.sample` die Blöcke für Backend/Kampagnen‑Tool vs. `bsky-client` klarer labeln (Ports, VITE‑Variablen), damit künftige Missverständnisse bei Port‑ und Modus‑Konfiguration vermieden werden.
 
-5. ThreadComposer & gemeinsame Utils vorbereiten:
+6. ThreadComposer & gemeinsame Utils vorbereiten:
    - `ThreadComposer` als generische Komponente (zunächst im `bsky-client`) entwerfen und dabei Bild-/GIF‑Handling konsequent über gemeinsame Helfer laufen lassen (z. B. Split‑Logik, Komprimierung).
    - Eine neutrale Utils‑Schicht (z. B. `shared-logic`/`shared-utils`) als Ziel für Helfer wie `compressImage` und die Thread‑Segmentierung vormerken, statt diese dauerhaft in `shared-ui` zu belassen.
 
-6. README/Developer‑Hinweis:
+7. README/Developer‑Hinweis:
    - Kurz dokumentieren, dass `bsky-client` und Dashboard getrennte Frontends sind, die nur über `shared-ui`/`shared-logic` verbunden sind, und wie man jeden Teil im Dev‑Modus startet (`dev`, `dev:frontend`, `dev:bsky-client`).
-6. Generischen `ThreadComposer` in `shared-ui` vorbereiten:
+8. Generischen `ThreadComposer` in `shared-ui` vorbereiten:
    - Eine generische UI‑Komponente `ThreadComposer` entwerfen, die über Props wie `value`, `onChange`, `maxLength`, `locale`, `hardBreakMarker` und `onSubmit(segments)` arbeitet und keinerlei Plattform‑ oder Scheduling‑Wissen enthält.
    - Die Split‑Logik nach `shared-logic` auslagern (`splitThread({ text, maxLength, hardBreakMarker })`), so dass Dashboard, `bsky-client` und spätere Mastodon‑Unterstützung die gleiche Logik nutzen können.
    - Im `bsky-client` den heutigen „+“‑Pfad perspektivisch durch einen „Sofort posten“-Einsatz von `ThreadComposer` ersetzen, während das Kampagnen‑Dashboard weiter seinen geplanten Scheduler nutzt.
