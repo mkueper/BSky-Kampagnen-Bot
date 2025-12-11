@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { Button, Card } from "@bsky-kampagnen-bot/shared-ui";
 import PlatformBadges from "./PlatformBadges";
 import ContentWithLinkPreview from "./ContentWithLinkPreview";

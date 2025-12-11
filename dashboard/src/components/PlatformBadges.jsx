@@ -1,3 +1,4 @@
+import React from "react";
 import Badge from "./ui/Badge";
 
 const PLATFORM_ORDER = ['bluesky', 'mastodon'];

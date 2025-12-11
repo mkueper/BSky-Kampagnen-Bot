@@ -1,3 +1,4 @@
+import React from 'react'
 import LinkifiedText from './LinkifiedText'
 import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'

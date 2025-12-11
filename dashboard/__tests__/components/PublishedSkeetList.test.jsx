@@ -10,6 +10,7 @@
  * Diese Testdateien gehören zur vereinheitlichten Dashboard-Teststruktur.
  * Sie stellen sicher, dass Komponenten, Hooks oder Seiten erwartungsgemäß funktionieren.
  */
+import React from 'react'
 import { describe, expect, it, beforeAll, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import PublishedSkeetList from '../../src/components/PublishedSkeetList'

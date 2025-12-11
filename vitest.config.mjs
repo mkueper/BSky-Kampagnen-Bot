@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  esbuild: {
+    jsx: 'automatic',
+    jsxDev: true
+  },
   test: {
     // Suche nach Testdateien in src und im dedizierten tests/-Ordner
     include: [

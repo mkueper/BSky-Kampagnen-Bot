@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 import messages from './messages.js'
 
 const I18nContext = createContext(null)
@@ -64,4 +64,3 @@ export function useTranslation () {
   }
   return ctx
 }
-
