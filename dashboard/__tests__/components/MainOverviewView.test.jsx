@@ -1,9 +1,9 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within, fireEvent } from '@testing-library/react'
-import MainOverviewView from '../../components/views/MainOverviewView.jsx'
+import MainOverviewView from '../../src/components/views/MainOverviewView.jsx'
 
-vi.mock('../../i18n/I18nProvider.jsx', () => ({
+vi.mock('../../src/i18n/I18nProvider.jsx', () => ({
   useTranslation: () => ({
     t: (key, defaultValue, vars = {}) => {
       if (defaultValue) {
@@ -16,7 +16,7 @@ vi.mock('../../i18n/I18nProvider.jsx', () => ({
   })
 }))
 
-vi.mock('../../components/ui/ThemeContext.jsx', () => ({
+vi.mock('../../src/components/ui/ThemeContext.jsx', () => ({
   useTheme: () => ({ panelBg: 'bg-background' })
 }))
 
@@ -35,7 +35,7 @@ vi.mock('@bsky-kampagnen-bot/shared-ui', () => ({
     ) : null
 }))
 
-vi.mock('../../components/ui/NextScheduledCard.jsx', () => ({
+vi.mock('../../src/components/ui/NextScheduledCard.jsx', () => ({
   default: ({ title }) => <div data-testid='next-card'>{title}</div>
 }))
 
