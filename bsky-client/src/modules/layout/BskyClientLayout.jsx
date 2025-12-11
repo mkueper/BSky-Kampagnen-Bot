@@ -129,19 +129,30 @@ export default function BskyClientLayout ({
   } = useThemeMode()
 
   const ThemeIcon = ActiveThemeIcon || SunIcon
+  const currentThemeLabel = currentThemeConfig?.labelKey
+    ? t(
+        currentThemeConfig.labelKey,
+        currentThemeConfig.label || currentThemeConfig.labelKey
+      )
+    : currentThemeConfig?.label || '—'
+  const nextThemeLabelFallback =
+    nextThemeLabel || nextThemeConfig?.label || currentThemeConfig?.label || ''
+  const nextThemeTranslated = nextThemeConfig?.labelKey
+    ? t(nextThemeConfig.labelKey, nextThemeLabelFallback)
+    : nextThemeLabelFallback
   const { setHeaderRef } = useLayout()
   const themeToggleProps = {
     icon: ThemeIcon,
     label: t('nav.themeButton', 'Theme'),
-    modeLabel: currentThemeConfig?.label || '—',
-    nextLabel: nextThemeLabel,
+    modeLabel: currentThemeLabel,
+    nextLabel: nextThemeTranslated,
     nextColor: nextThemeConfig?.previewColor,
     nextBorderColor: nextThemeConfig?.previewColor,
     onToggle: toggleTheme,
     ariaLabel: t(
       'nav.themeSwitch',
-      `Theme wechseln – ${nextThemeLabel || ''}`,
-      { label: nextThemeLabel || '' }
+      `Theme wechseln – ${nextThemeTranslated || ''}`,
+      { label: nextThemeTranslated || '' }
     )
   }
 

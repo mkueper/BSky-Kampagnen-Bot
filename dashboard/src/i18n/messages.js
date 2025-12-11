@@ -60,6 +60,18 @@ const messages = {
         about: 'Über Kampagnen‑Tool'
       }
     },
+    theme: {
+      toggle: {
+        label: 'Theme',
+        ariaLabel: 'Theme wechseln – {label}'
+      },
+      mode: {
+        light: 'Hell',
+        dim: 'Gedimmt',
+        dark: 'Dunkel',
+        midnight: 'Mitternacht'
+      }
+    },
     overview: {
       summary: {
         title: 'Post- und Thread-Statistik',
@@ -938,6 +950,18 @@ const messages = {
         'threads-plan': 'Schedule thread',
         config: 'Settings & Automation',
         about: 'About Campaign Tool'
+      }
+    },
+    theme: {
+      toggle: {
+        label: 'Theme',
+        ariaLabel: 'Switch theme – next: {label}'
+      },
+      mode: {
+        light: 'Light',
+        dim: 'Dimmed',
+        dark: 'Dark',
+        midnight: 'Midnight'
       }
     },
     overview: {

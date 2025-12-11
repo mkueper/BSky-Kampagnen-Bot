@@ -144,16 +144,27 @@ function DashboardApp ({ onLogout }) {
   } = useThemeMode()
 
   const ThemeIcon = HookThemeIcon
+  const currentThemeLabel = currentThemeConfig?.labelKey
+    ? t(
+        currentThemeConfig.labelKey,
+        currentThemeConfig.label || currentThemeConfig.labelKey
+      )
+    : currentThemeConfig?.label || '—'
+  const nextThemeLabelFallback =
+    nextThemeLabel || nextThemeConfig?.label || currentThemeConfig?.label || ''
+  const nextThemeTranslated = nextThemeConfig?.labelKey
+    ? t(nextThemeConfig.labelKey, nextThemeLabelFallback)
+    : nextThemeLabelFallback
   const themeToggleProps = {
     icon: ThemeIcon,
     label: t('theme.toggle.label', 'Theme'),
-    modeLabel: currentThemeConfig?.label || '—',
-    nextLabel: nextThemeLabel,
+    modeLabel: currentThemeLabel,
+    nextLabel: nextThemeTranslated,
     nextColor: nextThemeConfig?.previewColor,
     nextBorderColor: nextThemeConfig?.previewColor,
     onToggle: toggleTheme,
     ariaLabel: t('theme.toggle.ariaLabel', 'Theme wechseln – {label}', {
-      label: nextThemeLabel || ''
+      label: nextThemeTranslated || ''
     })
   }
   const [editingSkeet, setEditingSkeet] = useState(null)

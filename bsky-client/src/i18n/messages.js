@@ -34,6 +34,14 @@ const messages = {
       themeSwitch: 'Theme wechseln – nächstes: {label}',
       notificationsWithCount: '{label} ({count} neu)'
     },
+    theme: {
+      mode: {
+        light: 'Hell',
+        dim: 'Gedimmt',
+        dark: 'Dunkel',
+        midnight: 'Mitternacht'
+      }
+    },
     layout: {
       headers: {
         notifications: 'Mitteilungen',
@@ -336,6 +344,14 @@ const messages = {
           label: 'Activity',
           description: 'performed an action.'
         }
+      }
+    },
+    theme: {
+      mode: {
+        light: 'Light',
+        dim: 'Dimmed',
+        dark: 'Dark',
+        midnight: 'Midnight'
       }
     },
     compose: {
