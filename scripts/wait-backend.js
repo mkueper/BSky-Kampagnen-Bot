@@ -8,7 +8,8 @@ if (fs.existsSync(dotenvPath)) {
 }
 const port = process.env.BACKEND_PORT || process.env.APP_PORT || process.env.BACKEND_INTERNAL_PORT || 35123
 const host = process.env.BACKEND_HOST || '127.0.0.1'
-const target = `http://${host}:${port}`
+const pathSuffix = process.env.BACKEND_HEALTH_PATH || '/health'
+const target = `http://${host}:${port}${pathSuffix}`
 waitOn({ resources: [target] })
   .then(() => process.exit(0))
   .catch((err) => {

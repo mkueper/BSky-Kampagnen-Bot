@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, RichText, MediaDialog } from '../shared'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon } from '@radix-ui/react-icons'
 
@@ -38,6 +38,30 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [quote])
   const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
+  const pendingMediaItems = useMemo(
+    () =>
+      pendingMedia.map((item, idx) => ({
+        type: 'pending',
+        id: null,
+        tempId: item?.tempId ?? `pending-${idx}`,
+        src: item?.previewUrl || '',
+        alt: item?.altText || '',
+        pendingIndex: idx
+      })),
+    [pendingMedia]
+  )
+  const handleRemovePendingMedia = useCallback(item => {
+    if (typeof item?.pendingIndex !== 'number') return
+    setPendingMedia(arr => arr.filter((_, idx) => idx !== item.pendingIndex))
+  }, [])
+  const mediaGridLabels = useMemo(
+    () => ({
+      imageAlt: index => `Bild ${index}`,
+      removeTitle: 'Bild entfernen',
+      removeAria: 'Bild entfernen'
+    }),
+    []
+  )
 
   useEffect(() => {
     focusRequestedRef.current = false
@@ -396,23 +420,13 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           </div>
         </div>
       ) : null}
-      {pendingMedia.length > 0 ? (
-        <div className='mt-2 grid grid-cols-2 gap-2'>
-          {pendingMedia.map((m, idx) => (
-            <div key={m.tempId || idx} className='relative rounded-lg border border-border bg-background-subtle'>
-              <img src={m.previewUrl} alt='' className='w-full rounded-lg object-contain' style={{ maxHeight: 160 }} />
-              <button
-                type='button'
-                className='absolute right-1 top-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white'
-                title='Bild entfernen'
-                onClick={() => setPendingMedia(arr => arr.filter((_, i) => i !== idx))}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <SegmentMediaGrid
+        items={pendingMediaItems}
+        maxCount={MAX_MEDIA_COUNT}
+        onRemove={handleRemovePendingMedia}
+        labels={mediaGridLabels}
+        className='mt-2'
+      />
       <div className='flex items-center gap-2'>
         <Button
           type='button'

@@ -145,13 +145,15 @@ function DashboardApp ({ onLogout }) {
   const ThemeIcon = HookThemeIcon
   const themeToggleProps = {
     icon: ThemeIcon,
-    label: 'Theme',
+    label: t('theme.toggle.label', 'Theme'),
     modeLabel: currentThemeConfig?.label || '—',
     nextLabel: nextThemeLabel,
     nextColor: nextThemeConfig?.previewColor,
     nextBorderColor: nextThemeConfig?.previewColor,
     onToggle: toggleTheme,
-    ariaLabel: `Theme wechseln – ${nextThemeLabel || ''}`
+    ariaLabel: t('theme.toggle.ariaLabel', 'Theme wechseln – {label}', {
+      label: nextThemeLabel || ''
+    })
   }
   const [editingSkeet, setEditingSkeet] = useState(null)
   const [highlightedSkeetId, setHighlightedSkeetId] = useState(null)
@@ -724,10 +726,11 @@ function DashboardApp ({ onLogout }) {
   )
 
   const navFooter = (
-    <div className='flex flex-col gap-3'>
+    <div className='flex flex-col items-center gap-3'>
       <ThemeToggle
         {...themeToggleProps}
-        className='w-full'
+        variant='icon'
+        className='self-center'
       />
       <Button
         type='button'

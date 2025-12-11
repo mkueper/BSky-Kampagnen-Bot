@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Card, InfoDialog } from "@bsky-kampagnen-bot/shared-ui";
+import { useMemo } from "react";
+import { Card } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
 import NextScheduledCard from "../ui/NextScheduledCard.jsx";
 import { useTheme } from "../ui/ThemeContext.jsx";
@@ -30,7 +30,6 @@ function MainOverviewView({
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [pendingInfoOpen, setPendingInfoOpen] = useState(false);
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
     const active = items.filter((thread) => thread.status !== "deleted");
@@ -85,160 +84,40 @@ function MainOverviewView({
       .map(({ thread }) => thread);
   }, [threads]);
 
-  const hasPending =
-    typeof pendingCount === 'number' && Number(pendingCount) > 0
-
   return (
     <div className="space-y-4">
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-4">
-            <Card
-              padding="px-5 py-4"
-              className="border-border-muted bg-background-subtle/60"
-            >
-              <h3 className="text-lg font-semibold text-foreground">
-                {t('overview.cards.plannedPosts', 'Geplante Posts')}
-              </h3>
-              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-                {skeetStats.plannedCount}
-              </p>
-            </Card>
-            <Card
-              padding="px-5 py-4"
-              className="border-border-muted bg-background-subtle/60"
-            >
-              <h3 className="text-lg font-semibold text-foreground">
-                {t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}
-              </h3>
-              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-                {skeetStats.publishedCount}
-              </p>
-            </Card>
-            <Card
-              padding="px-5 py-4"
-              onClick={
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? () => onOpenPendingSkeets()
-                  : undefined
-              }
-              onKeyDown={
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        onOpenPendingSkeets()
-                      }
-                    }
-                  : undefined
-              }
-              className={`border-border-muted bg-background-subtle/60${
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? ' cursor-pointer outline-none focus:ring-2 focus:ring-primary'
-                  : ''
-              }`}
-              aria-label={
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? t(
-                      'overview.aria.toPendingPosts',
-                      'Freizugebende Posts anzeigen'
-                    )
-                  : undefined
-              }
-              title={
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? t(
-                      'overview.aria.toPendingPosts',
-                      'Freizugebende Posts anzeigen'
-                    )
-                  : undefined
-              }
-              role={
-                hasPending && typeof onOpenPendingSkeets === 'function'
-                  ? 'button'
-                  : undefined
-              }
-              tabIndex={
-                hasPending && typeof onOpenPendingSkeets === 'function' ? 0 : undefined
-              }
-            >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground">
-                {t('overview.cards.pendingPosts', 'Freizugebende Posts')}
-              </h3>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated"
-                aria-label={t(
-                  'overview.cards.pendingPostsInfoAria',
-                  'Hinweis zu freizugebenden Posts anzeigen'
-                )}
-                title={t('overview.cards.pendingPostsInfoAria', 'Hinweis zu freizugebenden Posts anzeigen')}
-                onClick={() => setPendingInfoOpen(true)}
-              >
-                <svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z" fill="currentColor" />
-                  <path fillRule="evenodd" clipRule="evenodd" d="M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z" fill="currentColor" />
-                </svg>
-                {t('posts.form.infoButtonLabel', 'Info')}
-              </button>
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+              <span>{t('overview.cards.plannedPosts', 'Geplante Posts')}</span>
+              <span className="font-semibold text-right">{skeetStats.plannedCount}</span>
             </div>
-            <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-              {pendingCount}
-            </p>
-            <p className="mt-1 text-xs text-foreground-muted">
-              {hasPending
-                ? t(
-                    'overview.cards.pendingPostsHint',
-                    'Posts warten auf Freigabe'
-                  )
-                : t(
-                    'overview.cards.pendingPostsEmpty',
-                    'Keine freizugebenden Posts.'
-                  )}
-            </p>
-          </Card>
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+              <span>{t('overview.cards.publishedPosts', 'Veröffentlichte Posts')}</span>
+              <span className="font-semibold text-right">{skeetStats.publishedCount}</span>
+            </div>
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+              <span>{t('overview.cards.pendingPosts', 'Freizugebende Posts')}</span>
+              <span className="font-semibold text-right">{pendingCount}</span>
+            </div>
           </div>
-          <div className="space-y-4">
-            <Card
-              padding="px-5 py-4"
-              className="border-border-muted bg-background-subtle/60"
-            >
-              <h3 className="text-lg font-semibold text-foreground">
-                {t('overview.cards.plannedThreads', 'Geplante Threads')}
-              </h3>
-              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-                {threadStats.planned}
-              </p>
-            </Card>
-            <Card
-              padding="px-5 py-4"
-              className="border-border-muted bg-background-subtle/60"
-            >
-              <h3 className="text-lg font-semibold text-foreground">
-                {t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}
-              </h3>
-              <p className="mt-2 text-3xl font-semibold text-foreground lg:text-4xl">
-                {threadStats.published}
-              </p>
-            </Card>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+              <span>{t('overview.cards.plannedThreads', 'Geplante Threads')}</span>
+              <span className="font-semibold text-right">{threadStats.planned}</span>
+            </div>
+            <div className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 flex items-center justify-between">
+              <span>{t('overview.cards.publishedThreads', 'Veröffentlichte Threads')}</span>
+              <span className="font-semibold text-right">{threadStats.published}</span>
+            </div>
+            <div className="flex items-center justify-between ">
+              <span className="rounded-2xl border border-border-muted bg-background-subtle/60 pl-4 pr-4 text-foreground-subtle">{t('overview.cards.pendingThreadsLabel', 'Freizugebende Threads')}</span>
+              <span className="font-semibold text-foreground-subtle text-right">—</span>
+            </div>
           </div>
         </div>
       </section>
-      <InfoDialog
-        open={pendingInfoOpen}
-        title={t('overview.cards.pendingPostsInfoTitle', 'Freizugebende Posts')}
-        onClose={() => setPendingInfoOpen(false)}
-        closeLabel={t('common.actions.close', 'Schließen')}
-        content={(
-          <p>
-            {t(
-              'overview.cards.pendingPostsInfoBody',
-              'Posts in diesem Bereich warten auf manuelle Freigabe und werden erst danach in den normalen Versandplan übernommen.'
-            )}
-          </p>
-        )}
-      />
 
       <section className={`rounded-3xl border border-border ${theme.panelBg} shadow-soft p-4`}>
         <div className="grid gap-4 md:grid-cols-2">

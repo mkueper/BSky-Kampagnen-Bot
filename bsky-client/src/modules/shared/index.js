@@ -5,7 +5,8 @@ export {
   InlineMenu,
   InlineMenuTrigger,
   InlineMenuContent,
-  InlineMenuItem
+  InlineMenuItem,
+  SegmentMediaGrid
 } from '@bsky-kampagnen-bot/shared-ui';
 export { default as RichText } from './RichText.jsx';
 export { default as RepostMenuButton } from './RepostMenuButton.jsx';

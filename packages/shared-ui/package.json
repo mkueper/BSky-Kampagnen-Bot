@@ -30,6 +30,7 @@
     "react": "^18.0.0"
   },
   "dependencies": {
+    "@bsky-kampagnen-bot/shared-logic": "file:../shared-logic",
     "@vvo/tzdb": "^6.198.0"
   },
   "devDependencies": {

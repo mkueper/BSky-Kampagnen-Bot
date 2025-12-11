@@ -12,6 +12,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 type ThreadSeed = {
   key: string
@@ -84,9 +85,10 @@ async function seed() {
   }
 
   // Models erst nach dem Setzen von SQLITE_STORAGE laden.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const models = require(path.join(__dirname, '../backend/src/data/models'))
-  const { sequelize, Thread, ThreadSkeet, Skeet, PostSendLog } = models
+  const modelsPath = path.join(process.cwd(), 'backend/src/data/models/index.js')
+  const modelsModule = await import(pathToFileURL(modelsPath).href)
+  const { sequelize, Thread, ThreadSkeet, Skeet, PostSendLog } =
+    modelsModule.default || modelsModule
 
   await sequelize.sync({ force: true })
 

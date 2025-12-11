@@ -8,22 +8,21 @@
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Doku und Terminologie des Kampagnen‑Tools wurden bereinigt; About‑Seite, UI‑Guides und Tests‑Doku spiegeln den aktuellen Stand (Freizugebende Posts, Fehlercodes, Upload‑Pfad `data/medien`) wider.
-- Medien‑Uploads des Kampagnen‑Backends landen standardmäßig in `data/medien`; das Docker‑Bundle liefert nur noch Backend + Dashboard (ohne `bsky-client`) und enthält ein Setup-Skript `setup-kampagnen-tool.sh` für `.env`, Auth‑Hash und Start/Migration auf dem Zielserver.
-- Test-Konventionen halten fest, dass neue Tests aus fachlichen Anforderungen (Docs) und nicht aus der aktuellen Implementierung abgeleitet werden; Dashboard-/Backend-Testdokumente sind an diesen Ansatz angepasst.
-- Für den Bluesky‑Client ist die Zielarchitektur geklärt: eigenständige Desktop‑App ohne Kampagnen‑Backend, mit direktem `BskyAgent`‑Zugriff, internem Routing für Bluesky‑Links und Öffnen externer Links im Standardbrowser.
-- Die Login‑Konzeption für den Desktop‑Client steht: Service‑URL, Identifier (Handle/E‑Mail), App‑Passwort, zwei Checkboxen („Angemeldet bleiben“, „App‑Passwort auf diesem Gerät merken“) sowie verschlüsselte Speicherung von Session/Passwort je nach Option.
-- Multi‑Account‑Support ist vorgesehen (Account‑Liste mit aktivem Account, späteres Umschalten über ein Avatar-Menü à la Bluesky), wird aber erst nach einem stabilen Single‑Account‑Flow umgesetzt.
-- Im `bsky-client` existiert mit `bskyAgentClient` eine erste API‑Schicht für direkten `BskyAgent`‑Zugriff (Login, Session‑Resume, Logout), die noch nicht in das bestehende UI integriert ist; alle Tests laufen weiterhin grün.
-- Im Dashboard wurden die Zeitpicker für Threads und Posts so ergänzt, dass bei Planungen am selben Tag keine Uhrzeit vor der aktuellen lokalen Zeit gewählt oder gespeichert werden kann; das Verhalten ist in der Doku erläutert und durch i18n‑Texte abgesichert.
-- Im Thread‑Editor ist die Scroll‑Synchronisierung zwischen Textarea und Vorschau verfeinert: Segmentwechsel lösen ein sanftes Nachscrollen aus, und ein Klick auf ein Vorschauelement setzt den Cursor im Quelltext an den Beginn des zugehörigen Posts; Sonderfälle (ohne Trenner, Power‑Navigation) sind als optionale Verbesserungen geplant.
+- Doku, Terminologie und Upload-Pfade des Kampagnen‑Tools sind konsolidiert; About‑Seite, UI-Guides und Test-Doku spiegeln Freizugebende Posts, Fehlercodes und `data/medien` wider.
+- Docker-Bundle + Setup-Skript liefern nur noch Backend + Dashboard, inklusive `.env`-Generator, Auth-Hash und automatischer Migration.
+- Testkonventionen schreiben fachlich motivierte Fälle vor; Dashboard/Backend-Dokumente sind entsprechend angepasst und werden aktiv gepflegt.
+- Bluesky-Client: Zielarchitektur (eigenständige Desktop-App mit direktem `BskyAgent`) und Login-Konzept (Service-URL, Identifier, App-Passwort, zwei Persistenz-Checkboxen) stehen, Multi-Account bleibt nachgelagert.
+- `bskyAgentClient` bildet Login/Resume/Logout bereits ab; UI und Stores nutzen ihn noch nicht.
+- Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
+- `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
+- VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Das Kampagnen‑Tool ist als eigenständiger Serverdienst (Backend + Dashboard) sauber positioniert: Docker‑Deployment und Bundle‑Setup funktionieren ohne Bluesky‑Client und dokumentieren Upload‑Pfad, Auth‑Setup und Betrieb. Die Dokumentation ist aufgeräumt, Test‑Konventionen sind festgezurrt. Für den Bluesky‑Client ist die Zielrichtung klar: eine reine Desktop‑App, die direkt mit Bluesky spricht, Bluesky‑interne Links intern rendert und externe Links im Browser öffnet. Eine erste BskyAgent‑API‑Schicht existiert; UI, Login‑Modal und Auth‑Store sind noch nicht umgestellt.
+Kampagnen-Tool läuft als eigenständiger Serverdienst mit dokumentiertem Docker-Bundle, aufgeräumten Upload-Pfaden und konsistenter Doku/Test-Guidance. Für den Bluesky-Client existiert die Zielarchitektur (Desktop-App + direkter `BskyAgent`), aber UI/Auth-Layer müssen noch umgestellt werden. Dashboard & Backend lassen sich mit Demo-Daten (`scripts/seedDemoDatabase.ts`) und funktionierendem VS-Code-Launcher schnell starten.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
-
+[text](<../../Downloads/5D1CF368B8361FD0AABF71486C6920B9 (1).pdf>)
 ### 4.1 Client (Bluesky‑Desktop‑App)
 
 1. Bluesky‑Client: Auth‑Store/Hook (`useBskyAuth`) entwerfen und implementieren, der einen zentralen `BskyAgentClient` kapselt, Session/Settings laden/speichern kann (zunächst für einen Account) und den Auth‑Status (`unauthenticated/authenticated/loading`) an die UI liefert.
@@ -32,11 +31,14 @@ Das Kampagnen‑Tool ist als eigenständiger Serverdienst (Backend + Dashboard) 
 
 ### 4.2 Dashboard (Kampagnen‑Oberfläche)
 
-4. Kampagnen‑Tool: Scroll‑Synchronisierung und Klick‑Navigation im Thread‑Planen‑Formular weiter verfeinern (u. a. Verhalten bei mehrfach vorkommenden Textblöcken, Fokus‑Wechsel sowie Dokumentation von Sonderfällen wie Mehrfach‑Klick).
-5. Kampagnen‑Tool: Optionalen Fallback für die Vorschau‑Klicknavigation prüfen, bei dem – wenn keine `---`‑Trenner genutzt werden – der Text eines Vorschauelements (ohne Nummerierung) im Quelltext gesucht und der Cursor am Anfang des ersten eindeutigen Treffers positioniert wird (nur nach expliziter Aktivierung, da heuristisch).
-6. Kampagnen‑Tool (Power‑Feature): Optionale Tastatur‑Navigation für wiederkehrende Textblöcke im Thread‑Editor evaluieren (z. B. nach Klick auf ein Vorschauelement den zugehörigen Textblock als Suchmuster merken und per Tastenkombination zum nächsten/vorherigen Vorkommen im Quelltext springen), klar hinter einer eigenen Option oder Sektion für „erweiterte Funktionen“ versteckt.
+4. Thread-Planer: Scroll-/Klick-Sync auf Mehrfach-Vorkommen und Fokuswechsel trimmen; Sonderfälle (ohne Trenner, Power-Navigation) dokumentieren und absichern.
+5. Vorschau-Fallback evaluieren, der fehlende Trenner über Textsuche kompensiert (optional aktivierbar, da heuristisch).
+6. History-Usability: Demo-Skeet-Historien in Doku aufnehmen (Screenshots, Hinweise zum Scroll-Limit) und `scripts/seedDemoDatabase.ts` kurz im README verlinken.
 
-### 4.3 Backend (Kampagnen‑Agent)
+### 4.3 Backend & Tooling
+
+7. Seed-Skript automatisiert in `package.json` (z. B. `npm run seed:demo`) verfügbar machen und mit kurzen CLI-Hinweisen testen.
+8. Docker-Bundle/Setup-Skript um Option erweitern, beim Packen eine Demo-Datenbank zu erzeugen oder bestehende DB zu bereinigen.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

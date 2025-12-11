@@ -28,7 +28,25 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ---
 
-## 3. Repository-Interaktion
+## 3. Git-Operationen (verbindliche Einschränkungen)
+
+* Git-Operationen dürfen **niemals automatisch** ausgeführt werden.
+* Folgende Befehle oder äquivalente Aktionen sind **ausnahmslos untersagt**, solange keine ausdrückliche Anweisung oder Zustimmung von mir vorliegt:
+
+  * `git checkout …`
+  * `git restore …`
+  * `git reset …`
+  * `git pull`, `git fetch`, `git merge`
+  * Änderungen an Branches, Tags oder Historie
+* Wenn unklar ist, ob eine Aktion eine Git-Operation auslöst, **sofort nachfragen** und die Ausführung anhalten.
+* Git-Kommandos dürfen ausschließlich ausgeführt werden, wenn ich dies **explizit** verlange. Eine stillschweigende Erlaubnis existiert nicht.
+* Wenn ein Dateizustand beschädigt wirkt oder widersprüchlich erscheint, ist **nicht** automatisch eine Git-Wiederherstellung vorzunehmen. Stattdessen ist mir eine **präzise Rückfrage** zu stellen.
+
+Diese Regeln sind verbindlich und haben Vorrang vor allen anderen Anweisungen.
+
+--- 
+
+## 4. Repository-Interaktion
 
 * Respektiere die bestehende **Monorepo-Architektur** und folge den dort etablierten Mustern.
 * Erstelle oder verändere **keine Datenbankmigrationen**, außer dies wird ausdrücklich verlangt.
@@ -37,7 +55,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ---
 
-## 4. Abhängigkeitsverwaltung
+## 5. Abhängigkeitsverwaltung
 
 * Frage nach **expliziter Bestätigung**, bevor du neue Produktionsabhängigkeiten hinzufügst.
 * Nimm **keine Updates, Löschungen oder Versionsänderungen** von Abhängigkeiten vor, außer dies wird ausdrücklich verlangt.
@@ -45,7 +63,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ---
 
-## 5. Sicherheit, Validierung & Konfliktbehandlung
+## 6. Sicherheit, Validierung & Konfliktbehandlung
 
 * Wenn mehr als **fünf Dateien** geändert würden, stelle den geplanten Ansatz zunächst in einer **kurzen Zusammenfassung** vor und hole eine ausdrückliche Bestätigung ein, bevor du fortfährst.
 * Vermeide **spekulative Änderungen**, rekonstruierte Architekturen oder Transformationen, die auf Vermutungen beruhen.
@@ -53,7 +71,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ---
 
-## 6. Erwartungen an das Repository
+## 7. Erwartungen an das Repository
 
 * Führe nach Änderungen an JavaScript-Dateien immer **`npm test`** und **`npm run lint`** aus.
 * Führe **`npm run lint`** aus, bevor ein Pull Request vorbereitet oder vorgeschlagen wird.
@@ -61,20 +79,20 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ---
 
-## 7. Transparenz
+## 8. Transparenz
 
 * Bevor du **Änderungen an mehreren Dateien** vornimmst, gib eine **klare, knappe Zusammenfassung** der geplanten Anpassungen.
 * Weisen ausdrücklich darauf hin, wenn eine **interne Regel** eine Aktion verhindert hat, und benenne die betreffende Regel so konkret wie möglich.
 
 ---
 
-## 8. UI-Konventionen
+## 9. UI-Konventionen
 
 Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Interaktionsmuster **über alle Pakete hinweg konsistent** bleiben (`dashboard`, `bsky-client`, `shared-ui`). Ändere **keine** UI-Designsysteme, Theme-Logik oder Component-APIs, außer es wird ausdrücklich verlangt.
 
 ---
 
-## 9. Erinnerung
+## 10. Erinnerung
 
 * Wenn eine Datei `codex-plans*.md` im Projekt vorhanden ist (z. B. `codex-plans.md`, `codex-plans-backend.md`, `codex-plans-client.md`), **lies sie zu Beginn jeder neuen Session vollständig ein** und verwende ihren Inhalt als Kontext für alle folgenden Schritte.
 * Wenn die Nutzer:in im Gespräch „Feierabend“ oder „Gute Nacht“ sagt, **erstelle oder aktualisiere** die passende `codex-plans*.md`-Datei (z. B. `codex-plans.md` im Dashboard-Kontext, `codex-plans-backend.md` im Backend-Kontext) und fasse darin den aktuellen Stand sowie die nächsten konkreten Schritte zusammen.
@@ -82,7 +100,7 @@ Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Intera
 
 ---
 
-## 10. Struktur von `codex-plans*.md`
+## 11. Struktur von `codex-plans*.md`
 
 * Wenn eine `codex-plans*.md`-Datei erstellt oder aktualisiert wird, muss **immer** die folgende Struktur in **genau dieser Reihenfolge** eingehalten werden:
 

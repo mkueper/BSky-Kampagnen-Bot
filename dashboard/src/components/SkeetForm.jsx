@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, ConfirmDialog, InlineField, InfoDialog, MediaDialog } from '@bsky-kampagnen-bot/shared-ui'
+import { Button, ConfirmDialog, InlineField, InfoDialog, MediaDialog, SegmentMediaGrid } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
@@ -15,6 +15,10 @@ import {
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
 import { clampTimeToNowForToday } from '../utils/scheduling'
+import {
+  buildSegmentMediaItems,
+  countSegmentMedia
+} from '@bsky-kampagnen-bot/shared-logic'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -150,12 +154,45 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
   const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const [sendingNow, setSendingNow] = useState(false)
-  const existingMediaCount = useMemo(() => {
-    if (!isEditing || !Array.isArray(editingSkeet?.media)) return 0
-    return editingSkeet.media.filter(m => !removedMedia[m.id]).length
-  }, [isEditing, editingSkeet, removedMedia])
-  const pendingMediaCount = pendingMedia.length
-  const previewBlocked = (existingMediaCount + pendingMediaCount) > 0
+  const existingSegments = useMemo(() => {
+    if (!Array.isArray(editingSkeet?.media)) return []
+    return [{ sequence: 0, media: editingSkeet.media }]
+  }, [editingSkeet])
+  const totalMediaCount = useMemo(
+    () =>
+      countSegmentMedia({
+        segmentIndex: 0,
+        existingSegments,
+        pendingMediaMap: { 0: pendingMedia },
+        removedMediaMap: removedMedia
+      }),
+    [existingSegments, pendingMedia, removedMedia]
+  )
+  const segmentMediaItems = useMemo(
+    () =>
+      buildSegmentMediaItems({
+        segmentIndex: 0,
+        existingSegments,
+        pendingMediaMap: { 0: pendingMedia },
+        removedMediaMap: removedMedia,
+        editedMediaAltMap: editedMediaAlt
+      }),
+    [editedMediaAlt, existingSegments, pendingMedia, removedMedia]
+  )
+  const mediaGridLabels = useMemo(
+    () => ({
+      imageAlt: index =>
+        t('posts.form.media.imageAltFallback', 'Bild {index}', { index }),
+      altAddTitle: t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altEditTitle: t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
+      altBadge: t('posts.form.media.altBadge', 'ALT'),
+      altAddBadge: t('posts.form.media.altAddBadge', '+ ALT'),
+      removeTitle: t('posts.form.media.removeButtonTitle', 'Bild entfernen'),
+      removeAria: t('posts.form.media.removeButtonTitle', 'Bild entfernen')
+    }),
+    [t]
+  )
+  const previewBlocked = totalMediaCount > 0
   const previewDisabledReason = previewBlocked
     ? t(
         'posts.form.previewDisabledReason',
@@ -163,7 +200,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       )
     : ''
   const hasContentOrMedia =
-    content.trim().length > 0 || (existingMediaCount + pendingMediaCount) > 0
+    content.trim().length > 0 || totalMediaCount > 0
   const {
     previewUrl,
     preview,
@@ -845,116 +882,14 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   placeholder='(kein Inhalt)'
                   className='whitespace-pre-wrap break-words leading-relaxed text-foreground'
                 />
-                {(() => {
-                  const list = []
-                  if (isEditing && Array.isArray(editingSkeet?.media)) {
-                    editingSkeet.media.forEach(m => {
-                      if (!removedMedia[m.id] && m.previewUrl) {
-                        list.push({
-                          type: 'existing',
-                          id: m.id,
-                          src: m.previewUrl,
-                          alt: editedMediaAlt[m.id] ?? (m.altText || ''),
-                          pendingIndex: null
-                        })
-                      }
-                    })
-                  }
-                  pendingMedia.forEach((m, idx) =>
-                    list.push({
-                      type: 'pending',
-                      id: null,
-                      src: m.previewUrl || m.data,
-                      alt: m.altText || '',
-                      pendingIndex: idx
-                    })
-                  )
-                  const items = list.slice(0, imagePolicy.maxCount || 4)
-                  if (items.length === 0) return null
-                  const hClass = items.length > 2 ? 'h-20' : 'h-28'
-                  return (
-                    <div className='mt-2 grid grid-cols-2 gap-2'>
-                      {items.map((it, idx) => (
-                        <div
-                          key={`${it.type}-${it.id ?? it.pendingIndex}-${idx}`}
-                          className={`relative ${hClass} overflow-hidden rounded-xl border border-border bg-background-subtle`}
-                        >
-                          <img
-                            src={it.src}
-                            alt={
-                              it.alt ||
-                              t(
-                                'posts.form.media.imageAltFallback',
-                                'Bild {index}',
-                                { index: idx + 1 }
-                              )
-                            }
-                            className='absolute inset-0 h-full w-full object-contain'
-                          />
-                          <div className='pointer-events-none absolute left-1 top-1 z-10'>
-                            <span
-                              className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${it.alt ? 'bg-black/60' : 'bg-black/90 ring-1 ring-white/30'}`}
-                              title={
-                                it.alt
-                                  ? t(
-                                      'posts.form.media.altEditTitle',
-                                      'Alt‑Text bearbeiten'
-                                    )
-                                  : t(
-                                      'posts.form.media.altAddTitle',
-                                      'Alt‑Text hinzufügen'
-                                    )
-                              }
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                setAltDialog({ open: true, item: it })
-                              }}
-                              role='button'
-                              tabIndex={0}
-                              aria-label={
-                                it.alt
-                                  ? t(
-                                      'posts.form.media.altEditTitle',
-                                      'Alt‑Text bearbeiten'
-                                    )
-                                  : t(
-                                      'posts.form.media.altAddTitle',
-                                      'Alt‑Text hinzufügen'
-                                    )
-                              }
-                            >
-                              {it.alt
-                                ? t('posts.form.media.altBadge', 'ALT')
-                                : t('posts.form.media.altAddBadge', '+ ALT')}
-                            </span>
-                          </div>
-                          <div className='absolute right-1 top-1 z-10 flex gap-1'>
-                            <button
-                              type='button'
-                              className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80'
-                              title={t(
-                                'posts.form.media.removeButtonTitle',
-                                'Bild entfernen'
-                              )}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleRemoveMedia(it)
-                              }}
-                              aria-label={t(
-                                'posts.form.media.removeButtonTitle',
-                                'Bild entfernen'
-                              )}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()}
+                <SegmentMediaGrid
+                  items={segmentMediaItems}
+                  maxCount={imagePolicy.maxCount || 4}
+                  onEditAlt={item => setAltDialog({ open: true, item })}
+                  onRemove={handleRemoveMedia}
+                  labels={mediaGridLabels}
+                  className='mt-2'
+                />
                 <LinkPreviewCard
                   preview={preview}
                   url={previewUrl}
@@ -967,11 +902,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             </div>
             <div className='mt-2 text-sm text-foreground-muted'>
               {t('posts.form.media.counterLabel', 'Medien')}{' '}
-              {(isEditing && Array.isArray(editingSkeet?.media)
-                ? editingSkeet.media.filter(m => !removedMedia[m.id]).length
-                : 0) + pendingMedia.length}
-              /{imagePolicy.maxCount}
-              </div>
+              {totalMediaCount}/{imagePolicy.maxCount || 4}
+            </div>
             </div>
           </div>
         </div>

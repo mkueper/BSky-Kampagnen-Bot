@@ -5,11 +5,17 @@ import {
   InfoDialog,
   InlineField,
   Modal,
-  MediaDialog
+  MediaDialog,
+  SegmentMediaGrid
 } from '@bsky-kampagnen-bot/shared-ui'
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
+import {
+  splitThread,
+  buildSegmentMediaItems,
+  countSegmentMedia
+} from '@bsky-kampagnen-bot/shared-logic'
 import { FaceIcon, ImageIcon, InfoCircledIcon } from '@radix-ui/react-icons'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import {
@@ -61,171 +67,7 @@ const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
   { id: 'mastodon', label: 'Mastodon', limit: 500 }
 ]
-
-function buildEffectiveSegments (rawSegments, limit, appendNumbering) {
-  if (!Number.isFinite(limit)) {
-    const effectiveSegments = rawSegments.map(segment =>
-      segment.replace(/\s+$/u, '')
-    )
-    const rawToEffectiveStartIndex = rawSegments.map((_, index) => index)
-    const effectiveOffsets = new Array(effectiveSegments.length)
-
-    rawSegments.forEach((segment, rawIndex) => {
-      const raw = segment.replace(/\r\n/g, '\n')
-      const start = rawToEffectiveStartIndex[rawIndex]
-      const end =
-        rawIndex + 1 < rawToEffectiveStartIndex.length
-          ? rawToEffectiveStartIndex[rawIndex + 1]
-          : effectiveSegments.length
-      let searchFrom = 0
-      for (let i = start; i < end; i++) {
-        const chunk = effectiveSegments[i]
-        const needle = chunk.trimStart()
-        let idx = raw.indexOf(needle, searchFrom)
-        if (idx === -1) idx = searchFrom
-        effectiveOffsets[i] = { rawIndex, offsetInRaw: idx }
-        searchFrom = idx + needle.length
-      }
-    })
-
-    return {
-      effectiveSegments: rawSegments.map(segment =>
-        segment.replace(/\s+$/u, '')
-      ),
-      rawToEffectiveStartIndex,
-      effectiveOffsets
-    }
-  }
-
-  const reservedForNumbering = appendNumbering ? 8 : 0
-  const effectiveLimit = Math.max(20, limit - reservedForNumbering)
-  const effectiveSegments = []
-  const rawToEffectiveStartIndex = []
-  const effectiveOffsets = []
-  let totalCount = 0
-
-  rawSegments.forEach((segment, rawIndex) => {
-    rawToEffectiveStartIndex.push(totalCount)
-    const trimmed = segment.replace(/\s+$/u, '')
-    const raw = segment.replace(/\r\n/g, '\n')
-    let searchFrom = 0
-
-    if (!trimmed) {
-      effectiveSegments.push('')
-      effectiveOffsets.push({ rawIndex, offsetInRaw: 0 })
-      totalCount += 1
-      return
-    }
-    if (trimmed.length <= effectiveLimit) {
-      effectiveSegments.push(trimmed)
-      effectiveOffsets.push({ rawIndex, offsetInRaw: 0 })
-      totalCount += 1
-      return
-    }
-    const sentences = splitIntoSentences(trimmed)
-    let buffer = ''
-    sentences.forEach(sentence => {
-      const candidate = buffer ? `${buffer}${sentence}` : sentence
-      if (candidate.trim().length <= effectiveLimit) {
-        buffer = candidate
-      } else {
-        if (buffer.trim()) {
-          const chunk = buffer.trim()
-          effectiveSegments.push(chunk)
-          const needle = chunk.trimStart()
-          let idx = raw.indexOf(needle, searchFrom)
-          if (idx === -1) idx = searchFrom
-          effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
-          searchFrom = idx + needle.length
-          totalCount += 1
-        }
-        let fallback = sentence.trim()
-        if (fallback.length > effectiveLimit) {
-          const wordChunks = splitAtWordBoundaries(fallback, effectiveLimit)
-          wordChunks.slice(0, -1).forEach(chunk => {
-            const needle = chunk.trimStart()
-            let idx = raw.indexOf(needle, searchFrom)
-            if (idx === -1) idx = searchFrom
-            effectiveSegments.push(chunk)
-            effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
-            searchFrom = idx + needle.length
-            totalCount += 1
-          })
-          fallback = wordChunks[wordChunks.length - 1]
-        }
-        buffer = fallback
-      }
-    })
-    if (buffer.trim()) {
-      const chunk = buffer.trim()
-      effectiveSegments.push(chunk)
-      const needle = chunk.trimStart()
-      let idx = raw.indexOf(needle, searchFrom)
-      if (idx === -1) idx = searchFrom
-      effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
-      totalCount += 1
-    }
-  })
-
-  return { effectiveSegments, rawToEffectiveStartIndex, effectiveOffsets }
-}
-
-function splitIntoSentences (text) {
-  const normalized = text.replace(/\r\n/g, '\n')
-  if (!normalized.trim()) {
-    return ['']
-  }
-  // Satzzeichen werden für das automatische Splitten nicht mehr speziell berücksichtigt.
-  // Wir behandeln den gesamten Block als eine Einheit und teilen nur noch an Wortgrenzen.
-  return [normalized]
-}
-
-function splitAtWordBoundaries (text, limit) {
-  if (!text) return ['']
-  const chunks = []
-  let remaining = text
-
-  while (remaining.length > limit) {
-    const window = remaining.slice(0, limit + 1)
-    const lastWhitespace = window.lastIndexOf(' ')
-    const splitIndex = lastWhitespace > 0 ? lastWhitespace : limit
-    const chunk = remaining.slice(0, splitIndex).trimEnd()
-    if (chunk) {
-      chunks.push(chunk)
-    }
-    remaining = remaining.slice(splitIndex).replace(/^\s+/, '')
-  }
-
-  if (remaining.trim()) {
-    chunks.push(remaining.trim())
-  }
-
-  return chunks.length ? chunks : ['']
-}
-
-function splitRawSegments (source) {
-  const normalized = source.replace(/\r\n/g, '\n')
-  const lines = normalized.split('\n')
-  const segments = []
-  let buffer = []
-
-  for (const line of lines) {
-    if (line.trim() === '---') {
-      segments.push(buffer.join('\n'))
-      buffer = []
-    } else {
-      buffer.push(line)
-    }
-  }
-
-  segments.push(buffer.join('\n'))
-
-  if (segments.length === 0) {
-    return ['']
-  }
-
-  return segments
-}
+const THREAD_BREAK_MARKER = '---'
 
 function computeLimit (selectedPlatforms) {
   if (!selectedPlatforms.length) {
@@ -419,14 +261,22 @@ function ThreadForm ({
 
   const limit = useMemo(() => computeLimit(targetPlatforms), [targetPlatforms])
 
-  const rawSegments = useMemo(() => splitRawSegments(source), [source])
-
-  const { effectiveSegments, rawToEffectiveStartIndex, effectiveOffsets } = useMemo(
-    () => buildEffectiveSegments(rawSegments, limit, appendNumbering),
-    [rawSegments, limit, appendNumbering]
+  const {
+    rawSegments,
+    previewSegments,
+    rawToEffectiveStartIndex,
+    effectiveOffsets,
+    totalSegments
+  } = useMemo(
+    () =>
+      splitThread({
+        text: source,
+        limit,
+        appendNumbering,
+        hardBreakMarker: THREAD_BREAK_MARKER
+      }),
+    [source, limit, appendNumbering]
   )
-
-  const totalSegments = effectiveSegments.length
   const isEditMode = Boolean(threadId)
   const lastPreviewIndexRef = useRef(null)
 
@@ -438,7 +288,7 @@ function ThreadForm ({
     const cursorPos = textarea.selectionStart ?? 0
     const normalized = source.replace(/\r\n/g, '\n')
     const beforeCursor = normalized.slice(0, cursorPos)
-    const delimiter = '\n---\n'
+    const delimiter = `\n${THREAD_BREAK_MARKER}\n`
 
     const partsBeforeCursor = beforeCursor.split(delimiter)
     let rawIndex = partsBeforeCursor.length - 1
@@ -501,7 +351,7 @@ function ThreadForm ({
       const { rawIndex, offsetInRaw } = effectiveOffsets[previewIndex]
       if (rawIndex == null || offsetInRaw == null) return
 
-      const delimiter = '\n---\n'
+      const delimiter = `\n${THREAD_BREAK_MARKER}\n`
       let globalIndex = 0
       for (let i = 0; i < rawIndex; i++) {
         globalIndex += rawSegments[i]?.length || 0
@@ -526,31 +376,6 @@ function ThreadForm ({
     [source, rawSegments, effectiveOffsets]
   )
 
-  const previewSegments = useMemo(() => {
-    return effectiveSegments.map((segment, index) => {
-      const trimmedEnd = segment.replace(/\s+$/u, '')
-      const numbering = appendNumbering
-        ? `\n\n${index + 1}/${totalSegments}`
-        : ''
-      const formattedContent = appendNumbering
-        ? `${trimmedEnd}${numbering}`
-        : trimmedEnd
-      const characterCount = formattedContent.length
-      const isEmpty = trimmedEnd.trim().length === 0
-      const exceedsLimit =
-        typeof limit === 'number' ? characterCount > limit : false
-
-      return {
-        id: index,
-        raw: segment,
-        formatted: formattedContent,
-        characterCount,
-        isEmpty,
-        exceedsLimit
-      }
-    })
-  }, [effectiveSegments, appendNumbering, totalSegments, limit])
-
   useEffect(() => {
     lastPreviewIndexRef.current = null
     scrollPreviewToActiveSegment()
@@ -559,19 +384,53 @@ function ThreadForm ({
   // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
   const [mediaAlt] = useState({})
   const [pendingMedia, setPendingMedia] = useState({}) // create-mode media per segment id/index
-  const getMediaCount = index => {
-    const pending = Array.isArray(pendingMedia[index])
-      ? pendingMedia[index].length
-      : 0
-    let existing = 0
-    if (isEditMode && initialThread && Array.isArray(initialThread.segments)) {
-      const seg = initialThread.segments.find(
-        s => Number(s.sequence) === Number(index)
+  // Overlay helpers for existing media edits (without full reload)
+  const [editedMediaAlt, setEditedMediaAlt] = useState({}) // key: mediaId => alt text
+  const [removedMedia, setRemovedMedia] = useState({}) // key: mediaId => true
+  const existingSegments = useMemo(() => {
+    if (!isEditMode || !initialThread) return []
+    return Array.isArray(initialThread.segments) ? initialThread.segments : []
+  }, [initialThread, isEditMode])
+  const getMediaCount = useCallback(
+    index =>
+      countSegmentMedia({
+        segmentIndex: index,
+        existingSegments,
+        pendingMediaMap: pendingMedia,
+        removedMediaMap: removedMedia
+      }),
+    [existingSegments, pendingMedia, removedMedia]
+  )
+  const getSegmentMediaItems = useCallback(
+    segmentIndex =>
+      buildSegmentMediaItems({
+        segmentIndex,
+        existingSegments,
+        pendingMediaMap: pendingMedia,
+        removedMediaMap: removedMedia,
+        editedMediaAltMap: editedMediaAlt
+      }),
+    [editedMediaAlt, existingSegments, pendingMedia, removedMedia]
+  )
+  const mediaGridLabels = useMemo(
+    () => ({
+      imageAlt: index =>
+        t('threads.form.media.imageAltFallback', 'Bild {index}', { index }),
+      altAddTitle: t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altEditTitle: t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
+      altBadge: t('threads.form.media.altBadge', 'ALT'),
+      altAddBadge: t('threads.form.media.altAddBadge', '+ ALT'),
+      removeTitle: t(
+        'threads.form.media.removeButtonTitle',
+        'Bild entfernen'
+      ),
+      removeAria: t(
+        'threads.form.media.removeButtonTitle',
+        'Bild entfernen'
       )
-      existing = Array.isArray(seg?.media) ? seg.media.length : 0
-    }
-    return pending + existing
-  }
+    }),
+    [t]
+  )
   const handleUploadMedia = async (index, file, altTextOverride) => {
     if (!file) return
     try {
@@ -755,10 +614,6 @@ function ThreadForm ({
   const [gifPicker, setGifPicker] = useState({ open: false, index: null })
   const [emojiPicker, setEmojiPicker] = useState({ open: false })
 
-  // Overlay helpers for existing media edits (without full reload)
-  const [editedMediaAlt, setEditedMediaAlt] = useState({}) // key: mediaId => alt text
-  const [removedMedia, setRemovedMedia] = useState({}) // key: mediaId => true
-
   const [altDialog, setAltDialog] = useState({
     open: false,
     segmentIndex: null,
@@ -874,9 +729,7 @@ function ThreadForm ({
   }, [
     previewSegments,
     targetPlatforms.length,
-    pendingMedia,
-    initialThread,
-    isEditMode
+    getMediaCount
   ])
 
   const hasAnySegmentContentOrMedia = useMemo(() => {
@@ -886,7 +739,7 @@ function ThreadForm ({
       const hasMedia = mediaCount > 0
       return !noText || hasMedia
     })
-  }, [previewSegments, pendingMedia])
+  }, [previewSegments, getMediaCount])
 
   const showLoadingState = loading && !threadId
 
@@ -1571,134 +1424,13 @@ function ThreadForm ({
                         {segment.formatted || '(kein Inhalt)'}
                       </span>
                     </div>
-                    {(() => {
-                      // Build preview list: existing (edit) + pending (create)
-                      const list = []
-                      if (
-                        isEditMode &&
-                        initialThread &&
-                        Array.isArray(initialThread.segments)
-                      ) {
-                        const seg = initialThread.segments.find(
-                          s => Number(s.sequence) === Number(segment.id)
-                        )
-                        if (seg && Array.isArray(seg.media)) {
-                          seg.media.forEach(m => {
-                            if (m?.previewUrl && !removedMedia[m.id])
-                              list.push({
-                                type: 'existing',
-                                id: m.id,
-                                src: m.previewUrl,
-                                alt: editedMediaAlt[m.id] ?? (m.altText || ''),
-                                pendingIndex: null
-                              })
-                          })
-                        }
-                      }
-                      const pend = Array.isArray(pendingMedia[segment.id])
-                        ? pendingMedia[segment.id]
-                        : []
-                      pend.forEach((m, idx) =>
-                        list.push({
-                          type: 'pending',
-                          id: null,
-                          src: m.previewUrl || m.data,
-                          alt: m.altText || '',
-                          pendingIndex: idx
-                        })
-                      )
-                      const items = list.slice(0, imagePolicy.maxCount || 4)
-                      if (items.length === 0) return null
-                      return (
-                        <div className='mt-2 grid grid-cols-2 gap-2'>
-                          {items.map((it, idx) => (
-                            <div
-                              key={idx}
-                              className='relative h-28 overflow-hidden rounded-xl border border-border bg-background-subtle'
-                            >
-                              <img
-                                src={it.src}
-                                alt={
-                                  it.alt ||
-                                  t(
-                                    'threads.form.media.imageAltFallback',
-                                    'Bild {index}',
-                                    { index: idx + 1 }
-                                  )
-                                }
-                                className='absolute inset-0 h-full w-full object-contain'
-                              />
-                              <div className='pointer-events-none absolute left-1 top-1 z-10'>
-                                <span
-                                  className={`pointer-events-auto rounded-full px-2 py-1 text-[10px] font-semibold text-white ${
-                                    it.alt
-                                      ? 'bg-black/60'
-                                      : 'bg-black/90 ring-1 ring-white/30'
-                                  }`}
-                                  title={
-                                    it.alt
-                                      ? t(
-                                          'threads.form.media.altEditTitle',
-                                          'Alt‑Text bearbeiten'
-                                        )
-                                      : t(
-                                          'threads.form.media.altAddTitle',
-                                          'Alt‑Text hinzufügen'
-                                        )
-                                  }
-                                  onClick={e => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    openAltDialog(segment.id, it)
-                                  }}
-                                  role='button'
-                                  tabIndex={0}
-                                  aria-label={
-                                    it.alt
-                                      ? t(
-                                          'threads.form.media.altEditTitle',
-                                          'Alt‑Text bearbeiten'
-                                        )
-                                      : t(
-                                          'threads.form.media.altAddTitle',
-                                          'Alt‑Text hinzufügen'
-                                        )
-                                  }
-                                >
-                                  {it.alt
-                                    ? t('threads.form.media.altBadge', 'ALT')
-                                    : t(
-                                        'threads.form.media.altAddBadge',
-                                        '+ ALT'
-                                      )}
-                                </span>
-                              </div>
-                              <div className='absolute right-1 top-1 z-10 flex gap-1'>
-                                <button
-                                  type='button'
-                                  className='rounded-full bg-black/60 px-2 py-1 text-white hover:bg-black/80'
-                                  title={t(
-                                    'threads.form.media.removeButtonTitle',
-                                    'Bild entfernen'
-                                  )}
-                                  onClick={e => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleRemoveMedia(segment.id, it)
-                                  }}
-                                  aria-label={t(
-                                    'threads.form.media.removeButtonTitle',
-                                    'Bild entfernen'
-                                  )}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })()}
+                    <SegmentMediaGrid
+                      items={getSegmentMediaItems(segment.id)}
+                      maxCount={imagePolicy.maxCount}
+                      onEditAlt={item => openAltDialog(segment.id, item)}
+                      onRemove={item => handleRemoveMedia(segment.id, item)}
+                      labels={mediaGridLabels}
+                    />
                     <div className='mt-2 text-xs text-foreground-muted'>
                       {t(
                         'threads.form.media.counterPerSegment',
