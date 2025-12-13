@@ -10,7 +10,8 @@ const baseClasses = 'inline-flex items-center gap-3 rounded-2xl text-sm font-med
 const sizeClasses = {
   default: 'w-full px-4 py-2',
   compact: 'px-3 py-1.5',
-  icon: 'h-11 w-11 p-0 justify-center'
+  icon: 'h-11 w-11 p-0 justify-center',
+  sidebar: 'h-12 w-12 p-0 justify-center lg:h-auto lg:px-4 lg:py-3'
 }
 
 const appearanceClasses = {
@@ -33,7 +34,8 @@ export default function ThemeToggle ({
   size = 'default',
   layout = 'detailed',
   hideIcon = false,
-  iconStyle = 'boxed'
+  iconStyle = 'boxed',
+  showIndicator = true
 }) {
   const indicatorColor = nextColor || 'var(--theme-toggle-next, currentColor)'
   const indicatorBorder = nextBorderColor || indicatorColor
@@ -86,13 +88,15 @@ export default function ThemeToggle ({
       ) : (
         <span className='sr-only'>{accessibleLabel}</span>
       )}
-      <span className='ml-auto flex items-center gap-2'>        
-        <span
-          className='inline-flex h-4 w-4 rounded-full border'
-          style={{ backgroundColor: indicatorColor, borderColor: indicatorBorder }}
-          aria-hidden='true'
-        />
-      </span>
+      {showIndicator ? (
+        <span className='ml-auto flex items-center gap-2'>
+          <span
+            className='inline-flex h-4 w-4 rounded-full border'
+            style={{ backgroundColor: indicatorColor, borderColor: indicatorBorder }}
+            aria-hidden='true'
+          />
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -108,8 +112,9 @@ ThemeToggle.propTypes = {
   disabled: PropTypes.bool,
   className: PropTypes.string,
   variant: PropTypes.oneOf(['default', 'inverted', 'subtle', 'compact', 'icon']),
-  size: PropTypes.oneOf(['default', 'compact', 'icon']),
+  size: PropTypes.oneOf(['default', 'compact', 'icon', 'sidebar']),
   layout: PropTypes.oneOf(['detailed', 'simple']),
   hideIcon: PropTypes.bool,
-  iconStyle: PropTypes.oneOf(['boxed', 'inline'])
+  iconStyle: PropTypes.oneOf(['boxed', 'inline']),
+  showIndicator: PropTypes.bool
 }

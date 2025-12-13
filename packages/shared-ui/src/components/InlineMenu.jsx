@@ -32,7 +32,7 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
       align={align}
       side={side}
       sideOffset={sideOffset}
-      className={`z-50 rounded-2xl border border-border bg-background shadow-2xl focus-visible:outline-none ${className}`}
+      className={`z-[250] rounded-2xl border border-border bg-background shadow-2xl focus-visible:outline-none ${className}`}
       style={{ minWidth: 160, ...style }}
       {...rest}
     >

@@ -8,11 +8,12 @@ import {
 } from 'react'
 import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import {
+  Drawer,
   ScrollTopButton,
   ThemeToggle,
   useThemeMode
 } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon, SunIcon, ExitIcon } from '@radix-ui/react-icons'
+import { PlusIcon, SunIcon, ExitIcon, HamburgerMenuIcon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
 import { useLayout } from '../../context/LayoutContext'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
@@ -23,8 +24,7 @@ const MOBILE_NAV_IDS = [
   'chat',
   'notifications',
   'profile',
-  'blocks',
-  'dashboard'
+  'blocks'
 ]
 const MOBILE_NAV_HEIGHT = 72
 const MOBILE_NAV_GAP = 16
@@ -39,6 +39,7 @@ function MobileNavBar ({
   onSelect,
   themeToggle = null,
   interactionsLocked = false,
+  onOpenMenu,
   onLogout = null,
   logoutPending = false
 }) {
@@ -57,6 +58,16 @@ function MobileNavBar ({
         className='pointer-events-auto mx-auto flex w-full max-w-xl items-center justify-between gap-2 rounded-full border border-border bg-background-elevated/80 px-3 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60'
         style={{ minHeight: 'var(--bottom-nav-height)' }}
       >
+        {typeof onOpenMenu === 'function' ? (
+          <button
+            type='button'
+            onClick={onOpenMenu}
+            aria-label={t('nav.openMenu', 'Menü öffnen')}
+            className='inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary'
+          >
+            <HamburgerMenuIcon className='h-5 w-5' />
+          </button>
+        ) : null}
         {items.map(item => {
           const Icon = item.icon
           const isActive = activeSection === item.id
@@ -97,6 +108,7 @@ function MobileNavBar ({
           <ThemeToggle
             {...themeToggle}
             variant='icon'
+            showIndicator={false}
             className='border-none bg-transparent text-foreground hover:text-primary'
           />
         ) : null}
@@ -141,6 +153,7 @@ export default function BskyClientLayout ({
   const [isMobile, setIsMobile] = useState(computeIsMobile)
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
   const [detailLayoutHeader, setDetailLayoutHeader] = useState(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   const {
     currentThemeConfig,
@@ -210,6 +223,14 @@ export default function BskyClientLayout ({
       }
     },
     [onSelectSection, navInteractionsLocked]
+  )
+
+  const handleMobileSelect = useCallback(
+    (section, actorOrOptions = null, maybeOptions = {}) => {
+      setMobileMenuOpen(false)
+      handleSelect(section, actorOrOptions, maybeOptions)
+    },
+    [handleSelect]
   )
 
   const handleOpenCompose = useCallback(() => {
@@ -290,6 +311,33 @@ export default function BskyClientLayout ({
       data-component='BskyClientLayout'
       style={layoutStyle}
     >
+      {isMobile ? (
+        <Drawer
+          open={mobileMenuOpen}
+          title={t('nav.menuTitle', 'Navigation')}
+          onClose={() => setMobileMenuOpen(false)}
+          side='left'
+          fitContent
+        >
+          <SidebarNav
+            active={activeSection}
+            notificationsUnread={notificationsUnread}
+            onSelect={handleMobileSelect}
+            onCompose={() => {
+              setMobileMenuOpen(false)
+              handleOpenCompose()
+            }}
+            themeToggle={themeToggleProps}
+            interactionsLocked={navInteractionsLocked}
+            accountProfiles={accountProfiles}
+            onSwitchAccount={onSwitchAccount}
+            onAddAccount={onAddAccount}
+            onLogout={onLogout}
+            logoutPending={logoutPending}
+            showLabels
+          />
+        </Drawer>
+      ) : null}
       {!isMobile ? (
         <aside
           className={asideClassName}
@@ -401,17 +449,18 @@ export default function BskyClientLayout ({
             </button>
           ) : null}
         </div>
-        {isMobile ? (
-          <MobileNavBar
-            activeSection={activeSection}
-            notificationsUnread={notificationsUnread}
-            onSelect={handleSelect}
-            themeToggle={themeToggleProps}
-            interactionsLocked={navInteractionsLocked}
-            onLogout={onLogout}
-            logoutPending={logoutPending}
-          />
-        ) : null}
+      {isMobile ? (
+        <MobileNavBar
+          activeSection={activeSection}
+          notificationsUnread={notificationsUnread}
+          onSelect={handleSelect}
+          onOpenMenu={() => setMobileMenuOpen(true)}
+          themeToggle={themeToggleProps}
+          interactionsLocked={navInteractionsLocked}
+          onLogout={onLogout}
+          logoutPending={logoutPending}
+        />
+      ) : null}
       </section>
     </div>
   )

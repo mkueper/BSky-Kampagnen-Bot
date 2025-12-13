@@ -9,7 +9,6 @@ import {
   BookmarkIcon,
   PersonIcon,
   GearIcon,
-  ViewHorizontalIcon,
   PlusIcon,
   SlashIcon,
   ExitIcon,
@@ -35,7 +34,6 @@ export const NAV_ITEMS = [
   { id: 'blocks', defaultLabel: 'Blockliste', labelKey: 'nav.blocks', icon: SlashIcon },
   { id: 'profile', defaultLabel: 'Profil', labelKey: 'nav.profile', icon: PersonIcon },
   { id: 'settings', defaultLabel: 'Einstellungen', labelKey: 'nav.settings', icon: GearIcon },
-  { id: 'dashboard', defaultLabel: 'Dashboard', labelKey: 'nav.dashboard', icon: ViewHorizontalIcon },
 ]
 
 const normalizeHandle = handle => {
@@ -57,6 +55,22 @@ const isSameLabel = (left, right) => {
   return Boolean(a && b && a === b)
 }
 
+const cx = (...parts) => parts.filter(Boolean).join(' ')
+
+const SIDEBAR_BUTTON_BASE =
+  'relative inline-flex items-center rounded-2xl text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+const SIDEBAR_BUTTON_SQUARE =
+  'h-12 w-12 justify-center'
+const SIDEBAR_BUTTON_PILL =
+  'lg:h-auto lg:w-auto lg:px-4 lg:py-3 lg:justify-start lg:gap-3'
+
+const SIDEBAR_BUTTON_ACTIVE =
+  'bg-background-subtle text-foreground shadow-soft'
+const SIDEBAR_BUTTON_INACTIVE =
+  'text-foreground-muted hover:bg-background-subtle hover:text-foreground hover:shadow-soft'
+const SIDEBAR_BUTTON_DISABLED =
+  'opacity-50 cursor-not-allowed'
+
 export default function SidebarNav ({
   active,
   onSelect,
@@ -68,7 +82,8 @@ export default function SidebarNav ({
   onSwitchAccount = null,
   onAddAccount = null,
   onLogout = null,
-  logoutPending = false
+  logoutPending = false,
+  showLabels = false
 }) {
   const { t } = useTranslation()
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -93,6 +108,11 @@ export default function SidebarNav ({
   const profileLabel = t('nav.viewProfile', 'Zum Profil')
   const resolvedThemeToggle = themeToggle || null
   const showThemeToggle = Boolean(resolvedThemeToggle)
+  const showFullLabels = Boolean(showLabels)
+  const navLabelClassName = showFullLabels ? 'inline truncate' : 'hidden lg:inline truncate'
+  const accountDetailsClassName = showFullLabels ? 'flex min-w-0 flex-col leading-tight' : 'hidden lg:flex min-w-0 flex-col leading-tight'
+  const accountMenuSide = 'bottom'
+  const accountMenuSideOffset = 8
   const handleProfileClick = () => {
     setAccountMenuOpen(false)
     if (!activeAccount) return
@@ -123,7 +143,10 @@ export default function SidebarNav ({
   }
   return (
     <nav
-      className='relative flex h-full w-full flex-col items-start gap-3'
+      className={cx(
+        'relative flex h-full flex-col items-start gap-3',
+        showFullLabels ? 'w-max' : 'w-full'
+      )}
       data-component='BskyPrimaryNav'
       aria-label='Hauptnavigation'
     >
@@ -133,7 +156,13 @@ export default function SidebarNav ({
             <InlineMenuTrigger>
               <button
                 type='button'
-                className='relative inline-flex items-center rounded-2xl text-sm transition justify-center lg:justify-between gap-0 lg:gap-3 h-12 w-12 lg:h-16 lg:w-full lg:px-4 lg:py-3 overflow-hidden border border-border bg-background-subtle/70 text-left shadow-soft hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+                className={cx(
+                  SIDEBAR_BUTTON_BASE,
+                  showFullLabels
+                    ? 'h-auto w-full justify-between gap-3 px-4 py-3'
+                    : 'h-12 w-12 justify-center lg:h-16 lg:w-full lg:justify-between lg:gap-3 lg:px-4 lg:py-3',
+                  'overflow-hidden border border-border bg-background-subtle/70 text-left shadow-soft hover:bg-background'
+                )}
                 aria-haspopup='menu'
                 aria-label={menuTitle}
               >
@@ -149,7 +178,7 @@ export default function SidebarNav ({
                       accountInitial
                     )}
                   </span>
-                  <span className='hidden lg:flex min-w-0 flex-col leading-tight'>
+                  <span className={accountDetailsClassName}>
                     {accountDisplayName ? (
                       <span className='truncate text-sm font-semibold text-foreground'>
                         {accountDisplayName}
@@ -162,10 +191,15 @@ export default function SidebarNav ({
                     ) : null}
                   </span>
                 </span>
-                <DotsHorizontalIcon className='hidden lg:inline h-5 w-5 shrink-0 text-foreground-muted' />
+                <DotsHorizontalIcon className={showFullLabels ? 'h-5 w-5 shrink-0 text-foreground-muted' : 'hidden lg:inline h-5 w-5 shrink-0 text-foreground-muted'} />
               </button>
             </InlineMenuTrigger>
-            <InlineMenuContent align='start' side='right' sideOffset={12} className='p-2 w-64 space-y-2'>
+            <InlineMenuContent
+              align='start'
+              side={accountMenuSide}
+              sideOffset={accountMenuSideOffset}
+              className='w-[min(20rem,85vw)] space-y-2 p-2'
+            >
               <div className='px-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>
                 {menuTitle}
               </div>
@@ -264,14 +298,20 @@ export default function SidebarNav ({
                 aria-label={label}
                 data-nav-item={item.id}
                 title={label}
-                className={`relative inline-flex w-full items-center rounded-2xl text-sm transition justify-center lg:justify-start gap-0 lg:gap-3 h-12 w-12 lg:h-auto lg:px-4 lg:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  isActive
-                    ? 'bg-background-subtle text-foreground shadow-soft'
-                    : 'text-foreground-muted hover:bg-background-subtle hover:text-foreground hover:shadow-soft'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={cx(
+                  SIDEBAR_BUTTON_BASE,
+                  showFullLabels
+                    ? 'h-auto w-full justify-start gap-3 px-4 py-3'
+                    : SIDEBAR_BUTTON_SQUARE,
+                  showFullLabels
+                    ? ''
+                    : SIDEBAR_BUTTON_PILL,
+                  isActive ? SIDEBAR_BUTTON_ACTIVE : SIDEBAR_BUTTON_INACTIVE,
+                  disabled ? SIDEBAR_BUTTON_DISABLED : ''
+                )}
               >
                 {Icon ? <Icon className='h-6 w-6 shrink-0' /> : null}
-                <span className='hidden lg:inline truncate'>{baseLabel}</span>
+                <span className={navLabelClassName}>{baseLabel}</span>
                 <span
                   className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
                     showBadge ? 'opacity-100' : 'opacity-0'
@@ -290,22 +330,47 @@ export default function SidebarNav ({
 
           {showThemeToggle ? (
             <div className='pt-2'>
-              <ThemeToggle
-                {...resolvedThemeToggle}
-                size='icon'
-                className='w-12 lg:hidden'
-              />
-              <ThemeToggle
-                {...resolvedThemeToggle}
-                className='hidden w-full py-3 lg:inline-flex'
-              />
+              {showFullLabels ? (
+                <ThemeToggle
+                  {...resolvedThemeToggle}
+                  size='sidebar'
+                  variant='subtle'
+                  iconStyle='inline'
+                  className='w-full'
+                />
+              ) : (
+                <>
+                  <ThemeToggle
+                    {...resolvedThemeToggle}
+                    size='icon'
+                    showIndicator={false}
+                    className='w-12 lg:hidden'
+                    variant='subtle'
+                  />
+                  <ThemeToggle
+                    {...resolvedThemeToggle}
+                    size='sidebar'
+                    variant='subtle'
+                    iconStyle='inline'
+                    className='hidden lg:inline-flex lg:w-full'
+                  />
+                </>
+              )}
             </div>
           ) : null}
           <div className='pt-2'>
             <button
               type='button'
               onClick={interactionsLocked ? undefined : onCompose}
-              className='inline-flex w-full items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+              className={cx(
+                SIDEBAR_BUTTON_BASE,
+                showFullLabels
+                  ? 'h-auto w-full justify-start gap-2 px-4 py-3'
+                  : SIDEBAR_BUTTON_SQUARE,
+                showFullLabels ? '' : SIDEBAR_BUTTON_PILL,
+                'gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 lg:w-full',
+                interactionsLocked ? SIDEBAR_BUTTON_DISABLED : ''
+              )}
               disabled={interactionsLocked}
               aria-label={t('nav.newPostAria', 'Neuer Post')}
               aria-disabled={interactionsLocked || undefined}
@@ -313,7 +378,7 @@ export default function SidebarNav ({
               title={t('nav.newPost', 'Neuer Post')}
             >
               <PlusIcon className='h-6 w-6 shrink-0' />
-              <span className='hidden lg:inline truncate'>
+              <span className={navLabelClassName}>
                 {t('nav.newPost', 'Neuer Post')}
               </span>
             </button>

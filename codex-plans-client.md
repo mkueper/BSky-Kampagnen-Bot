@@ -12,6 +12,7 @@
 - Login‑Flow, Timeline, Header/Navigation und grundlegende Interaktionen sind im `bsky-client` implementiert, die Kampagnen‑Funktionalität liegt vollständig im Dashboard/Backend.
 - Die wichtigsten Backend‑Abhängigkeiten des `bsky-client` sind identifiziert (Auth, `/api/me`, Bluesky‑Proxies, Uploads, Tenor‑Proxy, Client‑Config).
 - `shared-ui` und `shared-logic` dienen bereits als zentrale Brücke für gemeinsame UI‑Bausteine und Logik zwischen Dashboard und Client.
+- Konvention: Bei Änderungen/Neubau von UI‑Bausteinen zuerst in `packages/shared-ui` (bzw. `packages/shared-*`) prüfen, ob es bereits eine passende Komponente/Utility gibt, bevor im `bsky-client` oder `dashboard` etwas dupliziert wird.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
