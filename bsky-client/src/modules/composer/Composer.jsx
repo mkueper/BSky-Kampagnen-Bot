@@ -3,11 +3,13 @@ import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 
 export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent }) {
+  const { clientConfig } = useClientConfig()
   const [text, setText] = useState('')
   const [message, setMessage] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
@@ -123,18 +125,31 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [])
 
   useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/client-config')
-        const data = await res.json().catch(() => ({}))
-        if (!ignore && res.ok) {
-          setTenorAvailable(Boolean(data?.gifs?.tenorAvailable))
-        }
-      } catch { /* ignore */ }
-    })()
-    return () => { ignore = true }
-  }, [])
+    const enabled = Boolean(clientConfig?.gifs?.tenorAvailable)
+    const apiKey = String(clientConfig?.gifs?.tenorApiKey || '').trim()
+    setTenorAvailable(Boolean(enabled && apiKey))
+  }, [clientConfig?.gifs?.tenorAvailable, clientConfig?.gifs?.tenorApiKey])
+
+  const tenorFetcher = useMemo(() => {
+    const apiKey = String(clientConfig?.gifs?.tenorApiKey || '').trim()
+    if (!apiKey) return null
+    return async (endpoint, params) => {
+      const safeEndpoint = String(endpoint || '').trim()
+      if (!safeEndpoint) throw new Error('Tenor: endpoint fehlt.')
+      const baseUrl = `https://tenor.googleapis.com/v2/${encodeURIComponent(safeEndpoint)}`
+      const searchParams = new URLSearchParams(typeof params?.toString === 'function' ? params.toString() : '')
+      searchParams.set('key', apiKey)
+      searchParams.set('client_key', 'bsky-client')
+      searchParams.set('media_filter', 'gif,tinygif,nanogif')
+      const url = `${baseUrl}?${searchParams.toString()}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`Tenor Fehler: HTTP ${res.status} ${text}`.trim())
+      }
+      return res.json()
+    }
+  }, [clientConfig?.gifs?.tenorApiKey])
 
   const firstUrl = useMemo(() => {
     try {
@@ -144,32 +159,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [text])
 
   useEffect(() => {
-    let ignore = false
     setPreview(null)
     setPreviewError('')
-    if (!firstUrl) { setPreviewUrl(''); return }
-    setPreviewUrl(firstUrl)
-    setPreviewLoading(true)
-    const controller = new AbortController()
-    const t = setTimeout(() => controller.abort(), 8000)
-    fetch(`/api/preview?url=${encodeURIComponent(firstUrl)}`, { signal: controller.signal })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}))
-        if (ignore) return
-        if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
-        setPreview(data)
-      })
-      .catch((e) => { if (!ignore) setPreviewError(e?.message || 'Preview fehlgeschlagen') })
-      .finally(() => { if (!ignore) setPreviewLoading(false); clearTimeout(t) })
-    return () => {
-      ignore = true
-      try {
-        controller.abort()
-      } catch {
-        /* ignore abort errors */
-      }
-      clearTimeout(t)
-    }
+    setPreviewLoading(false)
+    setPreviewUrl(firstUrl || '')
   }, [firstUrl])
 
   function updateCursorFromTextarea (target) {
@@ -515,6 +508,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           onClose={() => setGifPickerOpen(false)}
           onPick={handleGifPick}
           maxBytes={MAX_GIF_BYTES}
+          fetcher={tenorFetcher || undefined}
         />
       ) : null}
       <EmojiPicker

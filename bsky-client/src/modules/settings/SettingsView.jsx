@@ -5,6 +5,7 @@ import {
   unregisterPushSubscription,
   getActivePushTransportName
 } from '../shared'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 
 const PLATFORM_OPTIONS = [
   { value: 'web', label: 'Web (Browser)' },
@@ -25,8 +26,50 @@ function Field ({ label, hint, children }) {
 export default function SettingsView () {
   return (
     <div className='space-y-6'>
+      <ClientConfigCard />
       <PushRegistrationCard />
     </div>
+  )
+}
+
+function ClientConfigCard () {
+  const { clientConfig, setClientConfig } = useClientConfig()
+  const enabled = Boolean(clientConfig?.gifs?.tenorAvailable)
+  const apiKey = clientConfig?.gifs?.tenorApiKey || ''
+
+  return (
+    <Card padding='p-5' className='space-y-4'>
+      <div className='flex flex-col gap-1'>
+        <h2 className='text-lg font-semibold text-foreground'>Client-Einstellungen</h2>
+        <p className='text-sm text-foreground-muted'>
+          Diese Optionen werden lokal gespeichert und gelten nur für diesen Client.
+        </p>
+      </div>
+      <label className='inline-flex items-center gap-3 text-sm text-foreground'>
+        <input
+          type='checkbox'
+          checked={enabled}
+          onChange={() => setClientConfig({ gifs: { tenorAvailable: !enabled } })}
+          className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+        />
+        <span>GIF-Suche (Tenor) aktivieren</span>
+      </label>
+      <label className='flex flex-col gap-1 text-sm font-medium text-foreground'>
+        <span>Tenor API-Key</span>
+        <input
+          type='password'
+          value={apiKey}
+          onChange={(event) => setClientConfig({ gifs: { tenorApiKey: event.target.value } })}
+          className='rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+          placeholder='AIza...'
+          autoComplete='off'
+          spellCheck={false}
+        />
+        <span className='text-xs font-normal text-foreground-muted'>
+          Der Key wird unverschlüsselt lokal gespeichert und ist im Client grundsätzlich auslesbar.
+        </span>
+      </label>
+    </Card>
   )
 }
 
