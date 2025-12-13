@@ -84,6 +84,7 @@ module.exports = {
         id: { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true, primaryKey: true },
         content: { type: Sequelize.TEXT, allowNull: false },
         scheduledAt: { type: Sequelize.DATE, allowNull: true, defaultValue: null },
+        repeatAnchorAt: { type: Sequelize.DATE, allowNull: true, defaultValue: null },
         postUri: { type: Sequelize.STRING, allowNull: true },
         likesCount: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
         repostsCount: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
@@ -119,6 +120,7 @@ module.exports = {
       const cols = [
         ["content", { type: Sequelize.TEXT, allowNull: false }],
         ["scheduledAt", { type: Sequelize.DATE, allowNull: true, defaultValue: null }],
+        ["repeatAnchorAt", { type: Sequelize.DATE, allowNull: true, defaultValue: null }],
         ["postUri", { type: Sequelize.STRING, allowNull: true }],
         ["likesCount", { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 }],
         ["repostsCount", { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 }],

@@ -98,6 +98,12 @@ module.exports = {
   SCHEDULER_GRACE_WINDOW_MINUTES:
     toNumber(process.env.SCHEDULER_GRACE_WINDOW_MINUTES, 10),
   /**
+   * Globaler Zufallsversatz für wiederkehrende Posts (in Minuten).
+   * Jeder Turnus wird zufällig um ±N Minuten verschoben.
+   */
+  SCHEDULER_RANDOM_OFFSET_MINUTES:
+    toNumber(process.env.SCHEDULER_RANDOM_OFFSET_MINUTES, 0),
+  /**
    * Fallback‑Locale für serverseitige Formatierungen.
    * Reihenfolge: `LOCALE` → `VITE_LOCALE` → "de-DE".
    */

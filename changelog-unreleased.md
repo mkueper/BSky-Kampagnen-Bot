@@ -5,6 +5,23 @@
 
 # ---
 
+## 2025-12-12
+
+### Backend
+
+- **Feature:** Wiederkehrende Posts erhalten optional einen globalen Zufallsversatz (`SCHEDULER_RANDOM_OFFSET_MINUTES`), inkl. neuem Feld `repeatAnchorAt`, das die driftfreie Referenzzeit speichert; der Scheduler berechnet künftige Läufe jetzt aus diesem Anker und legt den zufälligen Offset pro Turnus an.
+- **Improvement:** Pending- und Demo-Flows verwenden denselben Anker/Offset-Mechanismus, damit manuelle Nachholungen keine Dauerverschiebungen verursachen.
+
+### Dashboard
+
+- **Feature:** ConfigPanel → „Scheduler & Retry“ bietet ein neues Eingabefeld „Zufallsversatz (± Minuten)“ mit Validierung (0–120 Min.) und lokalisierter Fehlermeldung; Werte werden über die bestehenden Settings-Routen persistiert.
+
+### Docs
+
+- **Update:** API-, UI- und Benutzer-Doku beschreiben das neue Setting sowie das Verhalten von `repeatAnchorAt`; Datenbankschema und Changelog entsprechend ergänzt.
+
+# ---
+
 ## 2025-11-27
 
 ### Client

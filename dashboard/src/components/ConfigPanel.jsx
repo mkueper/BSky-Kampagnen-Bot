@@ -4,7 +4,7 @@ import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/sh
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 
-const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs']
+const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs', 'randomOffsetMinutes']
 
 function formatNumberInput (value) {
   return value == null ? '' : String(value)
@@ -17,7 +17,11 @@ function normalizeFormPayload (values) {
     postBackoffMs:
       values.postBackoffMs !== '' ? Number(values.postBackoffMs) : null,
     postBackoffMaxMs:
-      values.postBackoffMaxMs !== '' ? Number(values.postBackoffMaxMs) : null
+      values.postBackoffMaxMs !== '' ? Number(values.postBackoffMaxMs) : null,
+    randomOffsetMinutes:
+      values.randomOffsetMinutes !== ''
+        ? Number(values.randomOffsetMinutes)
+        : null
   }
 }
 
@@ -55,7 +59,8 @@ export default function ConfigPanel () {
     postRetries: '',
     postBackoffMs: '',
     postBackoffMaxMs: '',
-    graceWindowMinutes: ''
+    graceWindowMinutes: '',
+    randomOffsetMinutes: ''
   })
   const [initialValues, setInitialValues] = useState(formValues)
   const [defaults, setDefaults] = useState(formValues)
@@ -220,7 +225,10 @@ export default function ConfigPanel () {
           postRetries: formatNumberInput(data.values?.postRetries),
           postBackoffMs: formatNumberInput(data.values?.postBackoffMs),
           postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs),
-          graceWindowMinutes: formatNumberInput(data.values?.graceWindowMinutes)
+          graceWindowMinutes: formatNumberInput(data.values?.graceWindowMinutes),
+          randomOffsetMinutes: formatNumberInput(
+            data.values?.randomOffsetMinutes
+          )
         }
         const nextDefaults = {
           scheduleTime: data.defaults?.scheduleTime ?? '',
@@ -229,6 +237,9 @@ export default function ConfigPanel () {
           postBackoffMaxMs: formatNumberInput(data.defaults?.postBackoffMaxMs),
           graceWindowMinutes: formatNumberInput(
             data.defaults?.graceWindowMinutes
+          ),
+          randomOffsetMinutes: formatNumberInput(
+            data.defaults?.randomOffsetMinutes
           )
         }
         if (!ignore) {
@@ -474,6 +485,10 @@ export default function ConfigPanel () {
       formValues.graceWindowMinutes === ''
         ? null
         : Number(formValues.graceWindowMinutes)
+    payload.randomOffsetMinutes =
+      formValues.randomOffsetMinutes === ''
+        ? null
+        : Number(formValues.randomOffsetMinutes)
 
     if (!payload.scheduleTime) {
       toast.error({
@@ -501,6 +516,16 @@ export default function ConfigPanel () {
         return
       }
     }
+    if (payload.randomOffsetMinutes != null && payload.randomOffsetMinutes > 120) {
+      toast.error({
+        title: t('config.scheduler.invalidNumberTitle', 'Ungültiger Wert'),
+        description: t(
+          'config.scheduler.randomOffsetMaxDescription',
+          'Zufallsversatz darf maximal 120 Minuten betragen.'
+        )
+      })
+      return
+    }
 
     setSaving(true)
     try {
@@ -521,7 +546,13 @@ export default function ConfigPanel () {
         scheduleTime: data.values?.scheduleTime ?? payload.scheduleTime,
         postRetries: formatNumberInput(data.values?.postRetries),
         postBackoffMs: formatNumberInput(data.values?.postBackoffMs),
-        postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs)
+        postBackoffMaxMs: formatNumberInput(data.values?.postBackoffMaxMs),
+        graceWindowMinutes: formatNumberInput(
+          data.values?.graceWindowMinutes ?? payload.graceWindowMinutes
+        ),
+        randomOffsetMinutes: formatNumberInput(
+          data.values?.randomOffsetMinutes ?? payload.randomOffsetMinutes
+        )
       }
       const nextDefaults = {
         scheduleTime: data.defaults?.scheduleTime ?? defaults.scheduleTime,
@@ -533,6 +564,12 @@ export default function ConfigPanel () {
         ),
         postBackoffMaxMs: formatNumberInput(
           data.defaults?.postBackoffMaxMs ?? defaults.postBackoffMaxMs
+        ),
+        graceWindowMinutes: formatNumberInput(
+          data.defaults?.graceWindowMinutes ?? defaults.graceWindowMinutes
+        ),
+        randomOffsetMinutes: formatNumberInput(
+          data.defaults?.randomOffsetMinutes ?? defaults.randomOffsetMinutes
         )
       }
       setFormValues(nextValues)
@@ -1351,6 +1388,34 @@ export default function ConfigPanel () {
                             disabled={loading || saving}
                             className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                             placeholder={defaults.graceWindowMinutes}
+                          />
+                        </div>
+                        <div className='flex h-full flex-col'>
+                          <label
+                            htmlFor='randomOffsetMinutes'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.randomOffsetMinutes',
+                              'Zufallsversatz (± Minuten)'
+                            )}
+                          </label>
+                          <input
+                            id='randomOffsetMinutes'
+                            type='number'
+                            min={0}
+                            max={120}
+                            step={1}
+                            value={formValues.randomOffsetMinutes}
+                            onChange={e =>
+                              updateField(
+                                'randomOffsetMinutes',
+                                e.target.value
+                              )
+                            }
+                            disabled={loading || saving}
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.randomOffsetMinutes}
                           />
                         </div>
                       </div>

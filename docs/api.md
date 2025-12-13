@@ -24,10 +24,13 @@
     "timeZone": "Europe/Berlin",
     "postRetries": 4,
     "postBackoffMs": 600,
-    "postBackoffMaxMs": 5000
+    "postBackoffMaxMs": 5000,
+    "graceWindowMinutes": 10,
+    "randomOffsetMinutes": 0
   }
   ```  
-  Response enthält `{ "values": {...}, "defaults": {...} }`.
+  Response enthält `{ "values": {...}, "defaults": {...} }`.  
+  `randomOffsetMinutes` definiert den globalen Zufallsversatz (± Minuten) für wiederkehrende Posts; `graceWindowMinutes` legt fest, wie lange verpasste Termine nach einem Neustart nachgeholt werden.
 
 - **GET/PUT `/api/settings/client-polling`**  
   Persistiert (in der DB) Fallback-Intervalle für Skeet-/Thread-Polling plus Backoff/Jitter. Körper beinhaltet Felder wie `threadActiveMs`, `skeetHiddenMs`, `backoffStartMs`, `heartbeatMs`. Antwort folgt dem Muster `{ values, defaults, overrides }` (ohne `data/meta/error`-Wrapper).
@@ -70,6 +73,7 @@ Aktuell gelten u. a. folgende Codes:
   - `SETTINGS_SCHEDULER_INVALID_CRON` – ungültiger Cron-Ausdruck; `400`.
   - `SETTINGS_SCHEDULER_INVALID_NUMBERS` – Retry-/Backoff-Werte sind keine positiven Zahlen; `400`.
   - `SETTINGS_SCHEDULER_INVALID_GRACE_WINDOW` – `SCHEDULER_GRACE_WINDOW_MINUTES` kleiner als 2; `400`.
+  - `SETTINGS_SCHEDULER_INVALID_RANDOM_OFFSET` – `SCHEDULER_RANDOM_OFFSET_MINUTES` außerhalb des erlaubten Bereichs; `400`.
   - `SETTINGS_SCHEDULER_SAVE_FAILED` – sonstiger Fehler beim Speichern der Scheduler-Einstellungen; `500`.
 - **Settings – Allgemein (`/api/settings/general`)**
   - `SETTINGS_GENERAL_LOAD_FAILED` – Fehler beim Laden der allgemeinen Einstellungen; `500`.

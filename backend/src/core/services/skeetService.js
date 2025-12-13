@@ -345,8 +345,9 @@ function buildSkeetAttributes(payload, existing = null) {
   }
   const normalizedPlatforms = ensureTargetPlatforms(normalizedList);
 
+  const hasScheduledAtInput = Object.prototype.hasOwnProperty.call(payload, 'scheduledAt');
   let scheduledAt;
-  if (Object.prototype.hasOwnProperty.call(payload, 'scheduledAt')) {
+  if (hasScheduledAtInput) {
     scheduledAt = parseOptionalDate(payload.scheduledAt);
   } else {
     scheduledAt = existing?.scheduledAt ?? null;
@@ -373,8 +374,20 @@ function buildSkeetAttributes(payload, existing = null) {
     attributes.scheduledAt = scheduledAt;
     attributes.postUri = null;
     attributes.postedAt = null;
-  } else if (scheduledAt) {
-    attributes.scheduledAt = scheduledAt;
+    attributes.repeatAnchorAt = null;
+  } else {
+    if (scheduledAt) {
+      attributes.scheduledAt = scheduledAt;
+    } else if (existing?.scheduledAt) {
+      attributes.scheduledAt = existing.scheduledAt;
+    }
+    if (hasScheduledAtInput) {
+      attributes.repeatAnchorAt = scheduledAt || null;
+    } else if (existing?.repeatAnchorAt) {
+      attributes.repeatAnchorAt = existing.repeatAnchorAt;
+    } else if (attributes.scheduledAt) {
+      attributes.repeatAnchorAt = attributes.scheduledAt;
+    }
   }
 
   return attributes;
@@ -806,7 +819,8 @@ async function discardPendingSkeet(id) {
   await skeet.update({
     status: 'scheduled',
     pendingReason: null,
-    scheduledAt: nextAt,
+    scheduledAt: schedulerService.applyRandomOffset(nextAt) || nextAt,
+    repeatAnchorAt: nextAt,
   });
   emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'scheduled' });
   return skeet;

@@ -10,7 +10,9 @@ const KEYS = {
   postBackoffMs: "POST_BACKOFF_MS",
   postBackoffMaxMs: "POST_BACKOFF_MAX_MS",
   graceWindowMinutes: "SCHEDULER_GRACE_WINDOW_MINUTES",
+  randomOffsetMinutes: "SCHEDULER_RANDOM_OFFSET_MINUTES",
 };
+const MAX_RANDOM_OFFSET_MINUTES = 120;
 
 // Client-Polling-Konfigurationsschlüssel (werden an das Dashboard exponiert)
 const CLIENT_KEYS = {
@@ -38,6 +40,7 @@ function defaults() {
     postBackoffMs: Number(process.env.POST_BACKOFF_MS ?? 500) || 500,
     postBackoffMaxMs: Number(process.env.POST_BACKOFF_MAX_MS ?? 4000) || 4000,
     graceWindowMinutes: config.SCHEDULER_GRACE_WINDOW_MINUTES,
+    randomOffsetMinutes: config.SCHEDULER_RANDOM_OFFSET_MINUTES,
   };
 }
 
@@ -83,6 +86,10 @@ async function getSchedulerSettings() {
       map[KEYS.graceWindowMinutes],
       allDefaults.graceWindowMinutes
     ),
+    randomOffsetMinutes: toNumber(
+      map[KEYS.randomOffsetMinutes],
+      allDefaults.randomOffsetMinutes
+    ),
   };
 
   const overrides = Object.fromEntries(
@@ -113,6 +120,15 @@ function validatePostingInput({ postRetries, postBackoffMs, postBackoffMaxMs }) 
   }
 }
 
+function validateRandomOffsetMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes < 0 || minutes > MAX_RANDOM_OFFSET_MINUTES) {
+    throw new Error(
+      `SCHEDULER_RANDOM_OFFSET_MINUTES muss zwischen 0 und ${MAX_RANDOM_OFFSET_MINUTES} Minuten liegen.`
+    );
+  }
+}
+
 async function saveSchedulerSettings(payload) {
   const { values, defaults: defaultValues } = await getSchedulerSettings();
   const nextValues = {
@@ -123,6 +139,8 @@ async function saveSchedulerSettings(payload) {
     postBackoffMaxMs: payload.postBackoffMaxMs ?? values.postBackoffMaxMs,
     graceWindowMinutes:
       payload.graceWindowMinutes ?? values.graceWindowMinutes,
+    randomOffsetMinutes:
+      payload.randomOffsetMinutes ?? values.randomOffsetMinutes,
   };
 
   validateScheduleInput(nextValues);
@@ -133,6 +151,7 @@ async function saveSchedulerSettings(payload) {
       "SCHEDULER_GRACE_WINDOW_MINUTES muss mindestens 2 Minuten betragen."
     );
   }
+  validateRandomOffsetMinutes(nextValues.randomOffsetMinutes);
 
   await Promise.all([
     setSetting(KEYS.scheduleTime, nextValues.scheduleTime, defaultValues.scheduleTime),
@@ -144,6 +163,11 @@ async function saveSchedulerSettings(payload) {
       KEYS.graceWindowMinutes,
       nextValues.graceWindowMinutes,
       defaultValues.graceWindowMinutes
+    ),
+    setSetting(
+      KEYS.randomOffsetMinutes,
+      nextValues.randomOffsetMinutes,
+      defaultValues.randomOffsetMinutes
     ),
   ]);
 

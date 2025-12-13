@@ -43,7 +43,8 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 - **Anwendung:** Dateien liegen im Upload-Verzeichnis (`UPLOAD_DIR`, Standard `data/medien`). Reihenfolge wird über `order` gesteuert.
 
 ### Skeets (`Skeets`)
-- **Felder:** `content`, `scheduledAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
+- **Felder:** `content`, `scheduledAt`, `repeatAnchorAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
+- `repeatAnchorAt` hält die driftfreie Basiszeit für wiederkehrende Skeets fest; `scheduledAt` speichert den tatsächlichen Ausführungszeitpunkt (inkl. Zufallsversatz).
 - **Soft-Delete:** `paranoid: true` → `deletedAt`.
 - **Indices:** auf `scheduledAt`, `threadId`, `deletedAt`.
 - **Validierungen:** Pflichttermin bei `repeat = 'none'`, Wiederholungswerte bei `weekly`/`monthly`, gültige Plattformen.
@@ -65,7 +66,7 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 - Wird vom Scheduler (`logPostSendAttempt`) und von Lösch-/Retract-Operationen (`logPlatformEvent`) beschrieben und dient u. a. als Grundlage für die Sendehistorie im Dashboard.
 
 ### Settings (`Settings`)
-- Key-Value-Speicher (`key` eindeutig). Aktuelle Keys siehe `backend/src/core/services/settingsService.js` (`SCHEDULE_TIME`, `TIME_ZONE`, `POST_RETRIES`, `POST_BACKOFF_MS`, `POST_BACKOFF_MAX_MS`, sowie Client-Polling-Overrides).
+- Key-Value-Speicher (`key` eindeutig). Aktuelle Keys siehe `backend/src/core/services/settingsService.js` (`SCHEDULE_TIME`, `TIME_ZONE`, `POST_RETRIES`, `POST_BACKOFF_MS`, `POST_BACKOFF_MAX_MS`, `SCHEDULER_GRACE_WINDOW_MINUTES`, `SCHEDULER_RANDOM_OFFSET_MINUTES` sowie Client-Polling-Overrides).
 
 ---
 

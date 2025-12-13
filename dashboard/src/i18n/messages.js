@@ -693,6 +693,8 @@ const messages = {
         invalidNumberTitle: 'Ungültiger Wert',
         invalidNumberDescription:
           '{label} muss eine positive Zahl sein.',
+        randomOffsetMaxDescription:
+          'Zufallsversatz darf maximal 120 Minuten betragen.',
         saveErrorFallback: 'Speichern fehlgeschlagen.',
         saveSuccessTitle: 'Einstellungen gespeichert',
         saveSuccessDescription:
@@ -712,7 +714,8 @@ const messages = {
           postRetries: 'Maximale Wiederholversuche',
           postBackoffMs: 'Basis-Backoff (ms)',
           postBackoffMaxMs: 'Maximaler Backoff (ms)',
-          graceWindowMinutes: 'Grace-Zeit für verpasste Termine (Minuten)'
+          graceWindowMinutes: 'Grace-Zeit für verpasste Termine (Minuten)',
+          randomOffsetMinutes: 'Zufallsversatz (± Minuten)'
         },
         examples:
           'Beispiele:\n0 * * * * (stündlich)\n*/5 * * * * (alle 5 Minuten)',
@@ -1524,6 +1527,8 @@ const messages = {
         invalidNumberTitle: 'Invalid value',
         invalidNumberDescription:
           '{label} must be a positive number.',
+        randomOffsetMaxDescription:
+          'Random offset must not exceed 120 minutes.',
         saveErrorFallback: 'Saving failed.',
         saveSuccessTitle: 'Settings saved',
         saveSuccessDescription:
@@ -1544,7 +1549,8 @@ const messages = {
           postBackoffMs: 'Base backoff (ms)',
           postBackoffMaxMs: 'Maximum backoff (ms)',
           graceWindowMinutes:
-            'Grace period for missed runs (minutes)'
+            'Grace period for missed runs (minutes)',
+          randomOffsetMinutes: 'Random offset (± minutes)'
         },
         examples:
           'Examples:\n0 * * * * (hourly)\n*/5 * * * * (every 5 minutes)',

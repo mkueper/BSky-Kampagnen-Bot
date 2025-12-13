@@ -106,8 +106,9 @@ Alle Ansichten reagieren primär auf Server-Sent Events (SSE). Das Dashboard akt
 Der Tab **Konfiguration** enthält drei Bereiche:
 
 1. **Scheduler & Retries**
-   - Felder: Cron-Ausdruck, Zeitzone, Retries, Backoff in ms.
-   - Beim Speichern liest und schreibt das Backend Werte aus der `Settings`-Tabelle; Defaults basieren auf `.env` (`TIME_ZONE`, `POST_RETRIES`, …).
+   - Felder: Cron-Ausdruck, Zeitzone, Retries, Backoff in ms, Grace-Zeit für verpasste Läufe, optionaler Zufallsversatz (± Minuten) für wiederkehrende Posts.
+   - Beim Speichern liest und schreibt das Backend Werte aus der `Settings`-Tabelle; Defaults basieren auf `.env` (`TIME_ZONE`, `POST_RETRIES`, `SCHEDULER_GRACE_WINDOW_MINUTES`, `SCHEDULER_RANDOM_OFFSET_MINUTES`, …).
+   - Der Zufallsversatz verteilt wiederkehrende Posts innerhalb eines symmetrischen Fensters (Beispiel: `5` ⇒ −5 … +5 Min.), ohne dass die eigentlichen Referenzzeiten (`repeatAnchorAt`) driften.
 2. **Dashboard-Polling**
    - Steuerung der Polling-Intervalle für Skeets/Threads (aktiv, idle, hidden) sowie Backoff, Jitter und Heartbeat.
    - Wirkt sofort auf alle Tabs; Werte werden in der Datenbank gespeichert.

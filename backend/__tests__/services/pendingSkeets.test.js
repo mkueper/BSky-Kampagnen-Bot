@@ -103,6 +103,7 @@ describe('pending skeet service: publishPendingSkeetOnce', () => {
         status: 'scheduled',
         postedAt: fixedNow,
         scheduledAt: nextAt,
+        repeatAnchorAt: nextAt,
         pendingReason: null,
       })
       return current.id
@@ -117,6 +118,7 @@ describe('pending skeet service: publishPendingSkeetOnce', () => {
     expect(result.postedAt.getTime()).toBe(fixedNow.getTime())
     expect(result.scheduledAt).toBeInstanceOf(Date)
     expect(result.scheduledAt.getTime()).toBe(nextAt.getTime())
+    expect(result.repeatAnchorAt?.getTime()).toBe(nextAt.getTime())
 
     expect(reloaded.status).toBe('scheduled')
     expect(reloaded.pendingReason).toBeNull()
@@ -124,6 +126,7 @@ describe('pending skeet service: publishPendingSkeetOnce', () => {
     expect(reloaded.postedAt.getTime()).toBe(fixedNow.getTime())
     expect(reloaded.scheduledAt).toBeInstanceOf(Date)
     expect(reloaded.scheduledAt.getTime()).toBe(nextAt.getTime())
+    expect(reloaded.repeatAnchorAt?.getTime()).toBe(nextAt.getTime())
   })
 
   it('propagates posting errors and does not change skeet', async () => {

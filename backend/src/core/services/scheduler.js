@@ -25,7 +25,18 @@ let task = null;
 //let lastScheduleConfig = null;
 let lastEngagementRunAt = 0;
 const GRACE_WINDOW_MINUTES = Number(config.SCHEDULER_GRACE_WINDOW_MINUTES || 10);
+const MAX_RANDOM_OFFSET_MINUTES = 120;
+let schedulerRandomOffsetMinutes = clampRandomOffsetMinutes(
+  Number(config.SCHEDULER_RANDOM_OFFSET_MINUTES || 0)
+);
 const MAX_ERROR_MESSAGE_LENGTH = 500;
+
+function clampRandomOffsetMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes < 0) return 0;
+  if (minutes > MAX_RANDOM_OFFSET_MINUTES) return MAX_RANDOM_OFFSET_MINUTES;
+  return Math.floor(minutes);
+}
 
 /**
  * Normalisiert beliebige persistierte Plattformlisten (Array oder JSON-String)
@@ -206,12 +217,54 @@ function computeNextMonthly(base, targetDay) {
 /**
  * Liefert das nächste Ausführungsdatum für Wiederholungs-Skeets.
  */
+function resolveRepeatReferenceDate(skeet) {
+  if (!skeet) {
+    return null;
+  }
+  if (skeet.repeatAnchorAt) {
+    const anchor = new Date(skeet.repeatAnchorAt);
+    if (!Number.isNaN(anchor.getTime())) {
+      return anchor;
+    }
+  }
+  if (skeet.scheduledAt) {
+    const scheduled = new Date(skeet.scheduledAt);
+    if (!Number.isNaN(scheduled.getTime())) {
+      return scheduled;
+    }
+  }
+  return null;
+}
+
+function applyRandomOffset(date) {
+  if (!date) {
+    return null;
+  }
+  const normalized = date instanceof Date ? new Date(date.getTime()) : new Date(date);
+  if (Number.isNaN(normalized.getTime())) {
+    return null;
+  }
+  const limit = schedulerRandomOffsetMinutes;
+  if (!limit || limit <= 0) {
+    return normalized;
+  }
+  const min = -limit;
+  const max = limit;
+  const deltaMinutes = Math.floor(Math.random() * (max - min + 1)) + min;
+  const deltaMs = deltaMinutes * 60 * 1000;
+  return new Date(normalized.getTime() + deltaMs);
+}
+
+function __setSchedulerRandomOffsetForTests(value) {
+  schedulerRandomOffsetMinutes = clampRandomOffsetMinutes(value);
+}
+
 function calculateNextScheduledAt(skeet) {
   if (!skeet.repeat || skeet.repeat === "none") {
     return null;
   }
 
-  const reference = skeet.scheduledAt ? new Date(skeet.scheduledAt) : new Date();
+  const reference = resolveRepeatReferenceDate(skeet) || new Date();
 
   switch (skeet.repeat) {
     case "daily":
@@ -254,7 +307,7 @@ function getNextScheduledAt(skeet, fromDate = new Date()) {
     return null;
   }
 
-  const baseRaw = skeet.scheduledAt || from;
+  const baseRaw = skeet.repeatAnchorAt || skeet.scheduledAt || from;
   const base =
     baseRaw instanceof Date ? new Date(baseRaw.getTime()) : new Date(baseRaw);
   if (Number.isNaN(base.getTime())) {
@@ -499,7 +552,8 @@ async function dispatchSkeet(skeet) {
   }
 
   const allSent = normalizedPlatforms.every((platformId) => results[platformId]?.status === "sent");
-  const nextRun = calculateNextScheduledAt(current);
+  const nextAnchor = calculateNextScheduledAt(current);
+  const randomizedNextRun = nextAnchor ? applyRandomOffset(nextAnchor) : null;
 
   const updates = {
     platformResults: results,
@@ -526,6 +580,7 @@ async function dispatchSkeet(skeet) {
       updates.scheduledAt = null;
       updates.status = "sent";
       updates.pendingReason = null;
+      updates.repeatAnchorAt = null;
     } else {
       updates.scheduledAt = new Date(Date.now() + RETRY_DELAY_MS);
     }
@@ -537,7 +592,13 @@ async function dispatchSkeet(skeet) {
     if (allSent) {
       updates.pendingReason = null;
     }
-    updates.scheduledAt = nextRun ?? new Date(Date.now() + RETRY_DELAY_MS);
+    if (nextAnchor) {
+      updates.repeatAnchorAt = nextAnchor;
+      updates.scheduledAt = randomizedNextRun || nextAnchor;
+    } else {
+      updates.scheduledAt = new Date(Date.now() + RETRY_DELAY_MS);
+      updates.repeatAnchorAt = current.repeatAnchorAt || current.scheduledAt || null;
+    }
   }
 
   await current.update(updates);
@@ -619,8 +680,9 @@ async function processDueSkeets(now = new Date()) {
             updates.status = "sent";
             updates.pendingReason = null;
           } else {
-            const nextRun = calculateNextScheduledAt(current);
-            updates.scheduledAt = nextRun ?? null;
+            const nextAnchor = calculateNextScheduledAt(current);
+            updates.repeatAnchorAt = nextAnchor || current.repeatAnchorAt || current.scheduledAt || null;
+            updates.scheduledAt = nextAnchor ? (applyRandomOffset(nextAnchor) || nextAnchor) : null;
             if (current.status !== "scheduled") {
               updates.status = "scheduled";
             }
@@ -928,6 +990,9 @@ async function applySchedulerTask() {
   const { values } = await settingsService.getSchedulerSettings();
   const schedule = values.scheduleTime || config.SCHEDULE_TIME;
   const timeZone = values.timeZone || config.TIME_ZONE;
+  schedulerRandomOffsetMinutes = clampRandomOffsetMinutes(
+    values.randomOffsetMinutes ?? config.SCHEDULER_RANDOM_OFFSET_MINUTES
+  );
 
   if (!cron.validate(schedule)) {
     throw new Error(`Ungültiger Cron-Ausdruck für den Scheduler: "${schedule}"`);
@@ -965,7 +1030,11 @@ async function applySchedulerTask() {
   );
 
   //lastScheduleConfig = { schedule, timeZone };
-  log.info("Scheduler aktiv", { cron: schedule, timezone: timeZone || "system" });
+  log.info("Scheduler aktiv", {
+    cron: schedule,
+    timezone: timeZone || "system",
+    randomOffsetMinutes: schedulerRandomOffsetMinutes,
+  });
 
   // Beim Start einmalig überfällige Skeets in pending_manual verschieben
   await markMissedSkeetsPending().catch((error) => {
@@ -1071,5 +1140,7 @@ module.exports = {
   computeNextWeekly,
   computeNextMonthly,
   calculateNextScheduledAt,
-   getNextScheduledAt,
+  getNextScheduledAt,
+  applyRandomOffset,
+  __setSchedulerRandomOffsetForTests,
 };

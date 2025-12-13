@@ -15,8 +15,8 @@ describe('settingsController API', () => {
   it('GET /api/settings/scheduler returns values and defaults', async () => {
     const svc = require('@core/services/settingsService')
     vi.spyOn(svc, 'getSchedulerSettings').mockResolvedValue({
-      values: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000 },
-      defaults: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000 }
+      values: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000, randomOffsetMinutes: 0 },
+      defaults: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000, randomOffsetMinutes: 0 }
     })
     const req = {}
     let sent = null
@@ -30,8 +30,8 @@ describe('settingsController API', () => {
   it('PUT /api/settings/scheduler with valid payload restarts scheduler', async () => {
     const svc = require('@core/services/settingsService')
     const spy = vi.spyOn(svc, 'saveSchedulerSettings').mockResolvedValue({
-      values: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000 },
-      defaults: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000 }
+      values: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000, randomOffsetMinutes: 4 },
+      defaults: { scheduleTime: '* * * * *', timeZone: 'Europe/Berlin', postRetries: 3, postBackoffMs: 500, postBackoffMaxMs: 4000, randomOffsetMinutes: 0 }
     })
     const scheduler = require('@core/services/scheduler')
     const restartSpy = vi.spyOn(scheduler, 'restartScheduler').mockResolvedValue()

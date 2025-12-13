@@ -1,5 +1,5 @@
 import 'module-alias/register'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 /**
  * Testgruppe: schedulerHelpers.test.js
@@ -76,6 +76,17 @@ describe('scheduler helper functions', () => {
     expect(m.getUTCDate()).toBe(28)
   })
 
+  it('calculateNextScheduledAt uses repeatAnchorAt when provided', () => {
+    const skeet = {
+      repeat: 'daily',
+      scheduledAt: '2025-01-10T09:05:00Z',
+      repeatAnchorAt: '2025-01-10T09:00:00Z',
+    }
+    const next = sched.calculateNextScheduledAt(skeet)
+    const expected = new Date('2025-01-11T09:00:00Z')
+    expect(next.toISOString()).toBe(expected.toISOString())
+  })
+
   it('getNextScheduledAt computes next daily occurrence after fromDate', () => {
     const from = new Date(Date.UTC(2025, 0, 2, 10, 0, 0)) // 2. Jan 2025, 10:00 UTC
     const skeet = {
@@ -131,5 +142,18 @@ describe('scheduler helper functions', () => {
     }
     const next = sched.getNextScheduledAt(skeet, from)
     expect(next).toBeNull()
+  })
+
+  it('applyRandomOffset respects configured jitter window', () => {
+    const base = new Date(Date.UTC(2025, 0, 1, 9, 0, 0))
+    sched.__setSchedulerRandomOffsetForTests(5)
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9)
+    const shifted = sched.applyRandomOffset(base)
+    expect(shifted).toBeInstanceOf(Date)
+    const diffMinutes = Math.round((shifted.getTime() - base.getTime()) / 60000)
+    expect(diffMinutes).toBeGreaterThanOrEqual(-5)
+    expect(diffMinutes).toBeLessThanOrEqual(5)
+    randomSpy.mockRestore()
+    sched.__setSchedulerRandomOffsetForTests(0)
   })
 })

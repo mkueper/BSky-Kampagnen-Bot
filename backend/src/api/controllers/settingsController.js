@@ -32,6 +32,13 @@ function mapSchedulerSaveError(error) {
       message,
     };
   }
+  if (message.includes("SCHEDULER_RANDOM_OFFSET_MINUTES muss zwischen")) {
+    return {
+      status: 400,
+      code: "SETTINGS_SCHEDULER_INVALID_RANDOM_OFFSET",
+      message,
+    };
+  }
   return {
     status: 500,
     code: "SETTINGS_SCHEDULER_SAVE_FAILED",
