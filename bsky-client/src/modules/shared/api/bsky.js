@@ -33,13 +33,6 @@ const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
 const feedMetaGlobalCache = new Map()
 
-const ensureFetch = () => {
-  if (typeof globalThis.fetch === 'function') {
-    return globalThis.fetch.bind(globalThis);
-  }
-  throw new Error('Fetch API ist in dieser Umgebung nicht verfuegbar.');
-};
-
 const createSearchParams = (init) => {
   if (typeof globalThis.URLSearchParams === 'function') {
     return new globalThis.URLSearchParams(init);

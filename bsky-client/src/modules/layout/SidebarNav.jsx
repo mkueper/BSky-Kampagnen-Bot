@@ -13,7 +13,7 @@ import {
   PlusIcon,
   SlashIcon,
   ExitIcon,
-  ChevronDownIcon
+  DotsHorizontalIcon
 } from '@radix-ui/react-icons'
 import {
   ThemeToggle,
@@ -51,6 +51,12 @@ const getInitial = (primary, fallback) => {
   return source.charAt(0).toUpperCase()
 }
 
+const isSameLabel = (left, right) => {
+  const a = (left || '').trim().toLowerCase()
+  const b = (right || '').trim().toLowerCase()
+  return Boolean(a && b && a === b)
+}
+
 export default function SidebarNav ({
   active,
   onSelect,
@@ -72,9 +78,12 @@ export default function SidebarNav ({
     [accountProfiles]
   )
   const activeAccount = accounts.find(account => account?.isActive) || accounts[0] || null
-  const accountDisplayName =
-    activeAccount?.displayName || activeAccount?.handle || ''
   const accountHandle = normalizeHandle(activeAccount?.handle)
+  const rawAccountDisplayName =
+    activeAccount?.displayName || activeAccount?.handle || ''
+  const accountDisplayName = isSameLabel(rawAccountDisplayName, accountHandle)
+    ? ''
+    : rawAccountDisplayName
   const accountAvatar = activeAccount?.avatar
   const accountInitial = getInitial(accountDisplayName, accountHandle)
   const logoutLabel = t('nav.logout', 'Abmelden')
@@ -82,6 +91,8 @@ export default function SidebarNav ({
   const menuTitle = t('nav.accountSwitchTitle', 'Account wechseln')
   const addAccountLabel = t('nav.addAccount', 'Weiteren Account hinzufügen')
   const profileLabel = t('nav.viewProfile', 'Zum Profil')
+  const resolvedThemeToggle = themeToggle || null
+  const showThemeToggle = Boolean(resolvedThemeToggle)
   const handleProfileClick = () => {
     setAccountMenuOpen(false)
     if (!activeAccount) return
@@ -112,36 +123,38 @@ export default function SidebarNav ({
   }
   return (
     <nav
-      className='flex h-full w-full flex-col items-start gap-3'
+      className='relative flex h-full w-full flex-col items-start gap-3'
       data-component='BskyPrimaryNav'
       aria-label='Hauptnavigation'
     >
       {activeAccount ? (
-        <div className='w-full'>
+        <div className='absolute left-0 right-0 top-0 z-10 w-full'>
           <InlineMenu open={accountMenuOpen} onOpenChange={setAccountMenuOpen}>
             <InlineMenuTrigger>
               <button
                 type='button'
-                className='flex w-full items-center justify-between rounded-2xl border border-border bg-background-subtle/70 px-3 py-2 text-left shadow-soft transition hover:bg-background'
+                className='relative inline-flex items-center rounded-2xl text-sm transition justify-center lg:justify-between gap-0 lg:gap-3 h-12 w-12 lg:h-16 lg:w-full lg:px-4 lg:py-3 overflow-hidden border border-border bg-background-subtle/70 text-left shadow-soft hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
                 aria-haspopup='menu'
                 aria-label={menuTitle}
               >
-                <span className='flex items-center gap-3'>
-                  <span className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-foreground'>
+                <span className='flex min-w-0 items-center gap-3'>
+                  <span className='inline-flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-foreground'>
                     {accountAvatar ? (
                       <img
                         src={accountAvatar}
                         alt={accountDisplayName || accountHandle || 'Avatar'}
-                        className='h-10 w-10 rounded-full object-cover'
+                        className='h-8 w-8 lg:h-10 lg:w-10 rounded-full object-cover'
                       />
                     ) : (
                       accountInitial
                     )}
                   </span>
-                  <span className='flex min-w-0 flex-col leading-tight'>
-                    <span className='truncate text-sm font-semibold text-foreground'>
-                      {accountDisplayName || t('nav.profile', 'Profil')}
-                    </span>
+                  <span className='hidden lg:flex min-w-0 flex-col leading-tight'>
+                    {accountDisplayName ? (
+                      <span className='truncate text-sm font-semibold text-foreground'>
+                        {accountDisplayName}
+                      </span>
+                    ) : null}
                     {accountHandle ? (
                       <span className='truncate text-xs text-foreground-muted'>
                         {accountHandle}
@@ -149,7 +162,7 @@ export default function SidebarNav ({
                     ) : null}
                   </span>
                 </span>
-                <ChevronDownIcon className='h-5 w-5 text-foreground-muted' />
+                <DotsHorizontalIcon className='hidden lg:inline h-5 w-5 shrink-0 text-foreground-muted' />
               </button>
             </InlineMenuTrigger>
             <InlineMenuContent align='start' side='right' sideOffset={12} className='p-2 w-64 space-y-2'>
@@ -160,14 +173,13 @@ export default function SidebarNav ({
                 {hasMenuAccounts
                   ? accounts.map(account => {
                       const handle = normalizeHandle(account?.handle)
-                      const displayName = account?.displayName || handle || 'Account'
                       const avatar = account?.avatar
-                      const initial = getInitial(displayName, handle)
+                      const initial = getInitial('', handle)
                       const isActive = account?.isActive
                       return (
                         <button
                           type='button'
-                          key={account?.id || handle || displayName}
+                          key={account?.id || handle || 'account'}
                           onClick={() => handleSwitchAccount(account)}
                           className={`flex w-full items-center gap-3 rounded-2xl border border-transparent px-2 py-2 text-left transition ${
                             isActive
@@ -176,26 +188,19 @@ export default function SidebarNav ({
                           }`}
                           aria-current={isActive ? 'true' : undefined}
                         >
-                          <span className='inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-xs font-semibold'>
+                          <span className='inline-flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-[11px] font-semibold leading-none'>
                             {avatar ? (
                               <img
                                 src={avatar}
-                                alt={displayName}
-                                className='h-8 w-8 rounded-full object-cover'
+                                alt={handle || 'Avatar'}
+                                className='h-6 w-6 rounded-full object-cover'
                               />
                             ) : (
                               initial
                             )}
                           </span>
-                          <span className='flex min-w-0 flex-col leading-tight'>
-                            <span className='truncate text-sm font-semibold'>
-                              {displayName}
-                            </span>
-                            {handle ? (
-                              <span className='truncate text-xs text-foreground-muted'>
-                                {handle}
-                              </span>
-                            ) : null}
+                          <span className='min-w-0 flex-1 truncate text-sm font-semibold'>
+                            {handle || t('nav.noAccounts', 'Keine Accounts gefunden.')}
                           </span>
                           {isActive ? (
                             <span className='ml-auto text-xs font-semibold text-primary'>
@@ -228,83 +233,91 @@ export default function SidebarNav ({
           </InlineMenu>
         </div>
       ) : null}
+      {activeAccount ? <div className='h-12 lg:h-16' aria-hidden='true' /> : null}
       <div
-        className='min-h-0 flex flex-1 flex-col space-y-1 overflow-y-auto pr-1'
+        className='min-h-0 flex flex-1 overflow-y-auto pr-1'
         style={{ scrollbarGutter: 'stable' }}
       >
-        {NAV_ITEMS.map(item => {
-          const Icon = item.icon
-          const isActive = active === item.id
-          const disabled = Boolean(item.disabled) || interactionsLocked
-          const showBadge = item.id === 'notifications' && normalizedUnread > 0
-          const badgeLabel =
-            normalizedUnread > 30 ? '30+' : String(normalizedUnread)
-          const baseLabel = t(item.labelKey, item.defaultLabel)
-          const label = showBadge
-            ? t('nav.notificationsWithCount', '{label} ({count} neu)', {
-                label: baseLabel,
-                count: badgeLabel
-              })
-            : baseLabel
-          return (
-            <button
-              key={item.id}
-              type='button'
-              onClick={() => !disabled && onSelect(item.id)}
-              disabled={disabled}
-              aria-current={isActive ? 'page' : undefined}
-              aria-disabled={disabled || undefined}
-              aria-label={label}
-              data-nav-item={item.id}
-              title={label}
-              className={`relative inline-flex items-center rounded-2xl text-sm transition justify-center lg:justify-start gap-0 lg:gap-3 h-12 w-12 lg:h-auto lg:w-auto lg:px-4 lg:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                isActive
-                  ? 'bg-background-subtle text-foreground shadow-soft'
-                  : 'text-foreground-muted hover:text-foreground'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {Icon ? <Icon className='h-6 w-6 shrink-0' /> : null}
-              <span className='hidden lg:inline truncate'>{baseLabel}</span>
-              <span
-                className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
-                  showBadge ? 'opacity-100' : 'opacity-0'
-                }`}
-                aria-hidden={!showBadge}
+        <div className='grid w-max grid-cols-[max-content] justify-items-stretch gap-1'>
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon
+            const isActive = active === item.id
+            const disabled = Boolean(item.disabled) || interactionsLocked
+            const showBadge = item.id === 'notifications' && normalizedUnread > 0
+            const badgeLabel =
+              normalizedUnread > 30 ? '30+' : String(normalizedUnread)
+            const baseLabel = t(item.labelKey, item.defaultLabel)
+            const label = showBadge
+              ? t('nav.notificationsWithCount', '{label} ({count} neu)', {
+                  label: baseLabel,
+                  count: badgeLabel
+                })
+              : baseLabel
+            return (
+              <button
+                key={item.id}
+                type='button'
+                onClick={() => !disabled && onSelect(item.id)}
+                disabled={disabled}
+                aria-current={isActive ? 'page' : undefined}
+                aria-disabled={disabled || undefined}
+                aria-label={label}
+                data-nav-item={item.id}
+                title={label}
+                className={`relative inline-flex w-full items-center rounded-2xl text-sm transition justify-center lg:justify-start gap-0 lg:gap-3 h-12 w-12 lg:h-auto lg:px-4 lg:py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  isActive
+                    ? 'bg-background-subtle text-foreground shadow-soft'
+                    : 'text-foreground-muted hover:bg-background-subtle hover:text-foreground hover:shadow-soft'
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {badgeLabel}
+                {Icon ? <Icon className='h-6 w-6 shrink-0' /> : null}
+                <span className='hidden lg:inline truncate'>{baseLabel}</span>
+                <span
+                  className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity ${
+                    showBadge ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  aria-hidden={!showBadge}
+                >
+                  {badgeLabel}
+                </span>
+              </button>
+            )
+          })}
+
+          <div className='pt-2'>
+            <hr className='border-t border-border' />
+          </div>
+
+          {showThemeToggle ? (
+            <div className='pt-2'>
+              <ThemeToggle
+                {...resolvedThemeToggle}
+                size='icon'
+                className='w-12 lg:hidden'
+              />
+              <ThemeToggle
+                {...resolvedThemeToggle}
+                className='hidden w-full py-3 lg:inline-flex'
+              />
+            </div>
+          ) : null}
+          <div className='pt-2'>
+            <button
+              type='button'
+              onClick={interactionsLocked ? undefined : onCompose}
+              className='inline-flex w-full items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+              disabled={interactionsLocked}
+              aria-label={t('nav.newPostAria', 'Neuer Post')}
+              aria-disabled={interactionsLocked || undefined}
+              data-nav-item='compose'
+              title={t('nav.newPost', 'Neuer Post')}
+            >
+              <PlusIcon className='h-6 w-6 shrink-0' />
+              <span className='hidden lg:inline truncate'>
+                {t('nav.newPost', 'Neuer Post')}
               </span>
             </button>
-          )
-        })}
-
-        <div className='pt-2'>
-          <hr className='border-t border-border' />
-        </div>
-
-        {themeToggle ? (
-          <div className='pt-2 w-full'>
-            <ThemeToggle
-              {...themeToggle}
-              className='w-full'
-            />
           </div>
-        ) : null}
-        <div className='pt-2'>
-          <button
-            type='button'
-            onClick={interactionsLocked ? undefined : onCompose}
-            className='inline-flex items-center justify-center lg:justify-start gap-2 rounded-2xl bg-primary h-12 w-12 lg:h-auto lg:w-full lg:px-4 lg:py-3 text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-            disabled={interactionsLocked}
-            aria-label={t('nav.newPostAria', 'Neuer Post')}
-            aria-disabled={interactionsLocked || undefined}
-            data-nav-item='compose'
-            title={t('nav.newPost', 'Neuer Post')}
-          >
-            <PlusIcon className='h-6 w-6 shrink-0' />
-            <span className='hidden lg:inline truncate'>
-              {t('nav.newPost', 'Neuer Post')}
-            </span>
-          </button>
         </div>
       </div>
     </nav>

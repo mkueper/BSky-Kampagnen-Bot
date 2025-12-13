@@ -36,7 +36,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
   * `git checkout …`
   * `git restore …`
   * `git reset …`
-  * `git pull`, `git fetch`, `git merge`
+  * `git pull`, `git fetch`, `git merge`, `git add`, `git commit`
   * Änderungen an Branches, Tags oder Historie
 * Wenn unklar ist, ob eine Aktion eine Git-Operation auslöst, **sofort nachfragen** und die Ausführung anhalten.
 * Git-Kommandos dürfen ausschließlich ausgeführt werden, wenn ich dies **explizit** verlange. Eine stillschweigende Erlaubnis existiert nicht.

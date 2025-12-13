@@ -259,7 +259,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }
 
-  async function handleGifPick ({ id, downloadUrl, previewUrl }) {
+  async function handleGifPick ({ id, downloadUrl }) {
     setGifPickerOpen(false)
     if (!downloadUrl) return
     setMessage('')

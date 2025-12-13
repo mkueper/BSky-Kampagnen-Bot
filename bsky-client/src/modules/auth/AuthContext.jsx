@@ -83,6 +83,88 @@ function makeAccountSummary (account, activeAccountId) {
   }
 }
 
+function getAccountCanonicalId (account) {
+  if (!account) return ''
+  const did = safeString(account.did).trim()
+  if (did) return did
+  const handle = safeString(account.handle).trim()
+  if (handle) return handle
+  const identifier = safeString(account.identifier).trim()
+  if (identifier) return identifier
+  return safeString(account.id).trim()
+}
+
+function getAccountDedupKey (account) {
+  if (!account) return ''
+  const did = safeString(account.did).trim()
+  if (did) return `did:${did}`
+  const serviceUrl = safeString(account.serviceUrl).trim()
+  const handle = safeString(account.handle).trim()
+  if (serviceUrl && handle) return `handle:${serviceUrl}|${handle.toLowerCase()}`
+  const identifier = safeString(account.identifier).trim()
+  if (serviceUrl && identifier) return `identifier:${serviceUrl}|${identifier.toLowerCase()}`
+  const id = safeString(account.id).trim()
+  return id ? `id:${id}` : ''
+}
+
+function mergeAccountRecords (base, incoming) {
+  if (!base) return incoming
+  if (!incoming) return base
+  const merged = { ...base }
+  merged.serviceUrl = incoming.serviceUrl || base.serviceUrl
+  merged.identifier = incoming.identifier || base.identifier
+  merged.handle = incoming.handle || base.handle
+  merged.did = incoming.did || base.did
+  merged.displayName = incoming.displayName || base.displayName
+  merged.avatar = incoming.avatar || base.avatar
+  merged.rememberCredentials = Boolean(base.rememberCredentials || incoming.rememberCredentials)
+  merged.rememberSession = Boolean(base.rememberSession || incoming.rememberSession)
+  merged.session = incoming.session || base.session
+  return merged
+}
+
+function normalizeAccountsList (accounts, requestedActiveId) {
+  const map = new Map()
+  const idRewrite = new Map()
+  const orderedKeys = []
+  for (const account of accounts || []) {
+    const dedupKey = getAccountDedupKey(account)
+    if (!dedupKey) continue
+    if (!map.has(dedupKey)) {
+      map.set(dedupKey, account)
+      orderedKeys.push(dedupKey)
+    } else {
+      map.set(dedupKey, mergeAccountRecords(map.get(dedupKey), account))
+    }
+  }
+  const normalized = []
+  for (const key of orderedKeys) {
+    const account = map.get(key)
+    if (!account) continue
+    const canonicalId = getAccountCanonicalId(account)
+    if (canonicalId && canonicalId !== account.id) {
+      idRewrite.set(account.id, canonicalId)
+      normalized.push({ ...account, id: canonicalId })
+    } else {
+      normalized.push(account)
+    }
+  }
+
+  const rewrittenActiveId = idRewrite.get(requestedActiveId) || requestedActiveId
+  const activeIdCandidate = rewrittenActiveId && normalized.some(acc => acc.id === rewrittenActiveId)
+    ? rewrittenActiveId
+    : (normalized[0]?.id || null)
+
+  return {
+    accounts: normalized,
+    activeAccountId: activeIdCandidate,
+    changed:
+      normalized.length !== (accounts || []).length ||
+      idRewrite.size > 0 ||
+      activeIdCandidate !== requestedActiveId
+  }
+}
+
 export const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
@@ -174,6 +256,16 @@ export function AuthProvider ({ children }) {
   }, [activeAccountId, updateAccount])
 
   useEffect(() => {
+    if (!Array.isArray(accounts) || accounts.length === 0) return
+    const { accounts: normalized, activeAccountId: normalizedActiveId, changed } =
+      normalizeAccountsList(accounts, activeAccountId)
+    if (!changed) return
+    setAccounts(normalized)
+    setActiveAccountId(normalizedActiveId)
+    persistAccounts(normalized, normalizedActiveId)
+  }, [accounts, activeAccountId, persistAccounts])
+
+  useEffect(() => {
     let cancelled = false
     const ensureClient = (serviceUrl) => {
       const current = clientRef.current
@@ -218,18 +310,21 @@ export function AuthProvider ({ children }) {
         ? hydrateFromLegacyStorage(fallbackServiceUrl)
         : null
 
-      const accountsToUse = legacyAccount ? [legacyAccount] : normalizedAccounts
+      const rawAccountsToUse = legacyAccount ? [legacyAccount] : normalizedAccounts
       const storedActiveId = safeString(localStorage.getItem(STORAGE_KEYS.activeAccountId)).trim()
-      const nextActiveId =
-        (storedActiveId && accountsToUse.some(acc => acc.id === storedActiveId))
+      const requestedActiveId =
+        (storedActiveId && rawAccountsToUse.some(acc => acc.id === storedActiveId))
           ? storedActiveId
-          : (accountsToUse[0]?.id || null)
+          : (rawAccountsToUse[0]?.id || null)
+
+      const { accounts: accountsToUse, activeAccountId: nextActiveId, changed } =
+        normalizeAccountsList(rawAccountsToUse, requestedActiveId)
 
       if (!cancelled) {
         setAccounts(accountsToUse)
         setActiveAccountId(nextActiveId)
       }
-      if (legacyAccount) {
+      if (legacyAccount || changed) {
         persistAccounts(accountsToUse, nextActiveId)
       }
 
@@ -336,12 +431,39 @@ export function AuthProvider ({ children }) {
       }
 
       setAccounts(prev => {
-        const existingIndex = prev.findIndex(acc => acc.id === nextAccountId)
-        const nextAccounts = existingIndex >= 0
-          ? prev.map(acc => (acc.id === nextAccountId ? { ...acc, ...accountPatch } : acc))
-          : [...prev, accountPatch]
-        persistAccounts(nextAccounts, nextAccountId)
-        return nextAccounts
+        const canonicalId = nextAccountId
+        const service = accountPatch.serviceUrl
+        const identifierValue = safeString(identifier).trim().toLowerCase()
+        const handleValue = safeString(accountPatch.handle).trim().toLowerCase()
+        const didValue = safeString(accountPatch.did).trim()
+
+        const findByIdentity = (acc) => {
+          if (!acc) return false
+          const accDid = safeString(acc.did).trim()
+          if (didValue && accDid && accDid === didValue) return true
+          const accHandle = safeString(acc.handle).trim().toLowerCase()
+          if (handleValue && accHandle && accHandle === handleValue && acc.serviceUrl === service) return true
+          const accIdentifier = safeString(acc.identifier).trim().toLowerCase()
+          if (identifierValue && accIdentifier && accIdentifier === identifierValue && acc.serviceUrl === service) return true
+          return false
+        }
+
+        const candidates = prev.filter(findByIdentity)
+        const merged = candidates.reduce((acc, entry) => mergeAccountRecords(acc, entry), null)
+        const mergedAccount = mergeAccountRecords(merged, accountPatch)
+        const finalAccount = { ...mergedAccount, id: canonicalId }
+
+        const withoutCandidates = prev.filter(acc => !findByIdentity(acc) && acc.id !== canonicalId)
+        const existingCanonical = prev.find(acc => acc.id === canonicalId)
+        const nextAccountsRaw = existingCanonical
+          ? [...withoutCandidates, mergeAccountRecords(existingCanonical, finalAccount)]
+          : [...withoutCandidates, finalAccount]
+
+        const { accounts: normalized, activeAccountId: normalizedActiveId } =
+          normalizeAccountsList(nextAccountsRaw, canonicalId)
+
+        persistAccounts(normalized, normalizedActiveId)
+        return normalized
       })
       setActiveAccountId(nextAccountId)
       setProfile(nextProfile || null)

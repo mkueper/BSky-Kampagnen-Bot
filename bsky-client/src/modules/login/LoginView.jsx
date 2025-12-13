@@ -199,6 +199,17 @@ export default function LoginView ({
               ? t('login.submitBusy', 'Anmeldung läuft…')
               : t('login.submitLabel', 'Anmelden')}
           </Button>
+          {variant === 'modal' && typeof onClose === 'function' ? (
+            <Button
+              type='button'
+              variant='secondary'
+              className='w-full justify-center'
+              disabled={submitting}
+              onClick={onClose}
+            >
+              {t('compose.cancel', 'Abbrechen')}
+            </Button>
+          ) : null}
         </form>
 
         <p className='text-xs text-foreground-muted'>
