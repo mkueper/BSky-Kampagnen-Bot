@@ -279,6 +279,7 @@ function ThreadForm ({
   )
   const isEditMode = Boolean(threadId)
   const lastPreviewIndexRef = useRef(null)
+  const skipNextPreviewScrollRef = useRef(false)
 
   const scrollPreviewToActiveSegment = useCallback(() => {
     const textarea = textareaRef.current
@@ -378,8 +379,15 @@ function ThreadForm ({
 
   useEffect(() => {
     lastPreviewIndexRef.current = null
+    if (skipNextPreviewScrollRef.current) {
+      skipNextPreviewScrollRef.current = false
+      return
+    }
     scrollPreviewToActiveSegment()
-  }, [previewSegments.length, scrollPreviewToActiveSegment])
+  }, [
+    previewSegments.length,
+    scrollPreviewToActiveSegment
+  ])
 
   // Minimaler Medien-Upload pro Segment (nur im Edit-Modus)
   const [mediaAlt] = useState({})
@@ -688,6 +696,7 @@ function ThreadForm ({
     }`
 
     const nextValue = `${before}${separator}${after}`
+    skipNextPreviewScrollRef.current = true
     setSource(nextValue)
 
     requestAnimationFrame(() => {
