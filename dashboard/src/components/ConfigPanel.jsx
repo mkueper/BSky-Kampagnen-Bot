@@ -768,6 +768,19 @@ export default function ConfigPanel () {
                 'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.'
               )}
             </p>
+            <p>
+              <span className='font-semibold'>
+                {t(
+                  'config.scheduler.cronInfoRandomHeading',
+                  'Zufallsversatz (± Minuten)'
+                )}
+                {': '}
+              </span>
+              {t(
+                'config.scheduler.cronInfoRandom',
+                'Wird ein Versatz gesetzt, erh alten wiederkehrende Posts pro Turnus einen zufälligen Vor- oder Nachlauf innerhalb des Fensters. So starten mehrere Serien nicht exakt zeitgleich, während die eigentliche Referenzzeit (`repeatAnchorAt`) beibehalten wird.'
+              )}
+            </p>
           </>
         )}
         examples={t(
@@ -1206,8 +1219,9 @@ export default function ConfigPanel () {
                         {t('posts.form.infoButtonLabel', 'Info')}
                       </button>
                     </div>
-                    <div className='grid gap-4 md:grid-cols-3'>
-                      <div className='space-y-2 md:col-span-2'>
+                    <div className='grid gap-4 md:grid-cols-3 md:items-start'>
+                      <div className='space-y-4 md:col-span-2'>
+                        <div className='space-y-2'>
                         <div className='flex items-center justify-between gap-2'>
                           <label
                             htmlFor='scheduleTime'
@@ -1231,7 +1245,38 @@ export default function ConfigPanel () {
                           placeholder={defaults.scheduleTime}
                         />
                       </div>
-
+                        <div className='flex h-full flex-col'>
+                          <label
+                            htmlFor='randomOffsetMinutes'
+                            className='text-sm font-semibold text-foreground'
+                          >
+                            {t(
+                              'config.scheduler.labels.randomOffsetMinutes',
+                              'Zufallsversatz (± Minuten)'
+                            )}
+                          </label>
+                          <input
+                            id='randomOffsetMinutes'
+                            type='number'
+                            min={0}
+                            max={120}
+                            step={1}
+                            value={formValues.randomOffsetMinutes}
+                            onChange={e =>
+                              updateField('randomOffsetMinutes', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='mt-2 w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            placeholder={defaults.randomOffsetMinutes}
+                          />
+                          <p className='mt-1 text-xs text-foreground-muted'>
+                            {t(
+                              'config.scheduler.randomOffsetHint',
+                              'Optionaler jitter für wiederkehrende Posts. 5 ⇒ Versatz zwischen −5 und +5 Minuten.'
+                            )}
+                          </p>
+                        </div>
+                      </div>
                       <div className='border-l border-solid pl-4 md:col-span-1 space-y-2 text-xs text-foreground-muted md:text-sm'>
                         <div className='font-semibold'>
                           {t('config.scheduler.examplesTitle', 'Beispiele:')}
@@ -1388,34 +1433,6 @@ export default function ConfigPanel () {
                             disabled={loading || saving}
                             className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
                             placeholder={defaults.graceWindowMinutes}
-                          />
-                        </div>
-                        <div className='flex h-full flex-col'>
-                          <label
-                            htmlFor='randomOffsetMinutes'
-                            className='text-sm font-semibold text-foreground'
-                          >
-                            {t(
-                              'config.scheduler.labels.randomOffsetMinutes',
-                              'Zufallsversatz (± Minuten)'
-                            )}
-                          </label>
-                          <input
-                            id='randomOffsetMinutes'
-                            type='number'
-                            min={0}
-                            max={120}
-                            step={1}
-                            value={formValues.randomOffsetMinutes}
-                            onChange={e =>
-                              updateField(
-                                'randomOffsetMinutes',
-                                e.target.value
-                              )
-                            }
-                            disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
-                            placeholder={defaults.randomOffsetMinutes}
                           />
                         </div>
                       </div>

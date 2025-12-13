@@ -44,6 +44,7 @@ mkdir -p "${APP_DIR}"
 
 echo "Bundele Backend-Basis in ${APP_DIR}" >&2
 tar -cf - "${PROJECT_CONTENT[@]}" | tar -xf - -C "${APP_DIR}"
+cp scripts/docker-migrate-prod.sh "${WORK_DIR}/docker-migrate-prod.sh"
 
 # medias-pickers: node_modules entfernen, da lokale Symlink-Struktur sonst unnötig groß ist
 if [[ -d "${APP_DIR}/packages/media-pickers/node_modules" ]]; then

@@ -4,7 +4,7 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-11.12.2025
+13.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
@@ -16,6 +16,7 @@
 - Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
 - `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
 - VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.
+- Zufallsversatz für den Scheduler ist implementiert (Backend + Dashboard UI + Doku), inklusive `repeatAnchorAt`, Migration und Cron-Info-Dialog – das Input-Feld liegt momentan im Cron-Block; Layout wirkt etwas asymmetrisch, daher als künftiger Feinschliff vermerkt.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
@@ -39,6 +40,7 @@ Kampagnen-Tool läuft als eigenständiger Serverdienst mit dokumentiertem Docker
 
 7. Seed-Skript automatisiert in `package.json` (z. B. `npm run seed:demo`) verfügbar machen und mit kurzen CLI-Hinweisen testen.
 8. Docker-Bundle/Setup-Skript um Option erweitern, beim Packen eine Demo-Datenbank zu erzeugen oder bestehende DB zu bereinigen.
+9. Cron-Formular visual harmonisieren (Zufallsversatz-Feld + Erläuterung deutlicher konsolidieren), sobald restliche Scheduler-Aufgaben erledigt sind.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

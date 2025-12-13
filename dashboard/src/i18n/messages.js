@@ -717,6 +717,8 @@ const messages = {
           graceWindowMinutes: 'Grace-Zeit für verpasste Termine (Minuten)',
           randomOffsetMinutes: 'Zufallsversatz (± Minuten)'
         },
+        randomOffsetHint:
+          'Optionaler Jitter für wiederkehrende Posts. 5 ⇒ Versatz zwischen −5 und +5 Minuten.',
         examples:
           'Beispiele:\n0 * * * * (stündlich)\n*/5 * * * * (alle 5 Minuten)',
         summary:
@@ -730,6 +732,9 @@ const messages = {
           '0   8    1    *    *      – am 1. des Monats um 08:00\n\n',
         cronInfoSummary:
           'Cron-Ausdrücke steuern, wann das Kampagnen‑Tool geplante Posts verarbeitet.',
+        cronInfoRandomHeading: 'Zufallsversatz (± Minuten)',
+        cronInfoRandom:
+          'Wird ein Versatz gesetzt, erhalten wiederkehrende Posts pro Turnus einen zufälligen Vor- oder Nachlauf innerhalb des Fensters. Die Referenzzeit (`repeatAnchorAt`) bleibt erhalten, damit Serien nicht langfristig driften.',
         retryInfoInline:
           'Bei vorübergehenden Fehlern (z. B. Rate-Limits) werden Posts automatisch erneut versucht. Über Wiederholversuche, Backoff und Grace-Zeit wird festgelegt, wie lange das Nachholen erlaubt ist.',
         retryInfoIntro:
@@ -1552,6 +1557,8 @@ const messages = {
             'Grace period for missed runs (minutes)',
           randomOffsetMinutes: 'Random offset (± minutes)'
         },
+        randomOffsetHint:
+          'Optional jitter for recurring posts. 5 ⇒ shifts between −5 and +5 minutes.',
         examples:
           'Examples:\n0 * * * * (hourly)\n*/5 * * * * (every 5 minutes)',
         summary:
@@ -1566,6 +1573,9 @@ const messages = {
           '0   8    1    *    *      – on the 1st of the month at 08:00\n\n',
         cronInfoSummary:
           'Cron expressions control when the campaign tool processes scheduled posts.',
+        cronInfoRandomHeading: 'Random offset (± minutes)',
+        cronInfoRandom:
+          'When set, recurring posts receive a random positive/negative offset within the range each cycle. Their reference time (`repeatAnchorAt`) stays intact so series do not drift over time.',
         retryInfoInline:
           'For temporary errors (e.g. rate limits) posts are retried automatically. Retries, backoff and grace period define how long catch-up is allowed.',
         retryInfoIntro:
