@@ -20,12 +20,13 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
   side = 'top',
   sideOffset = 8,
   withArrow = false,
+  portalled = true,
   className = '',
   children,
   style,
   ...rest
 }, ref) {
-  return (
+  const content = (
     <Popover.Content
       ref={ref}
       align={align}
@@ -41,6 +42,7 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
       ) : null}
     </Popover.Content>
   )
+  return portalled ? <Popover.Portal>{content}</Popover.Portal> : content
 })
 
 InlineMenuContent.propTypes = {
@@ -48,6 +50,7 @@ InlineMenuContent.propTypes = {
   side: PropTypes.oneOf(['top', 'right', 'bottom', 'left']),
   sideOffset: PropTypes.number,
   withArrow: PropTypes.bool,
+  portalled: PropTypes.bool,
   className: PropTypes.string,
   children: PropTypes.node,
   style: PropTypes.object
