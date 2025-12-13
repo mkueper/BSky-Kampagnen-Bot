@@ -32,7 +32,14 @@ const messages = {
       newPostAria: 'Neuen Post erstellen',
       themeButton: 'Theme',
       themeSwitch: 'Theme wechseln – nächstes: {label}',
-      notificationsWithCount: '{label} ({count} neu)'
+      notificationsWithCount: '{label} ({count} neu)',
+      logout: 'Abmelden',
+      logoutPending: 'Abmelden…',
+      accountSwitchTitle: 'Account wechseln',
+      addAccount: 'Weiteren Account hinzufügen',
+      viewProfile: 'Zum Profil',
+      activeAccount: 'Aktiv',
+      noAccounts: 'Keine Accounts gefunden.'
     },
     theme: {
       mode: {
@@ -292,6 +299,31 @@ const messages = {
     }
   },
   en: {
+    nav: {
+      home: 'Home',
+      search: 'Search',
+      notifications: 'Notifications',
+      chat: 'Chat',
+      feeds: 'Feeds',
+      lists: 'Lists',
+      saved: 'Saved',
+      blocks: 'Blocks',
+      profile: 'Profile',
+      settings: 'Settings',
+      dashboard: 'Dashboard',
+      newPost: 'New post',
+      newPostAria: 'Create new post',
+      themeButton: 'Theme',
+      themeSwitch: 'Switch theme – next: {label}',
+      notificationsWithCount: '{label} ({count} new)',
+      logout: 'Sign out',
+      logoutPending: 'Signing out…',
+      accountSwitchTitle: 'Switch account',
+      addAccount: 'Add another account',
+      viewProfile: 'View profile',
+      activeAccount: 'Active',
+      noAccounts: 'No accounts available.'
+    },
     en: {
       reason: {
         like: {

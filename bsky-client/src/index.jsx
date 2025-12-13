@@ -5,6 +5,7 @@ import { fetcher } from './lib/fetcher.js'
 import { HashRouter } from 'react-router-dom'
 import { ToastProvider, ThemeProvider } from '@bsky-kampagnen-bot/shared-ui'
 import { I18nProvider } from './i18n/I18nProvider.jsx'
+import { AuthProvider } from './modules/auth/AuthContext.jsx'
 
 export default function BskyClientRoot (props) {
   return (
@@ -18,9 +19,11 @@ export default function BskyClientRoot (props) {
             errorRetryCount: 2
           }}>
             <HashRouter>
-              <AppProvider>
-                <ClientApp {...props} />
-              </AppProvider>
+              <AuthProvider>
+                <AppProvider>
+                  <ClientApp {...props} />
+                </AppProvider>
+              </AuthProvider>
             </HashRouter>
           </SWRConfig>
         </I18nProvider>

@@ -1,36 +1,49 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { useBskyAuth } from '../auth/AuthContext.jsx'
 
-export default function LoginView ({ session, sessionError, refreshSession }) {
+const HELP_LINK = 'https://bsky.app/settings/app-passwords'
+
+export default function LoginView () {
   const { t } = useTranslation()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const { login, preferences, status } = useBskyAuth()
+  const [serviceUrl, setServiceUrl] = useState(preferences.serviceUrl || '')
+  const [identifier, setIdentifier] = useState(preferences.identifier || '')
+  const [appPassword, setAppPassword] = useState('')
+  const [rememberCredentials, setRememberCredentials] = useState(Boolean(preferences.rememberCredentials))
+  const [rememberSession, setRememberSession] = useState(Boolean(preferences.rememberSession))
   const [submitting, setSubmitting] = useState(false)
-  const [loginError, setLoginError] = useState(null)
+  const [error, setError] = useState(null)
 
-  const configured = session?.configured ?? true
-  const errorMessage = loginError?.message || sessionError?.message || null
+  useEffect(() => {
+    setServiceUrl(preferences.serviceUrl || '')
+    setIdentifier(preferences.identifier || '')
+    setRememberCredentials(Boolean(preferences.rememberCredentials))
+    setRememberSession(Boolean(preferences.rememberSession))
+  }, [
+    preferences.serviceUrl,
+    preferences.identifier,
+    preferences.rememberCredentials,
+    preferences.rememberSession
+  ])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!configured) return
+    if (submitting) return
     setSubmitting(true)
-    setLoginError(null)
+    setError(null)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+      await login({
+        serviceUrl,
+        identifier,
+        appPassword,
+        rememberCredentials,
+        rememberSession
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data.error || 'Login fehlgeschlagen.')
-      }
-      setPassword('')
-      await refreshSession()
+      setAppPassword('')
     } catch (err) {
-      setLoginError(err)
+      setError(err)
     } finally {
       setSubmitting(false)
     }
@@ -44,7 +57,7 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
             {t('layout.nav.tagline', 'Control Center')}
           </p>
           <h1 className='mt-1 text-2xl font-semibold'>
-            {t('login.heading', 'Kampagnen‑Tool Login')}
+            {t('login.heading', 'Bluesky Login')}
           </h1>
           <p className='mt-2 text-sm text-foreground-muted'>
             {t(
@@ -54,101 +67,104 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
           </p>
         </div>
 
-        {errorMessage ? (
+        {error ? (
           <div className='rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive'>
-            {errorMessage}
+            {error?.message || t('login.errorFallback', 'Login fehlgeschlagen.')}
           </div>
         ) : null}
 
-        {!configured ? (
-          <div className='space-y-4 text-sm text-foreground-muted'>
-            <p>
-              {t(
-                'login.unconfigured.intro',
-                'Bevor sich jemand anmelden kann, muss der Login im Backend konfiguriert werden:'
-              )}
-            </p>
-            <ol className='list-decimal space-y-2 pl-5'>
-              <li>
-                {t(
-                  'login.unconfigured.step1',
-                  'Gewünschten Admin-Benutzer in `.env` via `AUTH_USERNAME` setzen.'
-                )}
-              </li>
-              <li>
-                {t(
-                  'login.unconfigured.step2.prefix',
-                  'Passwort-Hash mit'
-                )}{' '}
-                <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>npm run tools:hash-password</code>{' '}
-                {t(
-                  'login.unconfigured.step2.suffix',
-                  'generieren und als'
-                )}
-                <code className='ml-1 rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_PASSWORD_HASH</code> hinterlegen.
-              </li>
-              <li>
-                {t(
-                  'login.unconfigured.step3.prefix',
-                  'Einen zufälligen Schlüssel als'
-                )}{' '}
-                <code className='rounded bg-background-subtle px-1 py-[1px] text-xs'>AUTH_TOKEN_SECRET</code>{' '}
-                {t(
-                  'login.unconfigured.step3.suffix',
-                  'vergeben und Backend neustarten.'
-                )}
-              </li>
-            </ol>
-            <Button variant='secondary' onClick={refreshSession}>
-              {t('login.unconfigured.checkConfig', 'Konfiguration prüfen')}
-            </Button>
+        <form className='space-y-4' onSubmit={handleSubmit}>
+          <div className='space-y-1'>
+            <label className='text-sm font-medium text-foreground' htmlFor='login-service'>
+              {t('login.serviceLabel', 'Service-URL')}
+            </label>
+            <input
+              id='login-service'
+              type='text'
+              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
+              value={serviceUrl}
+              disabled={submitting}
+              onChange={(event) => setServiceUrl(event.target.value)}
+              required
+            />
           </div>
-        ) : (
-          <form className='space-y-4' onSubmit={handleSubmit}>
-            <div className='space-y-1'>
-              <label className='text-sm font-medium text-foreground' htmlFor='login-username'>
-                {t('login.usernameLabel', 'Benutzername')}
-              </label>
-              <input
-                id='login-username'
-                type='text'
-                className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
-                placeholder={t('login.usernamePlaceholder', 'admin')}
-                value={username}
-                disabled={submitting}
-                onChange={(event) => setUsername(event.target.value)}
-                required
-                autoComplete='username'
-              />
-            </div>
-            <div className='space-y-1'>
+
+          <div className='space-y-1'>
+            <label className='text-sm font-medium text-foreground' htmlFor='login-identifier'>
+              {t('login.identifierLabel', 'Identifier (Handle/E-Mail)')}
+            </label>
+            <input
+              id='login-identifier'
+              type='text'
+              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
+              placeholder='name.bsky.social'
+              value={identifier}
+              disabled={submitting}
+              onChange={(event) => setIdentifier(event.target.value)}
+              required
+              autoComplete='username'
+            />
+          </div>
+
+          <div className='space-y-1'>
+            <div className='flex items-center justify-between'>
               <label className='text-sm font-medium text-foreground' htmlFor='login-password'>
-                {t('login.passwordLabel', 'Passwort')}
+                {t('login.passwordLabel', 'App-Passwort')}
               </label>
-              <input
-                id='login-password'
-                type='password'
-                className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
-                placeholder='••••••••'
-                value={password}
-                disabled={submitting}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                autoComplete='current-password'
-              />
+              <a
+                href={HELP_LINK}
+                target='_blank'
+                rel='noreferrer'
+                className='text-xs text-primary underline-offset-2 hover:underline'
+              >
+                {t('login.passwordHelp', 'App-Passwort erstellen')}
+              </a>
             </div>
-            <Button type='submit' variant='primary' disabled={submitting} className='w-full justify-center'>
-              {submitting
-                ? t('login.submitBusy', 'Anmeldung läuft…')
-                : t('login.submitLabel', 'Anmelden')}
-            </Button>
-          </form>
-        )}
+            <input
+              id='login-password'
+              type='password'
+              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
+              placeholder='xxxx-xxxx-xxxx-xxxx'
+              value={appPassword}
+              disabled={submitting}
+              onChange={(event) => setAppPassword(event.target.value)}
+              required
+              autoComplete='current-password'
+            />
+          </div>
+
+          <div className='space-y-2 text-sm text-foreground'>
+            <label className='flex items-center gap-3'>
+              <input
+                type='checkbox'
+                checked={rememberCredentials}
+                onChange={(event) => setRememberCredentials(event.target.checked)}
+                className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+              />
+              {t('login.rememberCredentials', 'Service-URL und Identifier merken')}
+            </label>
+            <label className='flex items-center gap-3'>
+              <input
+                type='checkbox'
+                checked={rememberSession}
+                onChange={(event) => setRememberSession(event.target.checked)}
+                className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+              />
+              {t('login.rememberSession', 'Angemeldet bleiben (Session speichern)')}
+            </label>
+          </div>
+
+          <Button type='submit' variant='primary' disabled={submitting || status === 'loading'} className='w-full justify-center'>
+            {submitting
+              ? t('login.submitBusy', 'Anmeldung läuft…')
+              : t('login.submitLabel', 'Anmelden')}
+          </Button>
+        </form>
 
         <p className='text-xs text-foreground-muted'>
           {t(
-            'login.footerHint',
-            'Tipp: Mehrere Admins sind möglich, wenn die Cookies gemeinsam genutzt werden oder der Login via Proxy abgesichert wird.'
+            'login.footerHintStandalone',
+            'Tipp: App-Passwörter lassen sich im Bluesky-Account unter „Settings → App Passwords“ verwalten.'
           )}
         </p>
       </Card>

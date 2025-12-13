@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon } from '@radix-ui/react-icons'
+import { publishPost } from '../shared/api/bsky.js'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -13,7 +14,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [preview, setPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
-  const [pendingMedia, setPendingMedia] = useState([]) // [{ tempId, previewUrl, mime }]
+  const [pendingMedia, setPendingMedia] = useState([]) // [{ id, file, previewUrl, mime, altText }]
   const textareaRef = useRef(null)
   const emojiButtonRef = useRef(null)
   const cursorRef = useRef({ start: 0, end: 0 })
@@ -21,6 +22,36 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [mediaDialogOpen, setMediaDialogOpen] = useState(false)
   const [tenorAvailable, setTenorAvailable] = useState(false)
+  const [sending, setSending] = useState(false)
+  const mediaPreviewsRef = useRef(new Set())
+
+  const registerPreviewUrl = useCallback((url) => {
+    if (!url || !url.startsWith('blob:')) return
+    mediaPreviewsRef.current.add(url)
+  }, [])
+
+  const releasePreviewUrl = useCallback((url) => {
+    if (!url || !url.startsWith('blob:')) return
+    try {
+      URL.revokeObjectURL(url)
+    } catch {
+      /* noop */
+    }
+    mediaPreviewsRef.current.delete(url)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      mediaPreviewsRef.current.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url)
+        } catch {
+          /* noop */
+        }
+      })
+      mediaPreviewsRef.current.clear()
+    }
+  }, [])
   const focusRequestedRef = useRef(false)
   const quoteInfo = useMemo(() => {
     if (!quote || !quote.uri || !quote.cid) return null
@@ -42,8 +73,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     () =>
       pendingMedia.map((item, idx) => ({
         type: 'pending',
-        id: null,
-        tempId: item?.tempId ?? `pending-${idx}`,
+        id: item?.id || `pending-${idx}`,
+        tempId: item?.id || `pending-${idx}`,
         src: item?.previewUrl || '',
         alt: item?.altText || '',
         pendingIndex: idx
@@ -52,8 +83,12 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   )
   const handleRemovePendingMedia = useCallback(item => {
     if (typeof item?.pendingIndex !== 'number') return
-    setPendingMedia(arr => arr.filter((_, idx) => idx !== item.pendingIndex))
-  }, [])
+    setPendingMedia(arr => {
+      const target = arr[item.pendingIndex]
+      if (target?.previewUrl) releasePreviewUrl(target.previewUrl)
+      return arr.filter((_, idx) => idx !== item.pendingIndex)
+    })
+  }, [releasePreviewUrl])
   const mediaGridLabels = useMemo(
     () => ({
       imageAlt: index => `Bild ${index}`,
@@ -171,50 +206,40 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     })
   }
 
-  async function uploadTempMedia (file, fallbackPreview = '') {
+  function createMediaEntry (file, previewUrl) {
+    return {
+      id: (globalThis.crypto?.randomUUID?.() || `media-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+      file,
+      previewUrl,
+      mime: file.type || 'application/octet-stream',
+      altText: ''
+    }
+  }
+
+  async function addMediaFile (file, previewOverride = '') {
     if (!file) throw new Error('Keine Datei ausgewählt')
     if (pendingMedia.length >= MAX_MEDIA_COUNT) {
       throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     }
-    const dataUrl = await blobToDataUrl(file)
-    const res = await fetch('/api/uploads/temp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, mime: file.type || 'application/octet-stream', data: dataUrl })
-    })
-    const info = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const code = typeof info?.code === 'string' ? info.code : null
-      if (code === 'UPLOAD_TOO_LARGE') {
-        throw new Error('Datei ist zu groß. Bitte ein kleineres Bild wählen.')
-      }
-      if (code === 'UPLOAD_MISSING_DATA') {
-        throw new Error('Keine Datei-Daten übermittelt.')
-      }
-      throw new Error(info?.error || 'Upload fehlgeschlagen')
-    }
-    setPendingMedia((arr) => [...arr, { tempId: info.tempId, previewUrl: info.previewUrl || fallbackPreview, mime: info.mime }])
+    const previewUrl = previewOverride || URL.createObjectURL(file)
+    if (previewUrl.startsWith('blob:')) registerPreviewUrl(previewUrl)
+    setPendingMedia((arr) => [...arr, createMediaEntry(file, previewUrl)])
     requestAnimationFrame(() => {
       const el = textareaRef.current
-      if (!el) {
-        console.warn('[Composer] textareaRef missing after upload')
-        return
-      }
+      if (!el) return
       try {
         el.focus()
-        // console.log('[Composer] focus set in uploadTempMedia', { hasSelection: typeof el.selectionStart === 'number' })
-      } catch (err) {
-        console.warn('[Composer] focus failed in uploadTempMedia', err)
+      } catch {
+        /* ignore focus errors */
       }
     })
-    return info
   }
 
   async function handleLocalFile (file) {
     if (!file) return
     setMessage('')
     try {
-      await uploadTempMedia(file)
+      await addMediaFile(file)
       requestAnimationFrame(() => {
         const el = textareaRef.current
         if (!el) {
@@ -242,36 +267,25 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       if (pendingMedia.length >= MAX_MEDIA_COUNT) {
         throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
       }
-      const res = await fetch('/api/tenor/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: downloadUrl, filename: `tenor-${id || 'gif'}.gif` })
-      })
-      const info = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        const code = typeof info?.code === 'string' ? info.code : null
-        if (code === 'TENOR_DOWNLOAD_TOO_LARGE') {
-          throw new Error('GIF ist zu groß. Bitte ein kleineres GIF wählen.')
-        }
-        if (code === 'TENOR_DOWNLOAD_URL_REQUIRED') {
-          throw new Error('GIF-URL fehlt oder ist ungültig.')
-        }
-        if (code === 'TENOR_API_KEY_REQUIRED') {
-          throw new Error('GIF-Suche ist nicht konfiguriert (API-Key fehlt).')
-        }
-        throw new Error(info?.error || 'GIF konnte nicht geladen werden')
+      const response = await fetch(downloadUrl)
+      if (!response.ok) {
+        throw new Error('GIF konnte nicht geladen werden.')
       }
+      const blob = await response.blob()
+      if (blob.size > MAX_GIF_BYTES) {
+        throw new Error('GIF ist zu groß. Bitte ein kleineres GIF wählen.')
+      }
+      const file = new File([blob], `tenor-${id || 'gif'}.gif`, { type: blob.type || 'image/gif' })
+      const objectUrl = URL.createObjectURL(blob)
       let added = false
-      setPendingMedia((arr) => {
-        if (arr.length >= MAX_MEDIA_COUNT) return arr
+      try {
+        await addMediaFile(file, objectUrl)
         added = true
-        return [...arr, {
-          tempId: info.tempId,
-          previewUrl: previewUrl || info.previewUrl,
-          mime: info.mime || 'image/gif'
-        }]
-      })
-      if (!added) throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
+      } finally {
+        if (!added && objectUrl.startsWith('blob:')) {
+          releasePreviewUrl(objectUrl)
+        }
+      }
     } catch (e) {
       setMessage(e?.message || 'GIF konnte nicht geladen werden')
     } finally {
@@ -311,51 +325,33 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       return
     }
     const externalPayload = buildExternalPayload()
+    if (sending) return
+    setSending(true)
     try {
-      if (reply && reply.uri && reply.cid) {
-        const parent = { uri: reply.uri, cid: reply.cid }
-        const rootReply = reply.raw?.post?.record?.reply?.root
-        const root = rootReply && rootReply.uri && rootReply.cid ? rootReply : parent
-
-        const res = await fetch('/api/bsky/reply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: content,
-            root: { uri: root.uri, cid: root.cid },
-            parent: { uri: parent.uri, cid: parent.cid },
-            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
-            external: externalPayload
-          })
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Antwort senden fehlgeschlagen.')
-        setMessage('Gesendet.')
-        setText('')
-        setPendingMedia([])
-        if (typeof onSent === 'function') onSent()
-      } else {
-        const res = await fetch('/api/bsky/post', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: content,
-            media: pendingMedia.map(m => ({ tempId: m.tempId, mime: m.mime })),
-            quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : undefined,
-            external: externalPayload
-          })
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.error || 'Senden fehlgeschlagen.')
-        setMessage('Gesendet.')
-        setText('')
-        setPendingMedia([])
-        if (typeof onSent === 'function') onSent()
-      }
+      const replyContext = reply && reply.uri && reply.cid
+        ? (() => {
+            const parent = { uri: reply.uri, cid: reply.cid }
+            const rootReply = reply.raw?.post?.record?.reply?.root
+            const root = rootReply && rootReply.uri && rootReply.cid ? rootReply : parent
+            return { root, parent }
+          })()
+        : null
+      await publishPost({
+        text: content,
+        mediaEntries: pendingMedia.map((entry) => ({ file: entry.file, altText: entry.altText || '' })),
+        quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : null,
+        external: externalPayload,
+        reply: replyContext
+      })
+      pendingMedia.forEach((entry) => releasePreviewUrl(entry.previewUrl))
+      setPendingMedia([])
+      setText('')
+      setMessage('Gesendet.')
+      if (typeof onSent === 'function') onSent()
     } catch (err) {
       setMessage(err?.message || String(err))
     } finally {
-      // no-op
+      setSending(false)
     }
   }
 
@@ -541,13 +537,4 @@ function clampSelection (pos, length) {
   if (pos < 0) return 0
   if (pos > length) return length
   return pos
-}
-
-function blobToDataUrl (blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden'))
-    reader.readAsDataURL(blob)
-  })
 }

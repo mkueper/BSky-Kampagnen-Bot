@@ -32,6 +32,8 @@ import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
 import HashtagSearchPane from './modules/search/HashtagSearchPane.jsx'
 import { SearchProvider } from './modules/search/SearchContext.jsx'
 import SearchHeader from './modules/search/SearchHeader.jsx'
+import { useBskyAuth } from './modules/auth/AuthContext.jsx'
+import LoginView from './modules/login/LoginView.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -86,6 +88,17 @@ const NotificationsFallback = () => (
 )
 
 export default function BskyClientApp ({ onNavigateDashboard }) {
+  const { status: authStatus } = useBskyAuth()
+  if (authStatus === 'loading') {
+    return null
+  }
+  if (authStatus === 'unauthenticated') {
+    return <LoginView />
+  }
+  return <AuthenticatedClientApp onNavigateDashboard={onNavigateDashboard} />
+}
+
+function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const {
     section,
     activeListKey,
@@ -95,12 +108,13 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     profileViewer,
     hashtagSearch
   } = useAppState()
-  //console.log('[BskyClientApp] section', section, 'notificationsUnread', notificationsUnread, 'activeListKey', activeListKey)
   const dispatch = useAppDispatch()
+  const { logout, profile: authProfile } = useBskyAuth()
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const previousSectionRef = useRef(section)
+  const [logoutPending, setLogoutPending] = useState(false)
   const pushSectionRoute = useCallback((nextSection) => {
     const targetPath = SECTION_ROUTE_MAP[nextSection] || '/'
     if (location.pathname !== targetPath) {
@@ -205,6 +219,30 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     if (!el) return
     el.scrollTop = 0
   }, [getScrollContainer])
+  const accountProfile = me || authProfile || null
+  const accountProfiles = accountProfile
+    ? [
+        {
+          id: accountProfile.did || accountProfile.handle || 'active',
+          displayName: accountProfile.displayName || '',
+          handle: accountProfile.handle || '',
+          avatar: accountProfile.avatar || '',
+          actor: accountProfile.did || accountProfile.handle || null,
+          isActive: true
+        }
+      ]
+    : []
+  const handleLogout = useCallback(async () => {
+    if (logoutPending) return
+    setLogoutPending(true)
+    try {
+      await logout()
+    } catch (error) {
+      console.warn('Logout failed', error)
+    } finally {
+      setLogoutPending(false)
+    }
+  }, [logout, logoutPending])
 
   const refreshListByKey = useCallback(async (key, options = {}) => {
     if (!key) return
@@ -530,6 +568,9 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
             onScrollTopActivate={handleScrollTopActivate}
             detailPane={detailPane}
             detailPaneActive={detailPaneActive}
+            accountProfiles={accountProfiles}
+            onLogout={handleLogout}
+            logoutPending={logoutPending}
           >
             <div className='space-y-6'>
               <Suspense fallback={<SectionFallback label='Suche' />}>
@@ -556,6 +597,9 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         onScrollTopActivate={handleScrollTopActivate}
         detailPane={detailPane}
         detailPaneActive={detailPaneActive}
+        accountProfiles={accountProfiles}
+        onLogout={handleLogout}
+        logoutPending={logoutPending}
       >
         <MainContent
           notificationTab={notificationTab}

@@ -1,5 +1,6 @@
 import React from 'react'
 import { createContext, useContext, useReducer, useEffect } from 'react';
+import { AuthContext } from '../modules/auth/AuthContext.jsx'
 import {
   composerInitialState,
   composerReducer,
@@ -190,25 +191,20 @@ function appReducer(state, action) {
 
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const auth = useContext(AuthContext)
 
   useEffect(() => {
-    let ignore = false
-    const fetchMe = async () => {
-      try {
-        const res = await fetch('/api/me', { credentials: 'same-origin' })
-        if (!res.ok) return
-        const body = await res.json().catch(() => null)
-        const me = body?.profile || body || null
-        if (!ignore && me) {
-          dispatch({ type: 'SET_ME', payload: me })
-        }
-      } catch (err) {
-        console.error('Failed to fetch session', err)
+    if (!auth) return
+    if (auth.status === 'authenticated') {
+      if (auth.profile) {
+        dispatch({ type: 'SET_ME', payload: auth.profile })
       }
+      return
     }
-    fetchMe()
-    return () => { ignore = true }
-  }, [])
+    if (auth.status === 'unauthenticated') {
+      dispatch({ type: 'SET_ME', payload: null })
+    }
+  }, [auth?.status, auth?.profile, dispatch])
 
   return (
     <AppStateContext.Provider value={state}>

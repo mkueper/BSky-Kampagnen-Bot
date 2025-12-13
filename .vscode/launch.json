@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -39,6 +36,23 @@
                 "8180"
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Bluesky Client Dev Server",
+            "runtimeExecutable": "npm",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "run",
+                "dev:bsky-client"
+            ],
+            "console": "integratedTerminal",
+            "serverReadyAction": {
+                "pattern": "VITE v[0-9.]+  ready in",
+                "uriFormat": "http://localhost:5173",
+                "action": "openExternally"
+            }
         },
         {
             "name": "Dev: App (Backend + Bsky-Client)",

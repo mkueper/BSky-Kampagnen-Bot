@@ -26,7 +26,15 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
    - Alle aktuellen `/api/...`‑Aufrufe im `bsky-client` zentral dokumentieren (Auth/Session, `/api/me`, `/api/bsky/*`, `/api/uploads/*`, `/api/tenor/*`, `/api/client-config`) und im Code klar als „Backend‑Proxy für Bluesky“ kennzeichnen.
 
 3. Standalone-Modus vorbereiten:
-   - Ein Konfigurationsflag entwerfen (z. B. `VITE_CLIENT_MODE=backend|standalone`), das langfristig zwischen „Backend‑Modus“ (heutiges Verhalten) und „Standalone‑Modus“ (direkte Bluesky‑API) unterscheidet. Ziel: Schrittweise Entkopplung vom Backend, beginnend mit Auth/Session.
+   - Ein Konfigurationsflag entwerfen (z. B. `VITE_CLIENT_MODE=backend|standalone`), das langfristig zwischen „Backend‑Modus“ (heutiges Verhalten) und „Standalone‑Modus“ (direkte Bluesky‑API) unterscheidet. Ziel: Schrittweise Entkopplung vom Backend, beginnend mit Auth/Session. Die Umstellung folgt einer festen Reihenfolge, damit jeder Schritt sofort live testbar ist:
+     1. Auth & Session (`useBskyAuth`) – erledigt.
+     2. Profil (`/api/me`) → Bluesky-Session/Profiles.
+     3. Timeline & Notifications → direkte `agent`-Calls.
+     4. Engagement (Like/Repost/Bookmark) → `agent.app.bsky.feed.*`.
+     5. Threads & Replies → direkte Post-/Reply-Kommandos.
+     6. Bookmarks, Blocks, Saved Feeds → direkte APIs.
+     7. Uploads/Medien/Tenor → direkte Upload- & Drittanbieter-Integrationen.
+     8. Client-Config/Polling → lokale Defaults oder separate Settings.
 
 4. Standalone Auth + API-Layer (Schritt 1):
    - Einen neuen Auth-Store (`useBskyAuth`) implementieren, der `@atproto/api` direkt nutzt, Sessions speichert und UI-Status liefert (unauthenticated/authenticated/loading). Bestehende Hooks (LoginView etc.) darauf umstellen, ohne andere Module zu beeinflussen.
@@ -37,6 +45,7 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
 6. ThreadComposer & gemeinsame Utils vorbereiten:
    - `ThreadComposer` als generische Komponente (zunächst im `bsky-client`) entwerfen und dabei Bild-/GIF‑Handling konsequent über gemeinsame Helfer laufen lassen (z. B. Split‑Logik, Komprimierung).
    - Eine neutrale Utils‑Schicht (z. B. `shared-logic`/`shared-utils`) als Ziel für Helfer wie `compressImage` und die Thread‑Segmentierung vormerken, statt diese dauerhaft in `shared-ui` zu belassen.
+   - API-Replacements sollen nicht über neue Zwischen-APIs laufen; stattdessen verschieben wir wiederverwendbare Logik bewusst nach `shared-logic`/`shared-ui` und kapseln konkrete Protokolle (Bluesky, Mastodon, …) in kleine Client-Klassen wie den `BskyAgentClient`.
 
 7. README/Developer‑Hinweis:
    - Kurz dokumentieren, dass `bsky-client` und Dashboard getrennte Frontends sind, die nur über `shared-ui`/`shared-logic` verbunden sind, und wie man jeden Teil im Dev‑Modus startet (`dev`, `dev:frontend`, `dev:bsky-client`).

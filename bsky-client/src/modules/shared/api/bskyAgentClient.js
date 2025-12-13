@@ -88,10 +88,30 @@ export class BskyAgentClient {
   }
 
   /**
+   * Liefert das zugrundeliegende BskyAgent-Objekt.
+   */
+  getAgent () {
+    return this.agent
+  }
+
+  /**
    * Liefert die normalisierte Service-URL.
    */
   getServiceUrl () {
     return this.serviceUrl
+  }
+
+  /**
+   * Lädt das Profil des aktuellen (oder übergebenen) Accounts.
+   * @param {{ actor?: string }} options
+   */
+  async fetchProfile ({ actor } = {}) {
+    const targetActor = actor || this.agent?.session?.did
+    if (!targetActor) {
+      throw new Error('Keine Session verfügbar, um ein Profil abzurufen.')
+    }
+    const response = await this.agent.getProfile({ actor: targetActor })
+    return response?.data || response
   }
 }
 
@@ -103,3 +123,22 @@ export function createBskyAgentClient (options = {}) {
   return new BskyAgentClient(options)
 }
 
+let activeClientProvider = null
+
+export function setActiveBskyAgentProvider (provider) {
+  if (typeof provider === 'function') {
+    activeClientProvider = provider
+  } else {
+    activeClientProvider = null
+  }
+}
+
+export function getActiveBskyAgentClient () {
+  if (!activeClientProvider) return null
+  try {
+    return activeClientProvider() || null
+  } catch (error) {
+    console.warn('Failed to resolve active BskyAgentClient', error)
+    return null
+  }
+}

@@ -12,7 +12,7 @@ import {
   ThemeToggle,
   useThemeMode
 } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon, SunIcon } from '@radix-ui/react-icons'
+import { PlusIcon, SunIcon, ExitIcon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
 import { useLayout } from '../../context/LayoutContext'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
@@ -38,10 +38,13 @@ function MobileNavBar ({
   notificationsUnread,
   onSelect,
   themeToggle = null,
-  interactionsLocked = false
+  interactionsLocked = false,
+  onLogout = null,
+  logoutPending = false
 }) {
   const { t } = useTranslation()
   const items = NAV_ITEMS.filter(item => MOBILE_NAV_IDS.includes(item.id))
+  const logoutLabel = t('nav.logout', 'Abmelden')
   return (
     <nav
       className='pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4'
@@ -97,6 +100,20 @@ function MobileNavBar ({
             className='border-none bg-transparent text-foreground hover:text-primary'
           />
         ) : null}
+        {onLogout ? (
+          <button
+            type='button'
+            onClick={logoutPending ? undefined : onLogout}
+            aria-label={logoutLabel}
+            title={logoutLabel}
+            disabled={logoutPending}
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${
+              logoutPending ? 'cursor-not-allowed opacity-60' : ''
+            }`}
+          >
+            <ExitIcon className='h-5 w-5' />
+          </button>
+        ) : null}
       </div>
     </nav>
   )
@@ -113,7 +130,12 @@ export default function BskyClientLayout ({
   detailPane = null,
   detailPaneActive = false,
   scrollTopForceVisible = false,
-  onScrollTopActivate
+  onScrollTopActivate,
+  accountProfiles = [],
+  onSwitchAccount = null,
+  onAddAccount = null,
+  onLogout = null,
+  logoutPending = false
 }) {
   const { t } = useTranslation()
   const [isMobile, setIsMobile] = useState(computeIsMobile)
@@ -279,6 +301,11 @@ export default function BskyClientLayout ({
             onCompose={handleOpenCompose}
             themeToggle={themeToggleProps}
             interactionsLocked={navInteractionsLocked}
+            accountProfiles={accountProfiles}
+            onSwitchAccount={onSwitchAccount}
+            onAddAccount={onAddAccount}
+            onLogout={onLogout}
+            logoutPending={logoutPending}
           />
         </aside>
       ) : null}
@@ -379,6 +406,8 @@ export default function BskyClientLayout ({
             onSelect={handleSelect}
             themeToggle={themeToggleProps}
             interactionsLocked={navInteractionsLocked}
+            onLogout={onLogout}
+            logoutPending={logoutPending}
           />
         ) : null}
       </section>
