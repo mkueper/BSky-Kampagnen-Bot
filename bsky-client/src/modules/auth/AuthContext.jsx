@@ -112,15 +112,23 @@ function mergeAccountRecords (base, incoming) {
   if (!incoming) return base
   const merged = { ...base }
   merged.serviceUrl = incoming.serviceUrl || base.serviceUrl
-  merged.identifier = incoming.identifier || base.identifier
-  merged.handle = incoming.handle || base.handle
-  merged.did = incoming.did || base.did
-  merged.displayName = incoming.displayName || base.displayName
-  merged.avatar = incoming.avatar || base.avatar
+  merged.identifier = incoming.identifier !== undefined ? incoming.identifier : base.identifier
+  merged.handle = incoming.handle !== undefined ? incoming.handle : base.handle
+  merged.did = incoming.did !== undefined ? incoming.did : base.did
+  merged.displayName = incoming.displayName !== undefined ? incoming.displayName : base.displayName
+  merged.avatar = incoming.avatar !== undefined ? incoming.avatar : base.avatar
   merged.rememberCredentials = Boolean(base.rememberCredentials || incoming.rememberCredentials)
   merged.rememberSession = Boolean(base.rememberSession || incoming.rememberSession)
-  merged.session = incoming.session || base.session
+  merged.session = incoming.session !== undefined ? incoming.session : base.session
   return merged
+}
+
+function isStoredSessionValid (session) {
+  if (!session || typeof session !== 'object') return false
+  const accessJwt = safeString(session.accessJwt).trim()
+  const refreshJwt = safeString(session.refreshJwt).trim()
+  const did = safeString(session.did).trim()
+  return Boolean(accessJwt && refreshJwt && did)
 }
 
 function normalizeAccountsList (accounts, requestedActiveId) {
@@ -345,7 +353,34 @@ export function AuthProvider ({ children }) {
       }
 
       if (!activeAccount?.session) {
+        if (activeAccount && !activeAccount.rememberSession) {
+          setAccounts(prev => {
+            const next = prev.map(acc => acc.id === activeAccount.id
+              ? { ...acc, session: null }
+              : acc
+            )
+            persistAccounts(next, activeAccount.id)
+            return next
+          })
+        }
         if (!cancelled) setStatus('unauthenticated')
+        return
+      }
+
+      if (!activeAccount.rememberSession || !isStoredSessionValid(activeAccount.session)) {
+        setAccounts(prev => {
+          const next = prev.map(acc => acc.id === activeAccount.id
+            ? { ...acc, session: null, rememberSession: false }
+            : acc
+          )
+          persistAccounts(next, activeAccount.id)
+          return next
+        })
+        if (!cancelled) {
+          setSession(null)
+          setProfile(null)
+          setStatus('unauthenticated')
+        }
         return
       }
 
@@ -499,7 +534,8 @@ export function AuthProvider ({ children }) {
     if (!targetId || targetId === activeAccountId) return
     const targetAccount = accounts.find(acc => acc.id === targetId) || null
     if (!targetAccount) return
-    if (!targetAccount.session) {
+    if (!targetAccount.rememberSession || !isStoredSessionValid(targetAccount.session)) {
+      updateAccount(targetId, { session: null, rememberSession: false })
       beginAddAccount({
         serviceUrl: targetAccount.serviceUrl,
         identifier: targetAccount.identifier || targetAccount.handle || ''
@@ -554,7 +590,8 @@ export function AuthProvider ({ children }) {
           return next
         })
       }
-      const fallbackAccount = accounts.find(acc => acc.id !== currentId && acc.session) || null
+      const fallbackAccount =
+        accounts.find(acc => acc.id !== currentId && acc.rememberSession && isStoredSessionValid(acc.session)) || null
       if (fallbackAccount) {
         await switchAccount(fallbackAccount.id)
       } else {

@@ -189,7 +189,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (!tabInfo) return null
     return {
       key: tabInfo.id,
-      kind: tabInfo.origin === 'pinned' ? 'custom' : 'timeline',
+      kind: 'timeline',
       label: tabInfo.label,
       route: '/',
       supportsPolling: true,
@@ -267,10 +267,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     const isNotification = key.startsWith('notifs:')
     const meta = isNotification ? getNotificationListMeta(key) : getTimelineListMeta(key)
     if (!meta) return
-    const listState = lists?.[key] || meta
+    const listState = lists?.[key] || null
     try {
       const page = await runListRefresh({
-        list: { ...meta, ...(listState || {}) },
+        list: { ...(listState || {}), ...meta },
         dispatch,
         meta
       })
@@ -345,7 +345,6 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       return
     }
     timelineKeyRef.current = nextKey
-    dispatch({ type: 'LIST_SET_REFRESHING', payload: { key: nextKey, value: false, meta } })
     dispatch({ type: 'SET_ACTIVE_LIST', payload: nextKey })
     if (section !== 'home') {
       dispatch({ type: 'SET_SECTION', payload: 'home' })
@@ -398,7 +397,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       return (
         <TimelineHeader
           timelineTab={timelineKeyRef.current}
-          tabs={timelineTabs}
+          tabs={allTimelineTabs}
           onSelectTab={handleTimelineTabSelect}
           pinnedTabs={pinnedTabs}
           feedMenuOpen={feedMenuOpen}

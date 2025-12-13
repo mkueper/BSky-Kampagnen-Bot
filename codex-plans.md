@@ -13,6 +13,7 @@
 - Testkonventionen schreiben fachlich motivierte Fälle vor; Dashboard/Backend-Dokumente sind entsprechend angepasst und werden aktiv gepflegt.
 - Bluesky-Client: Zielarchitektur (eigenständige Desktop-App mit direktem `BskyAgent`) und Login-Konzept (Service-URL, Identifier, App-Passwort, zwei Persistenz-Checkboxen) stehen, Multi-Account bleibt nachgelagert.
 - `bskyAgentClient` bildet Login/Resume/Logout bereits ab; UI und Stores nutzen ihn noch nicht.
+- Aktueller Fokus: Wir arbeiten derzeit ausschließlich am Bluesky‑Client (`bsky-client`). Backend und Dashboard bleiben unangetastet; Änderungen in `packages/shared-*` erfolgen nur vorsichtig und kompatibel, weil sie beide Frontends betreffen können.
 - Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
 - `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
 - VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.

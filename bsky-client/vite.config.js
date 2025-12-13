@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 
@@ -12,9 +11,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-  },
-  define: {
-    'import.meta.env.VITE_BACKEND_PORT': JSON.stringify(process.env.VITE_BACKEND_PORT || 3000),
   },
   test: {
     globals: true,

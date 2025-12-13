@@ -1,8 +1,6 @@
 ﻿import { BskyAgent } from '@atproto/api'
 import { getActiveBskyAgentClient } from './bskyAgentClient.js'
 
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
-
 const OFFICIAL_FEED_GENERATORS = {
   discover: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
   mutuals: 'at://did:plc:tenurhgjptubkk5zf5qhi3og/app.bsky.feed.generator/mutuals',
@@ -32,17 +30,6 @@ const FEED_META_CACHE_TTL_MS = 5 * 60 * 1000
 const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
 const feedMetaGlobalCache = new Map()
-
-const createSearchParams = (init) => {
-  if (typeof globalThis.URLSearchParams === 'function') {
-    return new globalThis.URLSearchParams(init);
-  }
-  throw new Error('URLSearchParams ist in dieser Umgebung nicht verfuegbar.');
-};
-
-async function requestJson(/* ... */) {
-  throw new Error('Backend APIs sind im Standalone-Bluesky-Client nicht verfügbar.')
-}
 
 const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined;
 const DEFAULT_BSKY_SERVICE = 'https://bsky.social';
@@ -990,23 +977,6 @@ const noopPushTransport = {
   }
 };
 
-const backendPushTransport = {
-  async register (payload) {
-    return requestJson('/api/bsky/notifications/register-push', {
-      method: 'POST',
-      headers: JSON_HEADERS,
-      body: payload
-    });
-  },
-  async unregister (payload) {
-    return requestJson('/api/bsky/notifications/unregister-push', {
-      method: 'POST',
-      headers: JSON_HEADERS,
-      body: payload
-    });
-  }
-};
-
 function isValidPushTransport (transport) {
   if (!transport || typeof transport !== 'object') return false;
   return typeof transport.register === 'function' && typeof transport.unregister === 'function';
@@ -1027,17 +997,6 @@ export function configurePushTransport (transport) {
   configuredPushTransport = transport;
 }
 
-function getEnvPushTransportPreference () {
-  try {
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BSKY_PUSH_TRANSPORT) {
-      return String(import.meta.env.VITE_BSKY_PUSH_TRANSPORT || '').toLowerCase();
-    }
-  } catch {
-    /* noop */
-  }
-  return '';
-}
-
 function normalizeConfigEntry (value) {
   if (typeof value === 'string') return value.trim();
   if (value == null) return '';
@@ -1045,21 +1004,6 @@ function normalizeConfigEntry (value) {
 }
 
 function resolveDirectPushConfig () {
-  const envConfig = (() => {
-    try {
-      if (typeof import.meta === 'undefined' || !import.meta.env) return null;
-      const service = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_SERVICE || DEFAULT_BSKY_SERVICE) || DEFAULT_BSKY_SERVICE;
-      const identifier = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_IDENTIFIER || '');
-      const appPassword = normalizeConfigEntry(import.meta.env.VITE_BSKY_DIRECT_APP_PASSWORD || '');
-      if (identifier && appPassword) {
-        return { service, identifier, appPassword };
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  })();
-  if (envConfig) return envConfig;
   const globalConfig = GLOBAL_SCOPE && GLOBAL_SCOPE.__BSKY_DIRECT_PUSH_CONFIG__;
   if (globalConfig && typeof globalConfig === 'object') {
     const service = normalizeConfigEntry(globalConfig.service || DEFAULT_BSKY_SERVICE) || DEFAULT_BSKY_SERVICE;
@@ -1131,33 +1075,13 @@ function getOrCreateDirectTransport () {
   }
 }
 
-function resolveEnvPreferredTransport () {
-  const preference = getEnvPushTransportPreference();
-  switch (preference) {
-    case 'noop':
-    case 'disabled':
-      return noopPushTransport;
-    case 'direct': {
-      const direct = getOrCreateDirectTransport();
-      if (direct) return direct;
-      return backendPushTransport;
-    }
-    case 'auto': {
-      const direct = getOrCreateDirectTransport();
-      if (direct) return direct;
-      return backendPushTransport;
-    }
-    case 'backend':
-    default:
-      return backendPushTransport;
-  }
-}
-
 function resolvePushTransport () {
   if (configuredPushTransport) return configuredPushTransport;
   const globalTransport = GLOBAL_SCOPE?.__BSKY_PUSH_TRANSPORT__;
   if (isValidPushTransport(globalTransport)) return globalTransport;
-  return resolveEnvPreferredTransport();
+  const direct = getOrCreateDirectTransport();
+  if (direct) return direct;
+  return noopPushTransport;
 }
 
 export function getActivePushTransportName () {
@@ -1165,105 +1089,35 @@ export function getActivePushTransportName () {
   if (transport === configuredPushTransport) return 'custom';
   if (transport === cachedDirectTransport) return 'direct';
   if (transport === noopPushTransport) return 'noop';
-  if (transport === backendPushTransport) return 'backend';
   if (transport && GLOBAL_SCOPE?.__BSKY_PUSH_TRANSPORT__ === transport) return 'global';
   return 'custom';
 }
 
 export async function fetchTimeline({ tab, feedUri, cursor, limit } = {}) {
-  try {
-    const direct = await fetchTimelineDirect({ tab, feedUri, cursor, limit })
-    if (direct) return direct
-  } catch (error) {
-    console.warn('Direct Bluesky timeline failed, falling back to backend API', error)
-  }
-  return fetchTimelineViaBackend({ tab, feedUri, cursor, limit })
-}
-
-async function fetchTimelineViaBackend ({ tab, feedUri, cursor, limit } = {}) {
-  const params = createSearchParams();
-  if (feedUri) params.set('feedUri', feedUri);
-  else if (tab) params.set('tab', tab);
-  if (cursor) params.set('cursor', cursor);
-  if (typeof limit === 'number') params.set('limit', String(limit));
-  const query = params.toString();
-  const data = await requestJson(`/api/bsky/timeline${query ? `?${query}` : ''}`);
-  return {
-    items: Array.isArray(data?.feed) ? data.feed : [],
-    cursor: data?.cursor || null,
-  };
+  const direct = await fetchTimelineDirect({ tab, feedUri, cursor, limit })
+  if (direct) return direct
+  throw new Error('Keine Bluesky-Session verfügbar.')
 }
 
 export async function fetchNotifications({ cursor, markSeen, filter, limit } = {}) {
-  try {
-    const direct = await fetchNotificationsDirect({ cursor, markSeen, filter, limit })
-    if (direct) return direct
-  } catch (error) {
-    console.warn('Direct Bluesky notifications failed, falling back to backend API', error)
-  }
-  return fetchNotificationsViaBackend({ cursor, markSeen, filter, limit })
-}
-
-async function fetchNotificationsViaBackend ({ cursor, markSeen, filter, limit } = {}) {
-  const params = createSearchParams();
-  if (cursor) params.set('cursor', cursor);
-  if (markSeen) params.set('markSeen', 'true');
-  if (filter) params.set('filter', filter);
-  if (typeof limit === 'number') params.set('limit', String(limit));
-  const query = params.toString();
-  const data = await requestJson(`/api/bsky/notifications${query ? `?${query}` : ''}`);
-  return {
-    items: Array.isArray(data?.notifications) ? data.notifications : [],
-    cursor: data?.cursor || null,
-    unreadCount: Number(data?.unreadCount) || 0,
-    seenAt: data?.seenAt || null
-  };
+  const direct = await fetchNotificationsDirect({ cursor, markSeen, filter, limit })
+  if (direct) return direct
+  throw new Error('Keine Bluesky-Session verfügbar.')
 }
 
 export async function fetchUnreadNotificationsCount () {
-  try {
-    const data = await requestJson('/api/bsky/notifications/unread-count')
-    return {
-      unreadCount: Number(data?.unreadCount) || 0
-    }
-  } catch (error) {
-    if (error?.status === 404) {
-      const fallback = await fetchNotifications()
-      return {
-        unreadCount: Number(fallback?.unreadCount) || 0
-      }
-    }
-    throw error
-  }
+  const data = await fetchNotificationsDirect({ limit: 1, markSeen: false, filter: 'all' })
+  return { unreadCount: Number(data?.unreadCount) || 0 }
 }
 
 export async function fetchThread(uri) {
-  try {
-    const direct = await fetchThreadDirect(uri)
-    if (direct) return direct
-  } catch (error) {
-    console.warn('Direct Bluesky thread fetch failed, fallback to backend API', error)
-  }
-  const params = createSearchParams();
-  params.set('uri', uri);
-  return requestJson(`/api/bsky/thread?${params.toString()}`);
+  const direct = await fetchThreadDirect(uri)
+  if (direct) return direct
+  throw new Error('Keine Bluesky-Session verfügbar.')
 }
 
 export async function fetchBlocks ({ cursor, limit } = {}) {
-  try {
-    return await fetchBlocksDirect({ cursor, limit })
-  } catch (error) {
-    console.warn('Direct blocks fetch failed, falling back to backend API', error)
-  }
-  const params = createSearchParams()
-  if (cursor) params.set('cursor', cursor)
-  if (typeof limit === 'number') params.set('limit', String(limit))
-  const query = params.toString()
-  const data = await requestJson(`/api/bsky/blocks${query ? `?${query}` : ''}`)
-  return {
-    blocks: Array.isArray(data?.blocks) ? data.blocks : [],
-    cursor: data?.cursor || null
-  }
+  return fetchBlocksDirect({ cursor, limit })
 }
 
 export async function likePost({ uri, cid }) {
@@ -1366,40 +1220,68 @@ export async function unbookmarkPost({ uri }) {
 export async function fetchReactions({ uri }) {
   const direct = await fetchReactionsDirect({ uri })
   if (direct) return direct
-  const params = createSearchParams({ uri });
-  return requestJson(`/api/bsky/reactions?${params.toString()}`);
+  throw new Error('Keine Bluesky-Session verfügbar.')
 }
 
 export async function fetchBookmarks({ cursor, limit } = {}) {
-  try {
-    return await fetchBookmarksDirect({ cursor, limit })
-  } catch (error) {
-    console.warn('Direct bookmarks fetch failed, falling back to backend API', error)
-  }
-  const params = createSearchParams();
-  if (cursor) params.set('cursor', cursor);
-  if (typeof limit === 'number') params.set('limit', String(limit));
-  const query = params.toString();
-  const data = await requestJson(`/api/bsky/bookmarks${query ? `?${query}` : ''}`);
+  return fetchBookmarksDirect({ cursor, limit })
+}
+
+async function searchPostsDirect ({ query, cursor, limit, sort = 'top' } = {}) {
+  const normalizedQuery = String(query || '').trim()
+  if (!normalizedQuery) return { items: [], cursor: null, type: sort }
+  const agent = assertActiveAgent()
+  const safeLimit = clampNumber(limit, 1, 100, 25)
+  const params = { q: normalizedQuery, limit: safeLimit, sort }
+  if (cursor) params.cursor = cursor
+  const res = await agent.app.bsky.feed.searchPosts(params)
+  const data = res?.data ?? res ?? {}
+  const posts = Array.isArray(data?.posts) ? data.posts : []
+  const items = posts
+    .map((post, index) => mapFeedEntry({ post }, { context: `search:${sort}:${index}` }))
+    .filter(Boolean)
   return {
-    items: Array.isArray(data?.items) ? data.items : [],
+    items,
     cursor: data?.cursor || null,
-  };
+    type: sort
+  }
+}
+
+async function searchActorsDirect ({ query, cursor, limit } = {}) {
+  const normalizedQuery = String(query || '').trim()
+  if (!normalizedQuery) return { items: [], cursor: null, type: 'people' }
+  const agent = assertActiveAgent()
+  const safeLimit = clampNumber(limit, 1, 100, 25)
+  const params = { q: normalizedQuery, limit: safeLimit }
+  if (cursor) params.cursor = cursor
+  const res = await agent.app.bsky.actor.searchActors(params)
+  const data = res?.data ?? res ?? {}
+  const actors = Array.isArray(data?.actors) ? data.actors : []
+  const items = actors
+    .map((actor) => ({
+      did: actor?.did || '',
+      handle: actor?.handle || '',
+      displayName: actor?.displayName || actor?.handle || '',
+      avatar: actor?.avatar || null,
+      description: actor?.description || ''
+    }))
+    .filter((entry) => entry.did || entry.handle)
+  return {
+    items,
+    cursor: data?.cursor || null,
+    type: 'people'
+  }
 }
 
 export async function searchBsky({ query, type, cursor, limit } = {}) {
-  const params = createSearchParams();
-  if (query) params.set('q', query);
-  if (type) params.set('type', type);
-  if (cursor) params.set('cursor', cursor);
-  if (typeof limit === 'number') params.set('limit', String(limit));
-  const queryString = params.toString();
-  const data = await requestJson(`/api/bsky/search${queryString ? `?${queryString}` : ''}`);
-  return {
-    items: Array.isArray(data?.items) ? data.items : [],
-    cursor: data?.cursor || null,
-    type: data?.type || type || 'top'
-  };
+  const normalizedType = typeof type === 'string' ? type.trim().toLowerCase() : ''
+  if (normalizedType === 'people') {
+    return searchActorsDirect({ query, cursor, limit })
+  }
+  if (normalizedType === 'latest') {
+    return searchPostsDirect({ query, cursor, limit, sort: 'latest' })
+  }
+  return searchPostsDirect({ query, cursor, limit, sort: 'top' })
 }
 
 export async function fetchProfile (actor) {
@@ -1470,62 +1352,24 @@ export async function fetchProfileLikes ({ actor, cursor, limit } = {}) {
 }
 
 export async function fetchFeeds () {
-  try {
-    return await fetchFeedsDirect()
-  } catch (error) {
-    console.warn('Direct feed fetch failed, falling back to backend API', error)
-  }
-  const data = await requestJson('/api/bsky/feeds')
-  return {
-    official: Array.isArray(data?.official) ? data.official : [],
-    pinned: Array.isArray(data?.pinned) ? data.pinned : [],
-    saved: Array.isArray(data?.saved) ? data.saved : [],
-    errors: Array.isArray(data?.errors) ? data.errors : []
-  }
+  return fetchFeedsDirect()
 }
 
 export async function pinFeed ({ feedUri }) {
   if (!feedUri) throw new Error('feedUri erforderlich')
-  try {
-    return await pinFeedDirect({ feedUri })
-  } catch (error) {
-    console.warn('Direct pinFeed failed, falling back to backend API', error)
-  }
-  return requestJson('/api/bsky/feeds/pin', {
-    method: 'POST',
-    headers: JSON_HEADERS,
-    body: { feedUri }
-  })
+  return pinFeedDirect({ feedUri })
 }
 
 export async function unpinFeed ({ feedUri }) {
   if (!feedUri) throw new Error('feedUri erforderlich')
-  try {
-    return await unpinFeedDirect({ feedUri })
-  } catch (error) {
-    console.warn('Direct unpinFeed failed, falling back to backend API', error)
-  }
-  return requestJson('/api/bsky/feeds/pin', {
-    method: 'DELETE',
-    headers: JSON_HEADERS,
-    body: { feedUri }
-  })
+  return unpinFeedDirect({ feedUri })
 }
 
 export async function reorderPinnedFeeds ({ order }) {
   if (!Array.isArray(order) || order.length === 0) {
     throw new Error('order erforderlich');
   }
-  try {
-    return await reorderPinnedFeedsDirect({ order })
-  } catch (error) {
-    console.warn('Direct reorderPinnedFeeds failed, falling back to backend API', error)
-  }
-  return requestJson('/api/bsky/feeds/pin-order', {
-    method: 'PATCH',
-    headers: JSON_HEADERS,
-    body: { order }
-  })
+  return reorderPinnedFeedsDirect({ order })
 }
 
 function ensurePushPayload({ serviceDid, token, platform, appId }) {
@@ -1566,4 +1410,4 @@ export async function unregisterPushSubscription({ serviceDid, token, platform, 
   return transport.unregister(payload, { action: 'unregister' });
 }
 
-export { requestJson, createBskyAgentPushTransport };
+export { createBskyAgentPushTransport };

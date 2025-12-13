@@ -13,6 +13,7 @@
 - Die wichtigsten Backend‑Abhängigkeiten des `bsky-client` sind identifiziert (Auth, `/api/me`, Bluesky‑Proxies, Uploads, Tenor‑Proxy, Client‑Config).
 - `shared-ui` und `shared-logic` dienen bereits als zentrale Brücke für gemeinsame UI‑Bausteine und Logik zwischen Dashboard und Client.
 - Konvention: Bei Änderungen/Neubau von UI‑Bausteinen zuerst in `packages/shared-ui` (bzw. `packages/shared-*`) prüfen, ob es bereits eine passende Komponente/Utility gibt, bevor im `bsky-client` oder `dashboard` etwas dupliziert wird.
+- Arbeitsmodus: Wir arbeiten aktuell ausschließlich am `bsky-client`. Änderungen in `packages/shared-*` nur, wenn für den Client nötig und dann strikt kompatibel/additiv (keine API‑Brüche, Defaults beibehalten), weil Dashboard/andere Consumer sonst unbeabsichtigt kaputtgehen können.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
@@ -54,6 +55,17 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
    - Eine generische UI‑Komponente `ThreadComposer` entwerfen, die über Props wie `value`, `onChange`, `maxLength`, `locale`, `hardBreakMarker` und `onSubmit(segments)` arbeitet und keinerlei Plattform‑ oder Scheduling‑Wissen enthält.
    - Die Split‑Logik nach `shared-logic` auslagern (`splitThread({ text, maxLength, hardBreakMarker })`), so dass Dashboard, `bsky-client` und spätere Mastodon‑Unterstützung die gleiche Logik nutzen können.
    - Im `bsky-client` den heutigen „+“‑Pfad perspektivisch durch einen „Sofort posten“-Einsatz von `ThreadComposer` ersetzen, während das Kampagnen‑Dashboard weiter seinen geplanten Scheduler nutzt.
+9. Timeline-Tabs (Client):
+   - Tabs für Timeline-Feeds (z. B. Discover/Following/Feeds) sauber definieren und im UI als echte Tabs abbilden (inkl. klarer Active-State, Refresh-Verhalten und Cursor-/Paging-Konsistenz je Tab).
+
+10. Binäre Badges in Timelines konfigurierbar machen:
+   - Anzeige der binären Badges (z. B. „neu“/Zähler-Badges) in Timeline-Listen als Option unter „Aussehen“ vorsehen (Default wie bisher), damit das UI je nach Preference ruhiger geschaltet werden kann.
+
+11. Anmelde-Dialog erweitern (nicht sofort umsetzen):
+   - Kontoauswahl anbieten, um zwischen vorhandenen Accounts wählen zu können (statt nur „neu anmelden“).
+
+12. Composer-Modal verbessern (Idee, nicht sofort umsetzen):
+   - Beim Antworten im Composer-Modal oberhalb des Eingabefelds den Post anzeigen, auf den geantwortet wird.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

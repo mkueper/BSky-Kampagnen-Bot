@@ -76,7 +76,11 @@ export class BskyAgentClient {
         await this.agent.logout()
       }
     } finally {
-      this.agent.session = undefined
+      // @atproto/api exposes `session` as a getter on the agent; clearing must go through the sessionManager.
+      const sessionManager = this.agent?.sessionManager
+      if (sessionManager && Object.prototype.hasOwnProperty.call(sessionManager, 'session')) {
+        sessionManager.session = undefined
+      }
     }
   }
 

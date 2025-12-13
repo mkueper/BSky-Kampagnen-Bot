@@ -269,10 +269,9 @@ export default function SidebarNav ({
       ) : null}
       {activeAccount ? <div className='h-12 lg:h-16' aria-hidden='true' /> : null}
       <div
-        className='min-h-0 flex flex-1 overflow-y-auto pr-1'
-        style={{ scrollbarGutter: 'stable' }}
+        className='min-h-0 flex flex-1 overflow-y-auto'
       >
-        <div className='grid w-max grid-cols-[max-content] justify-items-stretch gap-1'>
+        <div className='grid content-start w-max grid-cols-[max-content] justify-items-stretch gap-1'>
           {NAV_ITEMS.map(item => {
             const Icon = item.icon
             const isActive = active === item.id

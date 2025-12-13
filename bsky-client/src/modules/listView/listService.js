@@ -99,18 +99,18 @@ export async function runListRefresh({ list, dispatch, meta, limit = DEFAULT_PAG
     const page = descriptor.kind === 'notifications'
       ? await fetchNotificationsPage(list, { limit })
       : await fetchTimelinePage(list, { limit })
-    const mergedItems = prependUnique(page.items, list.items || [])
+    const nextItems = Array.isArray(page?.items) ? page.items : []
     dispatch({
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
-        items: mergedItems,
+        items: nextItems,
         cursor: page.cursor || null,
-        topId: mergedItems[0] ? getItemId(mergedItems[0]) : null,
+        topId: nextItems[0] ? getItemId(nextItems[0]) : null,
         meta: meta ? { ...meta, data: meta.data || list.data } : { data: list.data }
       }
     })
-    return { ...page, items: mergedItems }
+    return { ...page, items: nextItems }
   } finally {
     dispatch({
       type: 'LIST_SET_REFRESHING',

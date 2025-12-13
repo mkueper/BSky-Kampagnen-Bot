@@ -10,10 +10,9 @@ import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import {
   Drawer,
   ScrollTopButton,
-  ThemeToggle,
   useThemeMode
 } from '@bsky-kampagnen-bot/shared-ui'
-import { PlusIcon, SunIcon, ExitIcon, HamburgerMenuIcon } from '@radix-ui/react-icons'
+import { PlusIcon, SunIcon, HamburgerMenuIcon } from '@radix-ui/react-icons'
 import clsx from 'clsx'
 import { useLayout } from '../../context/LayoutContext'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
@@ -37,15 +36,11 @@ function MobileNavBar ({
   activeSection,
   notificationsUnread,
   onSelect,
-  themeToggle = null,
   interactionsLocked = false,
-  onOpenMenu,
-  onLogout = null,
-  logoutPending = false
+  onOpenMenu
 }) {
   const { t } = useTranslation()
   const items = NAV_ITEMS.filter(item => MOBILE_NAV_IDS.includes(item.id))
-  const logoutLabel = t('nav.logout', 'Abmelden')
   return (
     <nav
       className='pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4'
@@ -104,28 +99,6 @@ function MobileNavBar ({
             </button>
           )
         })}
-        {themeToggle ? (
-          <ThemeToggle
-            {...themeToggle}
-            variant='icon'
-            showIndicator={false}
-            className='border-none bg-transparent text-foreground hover:text-primary'
-          />
-        ) : null}
-        {onLogout ? (
-          <button
-            type='button'
-            onClick={logoutPending ? undefined : onLogout}
-            aria-label={logoutLabel}
-            title={logoutLabel}
-            disabled={logoutPending}
-            className={`inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${
-              logoutPending ? 'cursor-not-allowed opacity-60' : ''
-            }`}
-          >
-            <ExitIcon className='h-5 w-5' />
-          </button>
-        ) : null}
       </div>
     </nav>
   )
@@ -243,7 +216,7 @@ export default function BskyClientLayout ({
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
     'fixed top-4 bottom-4 left-4',
     isMobile ? 'w-[min(220px,80vw)]' : 'w-[min(280px,85vw)]',
-    'md:sticky md:top-4 md:self-start md:shrink-0 md:max-h-[calc(100vh-48px)]',
+    'md:sticky md:top-4 md:self-start md:shrink-0 md:h-[calc(100vh-48px)] md:max-h-[calc(100vh-48px)]',
     'md:relative md:top-auto md:bottom-auto md:left-auto md:w-20 md:px-[11px] md:py-2 lg:w-max lg:px-[6px]',
     {
       'translate-x-0': navVisible,
