@@ -5,7 +5,12 @@ import { useBskyAuth } from '../auth/AuthContext.jsx'
 
 const HELP_LINK = 'https://bsky.app/settings/app-passwords'
 
-export default function LoginView () {
+export default function LoginView ({
+  variant = 'page',
+  open = true,
+  prefill = null,
+  onClose = null
+}) {
   const { t } = useTranslation()
   const { login, preferences, status } = useBskyAuth()
   const [serviceUrl, setServiceUrl] = useState(preferences.serviceUrl || '')
@@ -17,11 +22,22 @@ export default function LoginView () {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    setServiceUrl(preferences.serviceUrl || '')
-    setIdentifier(preferences.identifier || '')
+    if (variant === 'modal' && open && prefill) {
+      const nextServiceUrl = String(prefill?.serviceUrl || preferences.serviceUrl || '').trim()
+      const nextIdentifier = String(prefill?.identifier || preferences.identifier || '').trim()
+      setServiceUrl(nextServiceUrl)
+      setIdentifier(nextIdentifier)
+    } else {
+      setServiceUrl(preferences.serviceUrl || '')
+      setIdentifier(preferences.identifier || '')
+    }
     setRememberCredentials(Boolean(preferences.rememberCredentials))
     setRememberSession(Boolean(preferences.rememberSession))
   }, [
+    variant,
+    open,
+    prefill?.serviceUrl,
+    prefill?.identifier,
     preferences.serviceUrl,
     preferences.identifier,
     preferences.rememberCredentials,
@@ -39,9 +55,13 @@ export default function LoginView () {
         identifier,
         appPassword,
         rememberCredentials,
-        rememberSession
+        rememberSession,
+        asNewAccount: variant === 'modal'
       })
       setAppPassword('')
+      if (variant === 'modal' && typeof onClose === 'function') {
+        onClose()
+      }
     } catch (err) {
       setError(err)
     } finally {
@@ -49,20 +69,40 @@ export default function LoginView () {
     }
   }
 
+  if (variant === 'modal' && !open) return null
+
+  const heading = variant === 'modal'
+    ? t('login.addAccountHeading', 'Account hinzufügen')
+    : t('login.heading', 'Bluesky Login')
+
   return (
-    <div className='flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground'>
-      <Card className='w-full max-w-md space-y-6 shadow-card' padding='p-8'>
+    <div
+      className={variant === 'modal'
+        ? 'fixed inset-0 z-50 flex items-center justify-center px-4 py-10'
+        : 'flex min-h-screen items-center justify-center bg-background px-4 py-12 text-foreground'}
+      data-component={variant === 'modal' ? 'BskyAddAccountModal' : 'BskyLoginView'}
+    >
+      {variant === 'modal' ? (
+        <div
+          className='absolute inset-0 bg-black/40 backdrop-blur-sm'
+          onClick={typeof onClose === 'function' ? onClose : undefined}
+          aria-hidden='true'
+          data-role='overlay'
+        />
+      ) : null}
+
+      <Card className={`relative w-full max-w-md space-y-6 shadow-card ${variant === 'modal' ? 'z-10' : ''}`} padding='p-8'>
         <div>
           <p className='text-xs uppercase tracking-[0.3em] text-foreground-muted'>
             {t('layout.nav.tagline', 'Control Center')}
           </p>
           <h1 className='mt-1 text-2xl font-semibold'>
-            {t('login.heading', 'Bluesky Login')}
+            {heading}
           </h1>
           <p className='mt-2 text-sm text-foreground-muted'>
             {t(
-              'login.subtitle',
-              'Zugangsdaten werden serverseitig verwaltet.'
+              'login.subtitleStandalone',
+              'Melde dich mit einem App-Passwort an. Deine Sitzung bleibt lokal im Client.'
             )}
           </p>
         </div>

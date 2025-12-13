@@ -86,7 +86,9 @@ export default function SidebarNav ({
     setAccountMenuOpen(false)
     if (!activeAccount) return
     const actor = activeAccount.actor || activeAccount.did || activeAccount.handle || null
-    onSelect('profile', actor)
+    if (typeof onSelect === 'function') {
+      onSelect('profile', actor)
+    }
   }
   const handleAddAccount = () => {
     setAccountMenuOpen(false)
@@ -120,6 +122,7 @@ export default function SidebarNav ({
             <InlineMenuTrigger>
               <button
                 type='button'
+                disabled={interactionsLocked}
                 className='flex w-full items-center justify-between rounded-2xl border border-border bg-background-subtle/70 px-3 py-2 text-left shadow-soft transition hover:bg-background'
                 aria-haspopup='menu'
                 aria-label={menuTitle}
@@ -167,6 +170,7 @@ export default function SidebarNav ({
                           type='button'
                           key={account?.id || handle || displayName}
                           onClick={() => handleSwitchAccount(account)}
+                          disabled={interactionsLocked}
                           className={`flex w-full items-center gap-3 rounded-2xl border border-transparent px-2 py-2 text-left transition ${
                             isActive
                               ? 'bg-background-subtle text-foreground'
@@ -210,15 +214,15 @@ export default function SidebarNav ({
                     )}
               </div>
               <div className='space-y-1 border-t border-border/70 pt-2'>
-                <InlineMenuItem icon={PersonIcon} onSelect={handleProfileClick}>
+                <InlineMenuItem icon={PersonIcon} onSelect={handleProfileClick} disabled={interactionsLocked}>
                   {profileLabel}
                 </InlineMenuItem>
                 {typeof onAddAccount === 'function' ? (
-                  <InlineMenuItem icon={PlusIcon} onSelect={handleAddAccount}>
+                  <InlineMenuItem icon={PlusIcon} onSelect={handleAddAccount} disabled={interactionsLocked}>
                     {addAccountLabel}
                   </InlineMenuItem>
                 ) : null}
-                <InlineMenuItem icon={ExitIcon} onSelect={handleLogoutClick} disabled={logoutPending}>
+                <InlineMenuItem icon={ExitIcon} onSelect={handleLogoutClick} disabled={logoutPending || interactionsLocked}>
                   {logoutPending ? t('nav.logoutPending', 'Abmelden…') : logoutLabel}
                 </InlineMenuItem>
               </div>

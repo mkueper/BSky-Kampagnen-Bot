@@ -109,7 +109,13 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     hashtagSearch
   } = useAppState()
   const dispatch = useAppDispatch()
-  const { logout, profile: authProfile } = useBskyAuth()
+  const {
+    logout,
+    profile: authProfile,
+    accounts: authAccounts,
+    switchAccount,
+    beginAddAccount
+  } = useBskyAuth()
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
@@ -219,19 +225,31 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (!el) return
     el.scrollTop = 0
   }, [getScrollContainer])
-  const accountProfile = me || authProfile || null
-  const accountProfiles = accountProfile
-    ? [
-        {
-          id: accountProfile.did || accountProfile.handle || 'active',
-          displayName: accountProfile.displayName || '',
-          handle: accountProfile.handle || '',
-          avatar: accountProfile.avatar || '',
-          actor: accountProfile.did || accountProfile.handle || null,
-          isActive: true
-        }
-      ]
-    : []
+  const accountProfiles = Array.isArray(authAccounts) && authAccounts.length > 0
+    ? authAccounts
+    : (me || authProfile)
+        ? [
+            {
+              id: (me || authProfile).did || (me || authProfile).handle || 'active',
+              displayName: (me || authProfile).displayName || '',
+              handle: (me || authProfile).handle || '',
+              avatar: (me || authProfile).avatar || '',
+              actor: (me || authProfile).did || (me || authProfile).handle || null,
+              isActive: true
+            }
+          ]
+        : []
+
+  const handleAddAccount = useCallback(() => {
+    beginAddAccount()
+  }, [beginAddAccount])
+
+  const handleSwitchAccount = useCallback(async (account) => {
+    const targetId = typeof account?.id === 'string' ? account.id : null
+    if (!targetId) return
+    await switchAccount(targetId)
+  }, [switchAccount])
+
   const handleLogout = useCallback(async () => {
     if (logoutPending) return
     setLogoutPending(true)
@@ -569,6 +587,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
             detailPane={detailPane}
             detailPaneActive={detailPaneActive}
             accountProfiles={accountProfiles}
+            onSwitchAccount={handleSwitchAccount}
+            onAddAccount={handleAddAccount}
             onLogout={handleLogout}
             logoutPending={logoutPending}
           >
@@ -598,6 +618,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         detailPane={detailPane}
         detailPaneActive={detailPaneActive}
         accountProfiles={accountProfiles}
+        onSwitchAccount={handleSwitchAccount}
+        onAddAccount={handleAddAccount}
         onLogout={handleLogout}
         logoutPending={logoutPending}
       >

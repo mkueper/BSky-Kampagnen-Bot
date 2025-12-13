@@ -201,10 +201,12 @@ export default function BskyClientLayout ({
   const navInteractionsLocked = Boolean(detailPaneActive)
 
   const handleSelect = useCallback(
-    (section, options = {}) => {
+    (section, actorOrOptions = null, maybeOptions = {}) => {
+      const actor = typeof actorOrOptions === 'string' ? actorOrOptions : null
+      const options = actor ? maybeOptions : (actorOrOptions || {})
       if (navInteractionsLocked && !options?.force) return
       if (typeof onSelectSection === 'function') {
-        onSelectSection(section)
+        onSelectSection(section, actor)
       }
     },
     [onSelectSection, navInteractionsLocked]

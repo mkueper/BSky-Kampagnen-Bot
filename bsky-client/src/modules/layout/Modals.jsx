@@ -3,18 +3,21 @@ import { useAppState, useAppDispatch } from '../../context/AppContext';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
+import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { Button, MediaLightbox } from '../shared';
 import { ConfirmDialog } from '@bsky-kampagnen-bot/shared-ui';
 import { Composer, ComposeModal } from '../composer';
 import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
+import LoginView from '../login/LoginView.jsx'
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { closeComposer, setQuoteTarget } = useComposer();
+  const { addAccount, cancelAddAccount } = useBskyAuth()
   const {
     feedPicker,
     feedManagerOpen,
@@ -107,6 +110,13 @@ export function Modals() {
         />
       ) : null}
       <AuthorThreadUnrollModal />
+
+      <LoginView
+        variant='modal'
+        open={Boolean(addAccount?.open)}
+        prefill={addAccount?.prefill || null}
+        onClose={cancelAddAccount}
+      />
 
     </>
   );

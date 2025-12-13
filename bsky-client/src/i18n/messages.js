@@ -41,6 +41,21 @@ const messages = {
       activeAccount: 'Aktiv',
       noAccounts: 'Keine Accounts gefunden.'
     },
+    login: {
+      heading: 'Bluesky Login',
+      addAccountHeading: 'Account hinzufügen',
+      subtitleStandalone: 'Melde dich mit einem App-Passwort an. Deine Sitzung bleibt lokal im Client.',
+      serviceLabel: 'Service-URL',
+      identifierLabel: 'Identifier (Handle/E-Mail)',
+      passwordLabel: 'App-Passwort',
+      passwordHelp: 'App-Passwort erstellen',
+      rememberCredentials: 'Service-URL und Identifier merken',
+      rememberSession: 'Angemeldet bleiben (Session speichern)',
+      submitBusy: 'Anmeldung läuft…',
+      submitLabel: 'Anmelden',
+      errorFallback: 'Login fehlgeschlagen.',
+      footerHintStandalone: 'Tipp: App-Passwörter lassen sich im Bluesky-Account unter „Settings → App Passwords“ verwalten.'
+    },
     theme: {
       mode: {
         light: 'Hell',
@@ -323,6 +338,21 @@ const messages = {
       viewProfile: 'View profile',
       activeAccount: 'Active',
       noAccounts: 'No accounts available.'
+    },
+    login: {
+      heading: 'Bluesky login',
+      addAccountHeading: 'Add account',
+      subtitleStandalone: 'Sign in with an app password. Your session stays local in the client.',
+      serviceLabel: 'Service URL',
+      identifierLabel: 'Identifier (handle/email)',
+      passwordLabel: 'App password',
+      passwordHelp: 'Create app password',
+      rememberCredentials: 'Remember service URL and identifier',
+      rememberSession: 'Stay signed in (store session)',
+      submitBusy: 'Signing in…',
+      submitLabel: 'Sign in',
+      errorFallback: 'Login failed.',
+      footerHintStandalone: 'Tip: Manage app passwords in your Bluesky account under “Settings → App Passwords”.'
     },
     en: {
       reason: {
