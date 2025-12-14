@@ -4,7 +4,7 @@
  * Diese Tests überprüfen:
  * - Rendering des Modals in offen/geschlossen Zustand
  * - Darstellung von Titel, Actions und Body
- * - Schließen via Overlay/Close-Button
+ * - Modale lassen sich nur über explizite Aktionen schließen (kein Overlay/X)
  *
  * Kontext:
  * Teil der vereinheitlichten Teststruktur des bsky-client.
@@ -31,7 +31,6 @@ describe('ComposeModal', () => {
         open
         title="Custom"
         actions={<span>extra</span>}
-        onClose={() => {}}
       >
         <p>Body</p>
       </ComposeModal>,
@@ -42,21 +41,27 @@ describe('ComposeModal', () => {
     expect(screen.getByText('Body')).toBeInTheDocument();
   });
 
-  it('invokes onClose when clicking overlay or close button', async () => {
+  it('does not close when clicking the overlay', async () => {
     const onClose = vi.fn()
     const user = userEvent.setup()
     const { container } = render(
-      <ComposeModal open onClose={onClose}>Body</ComposeModal>
+      <ComposeModal
+        open
+        actions={
+          <button type='button' onClick={onClose}>Cancel</button>
+        }
+      >
+        Body
+      </ComposeModal>
     )
 
     const overlay = container.querySelector("[data-role='overlay']")
     expect(overlay).not.toBeNull()
 
     await user.click(overlay)
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
 
-    const closeButton = screen.getByRole('button', { name: /schlie/i })
-    await user.click(closeButton)
-    expect(onClose).toHaveBeenCalledTimes(2)
+    await user.click(screen.getByText('Cancel'))
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
