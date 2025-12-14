@@ -883,7 +883,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               )}
               <span className='tabular-nums'>{likeCount}</span>
         </button>
-        <div className='relative flex items-center gap-1 sm:ml-auto'>
+        <div className='relative ml-auto flex items-center gap-1'>
           <button
             type='button'
             className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
