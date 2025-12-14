@@ -679,6 +679,21 @@ function normalizeActor (value) {
   return normalized
 }
 
+async function resolveAgentPreferences (agent) {
+  if (!agent) {
+    throw new Error('Keine aktive Bluesky-Session verfügbar. Bitte erneut anmelden.')
+  }
+  if (typeof agent.getPreferences === 'function') {
+    return agent.getPreferences()
+  }
+  const res = await agent.app.bsky.actor.getPreferences()
+  return res?.data || res
+}
+
+function cloneRules (rules = []) {
+  return rules.map((rule) => ({ ...rule }))
+}
+
 function extractRecordKey (recordUri = '') {
   const parts = String(recordUri || '').split('/')
   return parts[parts.length - 1] || ''
@@ -980,7 +995,45 @@ async function buildEmbed ({ mediaEntries = [], quote = null, external = null })
   return null
 }
 
-export async function publishPost ({ text, mediaEntries = [], quote = null, external = null, reply = null }) {
+async function applyPostInteractionSettings ({ agent, postUri, threadgateAllowRules, postgateEmbeddingRules }) {
+  if (!agent || !postUri) return
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  const recordKey = extractRecordKey(postUri)
+  const tasks = []
+  if (Array.isArray(threadgateAllowRules)) {
+    tasks.push(
+      agent.com.atproto.repo.createRecord({
+        repo,
+        collection: 'app.bsky.feed.threadgate',
+        rkey: recordKey,
+        record: {
+          post: postUri,
+          allow: threadgateAllowRules,
+          createdAt: new Date().toISOString()
+        }
+      })
+    )
+  }
+  if (Array.isArray(postgateEmbeddingRules) && postgateEmbeddingRules.length > 0) {
+    tasks.push(
+      agent.com.atproto.repo.createRecord({
+        repo,
+        collection: 'app.bsky.feed.postgate',
+        rkey: recordKey,
+        record: {
+          post: postUri,
+          embeddingRules: postgateEmbeddingRules,
+          createdAt: new Date().toISOString()
+        }
+      })
+    )
+  }
+  if (tasks.length) {
+    await Promise.all(tasks)
+  }
+}
+
+export async function publishPost ({ text, mediaEntries = [], quote = null, external = null, reply = null, interactions = null }) {
   const agent = assertActiveAgent()
   const repo = ensureAtUri(agent?.session?.did, 'repo')
   const record = {
@@ -996,16 +1049,42 @@ export async function publishPost ({ text, mediaEntries = [], quote = null, exte
       parent: reply.parent
     }
   }
-  const res = await agent.com.atproto.repo.createRecord({
-    repo,
-    collection: 'app.bsky.feed.post',
-    record
-  })
-  const created = unwrapRepoWriteResult(res)
-  return {
-    uri: created.uri,
-    cid: created.cid,
-    record
+  let created = null
+  try {
+    const res = await agent.com.atproto.repo.createRecord({
+      repo,
+      collection: 'app.bsky.feed.post',
+      record
+    })
+    created = unwrapRepoWriteResult(res)
+    const hasThreadgate = Array.isArray(interactions?.threadgateAllowRules)
+    const hasPostgate = Array.isArray(interactions?.postgateEmbeddingRules) && interactions.postgateEmbeddingRules.length > 0
+    if (created?.uri && !reply && (hasThreadgate || hasPostgate)) {
+      await applyPostInteractionSettings({
+        agent,
+        postUri: created.uri,
+        threadgateAllowRules: hasThreadgate ? interactions.threadgateAllowRules : undefined,
+        postgateEmbeddingRules: hasPostgate ? interactions.postgateEmbeddingRules : undefined
+      })
+    }
+    return {
+      uri: created?.uri,
+      cid: created?.cid,
+      record
+    }
+  } catch (error) {
+    if (created?.uri) {
+      try {
+        await agent.com.atproto.repo.deleteRecord({
+          repo,
+          collection: 'app.bsky.feed.post',
+          rkey: extractRecordKey(created.uri)
+        })
+      } catch {
+        /* cleanup best-effort */
+      }
+    }
+    throw error
   }
 }
 
@@ -1048,6 +1127,62 @@ export function configurePushTransport (transport) {
     throw new Error('push transport muss register/unregister bereitstellen');
   }
   configuredPushTransport = transport;
+}
+
+export async function fetchPostInteractionSettings () {
+  const agent = assertActiveAgent()
+  const prefs = await resolveAgentPreferences(agent)
+  const settings = prefs?.postInteractionSettings || {}
+  return {
+    threadgateAllowRules: Array.isArray(settings.threadgateAllowRules)
+      ? cloneRules(settings.threadgateAllowRules)
+      : undefined,
+    postgateEmbeddingRules: Array.isArray(settings.postgateEmbeddingRules)
+      ? cloneRules(settings.postgateEmbeddingRules)
+      : undefined
+  }
+}
+
+export async function savePostInteractionSettings (settings = {}) {
+  const agent = assertActiveAgent()
+  if (typeof agent.setPostInteractionSettings !== 'function') {
+    throw new Error('Diese Bluesky-Version unterstützt das Speichern der Interaktionseinstellungen noch nicht.')
+  }
+  await agent.setPostInteractionSettings({
+    threadgateAllowRules: Array.isArray(settings.threadgateAllowRules)
+      ? settings.threadgateAllowRules
+      : settings.threadgateAllowRules ?? undefined,
+    postgateEmbeddingRules: Array.isArray(settings.postgateEmbeddingRules)
+      ? settings.postgateEmbeddingRules
+      : settings.postgateEmbeddingRules ?? undefined
+  })
+  return settings
+}
+
+export async function fetchOwnLists ({ cursor } = {}) {
+  const agent = assertActiveAgent()
+  const actor = agent?.session?.did
+  if (!actor) {
+    throw new Error('Keine aktive Session vorhanden, um Listen zu laden.')
+  }
+  const params = { actor, limit: 50 }
+  if (cursor) params.cursor = cursor
+  const res = await agent.app.bsky.graph.getLists(params)
+  const lists = Array.isArray(res?.data?.lists) ? res.data.lists : res?.lists || []
+  return {
+    items: lists
+    .filter((entry) => entry?.uri)
+    .map((entry) => ({
+      uri: entry.uri,
+      name: entry.name || entry.displayName || '',
+      purpose: entry.purpose || '',
+      indexedAt: entry.indexedAt || '',
+      avatar: entry.avatar || null,
+      viewer: entry.viewer || null,
+      description: entry.description || ''
+    })),
+    cursor: res?.data?.cursor || res?.cursor || null
+  }
 }
 
 function normalizeConfigEntry (value) {

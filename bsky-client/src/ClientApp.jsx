@@ -153,7 +153,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   }, [activeList?.kind, activeList?.key])
 
   const { threadState, closeThread, reloadThread } = useThread()
-  const { openComposer } = useComposer()
+  const { openComposer, openThreadComposer } = useComposer()
   const {
     feedPicker,
     refreshFeeds: refreshFeedPicker,
@@ -662,6 +662,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
             notificationsUnread={notificationsUnread}
             onSelectSection={handleSelectSection}
             onOpenCompose={openComposer}
+            onOpenComposeThread={openThreadComposer}
             headerContent={<SearchHeader />}
             topBlock={topBlock}
             scrollTopForceVisible={scrollTopForceVisible}
@@ -693,6 +694,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         notificationsUnread={notificationsUnread}
         onSelectSection={handleSelectSection}
         onOpenCompose={openComposer}
+        onOpenComposeThread={openThreadComposer}
         headerContent={baseHeaderContent}
         topBlock={topBlock}
         scrollTopForceVisible={scrollTopForceVisible}

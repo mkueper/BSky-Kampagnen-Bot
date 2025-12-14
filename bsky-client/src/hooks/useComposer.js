@@ -25,6 +25,19 @@ function normalizeQuoteTarget (source) {
 export function useComposer () {
   const dispatch = useAppDispatch()
 
+  const setComposeMode = useCallback(
+    (mode) => dispatch({ type: 'SET_COMPOSE_MODE', payload: mode === 'thread' ? 'thread' : 'single' }),
+    [dispatch]
+  )
+  const setThreadSource = useCallback(
+    (source) => dispatch({ type: 'SET_THREAD_SOURCE', payload: source || '' }),
+    [dispatch]
+  )
+  const setThreadAppendNumbering = useCallback(
+    (enabled) => dispatch({ type: 'SET_THREAD_APPEND_NUMBERING', payload: Boolean(enabled) }),
+    [dispatch]
+  )
+
   const setReplyTarget = useCallback(
     (target) => dispatch({ type: 'SET_REPLY_TARGET', payload: target || null }),
     [dispatch]
@@ -48,31 +61,48 @@ export function useComposer () {
     if (!target) return
     setQuoteTarget(null)
     setReplyTarget(target)
+    setComposeMode('single')
     setComposeOpen(true)
-  }, [setComposeOpen, setQuoteTarget, setReplyTarget])
+  }, [setComposeOpen, setComposeMode, setQuoteTarget, setReplyTarget])
 
   const openQuoteComposer = useCallback((source) => {
     const normalized = normalizeQuoteTarget(source)
     if (!normalized) return
     setReplyTarget(null)
     setQuoteTarget(normalized)
+    setComposeMode('single')
     setComposeOpen(true)
-  }, [setComposeOpen, setQuoteTarget, setReplyTarget])
+  }, [setComposeOpen, setComposeMode, setQuoteTarget, setReplyTarget])
 
   const closeComposer = useCallback(() => {
     setComposeOpen(false)
     resetComposerTargets()
-  }, [resetComposerTargets, setComposeOpen])
+    setThreadSource('')
+  }, [resetComposerTargets, setComposeOpen, setThreadSource])
 
-  const openComposer = useCallback(() => setComposeOpen(true), [setComposeOpen])
+  const openComposer = useCallback(() => {
+    setComposeMode('single')
+    setComposeOpen(true)
+  }, [setComposeMode, setComposeOpen])
+
+  const openThreadComposer = useCallback(() => {
+    setReplyTarget(null)
+    setQuoteTarget(null)
+    setComposeMode('thread')
+    setComposeOpen(true)
+  }, [setComposeMode, setComposeOpen, setQuoteTarget, setReplyTarget])
 
   return {
     openComposer,
+    openThreadComposer,
     closeComposer,
     openReplyComposer,
     openQuoteComposer,
     resetComposerTargets,
     setReplyTarget,
-    setQuoteTarget
+    setQuoteTarget,
+    setComposeMode,
+    setThreadSource,
+    setThreadAppendNumbering
   }
 }

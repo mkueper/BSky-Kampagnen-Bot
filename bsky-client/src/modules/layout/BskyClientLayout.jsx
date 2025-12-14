@@ -10,6 +10,10 @@ import SidebarNav, { NAV_ITEMS } from './SidebarNav'
 import {
   Drawer,
   ScrollTopButton,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem,
   useThemeMode
 } from '@bsky-kampagnen-bot/shared-ui'
 import { PlusIcon, SunIcon, HamburgerMenuIcon } from '@radix-ui/react-icons'
@@ -109,6 +113,7 @@ export default function BskyClientLayout ({
   notificationsUnread = 0,
   onSelectSection,
   onOpenCompose,
+  onOpenComposeThread,
   headerContent,
   topBlock,
   children,
@@ -127,6 +132,7 @@ export default function BskyClientLayout ({
   const [navVisible, setNavVisible] = useState(() => !computeIsMobile())
   const [detailLayoutHeader, setDetailLayoutHeader] = useState(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [composeMenuOpen, setComposeMenuOpen] = useState(false)
   
   const {
     currentThemeConfig,
@@ -211,6 +217,12 @@ export default function BskyClientLayout ({
       onOpenCompose()
     }
   }, [onOpenCompose])
+
+  const handleOpenComposeThread = useCallback(() => {
+    if (typeof onOpenComposeThread === 'function') {
+      onOpenComposeThread()
+    }
+  }, [onOpenComposeThread])
 
   const asideClassName = clsx(
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
@@ -300,6 +312,10 @@ export default function BskyClientLayout ({
               setMobileMenuOpen(false)
               handleOpenCompose()
             }}
+            onComposeThread={() => {
+              setMobileMenuOpen(false)
+              handleOpenComposeThread()
+            }}
             themeToggle={themeToggleProps}
             interactionsLocked={navInteractionsLocked}
             accountProfiles={accountProfiles}
@@ -322,6 +338,7 @@ export default function BskyClientLayout ({
             notificationsUnread={notificationsUnread}
             onSelect={handleSelect}
             onCompose={handleOpenCompose}
+            onComposeThread={handleOpenComposeThread}
             themeToggle={themeToggleProps}
             interactionsLocked={navInteractionsLocked}
             accountProfiles={accountProfiles}
@@ -405,21 +422,72 @@ export default function BskyClientLayout ({
           ) : null}
           {/* Floating Action Button: Neuer Skeet */}
           {!navVisible ? (
-            <button
-              type='button'
-              onClick={handleOpenCompose}
-              className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-              style={
-                isMobile
-                  ? { bottom: mobileNavReservedSpace }
-                  : { bottom: '20px' }
-              }
-              aria-label='Neuer Skeet'
-              title='Neuen Skeet posten'
-            >
-              <PlusIcon className='h-6 w-6' />
-              <span className='hidden sm:inline'>Neuer Skeet</span>
-            </button>
+            <>
+              {isMobile ? (
+                <InlineMenu open={composeMenuOpen} onOpenChange={setComposeMenuOpen}>
+                  <InlineMenuTrigger>
+                    <button
+                      type='button'
+                      onClick={() => setComposeMenuOpen(true)}
+                      className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+                      style={{ bottom: mobileNavReservedSpace }}
+                      aria-label='Neuen Beitrag verfassen'
+                      title='Neuen Beitrag verfassen'
+                    >
+                      <PlusIcon className='h-6 w-6' />
+                      <span className='hidden sm:inline'>Neu</span>
+                    </button>
+                  </InlineMenuTrigger>
+                  <InlineMenuContent side='top' align='end' sideOffset={10} className='w-56'>
+                    <div className='py-1 text-sm'>
+                      <InlineMenuItem
+                        icon={PlusIcon}
+                        onSelect={() => {
+                          setComposeMenuOpen(false)
+                          handleOpenCompose()
+                        }}
+                      >
+                        Neuer Post
+                      </InlineMenuItem>
+                      <InlineMenuItem
+                        icon={PlusIcon}
+                        onSelect={() => {
+                          setComposeMenuOpen(false)
+                          handleOpenComposeThread()
+                        }}
+                      >
+                        Neuer Thread
+                      </InlineMenuItem>
+                    </div>
+                  </InlineMenuContent>
+                </InlineMenu>
+              ) : (
+                <>
+                  <button
+                    type='button'
+                    onClick={handleOpenComposeThread}
+                    className='fixed right-5 inline-flex items-center gap-2 rounded-full border border-border bg-background-elevated px-4 py-3 text-base font-semibold text-foreground shadow-soft hover:bg-background'
+                    style={{ bottom: '96px' }}
+                    aria-label='Neuer Thread'
+                    title='Neuen Thread posten'
+                  >
+                    <PlusIcon className='h-6 w-6' />
+                    <span className='hidden sm:inline'>Neuer Thread</span>
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleOpenCompose}
+                    className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+                    style={{ bottom: '20px' }}
+                    aria-label='Neuer Post'
+                    title='Neuen Post posten'
+                  >
+                    <PlusIcon className='h-6 w-6' />
+                    <span className='hidden sm:inline'>Neuer Post</span>
+                  </button>
+                </>
+              )}
+            </>
           ) : null}
         </div>
       {isMobile ? (

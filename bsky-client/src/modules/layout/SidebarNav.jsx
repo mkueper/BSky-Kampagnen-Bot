@@ -75,6 +75,7 @@ export default function SidebarNav ({
   active,
   onSelect,
   onCompose,
+  onComposeThread,
   notificationsUnread = 0,
   themeToggle = null,
   interactionsLocked = false,
@@ -355,6 +356,33 @@ export default function SidebarNav ({
                   />
                 </>
               )}
+            </div>
+          ) : null}
+          {typeof onComposeThread === 'function' ? (
+            <div className='pt-2'>
+              <button
+                type='button'
+                onClick={interactionsLocked ? undefined : onComposeThread}
+                className={cx(
+                  SIDEBAR_BUTTON_BASE,
+                  showFullLabels
+                    ? 'h-auto w-full justify-start gap-2 px-4 py-3'
+                    : SIDEBAR_BUTTON_SQUARE,
+                  showFullLabels ? '' : SIDEBAR_BUTTON_PILL,
+                  'gap-2 rounded-2xl border border-border bg-background-subtle text-sm font-semibold text-foreground shadow-soft hover:bg-background lg:w-full',
+                  interactionsLocked ? SIDEBAR_BUTTON_DISABLED : ''
+                )}
+                disabled={interactionsLocked}
+                aria-label={t('nav.newThreadAria', 'Neuer Thread')}
+                aria-disabled={interactionsLocked || undefined}
+                data-nav-item='compose-thread'
+                title={t('nav.newThread', 'Neuer Thread')}
+              >
+                <PlusIcon className='h-6 w-6 shrink-0' />
+                <span className={navLabelClassName}>
+                  {t('nav.newThread', 'Neuer Thread')}
+                </span>
+              </button>
             </div>
           ) : null}
           <div className='pt-2'>
