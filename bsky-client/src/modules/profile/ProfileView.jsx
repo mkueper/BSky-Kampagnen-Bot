@@ -461,22 +461,35 @@ export default function ProfileView ({
 
   const toggleBlock = useCallback(() => {
     if (!profile || !profile.did) return
-    const currentlyBlocking = Boolean(profile.viewer?.blocking)
+    const currentBlockingValue = profile.viewer?.blocking
+    const blockingUri = typeof currentBlockingValue === 'string' ? currentBlockingValue : null
+    const currentlyBlocking = Boolean(currentBlockingValue)
+    const applyBlockingState = (value) => {
+      setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), blocking: value } } : prev))
+    }
     openConfirm({
       title: currentlyBlocking ? 'Blockierung aufheben' : 'Account blockieren',
       description: currentlyBlocking ? 'Blockierung dieses Accounts aufheben?' : 'Blockierte Accounts werden ausgeblendet und können nicht interagieren.',
       confirmLabel: currentlyBlocking ? 'Aufheben' : 'Blockieren',
       variant: currentlyBlocking ? 'secondary' : 'destructive',
       onConfirm: async () => {
-        setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), blocking: !currentlyBlocking } } : prev))
-        try {
-          if (currentlyBlocking) {
-            await apiUnblockActor(profile.did)
-          } else {
-            await apiBlockActor(profile.did)
+        if (currentlyBlocking) {
+          applyBlockingState(null)
+          try {
+            await apiUnblockActor(profile.did, { blockUri: blockingUri })
+          } catch (err) {
+            applyBlockingState(currentBlockingValue || true)
+            setError(err?.message || 'Blockierung aufheben fehlgeschlagen')
           }
+          return
+        }
+        applyBlockingState(true)
+        try {
+          const result = await apiBlockActor(profile.did)
+          const nextUri = result?.uri || null
+          applyBlockingState(nextUri || true)
         } catch (err) {
-          setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), blocking: currentlyBlocking } } : prev))
+          applyBlockingState(null)
           setError(err?.message || 'Blockieren fehlgeschlagen')
         }
       }

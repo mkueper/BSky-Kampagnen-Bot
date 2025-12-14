@@ -1,19 +1,32 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import ProfileView from 'src/modules/profile/ProfileView'
-import * as api from 'src/modules/shared/api/bsky'
 
-jest.mock('src/modules/shared/api/bsky', () => ({
-  fetchProfile: jest.fn(),
-  muteActor: jest.fn(),
-  unmuteActor: jest.fn(),
-  blockActor: jest.fn(),
-  unblockActor: jest.fn()
+const dispatchMock = vi.fn()
+
+vi.mock('../../../src/context/AppContext', () => ({
+  useAppState: () => ({ profileActor: null, me: null }),
+  useAppDispatch: () => dispatchMock
 }))
+vi.mock('../../../src/modules/profile/ProfilePosts.jsx', () => ({
+  __esModule: true,
+  default: () => null
+}))
+
+vi.mock('../../../src/modules/shared/api/bsky', () => ({
+  fetchProfile: vi.fn(),
+  muteActor: vi.fn(),
+  unmuteActor: vi.fn(),
+  blockActor: vi.fn(),
+  unblockActor: vi.fn()
+}))
+
+import ProfileView from '../../../src/modules/profile/ProfileView.jsx'
+import * as api from '../../../src/modules/shared/api/bsky'
 
 describe('Profile actions: mute & block', () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
+    dispatchMock.mockReset()
   })
 
   it('shows menu items and calls mute API on confirm', async () => {

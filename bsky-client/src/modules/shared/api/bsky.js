@@ -1333,55 +1333,79 @@ export async function fetchBlocks ({ cursor, limit } = {}) {
 }
 
 export async function muteActor (did) {
-  const safeDid = String(did || '').trim()
-  if (!safeDid) throw new Error('did erforderlich')
-  const res = await fetch('/api/bsky/mute', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ did: safeDid })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.error || 'Stummschalten fehlgeschlagen')
-  return data
+  const normalized = String(did || '').trim()
+  if (!normalized) throw new Error('did erforderlich')
+  const agent = assertActiveAgent()
+  if (typeof agent.mute === 'function') {
+    return agent.mute(normalized)
+  }
+  const graph = agent.app?.bsky?.graph
+  if (graph?.muteActor) {
+    return graph.muteActor({ actor: normalized })
+  }
+  throw new Error('Stummschalten nicht unterstützt')
 }
 
 export async function unmuteActor (did) {
-  const safeDid = String(did || '').trim()
-  if (!safeDid) throw new Error('did erforderlich')
-  const res = await fetch('/api/bsky/mute', {
-    method: 'DELETE',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ did: safeDid })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.error || 'Stummschaltung aufheben fehlgeschlagen')
-  return data
+  const normalized = String(did || '').trim()
+  if (!normalized) throw new Error('did erforderlich')
+  const agent = assertActiveAgent()
+  if (typeof agent.unmute === 'function') {
+    return agent.unmute(normalized)
+  }
+  const graph = agent.app?.bsky?.graph
+  if (graph?.unmuteActor) {
+    return graph.unmuteActor({ actor: normalized })
+  }
+  throw new Error('Stummschaltung aufheben nicht unterstützt')
+}
+
+async function findBlockRecordUriByDid (agent, did) {
+  const blockNamespace = agent.app?.bsky?.graph?.block
+  if (!blockNamespace?.list) return null
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  let cursor = null
+  do {
+    const res = await blockNamespace.list({ repo, limit: 100, cursor: cursor || undefined })
+    const records = Array.isArray(res?.records) ? res.records : []
+    const match = records.find((record) => record?.value?.subject === did)
+    if (match?.uri) return match.uri
+    cursor = res?.cursor || null
+  } while (cursor)
+  return null
 }
 
 export async function blockActor (did) {
-  const safeDid = String(did || '').trim()
-  if (!safeDid) throw new Error('did erforderlich')
-  const res = await fetch('/api/bsky/block', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ did: safeDid })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.error || 'Blockieren fehlgeschlagen')
-  return data
+  const normalized = normalizeActor(did)
+  const agent = assertActiveAgent()
+  const blockNamespace = agent.app?.bsky?.graph?.block
+  if (!blockNamespace?.create) {
+    throw new Error('Blockieren nicht unterstützt')
+  }
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  return blockNamespace.create(
+    { repo },
+    { subject: normalized, createdAt: new Date().toISOString() }
+  )
 }
 
-export async function unblockActor (did) {
-  const safeDid = String(did || '').trim()
-  if (!safeDid) throw new Error('did erforderlich')
-  const res = await fetch('/api/bsky/block', {
-    method: 'DELETE',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ did: safeDid })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.error || 'Blockierung aufheben fehlgeschlagen')
-  return data
+export async function unblockActor (did, { blockUri } = {}) {
+  const normalized = normalizeActor(did)
+  const agent = assertActiveAgent()
+  const blockNamespace = agent.app?.bsky?.graph?.block
+  if (!blockNamespace?.delete) {
+    throw new Error('Blockierung aufheben nicht unterstützt')
+  }
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  let targetUri = String(blockUri || '').trim()
+  if (!targetUri) {
+    targetUri = await findBlockRecordUriByDid(agent, normalized)
+  }
+  if (!targetUri) {
+    throw new Error('Block-Eintrag konnte nicht gefunden werden.')
+  }
+  const rkey = extractRecordKey(targetUri)
+  return blockNamespace.delete({ repo, rkey })
 }
 
 export async function likePost({ uri, cid }) {
