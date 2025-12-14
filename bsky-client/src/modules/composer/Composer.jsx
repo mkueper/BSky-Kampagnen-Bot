@@ -10,6 +10,34 @@ import { useInteractionSettingsControls } from './useInteractionSettingsControls
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
+const POST_CHAR_LIMIT = 300
+const PREVIEW_TYPING_DELAY = 600
+
+function createEmptyAltDialogState () {
+  return {
+    open: false,
+    pendingIndex: null,
+    previewSrc: '',
+    initialAlt: ''
+  }
+}
+
+function detectUrlCandidate (text = '') {
+  try {
+    const input = String(text || '')
+    const match = input.match(/https?:\/\/\S+/i)
+    if (!match) return { url: '', ready: false }
+    const url = match[0]
+    const matchIndex = typeof match.index === 'number' ? match.index : input.indexOf(url)
+    if (matchIndex < 0) return { url: '', ready: false }
+    const endIndex = matchIndex + url.length
+    const nextChar = input[endIndex] || ''
+    const ready = Boolean(nextChar) && /\s/.test(nextChar)
+    return { url, ready }
+  } catch {
+    return { url: '', ready: false }
+  }
+}
 
 export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel }) {
   const { t } = useTranslation()
@@ -30,6 +58,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [previewError, setPreviewError] = useState('')
   const [dismissedPreviewUrl, setDismissedPreviewUrl] = useState('')
   const [pendingMedia, setPendingMedia] = useState([]) // [{ id, file, previewUrl, mime, altText }]
+  const [altDialog, setAltDialog] = useState(() => createEmptyAltDialogState())
   const textareaRef = useRef(null)
   const emojiButtonRef = useRef(null)
   const cursorRef = useRef({ start: 0, end: 0 })
@@ -39,6 +68,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [tenorAvailable, setTenorAvailable] = useState(false)
   const [sending, setSending] = useState(false)
   const mediaPreviewsRef = useRef(new Set())
+  const previewDebounceRef = useRef(null)
+  const previousUrlRef = useRef('')
 
   const registerPreviewUrl = useCallback((url) => {
     if (!url || !url.startsWith('blob:')) return
@@ -103,12 +134,44 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       if (target?.previewUrl) releasePreviewUrl(target.previewUrl)
       return arr.filter((_, idx) => idx !== item.pendingIndex)
     })
+    setAltDialog(current => {
+      if (typeof item?.pendingIndex === 'number' && current.pendingIndex === item.pendingIndex) {
+        return createEmptyAltDialogState()
+      }
+      return current
+    })
   }, [releasePreviewUrl])
+  const handleOpenAltDialog = useCallback((item) => {
+    if (typeof item?.pendingIndex !== 'number') return
+    setAltDialog({
+      open: true,
+      pendingIndex: item.pendingIndex,
+      previewSrc: item?.src || '',
+      initialAlt: String(pendingMedia[item.pendingIndex]?.altText || '')
+    })
+  }, [pendingMedia])
+  const closeAltDialog = useCallback(() => {
+    setAltDialog(createEmptyAltDialogState())
+  }, [])
+  const handleConfirmAltDialog = useCallback((newAltText) => {
+    setPendingMedia((prev) => {
+      if (typeof altDialog.pendingIndex !== 'number') return prev
+      return prev.map((entry, idx) => {
+        if (idx !== altDialog.pendingIndex) return entry
+        return { ...entry, altText: newAltText || '' }
+      })
+    })
+    closeAltDialog()
+  }, [altDialog.pendingIndex, closeAltDialog])
   const mediaGridLabels = useMemo(
     () => ({
       imageAlt: index => `Bild ${index}`,
       removeTitle: 'Bild entfernen',
-      removeAria: 'Bild entfernen'
+      removeAria: 'Bild entfernen',
+      altBadge: 'ALT',
+      altAddBadge: '+ ALT',
+      altEditTitle: 'Alt-Text bearbeiten',
+      altAddTitle: 'Alt-Text hinzufügen'
     }),
     []
   )
@@ -164,20 +227,38 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }, [clientConfig?.gifs?.tenorApiKey])
 
-  const firstUrl = useMemo(() => {
-    try {
-      const m = String(text || '').match(/https?:\/\/\S+/i)
-      return m ? m[0] : ''
-    } catch { return '' }
-  }, [text])
+  const urlCandidate = useMemo(() => detectUrlCandidate(text), [text])
 
   useEffect(() => {
-    setPreview(null)
-    setPreviewError('')
-    setPreviewLoading(false)
-    setPreviewUrl(firstUrl || '')
-    setDismissedPreviewUrl('')
-  }, [firstUrl])
+    const normalized = urlCandidate.url || ''
+    if (normalized !== previousUrlRef.current) {
+      setDismissedPreviewUrl('')
+      previousUrlRef.current = normalized
+    }
+    if (previewDebounceRef.current) {
+      clearTimeout(previewDebounceRef.current)
+      previewDebounceRef.current = null
+    }
+    if (!urlCandidate.ready) {
+      setPreview(null)
+      setPreviewError('')
+      setPreviewLoading(false)
+      setPreviewUrl('')
+      return
+    }
+    previewDebounceRef.current = setTimeout(() => {
+      setPreview(null)
+      setPreviewError('')
+      setPreviewLoading(false)
+      setPreviewUrl(normalized)
+    }, PREVIEW_TYPING_DELAY)
+    return () => {
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current)
+        previewDebounceRef.current = null
+      }
+    }
+  }, [urlCandidate.ready, urlCandidate.url])
 
   useEffect(() => {
     const url = String(previewUrl || '').trim()
@@ -185,8 +266,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     if (dismissedPreviewUrl && dismissedPreviewUrl === url) return
     let cancelled = false
     const controller = new AbortController()
-
-    const load = async () => {
+    const debounceDelay = 600
+    const timeoutId = setTimeout(async () => {
+      if (cancelled) return
       setPreviewLoading(true)
       setPreviewError('')
       try {
@@ -213,11 +295,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       } finally {
         if (!cancelled) setPreviewLoading(false)
       }
-    }
+    }, debounceDelay)
 
-    load()
     return () => {
       cancelled = true
+      clearTimeout(timeoutId)
       controller.abort()
     }
   }, [dismissedPreviewUrl, previewUrl])
@@ -257,17 +339,18 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }
 
   async function handleComposerPaste (event) {
-    const items = Array.from(event?.clipboardData?.items || [])
-    if (items.length === 0) return
-
+    const clipboardData = event?.clipboardData
+    if (!clipboardData) return
+    const items = Array.from(clipboardData.items || [])
+    const files = Array.from(clipboardData.files || [])
     const imageItem = items.find((item) => {
       if (!item || item.kind !== 'file') return false
       const type = String(item.type || '').toLowerCase()
       return type.startsWith('image/')
     })
-    if (!imageItem) return
-
-    const file = imageItem.getAsFile?.()
+    const directFile = imageItem?.getAsFile?.()
+    const fallbackFile = files.find((file) => String(file?.type || '').toLowerCase().startsWith('image/'))
+    const file = directFile || fallbackFile
     if (!file) return
     if (!String(file.type || '').toLowerCase().startsWith('image/')) return
 
@@ -283,24 +366,24 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }
 
-  function createMediaEntry (file, previewUrl) {
+  function createMediaEntry (file, previewUrl, altText = '') {
     return {
       id: (globalThis.crypto?.randomUUID?.() || `media-${Date.now()}-${Math.random().toString(16).slice(2)}`),
       file,
       previewUrl,
       mime: file.type || 'application/octet-stream',
-      altText: ''
+      altText: altText || ''
     }
   }
 
-  async function addMediaFile (file, previewOverride = '') {
+  async function addMediaFile (file, previewOverride = '', altText = '') {
     if (!file) throw new Error('Keine Datei ausgewählt')
     if (pendingMedia.length >= MAX_MEDIA_COUNT) {
       throw new Error(`Maximal ${MAX_MEDIA_COUNT} Medien je Post`)
     }
     const previewUrl = previewOverride || URL.createObjectURL(file)
     if (previewUrl.startsWith('blob:')) registerPreviewUrl(previewUrl)
-    setPendingMedia((arr) => [...arr, createMediaEntry(file, previewUrl)])
+    setPendingMedia((arr) => [...arr, createMediaEntry(file, previewUrl, altText)])
     requestAnimationFrame(() => {
       const el = textareaRef.current
       if (!el) return
@@ -312,11 +395,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     })
   }
 
-  async function handleLocalFile (file) {
+  async function handleLocalFile (file, altText = '') {
     if (!file) return
     setMessage('')
     try {
-      await addMediaFile(file)
+      await addMediaFile(file, '', altText)
       requestAnimationFrame(() => {
         const el = textareaRef.current
         if (!el) {
@@ -443,6 +526,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const showMediaGrid = pendingMediaItems.length > 0
   const showLinkPreview = !showMediaGrid && Boolean(previewUrl) && (!dismissedPreviewUrl || dismissedPreviewUrl !== previewUrl)
   const hasContent = text.trim().length > 0 || pendingMedia.length > 0
+  const characterCount = text.length
+  const exceedsCharLimit = characterCount > POST_CHAR_LIMIT
 
   const handleCancelComposer = useCallback(() => {
     if (typeof onCancel === 'function') {
@@ -452,7 +537,6 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
-      <label className='block text-sm font-medium'>Inhalt</label>
       {quoteInfo ? (
         <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
           <div className='flex items-start gap-3'>
@@ -498,108 +582,141 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           </div>
         </div>
       ) : null}
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => { setText(e.target.value); updateCursorFromTextarea(e.target) }}
-        onPaste={handleComposerPaste}
-        onSelect={(e) => updateCursorFromTextarea(e.target)}
-        onClick={(e) => updateCursorFromTextarea(e.target)}
-        onKeyUp={(e) => updateCursorFromTextarea(e.target)}
-        rows={6}
-        className='max-h-48 w-full overflow-auto rounded-md border bg-background p-3'
-        placeholder='Was möchtest du posten?'
-      />
-      {showMediaGrid ? (
-        <SegmentMediaGrid
-          items={pendingMediaItems}
-          maxCount={MAX_MEDIA_COUNT}
-          onRemove={handleRemovePendingMedia}
-          labels={mediaGridLabels}
-          className='mt-2'
-        />
-      ) : null}
-      {showLinkPreview ? (
-        <div className='relative mt-2 rounded-2xl border border-border bg-background-subtle p-3'>
-          <button
-            type='button'
-            className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-sm text-foreground-muted hover:text-foreground'
-            title='Link-Vorschau entfernen'
-            onClick={() => setDismissedPreviewUrl(previewUrl)}
-          >
-            ×
-          </button>
-          <div className='flex gap-3 pr-8'>
-            {preview?.image ? (
-              <img
-                src={preview.image}
-                alt=''
-                className='h-16 w-16 shrink-0 rounded-xl border border-border object-cover'
-                loading='lazy'
-              />
-            ) : (
-              <div className='h-16 w-16 shrink-0 rounded-xl border border-border bg-background' />
-            )}
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
-              {preview?.description ? (
-                <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
-              ) : null}
-              <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
-              <div className='text-xs text-foreground-muted'>
-                {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
-              </div>
-            </div>
+
+      <div className='grid min-h-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
+        <div className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
+          <label className='text-sm font-medium text-foreground'>Inhalt</label>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => { setText(e.target.value); updateCursorFromTextarea(e.target) }}
+            onPaste={handleComposerPaste}
+            onSelect={(e) => updateCursorFromTextarea(e.target)}
+            onClick={(e) => updateCursorFromTextarea(e.target)}
+            onKeyUp={(e) => updateCursorFromTextarea(e.target)}
+            rows={6}
+            className='mt-2 h-full min-h-[12rem] flex-1 overflow-auto rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
+            placeholder='Was möchtest du posten?'
+          />
+          <div className='mt-3 flex flex-wrap items-center gap-2'>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => setMediaDialogOpen(true)}
+              disabled={mediaDisabled}
+              title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
+            >
+              <span className='text-base leading-none md:text-lg'>🖼️</span>
+            </Button>
+            {tenorAvailable ? (
+              <Button
+                type='button'
+                variant='outline'
+                disabled={mediaDisabled}
+                onClick={() => setGifPickerOpen(true)}
+                title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
+              >
+                <VideoIcon className='h-4 w-4' aria-hidden='true' />
+                <span>GIF</span>
+              </Button>
+            ) : null}
+            <Button
+              ref={emojiButtonRef}
+              type='button'
+              variant='outline'
+              onClick={() => setEmojiPickerOpen((v) => !v)}
+              title='Emoji auswählen'
+              aria-expanded={emojiPickerOpen}
+            >
+              <span className='text-base leading-none md:text-lg'>😊</span>
+            </Button>
           </div>
         </div>
-      ) : null}
-      <div className='flex items-center gap-2'>
-        <Button
-          type='button'
-          variant='outline'
-          onClick={() => setMediaDialogOpen(true)}
-          disabled={mediaDisabled}
-          title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
-        >
-          <span className='text-base leading-none md:text-lg'>🖼️</span>
-        </Button>
-        {tenorAvailable ? (
-          <Button
-            type='button'
-            variant='outline'
-            disabled={mediaDisabled}
-            onClick={() => setGifPickerOpen(true)}
-            title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
-          >
-            <VideoIcon className='h-4 w-4' aria-hidden='true' />
-            <span>GIF</span>
-          </Button>
-        ) : null}
-        <Button
-          ref={emojiButtonRef}
-          type='button'
-          variant='outline'
-          onClick={() => setEmojiPickerOpen((v) => !v)}
-          title='Emoji auswählen'
-          aria-expanded={emojiPickerOpen}
-        >
-          <span className='text-base leading-none md:text-lg'>😊</span>
-        </Button>
+
+        <section className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
+          <div className='flex items-center justify-between'>
+            <h4 className='text-sm font-semibold text-foreground'>Vorschau</h4>
+            <span
+              className={`text-xs font-medium ${
+                exceedsCharLimit
+                  ? 'text-destructive'
+                  : characterCount > POST_CHAR_LIMIT * 0.9
+                    ? 'text-amber-500'
+                    : 'text-foreground-muted'
+              }`}
+            >
+              {characterCount}/{POST_CHAR_LIMIT}
+            </span>
+          </div>
+          <article className='mt-4 rounded-2xl border border-border bg-background-subtle p-4'>
+            {text.trim() ? (
+              <RichText
+                text={text}
+                className='whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground'
+              />
+            ) : (
+              <p className='text-sm text-foreground-muted'>
+                Dein Text erscheint hier.
+              </p>
+            )}
+            {showMediaGrid ? (
+              <SegmentMediaGrid
+                items={pendingMediaItems}
+                maxCount={MAX_MEDIA_COUNT}
+                onRemove={handleRemovePendingMedia}
+                onEditAlt={handleOpenAltDialog}
+                labels={mediaGridLabels}
+                className='mt-4'
+              />
+            ) : null}
+            {showLinkPreview ? (
+              <div className='relative mt-4 rounded-2xl border border-border bg-background p-3'>
+                <button
+                  type='button'
+                  className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background-subtle text-sm text-foreground-muted hover:text-foreground'
+                  title='Link-Vorschau entfernen'
+                  onClick={() => setDismissedPreviewUrl(previewUrl)}
+                >
+                  ×
+                </button>
+                <div className='flex gap-3 pr-8'>
+                  {preview?.image ? (
+                    <img
+                      src={preview.image}
+                      alt=''
+                      className='h-16 w-16 shrink-0 rounded-xl border border-border object-cover'
+                      loading='lazy'
+                    />
+                  ) : (
+                    <div className='h-16 w-16 shrink-0 rounded-xl border border-border bg-background' />
+                  )}
+                  <div className='min-w-0 flex-1'>
+                    <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
+                    {preview?.description ? (
+                      <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
+                    ) : null}
+                    <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
+                    <div className='text-xs text-foreground-muted'>
+                      {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {!text.trim() && !showMediaGrid && !showLinkPreview ? (
+              <p className='mt-4 text-xs text-foreground-muted'>
+                Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.
+              </p>
+            ) : null}
+          </article>
+        </section>
       </div>
-      <MediaDialog
-        open={mediaDialogOpen}
-        title='Bild hinzufügen'
-        onClose={() => setMediaDialogOpen(false)}
-        onConfirm={(file) => {
-          setMediaDialogOpen(false)
-          handleLocalFile(file)
-        }}
-      />
-      <div className='flex flex-col gap-2'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
+
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
           <button
             type='button'
-            className='inline-flex flex-1 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60 md:flex-none'
+            className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
             title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
             onClick={openInteractionModal}
             disabled={interactionSettings?.loading}
@@ -621,17 +738,35 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             <span className='text-xs text-muted-foreground'>{message}</span>
           ) : null}
         </div>
-      </div>
-      <div className='flex items-center justify-end gap-3'>
-        {onCancel ? (
-          <Button type='button' variant='secondary' onClick={handleCancelComposer} disabled={sending}>
-            {t('compose.cancel', 'Abbrechen')}
+        <div className='flex items-center gap-3'>
+          {onCancel ? (
+            <Button type='button' variant='secondary' onClick={handleCancelComposer} disabled={sending}>
+              {t('compose.cancel', 'Abbrechen')}
+            </Button>
+          ) : null}
+          <Button type='submit' variant='primary' disabled={sending}>
+            {sending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
           </Button>
-        ) : null}
-        <Button type='submit' variant='primary' disabled={sending}>
-          {sending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
-        </Button>
+        </div>
       </div>
+      <MediaDialog
+        open={mediaDialogOpen}
+        title='Bild hinzufügen'
+        onClose={() => setMediaDialogOpen(false)}
+        onConfirm={(file, altText) => {
+          setMediaDialogOpen(false)
+          handleLocalFile(file, altText || '')
+        }}
+      />
+      <MediaDialog
+        open={altDialog.open}
+        mode='alt'
+        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text hinzufügen'}
+        previewSrc={altDialog.previewSrc}
+        initialAlt={altDialog.initialAlt}
+        onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}
+        onClose={closeAltDialog}
+      />
       {tenorAvailable ? (
         <GifPicker
           open={gifPickerOpen}

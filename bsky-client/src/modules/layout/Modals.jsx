@@ -3,6 +3,7 @@ import { useAppState, useAppDispatch } from '../../context/AppContext';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { Button, MediaLightbox, publishPost } from '../shared';
 import { ConfirmDialog } from '@bsky-kampagnen-bot/shared-ui';
@@ -15,9 +16,19 @@ import LoginView from '../login/LoginView.jsx'
 import { useInteractionSettingsControls } from '../composer/useInteractionSettingsControls.js'
 import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
 
+const THREAD_MEDIA_MAX_PER_SEGMENT = 4
+const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
+const THREAD_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const THREAD_GIF_MAX_BYTES = 8 * 1024 * 1024
+const THREAD_GIF_PICKER_STYLES = { panel: { width: '70vw', maxWidth: '1200px' } }
+
 function resolveThreadSubmitError (segments = [], t) {
   const effective = Array.isArray(segments) ? segments : []
-  const usable = effective.filter((segment) => String(segment?.formatted || segment?.raw || '').trim().length > 0)
+  const usable = effective.filter((segment) => {
+    const text = String(segment?.formatted || segment?.raw || '').trim()
+    const hasMedia = Array.isArray(segment?.mediaEntries) && segment.mediaEntries.length > 0
+    return text.length > 0 || hasMedia
+  })
   if (usable.length === 0) return t('compose.thread.empty', 'Thread ist leer.')
   if (usable.some((segment) => segment?.exceedsLimit)) {
     return t('compose.thread.exceedsLimit', 'Mindestens ein Segment überschreitet das Limit.')
@@ -37,6 +48,7 @@ export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
+  const { clientConfig } = useClientConfig()
   const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
   const {
@@ -64,6 +76,33 @@ export function Modals() {
     reloadSettings
   } = useInteractionSettingsControls(t)
 
+  const tenorAvailable = useMemo(() => {
+    const enabled = Boolean(clientConfig?.gifs?.tenorAvailable)
+    const apiKey = String(clientConfig?.gifs?.tenorApiKey || '').trim()
+    return enabled && Boolean(apiKey)
+  }, [clientConfig?.gifs?.tenorAvailable, clientConfig?.gifs?.tenorApiKey])
+
+  const tenorFetcher = useMemo(() => {
+    const apiKey = String(clientConfig?.gifs?.tenorApiKey || '').trim()
+    if (!apiKey) return null
+    return async (endpoint, params) => {
+      const safeEndpoint = String(endpoint || '').trim()
+      if (!safeEndpoint) throw new Error('Tenor: endpoint fehlt.')
+      const baseUrl = `https://tenor.googleapis.com/v2/${encodeURIComponent(safeEndpoint)}`
+      const searchParams = new URLSearchParams(typeof params?.toString === 'function' ? params.toString() : '')
+      searchParams.set('key', apiKey)
+      searchParams.set('client_key', 'bsky-client')
+      searchParams.set('media_filter', 'gif,tinygif,nanogif')
+      const url = `${baseUrl}?${searchParams.toString()}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`Tenor Fehler: HTTP ${res.status} ${text}`.trim())
+      }
+      return res.json()
+    }
+  }, [clientConfig?.gifs?.tenorApiKey])
+
   const effectiveComposeMode = useMemo(() => {
     if (replyTarget || quoteTarget) return 'single'
     return composeMode === 'thread' ? 'thread' : 'single'
@@ -79,17 +118,20 @@ export function Modals() {
     setThreadSending(true)
     setThreadError('')
     try {
-      const usable = segments
-        .filter((segment) => String(segment?.formatted || segment?.raw || '').trim().length > 0)
-        .map((segment) => String(segment.formatted || segment.raw || '').trim())
+      const effectiveSegments = (Array.isArray(segments) ? segments : []).map((segment) => {
+        const text = String(segment?.formatted || segment?.raw || '').trim()
+        const mediaEntries = Array.isArray(segment?.mediaEntries) ? segment.mediaEntries : []
+        return { text, mediaEntries }
+      })
+      const usable = effectiveSegments.filter((segment) => segment.text.length > 0 || segment.mediaEntries.length > 0)
       const interactions = interactionData
 
       let root = null
       let parent = null
       for (let i = 0; i < usable.length; i++) {
-        const content = usable[i]
+        const { text: content, mediaEntries } = usable[i]
         const reply = i === 0 ? null : buildThreadReplyContext(root, parent)
-        const res = await publishPost({ text: content, reply, interactions })
+        const res = await publishPost({ text: content, mediaEntries, reply, interactions })
         if (!res?.uri || !res?.cid) {
           throw new Error(t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
         }
@@ -103,7 +145,7 @@ export function Modals() {
     } finally {
       setThreadSending(false)
     }
-  }, [closeComposer, publishPost, t, threadSending, setThreadSource])
+  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData])
 
   useEffect(() => {
     if (feedManagerOpen) {
@@ -147,28 +189,6 @@ export function Modals() {
       >
         {effectiveComposeMode === 'thread' ? (
           <div className='space-y-4'>
-            <div className='flex flex-wrap items-center justify-between gap-3'>
-              <button
-                type='button'
-                className='inline-flex flex-1 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60 md:flex-none'
-                title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
-                onClick={openInteractionModal}
-                disabled={interactionSettings?.loading}
-              >
-                {interactionSettings?.loading
-                  ? t('compose.interactions.loading', 'Lade Interaktionseinstellungen…')
-                  : interactionSummary}
-              </button>
-              {interactionSettings?.error && !interactionSettings?.modalOpen ? (
-                <button
-                  type='button'
-                  className='text-xs font-semibold text-primary hover:underline'
-                  onClick={reloadSettings}
-                >
-                  {t('compose.interactions.retry', 'Erneut versuchen')}
-                </button>
-              ) : null}
-            </div>
             <div className='h-[64vh] min-h-[480px]'>
               <ThreadComposer
                 className='h-full'
@@ -179,8 +199,40 @@ export function Modals() {
                 appendNumbering={Boolean(threadAppendNumbering)}
                 onToggleNumbering={(enabled) => setThreadAppendNumbering(Boolean(enabled))}
                 disabled={threadSending}
-                submitLabel={threadSending ? t('compose.thread.sending', 'Sende…') : t('compose.thread.submit', 'Thread posten')}
+                submitLabel={threadSending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
                 onSubmit={handleThreadSubmit}
+                mediaMaxPerSegment={THREAD_MEDIA_MAX_PER_SEGMENT}
+                mediaMaxBytes={THREAD_MEDIA_MAX_BYTES}
+                mediaAllowedMimes={THREAD_ALLOWED_MIMES}
+                mediaRequireAltText={false}
+                gifPickerEnabled={tenorAvailable}
+                gifPickerFetcher={tenorFetcher}
+                gifPickerMaxBytes={THREAD_GIF_MAX_BYTES}
+                gifPickerStyles={THREAD_GIF_PICKER_STYLES}
+                footerAside={(
+                  <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
+                    <button
+                      type='button'
+                      className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
+                      title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
+                      onClick={openInteractionModal}
+                      disabled={interactionSettings?.loading}
+                    >
+                      {interactionSettings?.loading
+                        ? t('compose.interactions.loading', 'Lade Interaktionseinstellungen…')
+                        : interactionSummary}
+                    </button>
+                    {interactionSettings?.error && !interactionSettings?.modalOpen ? (
+                      <button
+                        type='button'
+                        className='text-xs font-semibold text-primary hover:underline'
+                        onClick={reloadSettings}
+                      >
+                        {t('compose.interactions.retry', 'Erneut versuchen')}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
                 secondaryAction={
                   <Button type='button' variant='secondary' disabled={threadSending} onClick={handleThreadCancel}>
                     {t('compose.cancel', 'Abbrechen')}

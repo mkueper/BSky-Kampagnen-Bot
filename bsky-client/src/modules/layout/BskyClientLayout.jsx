@@ -62,7 +62,7 @@ function MobileNavBar ({
             type='button'
             onClick={onOpenMenu}
             aria-label={t('nav.openMenu', 'Menü öffnen')}
-            className='inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary'
+            className='inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary'
           >
             <HamburgerMenuIcon className='h-5 w-5' />
           </button>
@@ -90,13 +90,15 @@ function MobileNavBar ({
               aria-label={label}
               aria-current={isActive ? 'page' : undefined}
               disabled={disabled}
-              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle/80 hover:text-primary ${
+              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary ${
                 isActive ? 'bg-background-subtle text-primary shadow-soft' : ''
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {Icon ? <Icon className='h-5 w-5' /> : null}
               {showBadge ? (
-                <span className='absolute -top-1 -right-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold text-primary-foreground'>
+                <span className={`absolute -top-1 -right-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full px-1 text-xs font-semibold ${
+                  isActive ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+                }`}>
                   {badgeLabel}
                 </span>
               ) : null}
