@@ -54,10 +54,14 @@ router.get("/preview", previewController.getExternalPreview);
 // Bluesky interactions
 router.post("/bsky/like", bskyActionsController.like);
 router.delete("/bsky/like", bskyActionsController.unlike);
+router.post("/bsky/mute", bskyActionsController.mute);
+router.delete("/bsky/mute", bskyActionsController.unmute);
 router.post("/bsky/repost", bskyActionsController.repost);
 router.delete("/bsky/repost", bskyActionsController.unrepost);
 router.post("/bsky/bookmark", bskyActionsController.bookmark);
 router.delete("/bsky/bookmark", bskyActionsController.unbookmark);
+router.post("/bsky/block", bskyActionsController.block);
+router.delete("/bsky/block", bskyActionsController.unblock);
 
 // Bluesky utility
 router.get("/bsky/timeline", bskyController.getTimeline);

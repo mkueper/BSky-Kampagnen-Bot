@@ -1332,6 +1332,58 @@ export async function fetchBlocks ({ cursor, limit } = {}) {
   return fetchBlocksDirect({ cursor, limit })
 }
 
+export async function muteActor (did) {
+  const safeDid = String(did || '').trim()
+  if (!safeDid) throw new Error('did erforderlich')
+  const res = await fetch('/api/bsky/mute', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ did: safeDid })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Stummschalten fehlgeschlagen')
+  return data
+}
+
+export async function unmuteActor (did) {
+  const safeDid = String(did || '').trim()
+  if (!safeDid) throw new Error('did erforderlich')
+  const res = await fetch('/api/bsky/mute', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ did: safeDid })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Stummschaltung aufheben fehlgeschlagen')
+  return data
+}
+
+export async function blockActor (did) {
+  const safeDid = String(did || '').trim()
+  if (!safeDid) throw new Error('did erforderlich')
+  const res = await fetch('/api/bsky/block', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ did: safeDid })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Blockieren fehlgeschlagen')
+  return data
+}
+
+export async function unblockActor (did) {
+  const safeDid = String(did || '').trim()
+  if (!safeDid) throw new Error('did erforderlich')
+  const res = await fetch('/api/bsky/block', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ did: safeDid })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Blockierung aufheben fehlgeschlagen')
+  return data
+}
+
 export async function likePost({ uri, cid }) {
   const agent = assertActiveAgent()
   const targetUri = ensureAtUri(uri, 'uri')
