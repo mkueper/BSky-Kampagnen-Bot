@@ -110,6 +110,7 @@ vi.mock('../../src/modules/shared', () => {
     Card,
     RichText: ({ text, ...props }) => <span {...props}>{text}</span>,
     RepostMenuButton,
+    deletePost: vi.fn(async () => ({ success: true })),
     useBskyEngagement: () => ({
       ...buildEngagement(),
       ...(engagementOverrides.current || {})

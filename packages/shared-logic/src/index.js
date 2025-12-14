@@ -18,3 +18,5 @@ export {
   isMentionNotification,
   getNotificationItemId
 } from './notifications.js'
+
+export { applyEngagementPatch } from './engagementPatch.js'

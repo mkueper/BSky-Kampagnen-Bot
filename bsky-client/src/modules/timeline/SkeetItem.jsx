@@ -22,9 +22,10 @@ import {
   BookmarkFilledIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
 import {
   useBskyEngagement,
+  deletePost,
   RichText,
   RepostMenuButton,
   ProfilePreviewTrigger,
@@ -288,7 +289,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     : ''
   const quoteClickable = !quotedStatusMessage && quoted?.uri && typeof onSelect === 'function'
   const { config } = useCardConfig()
+  const { quoteReposts } = useAppState()
   const dispatch = useAppDispatch()
+  const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
+  const [quoteBusy, setQuoteBusy] = useState(false)
   const {
     likeCount,
     repostCount,
@@ -316,35 +320,60 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const handleToggleLike = useCallback(async () => {
     clearError()
     const result = await toggleLike()
+    if (result && item?.uri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+    }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
       if (targetId) {
         onEngagementChange(targetId, { likeUri: result.likeUri, likeCount: result.likeCount })
       }
     }
-  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleLike])
+  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
+    if (result && item?.uri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+    }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
       if (targetId) {
         onEngagementChange(targetId, { repostUri: result.repostUri, repostCount: result.repostCount })
       }
     }
-  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleRepost])
+  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleRepost])
 
   const handleToggleBookmark = useCallback(async () => {
     clearError()
     const result = await toggleBookmark()
+    if (result && item?.uri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { bookmarked: result.bookmarked } } })
+    }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
       if (targetId) {
         onEngagementChange(targetId, { bookmarked: result.bookmarked })
       }
     }
-  }, [clearError, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
+  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
+
+  const handleUndoQuote = useCallback(async () => {
+    if (!item?.uri || !quotePostUri || quoteBusy) return
+    setQuoteBusy(true)
+    try {
+      await deletePost({ uri: quotePostUri })
+      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
+      setFeedbackMessage(t('skeet.quote.undoSuccess', 'Zitat zurückgezogen.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      setFeedbackMessage(error?.message || t('skeet.quote.undoError', 'Zitat konnte nicht zurückgezogen werden.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } finally {
+      setQuoteBusy(false)
+    }
+  }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
   const Wrapper = variant === 'card' ? Card : 'div'
   const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
   const wrapperProps = variant === 'card'
@@ -823,7 +852,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             <RepostMenuButton
               count={repostCount}
               hasReposted={hasReposted}
-              busy={busy}
+              hasQuoted={Boolean(quotePostUri)}
+              busy={busy || quoteBusy}
               style={repostStyle}
               onRepost={() => {
                 handleToggleRepost()
@@ -831,6 +861,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               onUnrepost={() => {
                 handleToggleRepost()
               }}
+              onUnquote={quotePostUri ? handleUndoQuote : undefined}
               onQuote={onQuote ? (() => {
                 clearError()
                 onQuote(item)

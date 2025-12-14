@@ -1,7 +1,7 @@
 import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton } from '../shared'
+import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -352,6 +352,7 @@ function buildReplyTarget (notification) {
 
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
+  const { quoteReposts } = useAppState()
   const { t } = useTranslation()
   const {
     author = {},
@@ -412,12 +413,53 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
+  const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
+  const [quoteBusy, setQuoteBusy] = useState(false)
+  const [quoteMessage, setQuoteMessage] = useState('')
+  const [quoteMessageIsError, setQuoteMessageIsError] = useState(false)
 
   const markAsRead = useCallback(() => {
     if (!isRead && typeof onMarkRead === 'function') {
       onMarkRead(item)
     }
   }, [isRead, onMarkRead, item])
+
+  const handleToggleLike = useCallback(async () => {
+    clearError()
+    const result = await toggleLike()
+    if (result && item?.uri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+    }
+  }, [clearError, dispatch, item?.uri, toggleLike])
+
+  const handleToggleRepost = useCallback(async () => {
+    clearError()
+    const result = await toggleRepost()
+    if (result && item?.uri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+    }
+  }, [clearError, dispatch, item?.uri, toggleRepost])
+
+  const handleUndoQuote = useCallback(async () => {
+    if (!item?.uri || !quotePostUri || quoteBusy) return
+    setQuoteBusy(true)
+    setQuoteMessage('')
+    setQuoteMessageIsError(false)
+    try {
+      await deletePost({ uri: quotePostUri })
+      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
+      setQuoteMessage(t('notifications.card.actions.quoteUndoSuccess', 'Zitat zurückgezogen.'))
+    } catch (error) {
+      setQuoteMessage(error?.message || t('notifications.card.actions.quoteUndoError', 'Zitat konnte nicht zurückgezogen werden.'))
+      setQuoteMessageIsError(true)
+    } finally {
+      setQuoteBusy(false)
+      window.setTimeout(() => {
+        setQuoteMessage('')
+        setQuoteMessageIsError(false)
+      }, 2400)
+    }
+  }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
 
   const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
 
@@ -594,12 +636,16 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
             <RepostMenuButton
               count={repostCount}
               hasReposted={hasReposted}
-              busy={busy}
+              hasQuoted={Boolean(quotePostUri)}
+              busy={busy || quoteBusy}
               style={repostStyle}
               onRepost={() => {
-                clearError()
-                toggleRepost()
+                handleToggleRepost()
               }}
+              onUnrepost={() => {
+                handleToggleRepost()
+              }}
+              onUnquote={quotePostUri ? handleUndoQuote : undefined}
               onQuote={onQuote ? (() => {
                 clearError()
                 onQuote(item)
@@ -612,7 +658,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               title={t('notifications.card.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
-              onClick={toggleLike}
+              onClick={handleToggleLike}
             >
               {hasLiked ? (
                 <HeartFilledIcon className='h-5 w-5' />
@@ -624,6 +670,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           </footer>
           {actionError ? (
             <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+          ) : null}
+          {quoteMessage ? (
+            <p className={`mt-2 text-xs ${quoteMessageIsError ? 'text-red-600' : 'text-foreground-muted'}`}>{quoteMessage}</p>
           ) : null}
         </>
       ) : null}

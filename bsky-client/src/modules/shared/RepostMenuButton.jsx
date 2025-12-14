@@ -1,63 +1,77 @@
-﻿import { useState } from "react";
-import { LoopIcon, QuoteIcon } from "@radix-ui/react-icons";
-import { InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem } from "@bsky-kampagnen-bot/shared-ui";
+import { useState } from 'react'
+import { LoopIcon, QuoteIcon } from '@radix-ui/react-icons'
+import { InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem } from '@bsky-kampagnen-bot/shared-ui'
 
-export default function RepostMenuButton({
+export default function RepostMenuButton ({
   count,
   hasReposted,
+  hasQuoted,
   busy,
   style,
   onRepost,
   onUnrepost,
   onQuote,
+  onUnquote
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
 
   const handleRepost = () => {
-    setOpen(false);
-    onRepost?.();
-  };
+    setOpen(false)
+    onRepost?.()
+  }
+
+  const handleUnrepost = () => {
+    setOpen(false)
+    onUnrepost?.()
+  }
 
   const handleQuote = () => {
-    setOpen(false);
-    if (onQuote) onQuote();
-  };
+    setOpen(false)
+    onQuote?.()
+  }
+
+  const handleUnquote = () => {
+    setOpen(false)
+    onUnquote?.()
+  }
 
   return (
     <InlineMenu open={open} onOpenChange={setOpen}>
       <InlineMenuTrigger>
         <button
-          type="button"
-          className={`group inline-flex items-center gap-2 transition ${busy ? "opacity-60" : ""}`}
+          type='button'
+          className={`group inline-flex items-center gap-2 transition ${busy ? 'opacity-60' : ''}`}
           style={style}
-          title={hasReposted ? "Reskeet rückgängig machen" : "Reskeet-Optionen"}
+          title={hasReposted ? 'Reskeet rückgängig machen' : 'Reskeet-Optionen'}
           aria-expanded={open}
           disabled={busy}
         >
-          <LoopIcon className="h-5 w-5 md:h-6 md:w-6" />
-          <span className="tabular-nums">{count}</span>
+          <LoopIcon className='h-5 w-5 md:h-6 md:w-6' />
+          <span className='tabular-nums'>{count}</span>
         </button>
       </InlineMenuTrigger>
-      <InlineMenuContent side="top" align="center" sideOffset={10} style={{ width: 220 }}>
-        <div className="py-1 text-sm">
+      <InlineMenuContent side='top' align='center' sideOffset={10} style={{ width: 220 }}>
+        <div className='py-1 text-sm'>
           {!hasReposted ? (
             <InlineMenuItem icon={LoopIcon} onSelect={handleRepost}>
               Reposten
             </InlineMenuItem>
           ) : null}
           {hasReposted ? (
-            <InlineMenuItem icon={LoopIcon} onSelect={() => {
-              setOpen(false);
-              onUnrepost?.();
-            }}>
+            <InlineMenuItem icon={LoopIcon} onSelect={handleUnrepost} disabled={!onUnrepost}>
               Reskeet zurückziehen
             </InlineMenuItem>
           ) : null}
-          <InlineMenuItem icon={QuoteIcon} onSelect={handleQuote} disabled={!onQuote}>
+          {hasQuoted ? (
+            <InlineMenuItem icon={QuoteIcon} onSelect={handleUnquote} disabled={!onUnquote}>
+              Zitierten Reskeet zurückziehen
+            </InlineMenuItem>
+          ) : null}
+          <InlineMenuItem icon={QuoteIcon} onSelect={handleQuote} disabled={!onQuote || Boolean(hasQuoted)}>
             Post zitieren
           </InlineMenuItem>
         </div>
       </InlineMenuContent>
     </InlineMenu>
-  );
+  )
 }

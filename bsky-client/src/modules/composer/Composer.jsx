@@ -4,12 +4,14 @@ import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
+import { useAppDispatch } from '../../context/AppContext.jsx'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 
 export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent }) {
   const { clientConfig } = useClientConfig()
+  const dispatch = useAppDispatch()
   const [text, setText] = useState('')
   const [message, setMessage] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
@@ -329,13 +331,19 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             return { root, parent }
           })()
         : null
-      await publishPost({
+      const sent = await publishPost({
         text: content,
         mediaEntries: pendingMedia.map((entry) => ({ file: entry.file, altText: entry.altText || '' })),
         quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : null,
         external: externalPayload,
         reply: replyContext
       })
+      if (quoteInfo?.uri && sent?.uri) {
+        dispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
+      }
+      if (replyContext?.parent?.uri) {
+        dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: replyContext.parent.uri, patch: { replyDelta: 1 } } })
+      }
       pendingMedia.forEach((entry) => releasePreviewUrl(entry.previewUrl))
       setPendingMedia([])
       setText('')

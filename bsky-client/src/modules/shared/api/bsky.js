@@ -1001,6 +1001,18 @@ export async function publishPost ({ text, mediaEntries = [], quote = null, exte
   }
 }
 
+export async function deletePost ({ uri }) {
+  const agent = assertActiveAgent()
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  const recordKey = extractRecordKey(ensureAtUri(uri, 'uri'))
+  await agent.com.atproto.repo.deleteRecord({
+    repo,
+    collection: 'app.bsky.feed.post',
+    rkey: recordKey
+  })
+  return { success: true }
+}
+
 const noopPushTransport = {
   async register () {
     return { success: false, skipped: true, reason: 'push_transport_disabled' };

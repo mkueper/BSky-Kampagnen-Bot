@@ -236,11 +236,47 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     []
   )
 
+  const scrollPositionsRef = useRef(new Map())
+  const scrollKeyRef = useRef(null)
+  const skipScrollRestoreRef = useRef(false)
+
   const scrollActiveListToTop = useCallback(() => {
     const el = getScrollContainer()
     if (!el) return
     el.scrollTop = 0
   }, [getScrollContainer])
+
+  useEffect(() => {
+    const el = getScrollContainer()
+    if (!el) return
+
+    const activeKey = `${section}:${activeList?.key || ''}`
+    const previousKey = scrollKeyRef.current
+    if (previousKey && previousKey !== activeKey) {
+      scrollPositionsRef.current.set(previousKey, el.scrollTop || 0)
+    }
+    scrollKeyRef.current = activeKey
+
+    if (skipScrollRestoreRef.current) {
+      skipScrollRestoreRef.current = false
+      return
+    }
+
+    const saved = scrollPositionsRef.current.get(activeKey)
+    if (typeof saved !== 'number') return
+
+    const restore = () => {
+      const container = getScrollContainer()
+      if (!container) return
+      container.scrollTop = saved
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(restore)
+    } else {
+      restore()
+    }
+  }, [activeList?.key, getScrollContainer, section])
   const accountProfiles = Array.isArray(authAccounts) && authAccounts.length > 0
     ? authAccounts
     : (me || authProfile)
@@ -393,6 +429,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       dispatch({ type: 'SET_SECTION', payload: 'home' })
       pushSectionRoute('home')
     }
+    skipScrollRestoreRef.current = true
     scrollActiveListToTop()
     if (!existingList || !existingList.loaded) {
       refreshListByKey(nextKey, { scrollAfter: true })
@@ -573,7 +610,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         pushSectionRoute('home')
       }
       dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
-      refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
+      refreshListByKey(timelineKeyRef.current, section === 'home' ? { scrollAfter: true } : undefined)
       return
     }
     if (id === 'profile') {
@@ -592,12 +629,15 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
 
   const handleScrollTopActivate = useCallback(() => {
     if (!activeList?.key) {
+      skipScrollRestoreRef.current = true
       scrollActiveListToTop()
       return
     }
     if (activeList.supportsRefresh && activeList.hasNew) {
+      skipScrollRestoreRef.current = true
       refreshListByKey(activeList.key, { scrollAfter: true })
     } else {
+      skipScrollRestoreRef.current = true
       scrollActiveListToTop()
     }
   }, [activeList, refreshListByKey, scrollActiveListToTop])
