@@ -8,6 +8,8 @@ import React, {
 import PropTypes from 'prop-types'
 import Button from './Button.jsx'
 import { splitThread } from '@bsky-kampagnen-bot/shared-logic'
+import { EmojiPicker } from '@kampagnen-bot/media-pickers'
+import { FaceIcon } from '@radix-ui/react-icons'
 
 const defaultLabels = {
   title: 'Thread content',
@@ -21,7 +23,8 @@ const defaultLabels = {
   charCount: (count, max) => (max ? `${count} / ${max}` : `${count}`),
   limitExceeded: 'Character limit exceeded.',
   emptySegment: '(no content)',
-  submitLabel: 'Submit'
+  submitLabel: 'Submit',
+  previewPlaceholder: 'Additional posts will appear here once your thread grows.'
 }
 
 function mergeLabels (labels) {
@@ -49,11 +52,13 @@ export default function ThreadComposer ({
 }) {
   const mergedLabels = mergeLabels(labels)
   const [internalNumbering, setInternalNumbering] = useState(true)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const resolvedAppendNumbering =
     typeof controlledNumbering === 'boolean'
       ? controlledNumbering
       : internalNumbering
   const textareaRef = useRef(null)
+  const emojiButtonRef = useRef(null)
 
   useEffect(() => {
     if (typeof controlledNumbering === 'boolean') {
@@ -81,6 +86,41 @@ export default function ThreadComposer ({
     }
   }, [previewSegments, onSegmentsChange])
 
+  const insertAtCursor = useCallback(
+    snippet => {
+      if (!snippet) return
+      const textarea = textareaRef.current
+      const baseValue = value || ''
+      if (!textarea) {
+        onChange(`${baseValue}${snippet}`)
+        return
+      }
+      const selectionStart =
+        typeof textarea.selectionStart === 'number'
+          ? textarea.selectionStart
+          : baseValue.length
+      const selectionEnd =
+        typeof textarea.selectionEnd === 'number'
+          ? textarea.selectionEnd
+          : baseValue.length
+      const before = baseValue.slice(0, selectionStart)
+      const after = baseValue.slice(selectionEnd)
+      const nextValue = `${before}${snippet}${after}`
+      onChange(nextValue)
+      requestAnimationFrame(() => {
+        try {
+          const cursorPosition = before.length + snippet.length
+          textarea.selectionStart = cursorPosition
+          textarea.selectionEnd = cursorPosition
+          textarea.focus()
+        } catch {
+          // ignore cursor errors
+        }
+      })
+    },
+    [onChange, value]
+  )
+
   const handleInsertSeparator = useCallback(() => {
     const textarea = textareaRef.current
     if (!textarea) return
@@ -100,19 +140,8 @@ export default function ThreadComposer ({
       needsSuffixNl ? '\n' : ''
     }`
 
-    const nextValue = `${before}${separator}${after}`
-    onChange(nextValue)
-    requestAnimationFrame(() => {
-      try {
-        const cursorPosition = before.length + separator.length
-        textarea.selectionStart = cursorPosition
-        textarea.selectionEnd = cursorPosition
-        textarea.focus()
-      } catch {
-        // ignore cursor errors
-      }
-    })
-  }, [value, onChange, hardBreakMarker])
+    insertAtCursor(separator)
+  }, [value, hardBreakMarker, insertAtCursor])
 
   const handleKeyDown = useCallback(
     event => {
@@ -140,56 +169,84 @@ export default function ThreadComposer ({
   const effectiveSubmitLabel = submitLabel || mergedLabels.submitLabel
 
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
-      <div className='space-y-2'>
-        <div className='flex items-center justify-between'>
+    <div className={`flex h-full min-h-0 flex-col gap-6 ${className}`}>
+      <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+        <div>
           <h3 className='text-base font-semibold text-foreground'>
             {mergedLabels.title}
           </h3>
-          <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
-            {mergedLabels.postsCounter(totalSegments)}
-          </span>
+          <p className='mt-1 text-xs text-foreground-muted'>
+            {mergedLabels.hint}
+          </p>
         </div>
-        <p className='text-xs text-foreground-muted'>{mergedLabels.hint}</p>
+        <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
+          {mergedLabels.postsCounter(totalSegments)}
+        </span>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        onKeyDown={handleKeyDown}
-        className='h-48 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
-        placeholder={placeholder || mergedLabels.placeholder}
-        disabled={disabled}
-        aria-label={mergedLabels.title}
-      />
+      <div className='grid flex-1 min-h-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch'>
+        <div className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={event => onChange(event.target.value)}
+            onKeyDown={handleKeyDown}
+            className='mt-2 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
+            placeholder={placeholder || mergedLabels.placeholder}
+            disabled={disabled}
+            aria-label={mergedLabels.title}
+          />
 
-      <label className='flex items-center gap-3 text-sm font-medium text-foreground'>
-        <input
-          type='checkbox'
-          className='rounded border-border text-primary focus:ring-primary'
-          checked={resolvedAppendNumbering}
-          onChange={handleToggleNumbering}
-          disabled={disabled}
-        />
-        {mergedLabels.numberingToggle}
-      </label>
-
-      <section className='rounded-3xl border border-border bg-background p-4 shadow-soft'>
-        <div className='flex items-center justify-between'>
-          <h4 className='text-sm font-semibold text-foreground'>
-            {mergedLabels.previewTitle}
-          </h4>
-          <span className='text-xs text-foreground-muted'>
-            {mergedLabels.postsCounter(totalSegments)}
-          </span>
+          <div className='mt-3 flex flex-wrap items-center justify-between gap-3'>
+            <label className='inline-flex items-center gap-3 text-sm font-medium text-foreground'>
+              <input
+                type='checkbox'
+                className='rounded border-border text-primary focus:ring-primary'
+                checked={resolvedAppendNumbering}
+                onChange={handleToggleNumbering}
+                disabled={disabled}
+              />
+              {mergedLabels.numberingToggle}
+            </label>
+            <div className='flex items-center gap-2'>
+              <button
+                ref={emojiButtonRef}
+                type='button'
+                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                title='Emoji einfügen'
+                aria-label='Emoji einfügen'
+                onClick={() => setEmojiPickerOpen(open => !open)}
+                disabled={disabled}
+              >
+                <FaceIcon className='h-5 w-5' aria-hidden='true' />
+              </button>
+              <button
+                type='button'
+                className='inline-flex h-10 items-center justify-center rounded-full border border-border bg-background-subtle px-4 text-sm font-medium text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                onClick={handleInsertSeparator}
+                disabled={disabled}
+              >
+                ---
+              </button>
+            </div>
+          </div>
         </div>
-        <div className='mt-4 space-y-3'>
-          {previewSegments.map((segment, index) => (
-            <article
-              key={segment.id}
-              className='rounded-2xl border border-border bg-background-subtle p-4'
-            >
+
+        <section className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
+          <div className='flex items-center justify-between'>
+            <h4 className='text-sm font-semibold text-foreground'>
+              {mergedLabels.previewTitle}
+            </h4>
+            <span className='text-xs text-foreground-muted'>
+              {mergedLabels.postsCounter(totalSegments)}
+            </span>
+          </div>
+          <div className='mt-4 flex-1 space-y-3 overflow-y-auto pr-1'>
+           {previewSegments.map((segment, index) => (
+              <article
+                key={segment.id}
+                className='rounded-2xl border border-border bg-background-subtle p-4'
+              >
               <header className='flex items-center justify-between text-xs'>
                 <span className='font-semibold text-foreground'>
                   {mergedLabels.segmentLabel(index + 1)}
@@ -221,8 +278,14 @@ export default function ThreadComposer ({
               {mergedLabels.postsCounter(0)}
             </p>
           ) : null}
-        </div>
-      </section>
+          {previewSegments.filter((segment) => !segment.isEmpty).length <= 1 ? (
+            <article className='flex min-h-[96px] items-center justify-center rounded-2xl border border-dashed border-border bg-background-subtle px-6 py-8 text-center text-xs text-foreground-muted opacity-70'>
+              {mergedLabels.previewPlaceholder}
+            </article>
+          ) : null}
+          </div>
+        </section>
+      </div>
 
       {typeof onSubmit === 'function' ? (
         <div className='flex justify-end'>
@@ -235,6 +298,18 @@ export default function ThreadComposer ({
           </Button>
         </div>
       ) : null}
+
+      <EmojiPicker
+        open={emojiPickerOpen}
+        anchorRef={emojiButtonRef}
+        onClose={() => setEmojiPickerOpen(false)}
+        onPick={emoji => {
+          const valueToInsert = emoji?.native || emoji?.shortcodes || emoji?.id
+          if (!valueToInsert) return
+          insertAtCursor(valueToInsert)
+          setEmojiPickerOpen(false)
+        }}
+      />
     </div>
   )
 }
