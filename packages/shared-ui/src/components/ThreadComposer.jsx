@@ -129,8 +129,6 @@ export default function ThreadComposer ({
       selectionStart = value.length,
       selectionEnd = value.length
     } = textarea
-    const before = value.slice(0, selectionStart)
-    const after = value.slice(selectionEnd)
     const prevChar = selectionStart > 0 ? value.charAt(selectionStart - 1) : ''
     const nextChar =
       selectionEnd < value.length ? value.charAt(selectionEnd) : ''
@@ -192,7 +190,7 @@ export default function ThreadComposer ({
             value={value}
             onChange={event => onChange(event.target.value)}
             onKeyDown={handleKeyDown}
-            className='mt-2 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
+            className='mt-2 flex-1 h-full min-h-[16rem] rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
             placeholder={placeholder || mergedLabels.placeholder}
             disabled={disabled}
             aria-label={mergedLabels.title}
