@@ -68,7 +68,7 @@ export function TimelineHeader ({
       <HorizontalScrollContainer className='flex-1 min-w-0'>
         {tabs.map(tab => {
           const isActive = timelineTab === tab.id
-          const showBadge = !isActive && tab.hasNew
+          const showBadge = tab.hasNew
           return (
             <button
               key={tab.id}

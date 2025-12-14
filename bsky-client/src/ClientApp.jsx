@@ -88,14 +88,29 @@ const NotificationsFallback = () => (
 )
 
 export default function BskyClientApp ({ onNavigateDashboard }) {
-  const { status: authStatus } = useBskyAuth()
-  if (authStatus === 'loading') {
-    return null
-  }
-  if (authStatus === 'unauthenticated') {
-    return <LoginView />
-  }
-  return <AuthenticatedClientApp onNavigateDashboard={onNavigateDashboard} />
+  const {
+    status: authStatus,
+    session: authSession,
+    activeAccountId: authActiveAccountId
+  } = useBskyAuth()
+
+  const hasAuthenticatedContext = Boolean(authActiveAccountId || authSession)
+  if (authStatus === 'loading' && !hasAuthenticatedContext) return null
+  if (authStatus === 'unauthenticated') return <LoginView />
+
+  return (
+    <>
+      <AuthenticatedClientApp onNavigateDashboard={onNavigateDashboard} />
+      {authStatus === 'loading' ? (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm'>
+          <div className='flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-3 shadow-soft'>
+            <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
+            <span className='text-sm font-medium text-foreground'>Konto wird gewechselt…</span>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 function AuthenticatedClientApp ({ onNavigateDashboard }) {
@@ -113,6 +128,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     logout,
     profile: authProfile,
     accounts: authAccounts,
+    activeAccountId,
     switchAccount,
     beginAddAccount
   } = useBskyAuth()
@@ -146,7 +162,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
 
   useListPolling(lists, dispatch)
-  useNotificationPolling(dispatch)
+  useNotificationPolling(lists, dispatch)
 
   const officialTabs = STATIC_TIMELINE_TABS
 
@@ -295,6 +311,33 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
 
   const closeFeedMenu = useCallback(() => setFeedMenuOpen(false), [])
 
+  const previousAccountIdRef = useRef(activeAccountId)
+  useEffect(() => {
+    const prevId = previousAccountIdRef.current
+    if (!activeAccountId || prevId === activeAccountId) return
+    previousAccountIdRef.current = activeAccountId
+
+    closeFeedMenu()
+    if (threadState.active) {
+      closeThread({ force: true })
+    }
+
+    timelineKeyRef.current = 'discover'
+    dispatch({ type: 'SET_ACTIVE_LIST', payload: 'discover' })
+    dispatch({ type: 'SET_SECTION', payload: 'home' })
+    pushSectionRoute('home')
+
+    refreshListByKey('discover', { scrollAfter: true })
+  }, [
+    activeAccountId,
+    closeFeedMenu,
+    closeThread,
+    dispatch,
+    pushSectionRoute,
+    refreshListByKey,
+    threadState.active
+  ])
+
   const [notificationTab, setNotificationTab] = useState('all')
   const notificationListKey = notificationTab === 'mentions' ? 'notifs:mentions' : 'notifs:all'
   const timelinePaneRefreshing = Boolean(lists?.[timelineKeyRef.current]?.isRefreshing)
@@ -411,17 +454,17 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       return (
         <div className='flex flex-wrap items-center gap-3'>
           <p className='text-base font-semibold text-foreground'>{t('layout.headers.notifications', 'Mitteilungen')}</p>
-          <div className='flex flex-1 items-center justify-center'>
-            <div className='inline-flex items-center gap-4'>
+          <div className='flex flex-1 items-center'>
+            <div className='inline-flex items-center'>
               {['all', 'mentions'].map((tab) => (
                 <button
                   key={tab}
                   type='button'
                   onClick={() => handleNotificationTabSelect(tab)}
-                  className={`rounded-full px-5 py-2 text-sm font-medium transition ${
+                  className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transition ${
                     notificationTab === tab
-                      ? 'border border-foreground bg-foreground text-background shadow-soft'
-                      : 'border border-transparent bg-background-subtle text-foreground hover:border-foreground/40'
+                      ? 'bg-background-subtle text-foreground shadow-soft'
+                      : 'text-foreground-muted hover:text-foreground'
                   }`}
                 >
                   <span className='inline-flex items-center gap-2'>
@@ -430,7 +473,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
                         ? t('layout.notifications.tabAll', 'Alle')
                         : t('layout.notifications.tabMentions', 'Erwähnungen')}
                     </span>
-                    {tab !== notificationTab && (tab === 'mentions'
+                    {(tab === 'mentions'
                       ? lists?.['notifs:mentions']?.hasNew
                       : lists?.['notifs:all']?.hasNew) ? (
                       <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.notifications.newItems', 'Neue Einträge')} />

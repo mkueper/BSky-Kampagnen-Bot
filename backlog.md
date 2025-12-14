@@ -3,15 +3,11 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-1. Advanced-Search-Prefixes evaluieren (z. B. `lang:`, `has:media`) und ggf. in `app-customization.json` ergänzen.
-2. Zentrale SWR-Einstellungen (Error-Boundaries/Logging) ergänzen und an globale `SWRConfig` anbinden.
-3. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
-4. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
-5. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
-6. Action-Typen/String-Konstanten zentral definieren (z. B. `actions.js`) und überall nur noch diese Konstanten verwenden.
-7.  Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
-8.  Im eigenen Profil (oder der Profil-Viewer-Ansicht) soll ein Klick auf das eigene Profil nicht erneut den Viewer öffnen (self-view verhindern).
-9. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
+1. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
+2. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
+3. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
+4. Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
+5. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
 
 ## Feature-Kandidaten
 1. Notifications-Filter: Konfigurationsbutton im Header mit echtem Filter-Overlay und speicherbarer Auswahl.
@@ -22,20 +18,28 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 6. Einheitlicher Ladeindikator: Spinner-Slots in allen Pane-Headern anzeigen (auch beim initialen Laden), damit Refresh-Status und Skeletons konsistent erkennbar bleiben.
 
 ## In Progress
-1. Internationalisierung vorbereiten: Texte zentral auslagern (z. B. i18n-Dateien) und UI-Komponenten darauf umstellen.
+(leer)
 
 ## Bugs
 1. NAV-Badge für ungelesene Notifications aktualisiert sich erst nach dem Öffnen des Mitteilungs-Panels.
+2. Kampagnen-Tool: Reaktionen von Mastodon werden in den Gesendet-Karten nicht korrekt eingesammelt/angezeigt.
+3. Kampagnen-Tool: In den Gesendet-Karten eigene Posts unter Antworten ausblenden.
 
 ## Review
 1. Pane-Routing über `react-router-dom` (HashRouter) weiter ausbauen (Nested Routes, Direktaufrufe für zukünftige Chats/Feeds).
-2. NAV-Interaktionen sperren, wenn Detail-Panes (z. B. ContentPane) außerhalb der Hauptrouten geöffnet sind.
-3. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
-4. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
-5. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
-6. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
+2. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
+3. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
+4. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
+5. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
 
 ## Done
+
+### 2025-12-14
+- Advanced-Search-Prefixes (z. B. `lang:`, `has:media`) sind umgesetzt.
+- Globaler `SWRConfig` Wrapper (Error-Boundaries/Logging) ist umgesetzt.
+- Action-Typen/String-Konstanten sind zentralisiert und werden bei neuen Texten in beiden Sprachen gepflegt.
+- Self-view im Profil-Viewer ist verhindert.
+- Internationalisierung ist vorbereitet und umgesetzt (Texte zentral + UI-Komponenten umgestellt).
 
 ### 2025-11-26
 - einen globalen SWRConfig Wrapper (z. B. in src/main.jsx) einführen, damit wir Default-Fetcher/Fehlerlogging zentral steuern können

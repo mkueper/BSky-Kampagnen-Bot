@@ -994,11 +994,20 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
 
   const list = listKey ? lists?.[listKey] : null
+  const listRef = useRef(list)
+  useEffect(() => {
+    listRef.current = list
+  }, [list])
   const items = useMemo(() => (Array.isArray(list?.items) ? list.items : []), [list?.items])
   const [retryTick, setRetryTick] = useState(0)
   const [error, setError] = useState(null)
   const loadMoreTriggerRef = useRef(null)
-  const initialSyncRef = useRef(false)
+  const [mentionsAutoLoadAttempts, setMentionsAutoLoadAttempts] = useState(0)
+  const mentionsAutoLoadRef = useRef({
+    key: null,
+    attempts: 0,
+    running: false
+  })
   const updateUnread = useCallback((count) => {
     dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: Math.max(0, count || 0) })
   }, [dispatch])
@@ -1006,24 +1015,24 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   const isLoadingInitial = !list || !list.loaded
   const isLoadingMore = Boolean(list?.isLoadingMore)
   const hasMore = Boolean(list?.cursor)
+  const mentionsPageSize = 80
 
   useEffect(() => {
     setError(null)
   }, [listKey, retryTick])
 
   useEffect(() => {
-    initialSyncRef.current = false
-  }, [listKey])
-
-  useEffect(() => {
     if (!listKey || !list || !list.data) return
-    if (list.loaded && retryTick === 0 && initialSyncRef.current) return
     if (list.isRefreshing) return
+    if (list.loaded && retryTick === 0) return
     let cancelled = false
-    runListRefresh({ list, dispatch })
+    runListRefresh({
+      list,
+      dispatch,
+      ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
+    })
       .then((page) => {
         if (cancelled) return
-        initialSyncRef.current = true
         if (typeof page?.unreadCount === 'number') {
           updateUnread(page.unreadCount)
         }
@@ -1035,16 +1044,20 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         if (!cancelled) setError(err)
       })
     return () => { cancelled = true }
-  }, [listKey, list, dispatch, retryTick, updateUnread])
+  }, [activeTab, listKey, list, dispatch, retryTick, updateUnread])
 
   const loadMore = useCallback(async () => {
     if (!list || isLoadingInitial || isLoadingMore || !hasMore) return
     try {
-      await runListLoadMore({ list, dispatch })
+      await runListLoadMore({
+        list,
+        dispatch,
+        ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
+      })
     } catch (err) {
       console.error('Failed to load more notifications', err)
     }
-  }, [list, dispatch, hasMore, isLoadingInitial, isLoadingMore])
+  }, [activeTab, list, dispatch, hasMore, isLoadingInitial, isLoadingMore])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead || !list) return
@@ -1081,6 +1094,10 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       if (!entry?.isIntersecting) return
       if (!hasMore) return
       if (isLoadingMore) return
+      if (activeTab === 'mentions' && root) {
+        const isScrollable = root.scrollHeight > root.clientHeight + 32
+        if (!isScrollable) return
+      }
       loadMore()
     }, {
       root,
@@ -1092,16 +1109,72 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       if (target) observer.unobserve(target)
       observer.disconnect()
     }
-  }, [hasMore, isLoadingMore, loadMore])
+  }, [activeTab, hasMore, isLoadingMore, loadMore])
+
+  useEffect(() => {
+    if (activeTab !== 'mentions') return
+    if (!listKey) return
+    const state = mentionsAutoLoadRef.current
+    if (state.key !== listKey) {
+      state.key = listKey
+      state.attempts = 0
+      state.running = false
+      setMentionsAutoLoadAttempts(0)
+    }
+  }, [activeTab, listKey])
 
   useEffect(() => {
     if (activeTab !== 'mentions') return
     if (isLoadingInitial || isLoadingMore) return
     if (!hasMore) return
-    const MIN_BUFFER = 8
-    if (items.length >= MIN_BUFFER) return
-    loadMore()
-  }, [activeTab, hasMore, loadMore, items.length, isLoadingInitial, isLoadingMore])
+
+    const state = mentionsAutoLoadRef.current
+    if (state.running) return
+
+    const root = typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null
+    const rootHeight = root?.clientHeight || 0
+    const estimatedCardHeight = 96
+    const bufferCards = 6
+    const minTarget = 10
+    const targetCount = Math.max(
+      minTarget,
+      rootHeight > 0 ? Math.ceil(rootHeight / estimatedCardHeight) + bufferCards : minTarget
+    )
+    if (items.length >= targetCount) return
+
+    const MAX_AUTOPAGES = 5
+    state.running = true
+
+    ;(async () => {
+      try {
+        while (state.attempts < MAX_AUTOPAGES) {
+          const currentList = listRef.current
+          if (!currentList?.cursor) return
+          if (currentList.isLoadingMore || currentList.isRefreshing) return
+          const beforeCursor = currentList.cursor
+          const beforeCount = Array.isArray(currentList.items) ? currentList.items.length : 0
+
+          state.attempts += 1
+          setMentionsAutoLoadAttempts(state.attempts)
+          await runListLoadMore({ list: currentList, dispatch, limit: mentionsPageSize })
+
+          const afterList = listRef.current
+          const afterCursor = afterList?.cursor || null
+          const afterCount = Array.isArray(afterList?.items) ? afterList.items.length : beforeCount
+
+          if (afterCount >= targetCount) return
+          if (!afterCursor) return
+          if (afterCursor === beforeCursor && afterCount === beforeCount) return
+        }
+      } catch (err) {
+        console.warn('mentions auto-load failed', err)
+      } finally {
+        state.running = false
+      }
+    })()
+  }, [activeTab, dispatch, hasMore, isLoadingInitial, isLoadingMore, items.length])
 
   if (isLoadingInitial) {
     return (
@@ -1156,7 +1229,13 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         >
           {isLoadingMore
             ? t('notifications.status.loading', 'Lade…')
-            : t('notifications.status.autoLoading', 'Weitere Mitteilungen werden automatisch geladen…')}
+            : activeTab === 'mentions' && mentionsAutoLoadAttempts >= 5
+                ? (
+                    <Button variant='secondary' size='pill' onClick={loadMore}>
+                      {t('notifications.actions.loadMore', 'Mehr laden…')}
+                    </Button>
+                  )
+                : t('notifications.status.autoLoading', 'Weitere Mitteilungen werden automatisch geladen…')}
         </div>
       ) : null}
     </section>

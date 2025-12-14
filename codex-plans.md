@@ -14,6 +14,8 @@
 - Bluesky-Client: Zielarchitektur (eigenständige Desktop-App mit direktem `BskyAgent`) und Login-Konzept (Service-URL, Identifier, App-Passwort, zwei Persistenz-Checkboxen) stehen, Multi-Account bleibt nachgelagert.
 - `bskyAgentClient` bildet Login/Resume/Logout bereits ab; UI und Stores nutzen ihn noch nicht.
 - Aktueller Fokus: Wir arbeiten derzeit ausschließlich am Bluesky‑Client (`bsky-client`). Backend und Dashboard bleiben unangetastet; Änderungen in `packages/shared-*` erfolgen nur vorsichtig und kompatibel, weil sie beide Frontends betreffen können.
+- Bluesky‑Client: Mitteilungen/Erwähnungen sind gegen Endlos‑Nachladen abgesichert (begrenztes Auto‑Paging + Stop bei fehlendem Cursor‑Fortschritt).
+- Bluesky‑Client: Beim Account‑Wechsel wird konsistent auf Home/Discover zurückgesetzt und Discover neu geladen.
 - Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
 - `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
 - VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.
@@ -22,6 +24,8 @@
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
 Kampagnen-Tool läuft als eigenständiger Serverdienst mit dokumentiertem Docker-Bundle, aufgeräumten Upload-Pfaden und konsistenter Doku/Test-Guidance. Für den Bluesky-Client existiert die Zielarchitektur (Desktop-App + direkter `BskyAgent`), aber UI/Auth-Layer müssen noch umgestellt werden. Dashboard & Backend lassen sich mit Demo-Daten (`scripts/seedDemoDatabase.ts`) und funktionierendem VS-Code-Launcher schnell starten.
+
+Im Client als nächstes: UX für Erwähnungen/Auto‑Paging finalisieren (wie Original Bluesky) und Thread‑Darstellung (Tiefe 6 + „weitere Antwort(en) lesen“) sauber planen.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 [text](<../../Downloads/5D1CF368B8361FD0AABF71486C6920B9 (1).pdf>)

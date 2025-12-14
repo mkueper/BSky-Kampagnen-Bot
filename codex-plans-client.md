@@ -4,20 +4,20 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-11.12.2025
+13.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Der `bsky-client` läuft wieder stabil gegen das Backend (Proxy auf Port 3000), Layout/Theme und Typografie sind an das Dashboard angepasst (`ThemeProvider`, Tailwind‑Tokens, Fonts).
-- Login‑Flow, Timeline, Header/Navigation und grundlegende Interaktionen sind im `bsky-client` implementiert, die Kampagnen‑Funktionalität liegt vollständig im Dashboard/Backend.
-- Die wichtigsten Backend‑Abhängigkeiten des `bsky-client` sind identifiziert (Auth, `/api/me`, Bluesky‑Proxies, Uploads, Tenor‑Proxy, Client‑Config).
-- `shared-ui` und `shared-logic` dienen bereits als zentrale Brücke für gemeinsame UI‑Bausteine und Logik zwischen Dashboard und Client.
-- Konvention: Bei Änderungen/Neubau von UI‑Bausteinen zuerst in `packages/shared-ui` (bzw. `packages/shared-*`) prüfen, ob es bereits eine passende Komponente/Utility gibt, bevor im `bsky-client` oder `dashboard` etwas dupliziert wird.
 - Arbeitsmodus: Wir arbeiten aktuell ausschließlich am `bsky-client`. Änderungen in `packages/shared-*` nur, wenn für den Client nötig und dann strikt kompatibel/additiv (keine API‑Brüche, Defaults beibehalten), weil Dashboard/andere Consumer sonst unbeabsichtigt kaputtgehen können.
+- Konvention: Bei Änderungen/Neubau von UI‑Bausteinen zuerst in `packages/shared-ui` (bzw. `packages/shared-*`) prüfen, ob es bereits eine passende Komponente/Utility gibt, bevor im `bsky-client` oder `dashboard` etwas dupliziert wird.
+- Standalone‑Ausrichtung ist konkret: Der Client nutzt direkte `@atproto/api`‑Calls (kein Backend‑Proxy‑Fallback) für Auth/Session, Timeline, Notifications und Suche.
+- Multi‑Account ist im Client verfügbar; beim Account‑Wechsel wird die Navigation auf Home/Discover zurückgesetzt und Discover wird neu geladen (ohne „Hook order“-Probleme).
+- Erwähnungen (Notifications-Tab) sind vor Endlos‑Nachladen geschützt: Auto‑Nachladen ist begrenzt und stoppt bei fehlendem Cursor‑Fortschritt.
+- Tenor (GIFs) ist lokal im Client konfigurierbar (Toggle + API‑Key in lokalem Client‑Config), und das Posten mit GIF/Emoji/Bild funktioniert in Live‑Tests.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-/Cron-/Settings‑Screens), nutzt aber noch das gleiche Backend für Auth und Bluesky‑Aktionen. In der nächsten Session soll die Trennung im Code weiter geschärft werden (klare Import‑ und API‑Boundary) und eine Grundlage geschaffen werden, um später optional einen echten Standalone‑Modus (direkt gegen `@atproto/api`) ergänzen zu können.
+Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atproto/api`, Multi‑Account und stabiler Navigation. Als nächstes klären wir die gewünschte UX für Erwähnungen/Auto‑Paging (aktuell begrenzt) und notieren/planen UI‑Verbesserungen für Login und Thread‑Darstellung.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
@@ -59,6 +59,7 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
    - Tabs für Timeline-Feeds (z. B. Discover/Following/Feeds) sauber definieren und im UI als echte Tabs abbilden (inkl. klarer Active-State, Refresh-Verhalten und Cursor-/Paging-Konsistenz je Tab).
 
 10. Binäre Badges in Timelines konfigurierbar machen:
+   - Badges, die neue Inhalte anzeigen, prüfen/aktivieren.
    - Anzeige der binären Badges (z. B. „neu“/Zähler-Badges) in Timeline-Listen als Option unter „Aussehen“ vorsehen (Default wie bisher), damit das UI je nach Preference ruhiger geschaltet werden kann.
 
 11. Anmelde-Dialog erweitern (nicht sofort umsetzen):
@@ -66,6 +67,31 @@ Der `bsky-client` ist funktional vom Kampagnen‑Tool getrennt (keine Scheduler-
 
 12. Composer-Modal verbessern (Idee, nicht sofort umsetzen):
    - Beim Antworten im Composer-Modal oberhalb des Eingabefelds den Post anzeigen, auf den geantwortet wird.
+
+13. Settings-UX vereinheitlichen (Notiz, später entscheiden):
+   - Prüfen, ob wir Settings sofort speichern oder ein explizites „Speichern“/„Übernehmen“ benötigen (globaler Speichern-Button vs. Feld-Commit z. B. per Häkchen).
+
+14. Push-UI modularisieren (Notiz, nicht sofort umsetzen):
+   - Push-Konfiguration als wiederverwendbaren Baustein nach `packages/shared-ui` auslagern und im `bsky-client` vorerst nicht einbinden, bis ein echtes Push-Setup existiert.
+
+15. Login/Passwortfeld verbessern (Notiz, nicht sofort umsetzen):
+   - Im Passwort-Input einen Button „Passwort anzeigen“ ergänzen (Toggle Maskierung).
+
+16. Threads/Unterhaltungen begrenzen (Notiz, nicht sofort umsetzen):
+   - Unterhaltungen initial nur bis Tiefe 6 rendern; danach einen Button wie im Bluesky-UI („+ 1 weitere Antwort lesen“) anzeigen, der weitere Antworten nachlädt/aufklappt (erneut bis Tiefe 6, usw.).
+
+17. Erwähnungen/Auto-Paging UX klären (als nächstes):
+   - Zielbild festlegen, wie im Original Bluesky: Mentions aus Notifications nachladen, ohne UI‑Sprünge, aber mit klarer Begrenzung/Stop‑Kriterium; aktuelles Verhalten (max. 5 Auto‑Loads) gemeinsam prüfen und ggf. feinjustieren.
+   - Dabei das Paging-Verhalten des Originals prüfen (≈30–40 Items vorladen; beim Erreichen der Scroll-Schwelle weitere ≈30–40), insbesondere im Mentions-Tab.
+
+18. Composer: Einfügen aus Zwischenablage:
+   - Im Composer das Einfügen von erlaubtem Content zulassen (Text, Emoji, Links, Bilder, GIF; Video ggf. später evaluieren).
+
+19. Unroll: Trennlinien-Option:
+   - Im Unroll-Fenster Trennlinien per Option in Einstellungen/Aussehen ein-/ausschaltbar machen.
+
+20. Hover-Kontrast in Dark-Themes:
+   - Hover-State so anpassen, dass er in dunklen Themes klar erkennbar ist (z. B. zusätzlicher Rahmen/Outline).
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

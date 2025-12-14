@@ -1,5 +1,5 @@
 /* global process */
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 export function VirtualizedList ({
   items,
@@ -18,6 +18,26 @@ export function VirtualizedList ({
   const [viewportHeight, setViewportHeight] = useState(0)
   const [hasScrollContainer, setHasScrollContainer] = useState(false)
   const { style: inlineStyle, ...restProps } = passthroughProps
+  const scrollRafRef = useRef(null)
+  const resizeRafRef = useRef(null)
+
+  const hasValidHeight = typeof itemHeight === 'number' && itemHeight > 0
+  const meetsThreshold = totalCount >= virtualizationThreshold
+  const shouldTrackScroll = meetsThreshold && hasValidHeight
+
+  const updateScrollTop = useMemo(() => {
+    return (container) => {
+      const nextScrollTop = container?.scrollTop || 0
+      setScrollTop(nextScrollTop)
+    }
+  }, [])
+
+  const updateViewportHeight = useMemo(() => {
+    return (container) => {
+      const nextViewportHeight = container?.clientHeight || 0
+      setViewportHeight(nextViewportHeight)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -29,16 +49,38 @@ export function VirtualizedList ({
 
     setHasScrollContainer(true)
 
+    updateViewportHeight(container)
+    updateScrollTop(container)
+
+    if (!shouldTrackScroll) {
+      return () => {
+        setHasScrollContainer(false)
+      }
+    }
+
     const handleScroll = () => {
-      setScrollTop(container.scrollTop || 0)
+      if (typeof requestAnimationFrame === 'undefined') {
+        updateScrollTop(container)
+        return
+      }
+      if (scrollRafRef.current != null) return
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null
+        updateScrollTop(container)
+      })
     }
 
     const handleResize = () => {
-      setViewportHeight(container.clientHeight || 0)
+      if (typeof requestAnimationFrame === 'undefined') {
+        updateViewportHeight(container)
+        return
+      }
+      if (resizeRafRef.current != null) return
+      resizeRafRef.current = requestAnimationFrame(() => {
+        resizeRafRef.current = null
+        updateViewportHeight(container)
+      })
     }
-
-    handleResize()
-    setScrollTop(container.scrollTop || 0)
 
     container.addEventListener('scroll', handleScroll, { passive: true })
     if (typeof window !== 'undefined') {
@@ -50,9 +92,17 @@ export function VirtualizedList ({
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize)
       }
+      if (scrollRafRef.current != null && typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(scrollRafRef.current)
+        scrollRafRef.current = null
+      }
+      if (resizeRafRef.current != null && typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(resizeRafRef.current)
+        resizeRafRef.current = null
+      }
       setHasScrollContainer(false)
     }
-  }, [])
+  }, [shouldTrackScroll, updateScrollTop, updateViewportHeight])
 
   if (listItems.length === 0) {
     if (emptyFallback !== undefined) {
@@ -61,9 +111,7 @@ export function VirtualizedList ({
     return <ul className={className} style={inlineStyle} {...restProps} />
   }
 
-  const hasValidHeight = typeof itemHeight === 'number' && itemHeight > 0
   const overscanValue = typeof overscan === 'number' ? Math.max(0, overscan) : 3
-  const meetsThreshold = Array.isArray(items) && totalCount >= virtualizationThreshold
   const canVirtualize = Boolean(
     meetsThreshold &&
     hasValidHeight &&

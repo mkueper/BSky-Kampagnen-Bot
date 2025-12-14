@@ -1,5 +1,6 @@
 ﻿import { BskyAgent } from '@atproto/api'
 import { getActiveBskyAgentClient } from './bskyAgentClient.js'
+import { getMentionsReasons, getNotificationItemId, isMentionNotification } from '@bsky-kampagnen-bot/shared-logic'
 
 const OFFICIAL_FEED_GENERATORS = {
   discover: 'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot',
@@ -826,20 +827,52 @@ async function fetchTimelineDirect ({ tab, feedUri, cursor, limit } = {}) {
   }
 }
 
-async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {}) {
+async function listNotificationsRawDirect ({ cursor, filter, limit } = {}) {
   const client = getActiveBskyAgentClient()
   const agent = client?.getAgent?.()
   if (!agent) return null
   const safeLimit = clampNumber(limit, 1, 100, 40)
-  const res = await agent.app.bsky.notification.listNotifications({ limit: safeLimit, cursor })
-  const data = res?.data ?? res ?? {}
   const normalizedFilter = filter === 'mentions' ? 'mentions' : 'all'
+  const request = { limit: safeLimit, cursor }
+  let res = null
+
+  if (normalizedFilter === 'mentions') {
+    const reasons = getMentionsReasons()
+    try {
+      res = await agent.app.bsky.notification.listNotifications({ ...request, reasons })
+    } catch (error) {
+      const status = Number(error?.status ?? error?.statusCode ?? error?.response?.status)
+      if (status !== 400) throw error
+      res = await agent.app.bsky.notification.listNotifications(request)
+    }
+  } else {
+    res = await agent.app.bsky.notification.listNotifications(request)
+  }
+
+  const data = res?.data ?? res ?? {}
   let notifications = Array.isArray(data?.notifications) ? data.notifications : []
   const fallbackUnread = notifications.reduce((sum, entry) => sum + (entry?.isRead ? 0 : 1), 0)
   const unreadCount = Number(data?.unreadCount) || fallbackUnread
+
   if (normalizedFilter === 'mentions') {
-    notifications = notifications.filter((n) => n.reason === 'reply' || n.reason === 'mention')
+    notifications = notifications.filter(isMentionNotification)
   }
+
+  return {
+    notifications,
+    cursor: data?.cursor || null,
+    unreadCount,
+    seenAt: data?.seenAt || null
+  }
+}
+
+async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {}) {
+  const client = getActiveBskyAgentClient()
+  const agent = client?.getAgent?.()
+  if (!agent) return null
+  const normalizedFilter = filter === 'mentions' ? 'mentions' : 'all'
+  const raw = await listNotificationsRawDirect({ cursor, filter: normalizedFilter, limit })
+  const notifications = Array.isArray(raw?.notifications) ? raw.notifications : []
   const [subjectMap, reactionMap] = await Promise.all([
     fetchNotificationSubjects(agent, notifications),
     fetchReplyReactions(agent, notifications)
@@ -871,9 +904,9 @@ async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {
 
   return {
     items,
-    cursor: data?.cursor || null,
-    unreadCount,
-    seenAt: data?.seenAt || null
+    cursor: raw?.cursor || null,
+    unreadCount: raw?.unreadCount ?? 0,
+    seenAt: raw?.seenAt || null
   }
 }
 
@@ -1106,8 +1139,32 @@ export async function fetchNotifications({ cursor, markSeen, filter, limit } = {
 }
 
 export async function fetchUnreadNotificationsCount () {
-  const data = await fetchNotificationsDirect({ limit: 1, markSeen: false, filter: 'all' })
-  return { unreadCount: Number(data?.unreadCount) || 0 }
+  const snapshot = await fetchNotificationPollingSnapshot()
+  return { unreadCount: Number(snapshot?.unreadCount) || 0 }
+}
+
+export async function fetchNotificationPollingSnapshot () {
+  const allRaw = await listNotificationsRawDirect({ limit: 40, filter: 'all' })
+  if (!allRaw) {
+    return { unreadCount: 0, allTopId: null, mentionsTopId: null }
+  }
+  const mentionsRaw = await listNotificationsRawDirect({ limit: 40, filter: 'mentions' })
+
+  const subjectMap = new Map()
+  const toAggregatedItems = (notifications = []) => {
+    const aggregated = aggregateNotificationEntries(notifications)
+    return aggregated
+      .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
+      .filter(Boolean)
+  }
+
+  const allItems = toAggregatedItems(allRaw.notifications)
+  const mentionsItems = toAggregatedItems(mentionsRaw?.notifications || [])
+  return {
+    unreadCount: Number(allRaw?.unreadCount) || 0,
+    allTopId: allItems.length > 0 ? getNotificationItemId(allItems[0]) : null,
+    mentionsTopId: mentionsItems.length > 0 ? getNotificationItemId(mentionsItems[0]) : null
+  }
 }
 
 export async function fetchThread(uri) {

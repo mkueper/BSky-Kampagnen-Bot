@@ -10,7 +10,14 @@
  */
 import { fetchTimeline, fetchNotifications } from '../shared/index.js'
 
-const DEFAULT_PAGE_SIZE = 20
+const DEFAULT_TIMELINE_PAGE_SIZE = 20
+const DEFAULT_NOTIFICATIONS_PAGE_SIZE = 40
+
+function resolveDefaultPageSize(descriptor) {
+  return descriptor?.kind === 'notifications'
+    ? DEFAULT_NOTIFICATIONS_PAGE_SIZE
+    : DEFAULT_TIMELINE_PAGE_SIZE
+}
 
 function resolveDescriptor(list = {}) {
   return {
@@ -62,7 +69,7 @@ function appendUnique(existingItems = [], nextItems = []) {
   return result
 }
 
-async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_PAGE_SIZE } = {}) {
+async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_TIMELINE_PAGE_SIZE } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
   const params = {
@@ -74,7 +81,7 @@ async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_PAGE_SIZ
   return fetchTimeline(params)
 }
 
-async function fetchNotificationsPage(list, { cursor = null, limit = DEFAULT_PAGE_SIZE, markSeen } = {}) {
+async function fetchNotificationsPage(list, { cursor = null, limit = DEFAULT_NOTIFICATIONS_PAGE_SIZE, markSeen } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
   const shouldMarkSeen = typeof markSeen === 'boolean'
@@ -88,17 +95,18 @@ async function fetchNotificationsPage(list, { cursor = null, limit = DEFAULT_PAG
   })
 }
 
-export async function runListRefresh({ list, dispatch, meta, limit = DEFAULT_PAGE_SIZE }) {
+export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for refresh')
   const descriptor = resolveDescriptor(list)
+  const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
   dispatch({
     type: 'LIST_SET_REFRESHING',
     payload: { key: list.key, value: true, meta }
   })
   try {
     const page = descriptor.kind === 'notifications'
-      ? await fetchNotificationsPage(list, { limit })
-      : await fetchTimelinePage(list, { limit })
+      ? await fetchNotificationsPage(list, { limit: effectiveLimit })
+      : await fetchTimelinePage(list, { limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
     dispatch({
       type: 'LIST_LOADED',
@@ -119,29 +127,43 @@ export async function runListRefresh({ list, dispatch, meta, limit = DEFAULT_PAG
   }
 }
 
-export async function runListLoadMore({ list, dispatch, limit = DEFAULT_PAGE_SIZE }) {
+export async function runListLoadMore({ list, dispatch, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for load more')
   if (!list.cursor) return list.items || []
+  const descriptor = resolveDescriptor(list)
+  const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
   dispatch({
     type: 'LIST_SET_LOADING_MORE',
     payload: { key: list.key, value: true }
   })
   try {
+    const beforeCursor = list.cursor || null
     const page = list.kind === 'notifications'
-      ? await fetchNotificationsPage(list, { cursor: list.cursor, limit })
-      : await fetchTimelinePage(list, { cursor: list.cursor, limit })
-    const mergedItems = appendUnique(list.items || [], page.items)
+      ? await fetchNotificationsPage(list, { cursor: list.cursor, limit: effectiveLimit })
+      : await fetchTimelinePage(list, { cursor: list.cursor, limit: effectiveLimit })
+    const nextItems = Array.isArray(page?.items) ? page.items : []
+    const previousItems = Array.isArray(list.items) ? list.items : []
+    const mergedItems = appendUnique(previousItems, nextItems)
+    const nextCursor = page?.cursor || null
+    const cursorUnchanged = Boolean(nextCursor && beforeCursor && nextCursor === beforeCursor)
+    const madeProgress = mergedItems.length > previousItems.length
+    const stopPaging = Boolean(
+      cursorUnchanged ||
+      !nextCursor ||
+      nextItems.length === 0 ||
+      !madeProgress
+    )
     dispatch({
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
         items: mergedItems,
-        cursor: page.cursor || null,
+        cursor: stopPaging ? null : nextCursor,
         topId: mergedItems[0] ? getItemId(mergedItems[0]) : list.topId || null,
         meta: { data: list.data }
       }
     })
-    return { ...page, items: mergedItems }
+    return { ...page, items: mergedItems, cursor: stopPaging ? null : nextCursor }
   } finally {
     dispatch({
       type: 'LIST_SET_LOADING_MORE',

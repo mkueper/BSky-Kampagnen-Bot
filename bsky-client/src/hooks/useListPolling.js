@@ -21,7 +21,7 @@ export function useListPolling(lists, dispatch) {
     const poll = async () => {
       const currentLists = listsRef.current || {}
       const entries = Object.values(currentLists).filter(
-        (list) => list && list.supportsPolling && list.loaded && list.topId
+        (list) => list && list.kind !== 'notifications' && list.supportsPolling && list.loaded && list.topId
       )
       if (!entries.length) return
       for (const list of entries) {
