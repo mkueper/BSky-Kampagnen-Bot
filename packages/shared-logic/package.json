@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "node -e \"console.log('Shared logic nutzt Quellcode direkt - kein Build-Schritt erforderlich.')\"",
-    "test": "node -e \"console.log('Keine eigenen Tests für shared-logic definiert.')\""
+    "test": "vitest"
   }
 }
 

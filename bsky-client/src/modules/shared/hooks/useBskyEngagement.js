@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   fetchReactions,
   likePost,
@@ -8,6 +8,7 @@ import {
   bookmarkPost,
   unbookmarkPost,
 } from '../api/bsky.js';
+import { useToggleMutationQueue } from './useToggleMutationQueue.js';
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -57,6 +58,12 @@ function safeDebugLog (enabled, ...args) {
   }
 }
 
+const PENDING_MARKER = 'pending'
+
+function createActionId () {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 export function useBskyEngagement({
   uri,
   cid,
@@ -66,15 +73,26 @@ export function useBskyEngagement({
   fetchOnMount = false,
 } = {}) {
   const [likeUri, setLikeUri] = useState(viewer?.like || null);
+  const [confirmedLikeUri, setConfirmedLikeUri] = useState(viewer?.like || null);
   const [repostUri, setRepostUri] = useState(viewer?.repost || null);
+  const [confirmedRepostUri, setConfirmedRepostUri] = useState(viewer?.repost || null);
   const [likeCount, setLikeCount] = useState(toNumber(initialLikes));
   const [repostCount, setRepostCount] = useState(toNumber(initialReposts));
-  const [busy, setBusy] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(Boolean(viewer?.bookmarked));
   const debugEnabled = useMemo(() => resolveDebugFlag(), []);
+  const likeSnapshotRef = useRef({ likeUri, likeCount });
+  const repostSnapshotRef = useRef({ repostUri, repostCount });
+
+  useEffect(() => {
+    likeSnapshotRef.current = { likeUri, likeCount };
+  }, [likeUri, likeCount]);
+
+  useEffect(() => {
+    repostSnapshotRef.current = { repostUri, repostCount };
+  }, [repostUri, repostCount]);
 
   const hasLiked = Boolean(likeUri);
   const hasReposted = Boolean(repostUri);
@@ -88,219 +106,261 @@ export function useBskyEngagement({
     return { targetUri, targetCid };
   }, [uri, cid]);
 
-  const toggleLike = useCallback(async () => {
-    if (busy) return null;
-    setBusy(true);
-    try {
-      if (!hasLiked) {
-        const { targetUri, targetCid } = ensureTarget();
-        const actionId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const applyOptimisticLike = useCallback((nextIsOn) => {
+    const current = likeSnapshotRef.current;
+    const prevIsOn = Boolean(current.likeUri);
+    if (prevIsOn === nextIsOn) {
+      return { ...current };
+    }
+    const nextCount = Math.max(0, current.likeCount + (nextIsOn ? 1 : -1));
+    const nextUri = nextIsOn
+      ? (current.likeUri && current.likeUri !== PENDING_MARKER ? current.likeUri : PENDING_MARKER)
+      : null;
+    setLikeUri(nextUri);
+    setLikeCount(nextCount);
+    const snapshot = { likeUri: nextUri, likeCount: nextCount };
+    likeSnapshotRef.current = snapshot;
+    return snapshot;
+  }, []);
+
+  const applyOptimisticRepost = useCallback((nextIsOn) => {
+    const current = repostSnapshotRef.current;
+    const prevIsOn = Boolean(current.repostUri);
+    if (prevIsOn === nextIsOn) {
+      return { ...current };
+    }
+    const nextCount = Math.max(0, current.repostCount + (nextIsOn ? 1 : -1));
+    const nextUri = nextIsOn
+      ? (current.repostUri && current.repostUri !== PENDING_MARKER ? current.repostUri : PENDING_MARKER)
+      : null;
+    setRepostUri(nextUri);
+    setRepostCount(nextCount);
+    const snapshot = { repostUri: nextUri, repostCount: nextCount };
+    repostSnapshotRef.current = snapshot;
+    return snapshot;
+  }, []);
+
+  const finalizeLikeState = useCallback((serverState) => {
+    const nextUri = serverState?.uri || null;
+    let nextCount = likeSnapshotRef.current.likeCount;
+    if (serverState && serverState.count != null) {
+      nextCount = toNumber(serverState.count, nextCount);
+    } else {
+      const prevIsOn = Boolean(likeSnapshotRef.current.likeUri);
+      const nextIsOn = Boolean(nextUri);
+      if (prevIsOn !== nextIsOn) {
+        nextCount = Math.max(0, nextCount + (nextIsOn ? 1 : -1));
+      }
+    }
+    setLikeUri(nextUri);
+    setLikeCount(nextCount);
+    likeSnapshotRef.current = { likeUri: nextUri, likeCount: nextCount };
+    setConfirmedLikeUri(nextUri);
+  }, []);
+
+  const finalizeRepostState = useCallback((serverState) => {
+    const nextUri = serverState?.uri || null;
+    let nextCount = repostSnapshotRef.current.repostCount;
+    if (serverState && serverState.count != null) {
+      nextCount = toNumber(serverState.count, nextCount);
+    } else {
+      const prevIsOn = Boolean(repostSnapshotRef.current.repostUri);
+      const nextIsOn = Boolean(nextUri);
+      if (prevIsOn !== nextIsOn) {
+        nextCount = Math.max(0, nextCount + (nextIsOn ? 1 : -1));
+      }
+    }
+    setRepostUri(nextUri);
+    setRepostCount(nextCount);
+    repostSnapshotRef.current = { repostUri: nextUri, repostCount: nextCount };
+    setConfirmedRepostUri(nextUri);
+  }, []);
+
+  const queueLikeMutation = useToggleMutationQueue({
+    initialState: { uri: confirmedLikeUri, count: likeCount },
+    runMutation: useCallback(async (previousState, shouldLike) => {
+      const { targetUri, targetCid } = ensureTarget();
+      const actionId = createActionId();
+      const snapshot = likeSnapshotRef.current;
+      if (shouldLike) {
         safeDebugLog(
           debugEnabled,
           '[engagement]',
           actionId,
           'like:start',
-          { uri: targetUri, cid: targetCid, hasLiked, likeUri, likeCount }
-        )
+          { uri: targetUri, cid: targetCid, hasLiked: Boolean(snapshot.likeUri), likeUri: snapshot.likeUri, likeCount: snapshot.likeCount }
+        );
         const data = await likePost({ uri: targetUri, cid: targetCid });
-        safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:response', data)
-        const nextLikeUri = resolveViewerUri(data, 'like') || likeUri || null;
-        setLikeUri(nextLikeUri);
-        const serverCount = resolveCount(data, 'likeCount', 'likesCount');
-        let nextLikeCount = likeCount + 1;
-        if (serverCount != null) {
-          nextLikeCount = serverCount;
-          setLikeCount(serverCount);
-        } else {
-          setLikeCount((count) => {
-            const updated = count + 1;
-            nextLikeCount = updated;
-            return updated;
-          });
-        }
-        setError('');
+        safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:response', data);
+        let nextUri = resolveViewerUri(data, 'like') || data?.recordUri || previousState?.uri || null;
+        let nextCount = resolveCount(data, 'likeCount', 'likesCount');
         if (debugEnabled) {
           try {
-            const verified = await fetchReactions({ uri: targetUri })
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:verify', verified)
-            if (verified?.viewer && typeof verified.viewer === 'object') {
-              if (Object.prototype.hasOwnProperty.call(verified.viewer, 'like')) {
-                setLikeUri(verified.viewer.like || null)
-              }
+            const verified = await fetchReactions({ uri: targetUri });
+            safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:verify', verified);
+            if (verified?.viewer && typeof verified.viewer === 'object' && Object.prototype.hasOwnProperty.call(verified.viewer, 'like')) {
+              nextUri = verified.viewer.like || null;
             }
-            if (verified?.likeCount != null || verified?.likesCount != null) {
-              const verifiedLikeCount = toNumber(verified.likeCount ?? verified.likesCount, nextLikeCount)
-              setLikeCount(verifiedLikeCount)
-              nextLikeCount = verifiedLikeCount
-            }
+            const verifiedCount = resolveCount(verified, 'likeCount', 'likesCount');
+            if (verifiedCount != null) nextCount = verifiedCount;
           } catch (verifyError) {
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:verifyError', verifyError)
+            safeDebugLog(debugEnabled, '[engagement]', actionId, 'like:verifyError', verifyError);
           }
         }
-        return { status: 'liked', likeUri: nextLikeUri, likeCount: nextLikeCount };
-      } else if (likeUri) {
-        const actionId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-        safeDebugLog(
-          debugEnabled,
-          '[engagement]',
-          actionId,
-          'unlike:start',
-          { uri, cid, hasLiked, likeUri, likeCount }
-        )
-        const data = await unlikePost({ likeUri, postUri: uri }); // postUri für Re-Fetch
-        safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:response', data)
-        setLikeUri(null);
-        const serverCount = resolveCount(data, 'likeCount', 'likesCount');
-        let nextLikeCount = Math.max(0, likeCount - 1);
-        if (serverCount != null) {
-          nextLikeCount = serverCount;
-          setLikeCount(serverCount);
-        } else {
-          setLikeCount((count) => {
-            const updated = Math.max(0, count - 1);
-            nextLikeCount = updated;
-            return updated;
-          });
-        }
-        setError('');
-        if (debugEnabled) {
-          try {
-            const targetUri = String(uri || '').trim()
-            if (targetUri) {
-              const verified = await fetchReactions({ uri: targetUri })
-              safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:verify', verified)
-              if (verified?.viewer && typeof verified.viewer === 'object') {
-                if (Object.prototype.hasOwnProperty.call(verified.viewer, 'like')) {
-                  setLikeUri(verified.viewer.like || null)
-                }
-              }
-              if (verified?.likeCount != null || verified?.likesCount != null) {
-                const verifiedLikeCount = toNumber(verified.likeCount ?? verified.likesCount, nextLikeCount)
-                setLikeCount(verifiedLikeCount)
-                nextLikeCount = verifiedLikeCount
-              }
-            }
-          } catch (verifyError) {
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:verifyError', verifyError)
-          }
-        }
-        return { status: 'unliked', likeUri: null, likeCount: nextLikeCount };
+        return { uri: nextUri, count: nextCount };
       }
-      return null;
-    } catch (err) {
-      setError(err?.message || 'Aktion fehlgeschlagen');
-      return null;
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, debugEnabled, hasLiked, likeUri, ensureTarget, likeCount, uri]);
+      safeDebugLog(
+        debugEnabled,
+        '[engagement]',
+        actionId,
+        'unlike:start',
+        { uri: targetUri, cid: targetCid, hasLiked: Boolean(snapshot.likeUri), likeUri: snapshot.likeUri, likeCount: snapshot.likeCount }
+      );
+      const likeRecordUri = previousState?.uri;
+      if (!likeRecordUri) {
+        safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:response', { skipped: true });
+        return { uri: null, count: previousState?.count ?? null };
+      }
+      const data = await unlikePost({ likeUri: likeRecordUri, postUri: targetUri });
+      safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:response', data);
+      let nextCount = resolveCount(data, 'likeCount', 'likesCount');
+      let nextUri = null;
+      if (debugEnabled) {
+        try {
+          const verified = await fetchReactions({ uri: targetUri });
+          safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:verify', verified);
+          if (verified?.viewer && typeof verified.viewer === 'object' && Object.prototype.hasOwnProperty.call(verified.viewer, 'like')) {
+            nextUri = verified.viewer.like || null;
+          }
+          const verifiedCount = resolveCount(verified, 'likeCount', 'likesCount');
+          if (verifiedCount != null) nextCount = verifiedCount;
+        } catch (verifyError) {
+          safeDebugLog(debugEnabled, '[engagement]', actionId, 'unlike:verifyError', verifyError);
+        }
+      }
+      return { uri: nextUri, count: nextCount };
+    }, [debugEnabled, ensureTarget]),
+    onSuccess: finalizeLikeState,
+  });
 
-  const toggleRepost = useCallback(async () => {
-    if (busy) return null;
-    setBusy(true);
-    try {
-      if (!hasReposted) {
-        const { targetUri, targetCid } = ensureTarget();
-        const actionId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const queueRepostMutation = useToggleMutationQueue({
+    initialState: { uri: confirmedRepostUri, count: repostCount },
+    runMutation: useCallback(async (previousState, shouldRepost) => {
+      const { targetUri, targetCid } = ensureTarget();
+      const actionId = createActionId();
+      const snapshot = repostSnapshotRef.current;
+      if (shouldRepost) {
         safeDebugLog(
           debugEnabled,
           '[engagement]',
           actionId,
           'repost:start',
-          { uri: targetUri, cid: targetCid, hasReposted, repostUri, repostCount }
-        )
+          { uri: targetUri, cid: targetCid, hasReposted: Boolean(snapshot.repostUri), repostUri: snapshot.repostUri, repostCount: snapshot.repostCount }
+        );
         const data = await repostPost({ uri: targetUri, cid: targetCid });
-        safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:response', data)
-        const nextRepostUri = resolveViewerUri(data, 'repost') || repostUri || null;
-        setRepostUri(nextRepostUri);
-        const serverCount = resolveCount(data, 'repostCount', 'repostsCount');
-        let nextRepostCount = repostCount + 1;
-        if (serverCount != null) {
-          nextRepostCount = serverCount;
-          setRepostCount(serverCount);
-        } else {
-          setRepostCount((count) => {
-            const updated = count + 1;
-            nextRepostCount = updated;
-            return updated;
-          });
-        }
-        setError('');
+        safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:response', data);
+        let nextUri = resolveViewerUri(data, 'repost') || data?.recordUri || previousState?.uri || null;
+        let nextCount = resolveCount(data, 'repostCount', 'repostsCount');
         if (debugEnabled) {
           try {
-            const verified = await fetchReactions({ uri: targetUri })
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:verify', verified)
-            if (verified?.viewer && typeof verified.viewer === 'object') {
-              if (Object.prototype.hasOwnProperty.call(verified.viewer, 'repost')) {
-                setRepostUri(verified.viewer.repost || null)
-              }
+            const verified = await fetchReactions({ uri: targetUri });
+            safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:verify', verified);
+            if (verified?.viewer && typeof verified.viewer === 'object' && Object.prototype.hasOwnProperty.call(verified.viewer, 'repost')) {
+              nextUri = verified.viewer.repost || null;
             }
-            if (verified?.repostCount != null || verified?.repostsCount != null) {
-              const verifiedRepostCount = toNumber(verified.repostCount ?? verified.repostsCount, nextRepostCount)
-              setRepostCount(verifiedRepostCount)
-              nextRepostCount = verifiedRepostCount
-            }
+            const verifiedCount = resolveCount(verified, 'repostCount', 'repostsCount');
+            if (verifiedCount != null) nextCount = verifiedCount;
           } catch (verifyError) {
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:verifyError', verifyError)
+            safeDebugLog(debugEnabled, '[engagement]', actionId, 'repost:verifyError', verifyError);
           }
         }
-        return { status: 'reposted', repostUri: nextRepostUri, repostCount: nextRepostCount };
-      } else if (repostUri) {
-        const actionId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-        safeDebugLog(
-          debugEnabled,
-          '[engagement]',
-          actionId,
-          'unrepost:start',
-          { uri, cid, hasReposted, repostUri, repostCount }
-        )
-        const data = await unrepostPost({ repostUri, postUri: uri }); // postUri für Re-Fetch
-        safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:response', data)
-        setRepostUri(null);
-        const serverCount = resolveCount(data, 'repostCount', 'repostsCount');
-        let nextRepostCount = Math.max(0, repostCount - 1);
-        if (serverCount != null) {
-          nextRepostCount = serverCount;
-          setRepostCount(serverCount);
-        } else {
-          setRepostCount((count) => {
-            const updated = Math.max(0, count - 1);
-            nextRepostCount = updated;
-            return updated;
-          });
-        }
-        setError('');
-        if (debugEnabled) {
-          try {
-            const targetUri = String(uri || '').trim()
-            if (targetUri) {
-              const verified = await fetchReactions({ uri: targetUri })
-              safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:verify', verified)
-              if (verified?.viewer && typeof verified.viewer === 'object') {
-                if (Object.prototype.hasOwnProperty.call(verified.viewer, 'repost')) {
-                  setRepostUri(verified.viewer.repost || null)
-                }
-              }
-              if (verified?.repostCount != null || verified?.repostsCount != null) {
-                const verifiedRepostCount = toNumber(verified.repostCount ?? verified.repostsCount, nextRepostCount)
-                setRepostCount(verifiedRepostCount)
-                nextRepostCount = verifiedRepostCount
-              }
-            }
-          } catch (verifyError) {
-            safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:verifyError', verifyError)
-          }
-        }
-        return { status: 'unreposted', repostUri: null, repostCount: nextRepostCount };
+        return { uri: nextUri, count: nextCount };
       }
-      return null;
+      safeDebugLog(
+        debugEnabled,
+        '[engagement]',
+        actionId,
+        'unrepost:start',
+        { uri: targetUri, cid: targetCid, hasReposted: Boolean(snapshot.repostUri), repostUri: snapshot.repostUri, repostCount: snapshot.repostCount }
+      );
+      const repostRecordUri = previousState?.uri;
+      if (!repostRecordUri) {
+        safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:response', { skipped: true });
+        return { uri: null, count: previousState?.count ?? null };
+      }
+      const data = await unrepostPost({ repostUri: repostRecordUri, postUri: targetUri });
+      safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:response', data);
+      let nextCount = resolveCount(data, 'repostCount', 'repostsCount');
+      let nextUri = null;
+      if (debugEnabled) {
+        try {
+          const verified = await fetchReactions({ uri: targetUri });
+          safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:verify', verified);
+          if (verified?.viewer && typeof verified.viewer === 'object' && Object.prototype.hasOwnProperty.call(verified.viewer, 'repost')) {
+            nextUri = verified.viewer.repost || null;
+          }
+          const verifiedCount = resolveCount(verified, 'repostCount', 'repostsCount');
+          if (verifiedCount != null) nextCount = verifiedCount;
+        } catch (verifyError) {
+          safeDebugLog(debugEnabled, '[engagement]', actionId, 'unrepost:verifyError', verifyError);
+        }
+      }
+      return { uri: nextUri, count: nextCount };
+    }, [debugEnabled, ensureTarget]),
+    onSuccess: finalizeRepostState,
+  });
+
+  const toggleLike = useCallback(async () => {
+    const shouldLike = !hasLiked;
+    try {
+      ensureTarget();
     } catch (err) {
       setError(err?.message || 'Aktion fehlgeschlagen');
       return null;
-    } finally {
-      setBusy(false);
     }
-  }, [busy, debugEnabled, hasReposted, repostUri, ensureTarget, repostCount, uri]);
+    const optimistic = applyOptimisticLike(shouldLike);
+    try {
+      const result = await queueLikeMutation(shouldLike);
+      setError('');
+      const resolvedCount = result?.count != null ? toNumber(result.count, optimistic.likeCount) : optimistic.likeCount;
+      return {
+        status: shouldLike ? 'liked' : 'unliked',
+        likeUri: result?.uri || null,
+        likeCount: resolvedCount,
+      };
+    } catch (err) {
+      if (err?.name === 'AbortError') return null;
+      setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
+    }
+  }, [applyOptimisticLike, ensureTarget, hasLiked, queueLikeMutation]);
+
+  const toggleRepost = useCallback(async () => {
+    const shouldRepost = !hasReposted;
+    try {
+      ensureTarget();
+    } catch (err) {
+      setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
+    }
+    const optimistic = applyOptimisticRepost(shouldRepost);
+    try {
+      const result = await queueRepostMutation(shouldRepost);
+      setError('');
+      const resolvedCount = result?.count != null ? toNumber(result.count, optimistic.repostCount) : optimistic.repostCount;
+      return {
+        status: shouldRepost ? 'reposted' : 'unreposted',
+        repostUri: result?.uri || null,
+        repostCount: resolvedCount,
+      };
+    } catch (err) {
+      if (err?.name === 'AbortError') return null;
+      setError(err?.message || 'Aktion fehlgeschlagen');
+      return null;
+    }
+  }, [applyOptimisticRepost, ensureTarget, hasReposted, queueRepostMutation]);
+
+  const busy = false;
 
   const toggleBookmark = useCallback(async () => {
     if (bookmarking) return null;
@@ -347,10 +407,14 @@ export function useBskyEngagement({
       else if (data?.repostCount != null) setRepostCount(toNumber(data.repostCount));
       if (data?.viewer && typeof data.viewer === 'object') {
         if (Object.prototype.hasOwnProperty.call(data.viewer, 'like')) {
-          setLikeUri(data.viewer.like || null);
+          const nextLike = data.viewer.like || null;
+          setLikeUri(nextLike);
+          setConfirmedLikeUri(nextLike);
         }
         if (Object.prototype.hasOwnProperty.call(data.viewer, 'repost')) {
-          setRepostUri(data.viewer.repost || null);
+          const nextRepost = data.viewer.repost || null;
+          setRepostUri(nextRepost);
+          setConfirmedRepostUri(nextRepost);
         }
         if (Object.prototype.hasOwnProperty.call(data.viewer, 'bookmarked')) {
           setIsBookmarked(Boolean(data.viewer.bookmarked));

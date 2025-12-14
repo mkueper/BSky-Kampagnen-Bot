@@ -12,7 +12,8 @@ export default defineConfig({
       'backend/__tests__/**/*.test.{js,ts,jsx,tsx}',
       'bsky-client/**/*.test.{js,ts,jsx,tsx}',
       'dashboard/src/**/*.test.{js,ts,jsx,tsx}',
-      'dashboard/__tests__/**/*.test.{js,ts,jsx,tsx}'
+      'dashboard/__tests__/**/*.test.{js,ts,jsx,tsx}',
+      'packages/shared-logic/**/__tests__/**/*.test.{js,ts,jsx,tsx}'
       //'tests/**/*.test.{js,ts,jsx,tsx}',
     ],
     watchExclude: ['dashboard/dist/**', 'dist/**', 'node_modules/**'],

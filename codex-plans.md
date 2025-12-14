@@ -4,7 +4,7 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-13.12.2025
+14.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
@@ -14,8 +14,8 @@
 - Bluesky-Client: Zielarchitektur (eigenständige Desktop-App mit direktem `BskyAgent`) und Login-Konzept (Service-URL, Identifier, App-Passwort, zwei Persistenz-Checkboxen) stehen, Multi-Account bleibt nachgelagert.
 - `bskyAgentClient` bildet Login/Resume/Logout bereits ab; UI und Stores nutzen ihn noch nicht.
 - Aktueller Fokus: Wir arbeiten derzeit ausschließlich am Bluesky‑Client (`bsky-client`). Backend und Dashboard bleiben unangetastet; Änderungen in `packages/shared-*` erfolgen nur vorsichtig und kompatibel, weil sie beide Frontends betreffen können.
-- Bluesky‑Client: Mitteilungen/Erwähnungen sind gegen Endlos‑Nachladen abgesichert (begrenztes Auto‑Paging + Stop bei fehlendem Cursor‑Fortschritt).
-- Bluesky‑Client: Beim Account‑Wechsel wird konsistent auf Home/Discover zurückgesetzt und Discover neu geladen.
+- Bluesky-Client: Mitteilungen/Erwähnungen laufen stabil, Auto-Paging stoppt zuverlässig; Badge- und Scroll-Optimierungen sind umgesetzt.
+- Bluesky-Client: Navigation/Composer wurden auf neue UX gebracht (Buttons unten, Close-Icons entfernt, Thread-Modals begrenzt); Hover/Active-Styling der Tabs/Buttons orientiert sich am Dashboard, dunkle Themes brauchen noch Feinschliff.
 - Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
 - `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
 - VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.
@@ -60,3 +60,4 @@ Im Client als nächstes: UX für Erwähnungen/Auto‑Paging finalisieren (wie Or
 - Welche Runtime eignet sich langfristig am besten für den Bluesky‑Desktop‑Client (Electron vs. Sciter vs. andere), insbesondere mit Blick auf Sandbox‑Verhalten unter Linux, Paketgrößen und Update‑Strategien?
 - Soll der Bluesky‑Client neben App‑Passwort und Session‑Tokens auch einen optionalen verschlüsselten Speicher für mehrere Accounts (inkl. Labels, UI‑Settings) anbieten, und wie tief sollen OS‑Keychains integriert werden?
 - Welche weiteren Bluesky‑Features (z. B. Listen, erweiterte Suche, zusätzliche Feeds) sollen in den Client aufgenommen werden, bevor eine erste Stand‑alone‑Version veröffentlicht wird?
+- Wie stellen wir sicher, dass Hover-Kontrast und Badge-Farben auch in allen dunklen Themes gut erkennbar bleiben, ohne von der Dashboard-Optik abzuweichen?

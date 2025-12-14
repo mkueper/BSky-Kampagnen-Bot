@@ -274,7 +274,7 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
           type='button'
           aria-label='Weitere Aktionen'
           title='Aktionen'
-          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-70'}
+          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70'}
         >
           <DotsHorizontalIcon className='h-4 w-4' />
         </button>

@@ -13,7 +13,7 @@ export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title, 
       <div className='flex items-center gap-3'>
         <button
           type='button'
-          className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+          className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle/70 dark:hover:bg-primary/10 hover:shadow-sm' 
           onClick={onClose}
           aria-label={t('layout.thread.back', 'Zurück zur Timeline')}
         >
@@ -75,10 +75,10 @@ export function TimelineHeader ({
               type='button'
               onClick={() => onSelectTab?.(tab)}
               aria-current={isActive ? 'page' : undefined}
-              className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transition ${
+              className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out ${
                 isActive
-                  ? 'bg-background-subtle text-foreground shadow-soft'
-                  : 'text-foreground-muted hover:text-foreground'
+                  ? 'border border-border bg-background-subtle text-foreground shadow-soft'
+                  : 'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
               }`}
               data-tab={tab.id}
             >
@@ -86,7 +86,10 @@ export function TimelineHeader ({
                 <span>{tab.label}</span>
                 {showBadge ? (
                   <span className='inline-flex h-2 w-2 items-center justify-center'>
-                    <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.timeline.newItems', 'Neue Elemente')} />
+                    <span
+                      className={`h-2 w-2 rounded-full ${isActive ? 'bg-white' : 'bg-primary'}`}
+                      aria-label={t('layout.timeline.newItems', 'Neue Elemente')}
+                    />
                   </span>
                 ) : null}
                 {tab.pinned ? (
@@ -127,7 +130,7 @@ export function TimelineHeader ({
                 <button
                   key={tab.id}
                   type='button'
-                  className='w-full rounded-xl border border-border px-3 py-2 text-left text-sm text-foreground transition hover:bg-background-subtle'
+                  className='w-full rounded-xl border border-border px-3 py-2 text-left text-sm text-foreground transition hover:bg-background-subtle/70'
                   onClick={() => {
                     onSelectTab?.(tab)
                     onCloseFeedMenu?.()

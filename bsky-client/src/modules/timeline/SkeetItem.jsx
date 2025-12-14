@@ -735,7 +735,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         gifPreview && typeof onViewMedia === 'function'
           ? (
             <div
-              className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 focus-within:outline focus-within:outline-2 focus-within:outline-primary/70'
+              className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm focus-within:outline focus-within:outline-2 focus-within:outline-primary/70' 
             >
               <button
                 type='button'
@@ -821,7 +821,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         <div
           role='button'
           tabIndex={0}
-          className='-mx-1 rounded-xl px-1 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 hover:bg-background-subtle/50 cursor-pointer'
+          className='-mx-1 rounded-xl px-1 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 hover:bg-background-subtle/50 dark:hover:bg-primary/10 hover:shadow-sm cursor-pointer' 
           onClick={handleSelect}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {

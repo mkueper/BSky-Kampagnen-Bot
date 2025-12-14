@@ -1,6 +1,6 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Hls from 'hls.js'
+// Dynamically import Hls when needed to avoid bundling it into the initial payload
 import { parseAspectRatioValue } from './utils/media.js'
 
 function isVideo (item) {
@@ -55,6 +55,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       videoEl.play?.().catch(() => {})
       return undefined
     }
+
     const canPlayNative = typeof videoEl.canPlayType === 'function'
       ? videoEl.canPlayType('application/vnd.apple.mpegurl')
       : ''
@@ -66,20 +67,40 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       videoEl.play?.().catch(() => {})
       return undefined
     }
-    if (!Hls.isSupported()) {
-      console.warn('HLS wird nicht unterstützt und kann nicht abgespielt werden.')
-      return undefined
-    }
-    const hls = new Hls()
-    hls.loadSource(current.src)
-    hls.attachMedia(videoEl)
-    const handleReady = () => {
-      videoEl.play?.().catch(() => {})
-    }
-    hls.on(Hls.Events.MANIFEST_PARSED, handleReady)
+
+    let hls = null
+    let mounted = true
+    ;(async () => {
+      let Hls
+      try {
+        Hls = (await import('hls.js')).default
+      } catch (err) {
+        console.warn('HLS import failed; cannot play HLS sources.', err)
+        return
+      }
+      if (!mounted) return
+      if (!Hls.isSupported()) {
+        console.warn('HLS wird nicht unterstützt und kann nicht abgespielt werden.')
+        return
+      }
+      hls = new Hls()
+      hls.loadSource(current.src)
+      hls.attachMedia(videoEl)
+      const handleReady = () => {
+        videoEl.play?.().catch(() => {})
+      }
+      hls.on(Hls.Events.MANIFEST_PARSED, handleReady)
+    })()
+
     return () => {
-      hls.off(Hls.Events.MANIFEST_PARSED, handleReady)
-      hls.destroy()
+      mounted = false
+      if (hls) {
+        try {
+          hls.off?.(hls.Events?.MANIFEST_PARSED)
+        } catch {}
+        try { hls.destroy() } catch {}
+        hls = null
+      }
     }
   }, [current?.src, isHlsSource, videoActive])
 

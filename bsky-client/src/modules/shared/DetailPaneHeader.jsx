@@ -21,7 +21,7 @@ export default function DetailPaneHeader ({
             type='button'
             onClick={onBack}
             aria-label={backLabel}
-            className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle'
+            className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
           >
             <ArrowLeftIcon className='h-4 w-4' />
           </button>

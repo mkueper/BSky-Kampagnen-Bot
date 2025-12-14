@@ -63,7 +63,9 @@ export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = fal
       onClick={onSelect}
       disabled={disabled}
       className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${
-        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-background-subtle'
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : 'hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm'
       }`}
     >
       {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}

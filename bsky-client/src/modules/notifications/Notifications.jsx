@@ -525,7 +525,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       as='article'
       padding='p-4'
       hover={false}
-      className={`${unreadHighlight} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
+      className={`${unreadHighlight} ${canOpenItem ? 'cursor-pointer hover:bg-background-subtle/70 dark:hover:bg-primary/10 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60' : ''}`}
       data-component='BskyNotificationCard'
       data-reason={reason}
       onClick={(event) => {

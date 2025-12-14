@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react'
 import PropTypes from 'prop-types'
 
-const baseClasses = 'inline-flex items-center justify-center gap-2 rounded-2xl text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-60'
+const baseClasses = 'inline-flex items-center justify-center gap-2 rounded-2xl text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60'
 
 const sizeClasses = {
   md: 'px-4 py-2',
@@ -10,13 +10,13 @@ const sizeClasses = {
 }
 
 const variantClasses = {
-  primary: 'bg-primary text-primary-foreground shadow-soft hover:opacity-95',
-  secondary: 'border border-border bg-background-subtle text-foreground hover:bg-background',
-  ghost: 'text-foreground hover:bg-background-subtle',
-  outline: 'border border-border bg-background text-foreground hover:bg-background-subtle',
-  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-  warning: 'border border-amber-400 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20',
-  neutral: 'border border-border bg-background text-foreground hover:bg-background-subtle'
+  primary: 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/80 hover:shadow-card hover:brightness-110',
+  secondary: 'border border-border bg-background-subtle text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/10 hover:shadow-lg',
+  ghost: 'text-foreground hover:bg-background-subtle/60 dark:hover:bg-primary/8 hover:shadow-sm',
+  outline: 'border border-border bg-background text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/8 hover:shadow-sm',
+  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:brightness-110',
+  warning: 'border border-amber-400 bg-amber-500/15 text-amber-900 hover:bg-amber-500/25',
+  neutral: 'border border-border bg-background text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/8 hover:shadow-sm'
 }
 
 function classNames (...classes) {

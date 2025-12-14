@@ -108,7 +108,7 @@ vi.mock('../../src/modules/shared', () => {
   return {
     Button: ({ children, ...props }) => <button {...props}>{children}</button>,
     Card,
-    RichText: ({ text, ...props }) => <span {...props}>{text}</span>,
+    RichText: ({ text, className = '' }) => <span className={className}>{text}</span>,
     RepostMenuButton,
     deletePost: vi.fn(async () => ({ success: true })),
     useBskyEngagement: () => ({
@@ -245,10 +245,15 @@ describe('Notifications', () => {
     })
 
     let container
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     await act(async () => {
       const rendered = renderWithProviders(<Notifications activeTab='all' />)
       container = rendered.container
     })
+
+    // ensure no unknown-prop warnings (regression guard)
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
 
     expect(
       container.querySelector('[data-component="BskyNotifications"]')

@@ -111,7 +111,7 @@ export default function SearchView () {
                 href={person.handle ? `https://bsky.app/profile/${person.handle}` : '#'}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background-subtle'
+                className='inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
               >
                 {t('common.actions.viewProfile', 'Profil ansehen')}
               </a>

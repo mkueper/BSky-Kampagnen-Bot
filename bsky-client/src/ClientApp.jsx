@@ -498,10 +498,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
                   key={tab}
                   type='button'
                   onClick={() => handleNotificationTabSelect(tab)}
-                  className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transition ${
+                  className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out ${
                     notificationTab === tab
-                      ? 'bg-background-subtle text-foreground shadow-soft'
-                      : 'text-foreground-muted hover:text-foreground'
+                      ? 'border border-border bg-background-subtle text-foreground shadow-soft'
+                      : 'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
                   }`}
                 >
                   <span className='inline-flex items-center gap-2'>
@@ -528,7 +528,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
             ) : (
               <button
                 type='button'
-                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
                 title={t('layout.notifications.configure', 'Filter konfigurieren')}
                 aria-label={t('layout.notifications.configure', 'Filter konfigurieren')}
               >
