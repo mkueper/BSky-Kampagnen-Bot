@@ -18,6 +18,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const [preview, setPreview] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState('')
+  const [dismissedPreviewUrl, setDismissedPreviewUrl] = useState('')
   const [pendingMedia, setPendingMedia] = useState([]) // [{ id, file, previewUrl, mime, altText }]
   const textareaRef = useRef(null)
   const emojiButtonRef = useRef(null)
@@ -165,7 +166,51 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     setPreviewError('')
     setPreviewLoading(false)
     setPreviewUrl(firstUrl || '')
+    setDismissedPreviewUrl('')
   }, [firstUrl])
+
+  useEffect(() => {
+    const url = String(previewUrl || '').trim()
+    if (!url) return
+    if (dismissedPreviewUrl && dismissedPreviewUrl === url) return
+    let cancelled = false
+    const controller = new AbortController()
+
+    const load = async () => {
+      setPreviewLoading(true)
+      setPreviewError('')
+      try {
+        const res = await fetch(`/api/preview?url=${encodeURIComponent(url)}`, { signal: controller.signal })
+        if (!res.ok) {
+          const text = await res.text().catch(() => '')
+          throw new Error(text || `Preview fehlgeschlagen (HTTP ${res.status})`)
+        }
+        const data = await res.json()
+        if (cancelled) return
+        setPreview({
+          uri: data?.uri || url,
+          title: data?.title || '',
+          description: data?.description || '',
+          image: data?.image || '',
+          domain: data?.domain || ''
+        })
+        setPreviewError('')
+      } catch (e) {
+        if (cancelled) return
+        if (e?.name === 'AbortError') return
+        setPreview(null)
+        setPreviewError(e?.message || 'Preview fehlgeschlagen')
+      } finally {
+        if (!cancelled) setPreviewLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [dismissedPreviewUrl, previewUrl])
 
   function updateCursorFromTextarea (target) {
     if (!target) return
@@ -199,6 +244,33 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       })
       return next
     })
+  }
+
+  async function handleComposerPaste (event) {
+    const items = Array.from(event?.clipboardData?.items || [])
+    if (items.length === 0) return
+
+    const imageItem = items.find((item) => {
+      if (!item || item.kind !== 'file') return false
+      const type = String(item.type || '').toLowerCase()
+      return type.startsWith('image/')
+    })
+    if (!imageItem) return
+
+    const file = imageItem.getAsFile?.()
+    if (!file) return
+    if (!String(file.type || '').toLowerCase().startsWith('image/')) return
+
+    event.preventDefault()
+    setMessage('')
+    try {
+      if (file.type === 'image/gif' && file.size > MAX_GIF_BYTES) {
+        throw new Error(`GIF ist zu groß (max. ${Math.round(MAX_GIF_BYTES / 1024 / 1024)}MB).`)
+      }
+      await addMediaFile(file)
+    } catch (e) {
+      setMessage(e?.message || 'Bild konnte nicht eingefügt werden')
+    }
   }
 
   function createMediaEntry (file, previewUrl) {
@@ -357,23 +429,14 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }
 
   const mediaDisabled = pendingMedia.length >= MAX_MEDIA_COUNT
+  const showMediaGrid = pendingMediaItems.length > 0
+  const showLinkPreview = !showMediaGrid && Boolean(previewUrl) && (!dismissedPreviewUrl || dismissedPreviewUrl !== previewUrl)
 
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       <label className='block text-sm font-medium'>Inhalt</label>
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => { setText(e.target.value); updateCursorFromTextarea(e.target) }}
-        onSelect={(e) => updateCursorFromTextarea(e.target)}
-        onClick={(e) => updateCursorFromTextarea(e.target)}
-        onKeyUp={(e) => updateCursorFromTextarea(e.target)}
-        rows={6}
-        className='max-h-48 w-full overflow-auto rounded-md border bg-background p-3'
-        placeholder='Was möchtest du posten?'
-      />
       {quoteInfo ? (
-        <div className='rounded-xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
+        <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
           <div className='flex items-start gap-3'>
             {quoteInfo.author.avatar ? (
               <img
@@ -417,13 +480,61 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           </div>
         </div>
       ) : null}
-      <SegmentMediaGrid
-        items={pendingMediaItems}
-        maxCount={MAX_MEDIA_COUNT}
-        onRemove={handleRemovePendingMedia}
-        labels={mediaGridLabels}
-        className='mt-2'
+      <textarea
+        ref={textareaRef}
+        value={text}
+        onChange={(e) => { setText(e.target.value); updateCursorFromTextarea(e.target) }}
+        onPaste={handleComposerPaste}
+        onSelect={(e) => updateCursorFromTextarea(e.target)}
+        onClick={(e) => updateCursorFromTextarea(e.target)}
+        onKeyUp={(e) => updateCursorFromTextarea(e.target)}
+        rows={6}
+        className='max-h-48 w-full overflow-auto rounded-md border bg-background p-3'
+        placeholder='Was möchtest du posten?'
       />
+      {showMediaGrid ? (
+        <SegmentMediaGrid
+          items={pendingMediaItems}
+          maxCount={MAX_MEDIA_COUNT}
+          onRemove={handleRemovePendingMedia}
+          labels={mediaGridLabels}
+          className='mt-2'
+        />
+      ) : null}
+      {showLinkPreview ? (
+        <div className='relative mt-2 rounded-2xl border border-border bg-background-subtle p-3'>
+          <button
+            type='button'
+            className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-sm text-foreground-muted hover:text-foreground'
+            title='Link-Vorschau entfernen'
+            onClick={() => setDismissedPreviewUrl(previewUrl)}
+          >
+            ×
+          </button>
+          <div className='flex gap-3 pr-8'>
+            {preview?.image ? (
+              <img
+                src={preview.image}
+                alt=''
+                className='h-16 w-16 shrink-0 rounded-xl border border-border object-cover'
+                loading='lazy'
+              />
+            ) : (
+              <div className='h-16 w-16 shrink-0 rounded-xl border border-border bg-background' />
+            )}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
+              {preview?.description ? (
+                <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
+              ) : null}
+              <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
+              <div className='text-xs text-foreground-muted'>
+                {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className='flex items-center gap-2'>
         <Button
           type='button'
@@ -466,34 +577,6 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           handleLocalFile(file)
         }}
       />
-      {previewUrl ? (
-        <div className='mt-2'>
-          {preview?.image ? (
-            <img
-              src={preview.image}
-              alt=''
-              className='w-full rounded-lg border border-border object-contain'
-              style={{ maxHeight: 180 }}
-              loading='lazy'
-            />
-          ) : null}
-          <div className='mt-2 min-w-0'>
-            <p className='truncate text-sm font-semibold text-foreground'>{preview?.title || previewUrl}</p>
-            {preview?.description ? (
-              <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
-            ) : null}
-            <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
-            <div className='text-xs text-foreground-muted'>
-              {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
-            </div>
-            {pendingMedia.length > 0 ? (
-              <p className='mt-1 text-xs text-foreground-muted'>
-                Link-Vorschauen können nicht gemeinsam mit Bildanhängen gesendet werden.
-              </p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
       <div className='flex items-center justify-between'>
         <button
           type='button'
