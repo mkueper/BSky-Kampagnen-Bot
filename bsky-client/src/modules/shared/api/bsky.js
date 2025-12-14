@@ -684,6 +684,13 @@ function extractRecordKey (recordUri = '') {
   return parts[parts.length - 1] || ''
 }
 
+function unwrapRepoWriteResult (result) {
+  if (!result) return { uri: null, cid: null }
+  const uri = result?.uri || result?.data?.uri || null
+  const cid = result?.cid || result?.data?.cid || null
+  return { uri, cid }
+}
+
 async function fetchReactionsDirect ({ uri }, { agent: providedAgent } = {}) {
   const agent = providedAgent || getActiveAgentInstance()
   if (!agent?.app?.bsky?.feed?.getPostThread) return null
@@ -994,9 +1001,10 @@ export async function publishPost ({ text, mediaEntries = [], quote = null, exte
     collection: 'app.bsky.feed.post',
     record
   })
+  const created = unwrapRepoWriteResult(res)
   return {
-    uri: res?.uri || null,
-    cid: res?.cid || null,
+    uri: created.uri,
+    cid: created.cid,
     record
   }
 }
@@ -1203,7 +1211,7 @@ export async function likePost({ uri, cid }) {
     }
   })
   const reactions = await fetchReactionsDirect({ uri: targetUri }, { agent })
-  const recordUri = result?.uri || null
+  const recordUri = unwrapRepoWriteResult(result).uri
   if (reactions) {
     reactions.viewer = { ...(reactions.viewer || {}), like: recordUri }
     return { ...reactions, recordUri }
@@ -1244,7 +1252,7 @@ export async function repostPost({ uri, cid }) {
     }
   })
   const reactions = await fetchReactionsDirect({ uri: targetUri }, { agent })
-  const recordUri = result?.uri || null
+  const recordUri = unwrapRepoWriteResult(result).uri
   if (reactions) {
     reactions.viewer = { ...(reactions.viewer || {}), repost: recordUri }
     return { ...reactions, recordUri }
