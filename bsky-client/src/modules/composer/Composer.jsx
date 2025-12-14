@@ -5,11 +5,13 @@ import { VideoIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 
-export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent }) {
+export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel }) {
+  const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
   const dispatch = useAppDispatch()
   const [text, setText] = useState('')
@@ -431,6 +433,13 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const mediaDisabled = pendingMedia.length >= MAX_MEDIA_COUNT
   const showMediaGrid = pendingMediaItems.length > 0
   const showLinkPreview = !showMediaGrid && Boolean(previewUrl) && (!dismissedPreviewUrl || dismissedPreviewUrl !== previewUrl)
+  const hasContent = text.trim().length > 0 || pendingMedia.length > 0
+
+  const handleCancelComposer = useCallback(() => {
+    if (typeof onCancel === 'function') {
+      onCancel({ hasContent })
+    }
+  }, [hasContent, onCancel])
 
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
@@ -591,6 +600,16 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         {message ? (
           <span className='text-xs text-muted-foreground'>{message}</span>
         ) : null}
+      </div>
+      <div className='flex items-center justify-end gap-3'>
+        {onCancel ? (
+          <Button type='button' variant='secondary' onClick={handleCancelComposer} disabled={sending}>
+            {t('compose.cancel', 'Abbrechen')}
+          </Button>
+        ) : null}
+        <Button type='submit' variant='primary' disabled={sending}>
+          {sending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
+        </Button>
       </div>
       {tenorAvailable ? (
         <GifPicker

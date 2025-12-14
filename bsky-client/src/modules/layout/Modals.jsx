@@ -96,13 +96,30 @@ export function Modals() {
     }
   }, [feedManagerOpen, refreshFeeds]);
 
+  const handleDiscardDecision = useCallback((requiresConfirm) => {
+    if (requiresConfirm) {
+      dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })
+    } else {
+      closeComposer()
+    }
+  }, [closeComposer, dispatch])
+
+  const handleComposerCancel = useCallback(({ hasContent }) => {
+    handleDiscardDecision(Boolean(hasContent))
+  }, [handleDiscardDecision])
+
+  const handleThreadCancel = useCallback(() => {
+    const hasThreadContent = Boolean((threadSource || '').trim())
+    if (!hasThreadContent) {
+      setThreadSource('')
+    }
+    handleDiscardDecision(hasThreadContent)
+  }, [threadSource, setThreadSource, handleDiscardDecision])
+
   return (
     <>
       <ComposeModal
         open={composeOpen}
-        onClose={() => {
-          closeComposer();
-        }}
         title={
           replyTarget
             ? t('compose.titleReply', 'Antworten')
@@ -111,18 +128,6 @@ export function Modals() {
                 : (effectiveComposeMode === 'thread'
                     ? t('compose.titleThread', 'Neuer Thread')
                     : t('compose.titleNew', 'Neuer Post')))
-        }
-        actions={
-          <div className='flex items-center gap-2'>
-            <Button variant='secondary' onClick={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })}>
-              {t('compose.cancel', 'Abbrechen')}
-            </Button>
-            {effectiveComposeMode !== 'thread' ? (
-              <Button form='bsky-composer-form' type='submit' variant='primary'>
-                {t('compose.submit', 'Posten')}
-              </Button>
-            ) : null}
-          </div>
         }
       >
         {effectiveComposeMode === 'thread' ? (
@@ -139,6 +144,11 @@ export function Modals() {
                 disabled={threadSending}
                 submitLabel={threadSending ? t('compose.thread.sending', 'Sende…') : t('compose.thread.submit', 'Thread posten')}
                 onSubmit={handleThreadSubmit}
+                secondaryAction={
+                  <Button type='button' variant='secondary' disabled={threadSending} onClick={handleThreadCancel}>
+                    {t('compose.cancel', 'Abbrechen')}
+                  </Button>
+                }
               />
             </div>
             {threadError ? (
@@ -153,6 +163,7 @@ export function Modals() {
             onSent={() => {
               closeComposer();
             }}
+            onCancel={handleComposerCancel}
           />
         )}
       </ComposeModal>

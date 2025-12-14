@@ -48,7 +48,8 @@ export default function ThreadComposer ({
   submitLabel,
   labels,
   className = '',
-  onSegmentsChange
+  onSegmentsChange,
+  secondaryAction = null
 }) {
   const mergedLabels = mergeLabels(labels)
   const [internalNumbering, setInternalNumbering] = useState(true)
@@ -288,7 +289,8 @@ export default function ThreadComposer ({
       </div>
 
       {typeof onSubmit === 'function' ? (
-        <div className='flex justify-end'>
+        <div className='flex items-center justify-end gap-3'>
+          {secondaryAction}
           <Button
             type='button'
             onClick={() => onSubmit(previewSegments)}
@@ -339,5 +341,6 @@ ThreadComposer.propTypes = {
     submitLabel: PropTypes.string
   }),
   className: PropTypes.string,
-  onSegmentsChange: PropTypes.func
+  onSegmentsChange: PropTypes.func,
+  secondaryAction: PropTypes.node
 }
