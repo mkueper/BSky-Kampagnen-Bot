@@ -6,6 +6,7 @@ import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { useInteractionSettingsControls } from './useInteractionSettingsControls.js'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -14,6 +15,13 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
   const dispatch = useAppDispatch()
+  const {
+    interactionSettings,
+    data: interactionData,
+    summary: interactionSummary,
+    openModal: openInteractionModal,
+    reloadSettings
+  } = useInteractionSettingsControls(t)
   const [text, setText] = useState('')
   const [message, setMessage] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
@@ -410,7 +418,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         mediaEntries: pendingMedia.map((entry) => ({ file: entry.file, altText: entry.altText || '' })),
         quote: quoteInfo ? { uri: quoteInfo.uri, cid: quoteInfo.cid } : null,
         external: externalPayload,
-        reply: replyContext
+        reply: replyContext,
+        interactions: interactionData
       })
       if (quoteInfo?.uri && sent?.uri) {
         dispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
@@ -586,20 +595,32 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           handleLocalFile(file)
         }}
       />
-      <div className='flex items-center justify-between'>
-        <button
-          type='button'
-          className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
-          title='Interaktions-Einstellungen'
-          onClick={() => {
-            // Platzhalter für künftigen Dialog
-          }}
-        >
-          Jeder kann interagieren
-        </button>
-        {message ? (
-          <span className='text-xs text-muted-foreground'>{message}</span>
-        ) : null}
+      <div className='flex flex-col gap-2'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <button
+            type='button'
+            className='inline-flex flex-1 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60 md:flex-none'
+            title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
+            onClick={openInteractionModal}
+            disabled={interactionSettings?.loading}
+          >
+            {interactionSettings?.loading
+              ? t('compose.interactions.loading', 'Lade Interaktionseinstellungen…')
+              : interactionSummary}
+          </button>
+          {interactionSettings?.error && !interactionSettings?.modalOpen ? (
+            <button
+              type='button'
+              className='text-xs font-semibold text-primary hover:underline'
+              onClick={reloadSettings}
+            >
+              {t('compose.interactions.retry', 'Erneut versuchen')}
+            </button>
+          ) : null}
+          {message ? (
+            <span className='text-xs text-muted-foreground'>{message}</span>
+          ) : null}
+        </div>
       </div>
       <div className='flex items-center justify-end gap-3'>
         {onCancel ? (

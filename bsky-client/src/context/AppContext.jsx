@@ -323,6 +323,10 @@ function appReducer(state, action) {
     replyTarget: state.replyTarget,
     quoteTarget: state.quoteTarget,
     confirmDiscard: state.confirmDiscard,
+    composeMode: state.composeMode,
+    threadSource: state.threadSource,
+    threadAppendNumbering: state.threadAppendNumbering,
+    interactionSettings: state.interactionSettings
   }, action);
 
   const notifications = notificationsReducer({

@@ -12,6 +12,8 @@ import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
 import LoginView from '../login/LoginView.jsx'
+import { useInteractionSettingsControls } from '../composer/useInteractionSettingsControls.js'
+import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
 
 function resolveThreadSubmitError (segments = [], t) {
   const effective = Array.isArray(segments) ? segments : []
@@ -49,6 +51,18 @@ export function Modals() {
   const { t } = useTranslation();
   const [threadSending, setThreadSending] = useState(false)
   const [threadError, setThreadError] = useState('')
+  const {
+    interactionSettings,
+    data: interactionData,
+    draft: interactionDraft,
+    summary: interactionSummary,
+    openModal: openInteractionModal,
+    closeModal: closeInteractionModal,
+    updateDraft: updateInteractionDraft,
+    saveInteractions: saveInteractionChanges,
+    loadLists,
+    reloadSettings
+  } = useInteractionSettingsControls(t)
 
   const effectiveComposeMode = useMemo(() => {
     if (replyTarget || quoteTarget) return 'single'
@@ -68,13 +82,14 @@ export function Modals() {
       const usable = segments
         .filter((segment) => String(segment?.formatted || segment?.raw || '').trim().length > 0)
         .map((segment) => String(segment.formatted || segment.raw || '').trim())
+      const interactions = interactionData
 
       let root = null
       let parent = null
       for (let i = 0; i < usable.length; i++) {
         const content = usable[i]
         const reply = i === 0 ? null : buildThreadReplyContext(root, parent)
-        const res = await publishPost({ text: content, reply })
+        const res = await publishPost({ text: content, reply, interactions })
         if (!res?.uri || !res?.cid) {
           throw new Error(t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
         }
@@ -131,7 +146,29 @@ export function Modals() {
         }
       >
         {effectiveComposeMode === 'thread' ? (
-          <div className='space-y-3'>
+          <div className='space-y-4'>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
+              <button
+                type='button'
+                className='inline-flex flex-1 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60 md:flex-none'
+                title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
+                onClick={openInteractionModal}
+                disabled={interactionSettings?.loading}
+              >
+                {interactionSettings?.loading
+                  ? t('compose.interactions.loading', 'Lade Interaktionseinstellungen…')
+                  : interactionSummary}
+              </button>
+              {interactionSettings?.error && !interactionSettings?.modalOpen ? (
+                <button
+                  type='button'
+                  className='text-xs font-semibold text-primary hover:underline'
+                  onClick={reloadSettings}
+                >
+                  {t('compose.interactions.retry', 'Erneut versuchen')}
+                </button>
+              ) : null}
+            </div>
             <div className='h-[64vh] min-h-[480px]'>
               <ThreadComposer
                 className='h-full'
@@ -214,6 +251,25 @@ export function Modals() {
         open={Boolean(addAccount?.open)}
         prefill={addAccount?.prefill || null}
         onClose={cancelAddAccount}
+      />
+
+      <PostInteractionSettingsModal
+        open={Boolean(interactionSettings?.modalOpen)}
+        t={t}
+        draft={interactionDraft}
+        loading={Boolean(interactionSettings?.loading && !interactionSettings?.initialized)}
+        saving={Boolean(interactionSettings?.saving)}
+        error={interactionSettings?.modalOpen ? interactionSettings?.error : null}
+        lists={{
+          items: interactionSettings?.lists?.items || [],
+          loading: Boolean(interactionSettings?.lists?.loading),
+          error: interactionSettings?.lists?.error || null,
+          loaded: Boolean(interactionSettings?.lists?.loaded)
+        }}
+        onClose={closeInteractionModal}
+        onDraftChange={updateInteractionDraft}
+        onLoadLists={loadLists}
+        onSave={saveInteractionChanges}
       />
 
     </>
