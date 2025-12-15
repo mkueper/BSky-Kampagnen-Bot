@@ -90,6 +90,7 @@ const NotificationsFallback = () => (
 export default function BskyClientApp ({ onNavigateDashboard }) {
   const {
     status: authStatus,
+    statusDetail: authStatusDetail,
     session: authSession,
     activeAccountId: authActiveAccountId
   } = useBskyAuth()
@@ -101,7 +102,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   return (
     <>
       <AuthenticatedClientApp onNavigateDashboard={onNavigateDashboard} />
-      {authStatus === 'loading' ? (
+      {(authStatus === 'loading' && authStatusDetail === 'switch-account') ? (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm'>
           <div className='flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-3 shadow-soft'>
             <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
@@ -425,6 +426,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (threadState.active) {
       closeThread({ force: true })
     }
+    scrollPositionsRef.current.clear()
+    skipScrollRestoreRef.current = true
+    dispatch({ type: 'RESET_LISTS' })
 
     timelineKeyRef.current = 'discover'
     dispatch({ type: 'SET_ACTIVE_LIST', payload: 'discover' })
@@ -479,15 +483,22 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     previousSectionRef.current = section
   }, [section, refreshListByKey, notificationListKey])
 
+  const buildCompositeListKey = useCallback((sectionName, listKeyValue) => {
+    return `${sectionName || ''}:${listKeyValue || ''}`
+  }, [])
+
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
     const meta = getTimelineListMeta(tabInfo)
     if (!meta) return
     const nextKey = meta.key
     const existingList = lists?.[nextKey]
+    const compositeKey = buildCompositeListKey('home', nextKey)
+    const hasSavedPosition = scrollPositionsRef.current.has(compositeKey)
     if (threadState.active) closeThread({ force: true })
     closeFeedMenu()
     if (timelineKeyRef.current === nextKey) {
+      skipScrollRestoreRef.current = true
       refreshListByKey(nextKey, { scrollAfter: true })
       return
     }
@@ -497,12 +508,16 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       dispatch({ type: 'SET_SECTION', payload: 'home' })
       pushSectionRoute('home')
     }
-    skipScrollRestoreRef.current = true
-    scrollActiveListToTop()
-    if (!existingList || !existingList.loaded) {
-      refreshListByKey(nextKey, { scrollAfter: true })
+    if (!hasSavedPosition) {
+      skipScrollRestoreRef.current = true
+      scrollActiveListToTop()
+    } else {
+      skipScrollRestoreRef.current = false
     }
-  }, [getTimelineListMeta, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, lists])
+    if (!existingList || !existingList.loaded) {
+      refreshListByKey(nextKey, { scrollAfter: !hasSavedPosition })
+    }
+  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop])
 
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {

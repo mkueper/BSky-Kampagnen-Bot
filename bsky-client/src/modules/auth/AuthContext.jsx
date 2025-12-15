@@ -177,6 +177,7 @@ export const AuthContext = createContext(null)
 
 export function AuthProvider ({ children }) {
   const [status, setStatus] = useState('loading') // loading | unauthenticated | authenticated
+  const [statusDetail, setStatusDetail] = useState('bootstrap') // bootstrap | login | switch-account | null
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [client, setClient] = useState(() => createBskyAgentClient())
@@ -363,7 +364,10 @@ export function AuthProvider ({ children }) {
             return next
           })
         }
-        if (!cancelled) setStatus('unauthenticated')
+        if (!cancelled) {
+          setStatus('unauthenticated')
+          setStatusDetail(null)
+        }
         return
       }
 
@@ -380,6 +384,7 @@ export function AuthProvider ({ children }) {
           setSession(null)
           setProfile(null)
           setStatus('unauthenticated')
+          setStatusDetail(null)
         }
         return
       }
@@ -390,6 +395,7 @@ export function AuthProvider ({ children }) {
         if (cancelled) return
         setSession(activeSession)
         setStatus('authenticated')
+        setStatusDetail(null)
         setAccounts(prev => {
           const next = prev.map(acc => acc.id === activeAccount.id
             ? { ...acc, session: activeSession, rememberSession: true }
@@ -413,6 +419,7 @@ export function AuthProvider ({ children }) {
           setSession(null)
           setProfile(null)
           setStatus('unauthenticated')
+          setStatusDetail(null)
         }
       } finally {
         // Legacy keys are not used anymore once migrated.
@@ -428,12 +435,14 @@ export function AuthProvider ({ children }) {
   const login = useCallback(
     async ({ serviceUrl, identifier, appPassword, rememberCredentials, rememberSession, asNewAccount = false }) => {
       setStatus('loading')
+      setStatusDetail('login')
       const agent = createBskyAgentClient({ serviceUrl })
       const nextSession = await agent.login({ identifier, appPassword })
       clientRef.current = agent
       setClient(agent)
       setSession(nextSession)
       setStatus('authenticated')
+      setStatusDetail(null)
       persistPreferences({
         serviceUrl: agent.getServiceUrl(),
         identifier,
@@ -543,6 +552,7 @@ export function AuthProvider ({ children }) {
       return
     }
     setStatus('loading')
+    setStatusDetail('switch-account')
     const agent = createBskyAgentClient({ serviceUrl: targetAccount.serviceUrl })
     try {
       const activeSession = await agent.resumeSession(targetAccount.session)
@@ -561,6 +571,7 @@ export function AuthProvider ({ children }) {
         rememberSession: Boolean(targetAccount.rememberSession && targetAccount.session)
       }))
       setStatus('authenticated')
+      setStatusDetail(null)
       updateAccount(targetId, { session: activeSession, rememberSession: true })
       await refreshProfile({ client: agent, accountId: targetId })
     } catch (error) {
@@ -571,6 +582,7 @@ export function AuthProvider ({ children }) {
         identifier: targetAccount.identifier || targetAccount.handle || ''
       })
       setStatus('authenticated')
+      setStatusDetail(null)
     }
   }, [accounts, activeAccountId, beginAddAccount, refreshProfile, updateAccount])
 
@@ -596,12 +608,14 @@ export function AuthProvider ({ children }) {
         await switchAccount(fallbackAccount.id)
       } else {
         setStatus('unauthenticated')
+        setStatusDetail(null)
       }
     }
   }, [accounts, activeAccountId, client, persistAccounts, switchAccount])
 
   const value = useMemo(() => ({
     status,
+    statusDetail,
     session,
     client,
     preferences,
@@ -616,7 +630,7 @@ export function AuthProvider ({ children }) {
     cancelAddAccount,
     refreshProfile,
     setPreferences: persistPreferences
-  }), [status, session, client, preferences, profile, accounts, activeAccountId, addAccount, login, logout, switchAccount, beginAddAccount, cancelAddAccount, refreshProfile, persistPreferences])
+  }), [status, statusDetail, session, client, preferences, profile, accounts, activeAccountId, addAccount, login, logout, switchAccount, beginAddAccount, cancelAddAccount, refreshProfile, persistPreferences])
 
   return (
     <AuthContext.Provider value={value}>

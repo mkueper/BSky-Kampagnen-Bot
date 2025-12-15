@@ -105,6 +105,24 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
 24. Link-Vorschau-Tipp UX:
    - Im Composer prüfen, wie wir Bluesky’s Verhalten (Link einfügen → Vorschau → Link entfernen) kommunikativ oder technisch abbilden können, damit Nutzer die vollen 300 Zeichen erhalten und Vorschauen optional entfernen können (Hinweis/Tooltip oder automatische Hilfestellung).
 
+25. Blockliste erweitern:
+   - In der Blockliste optional einen Button „Alle anzeigen“ ergänzen, der auf Wunsch sämtliche Seiten nachlädt.
+   - Zusätzlich eine Suche bereitstellen, um geblockte Accounts schneller zu finden.
+
+26. Suchverlauf verbessern (Schritt 1: Konzept/Storage):
+   - Profil-Historie wie im offiziellen Bluesky-Such-Overlay speichern (Avatare mit Entfernen-Icon), getrennt von Text-Queries.
+   - Such-Queries als Buttons in voller Breite ablegen, pro Eintrag Trefferzahl + „Letzte Suche“-Zeitpunkt speichern.
+   - Löschfunktion pro Query + „Verlauf leeren“ definieren; Datenspeicher (z. B. IndexedDB/localStorage) klären.
+
+27. Suchverlauf erweitern (Schritt 2: UI):
+   - UI im `SearchView` anpassen: Profil-Historie unter dem Suchfeld als Avatar-Kacheln rendern, darunter die Query-Buttons in einer Spalte mit rechtsbündigen Statistiken und Lösch-Icon.
+   - Sicherstellen, dass Buttons weiterhin klickbar bleiben und bei langen Listen scrollbar/virtuell dargestellt werden können.
+
+28. Timeline nach eigenen Antworten aktualisieren:
+   - Wenn der Nutzer in einer Timeline auf einen Post antwortet, soll der eben gesendete Beitrag direkt in der aktiven Timeline an der korrekten Position erscheinen, ohne dass der komplette Feed neu geladen werden muss.
+29. NAV-Bar Buttons aufräumen:
+   - Den Bereich rund um „Theme“, „Neuer Thread“ und „Neuer Post“ neu organisieren, damit Abstände, Gruppierung und Interaktion in der Navigationsleiste stimmig wirken (z. B. aufgeräumte Gruppierung oder visuelle Trennung).
+
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
 - Im `bsky-client` existieren keine direkten Imports aus `backend/**` oder `dashboard/**`; alle geteilten Bausteine kommen aus `packages/*`.

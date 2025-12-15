@@ -1,47 +1,3 @@
-const DEFAULT_LISTS = {
-  discover: createListState({
-    key: 'discover',
-    kind: 'timeline',
-    label: 'Discover',
-    route: '/',
-    supportsPolling: true,
-    supportsRefresh: true,
-    data: { type: 'timeline', tab: 'discover', feedUri: null }
-  }),
-  following: createListState({
-    key: 'following',
-    kind: 'timeline',
-    label: 'Following',
-    route: '/',
-    supportsPolling: true,
-    supportsRefresh: true,
-    data: { type: 'timeline', tab: 'following', feedUri: null }
-  }),
-  'notifs:all': createListState({
-    key: 'notifs:all',
-    kind: 'notifications',
-    label: 'Alle Mitteilungen',
-    route: '/notifications',
-    supportsPolling: true,
-    supportsRefresh: true,
-    data: { type: 'notifications', filter: 'all' }
-  }),
-  'notifs:mentions': createListState({
-    key: 'notifs:mentions',
-    kind: 'notifications',
-    label: 'Erwähnungen',
-    route: '/notifications',
-    supportsPolling: true,
-    supportsRefresh: true,
-    data: { type: 'notifications', filter: 'mentions' }
-  })
-}
-
-export const listViewInitialState = {
-  activeListKey: 'discover',
-  lists: DEFAULT_LISTS
-}
-
 function createListState(meta = {}) {
   return {
     key: meta.key || '',
@@ -59,6 +15,54 @@ function createListState(meta = {}) {
     isLoadingMore: Boolean(meta.isLoadingMore),
     data: meta.data || null
   }
+}
+
+function buildDefaultLists () {
+  return {
+    discover: createListState({
+      key: 'discover',
+      kind: 'timeline',
+      label: 'Discover',
+      route: '/',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: { type: 'timeline', tab: 'discover', feedUri: null }
+    }),
+    following: createListState({
+      key: 'following',
+      kind: 'timeline',
+      label: 'Following',
+      route: '/',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: { type: 'timeline', tab: 'following', feedUri: null }
+    }),
+    'notifs:all': createListState({
+      key: 'notifs:all',
+      kind: 'notifications',
+      label: 'Alle Mitteilungen',
+      route: '/notifications',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: { type: 'notifications', filter: 'all' }
+    }),
+    'notifs:mentions': createListState({
+      key: 'notifs:mentions',
+      kind: 'notifications',
+      label: 'Erwähnungen',
+      route: '/notifications',
+      supportsPolling: true,
+      supportsRefresh: true,
+      data: { type: 'notifications', filter: 'mentions' }
+    })
+  }
+}
+
+const DEFAULT_LISTS = buildDefaultLists()
+
+export const listViewInitialState = {
+  activeListKey: 'discover',
+  lists: DEFAULT_LISTS
 }
 
 function ensureList(state, key, meta) {
@@ -173,6 +177,12 @@ export function listViewReducer(state, action) {
             isLoadingMore: Boolean(payload.value)
           }
         }
+      }
+    }
+    case 'RESET_LISTS': {
+      return {
+        activeListKey: 'discover',
+        lists: buildDefaultLists()
       }
     }
     default:
