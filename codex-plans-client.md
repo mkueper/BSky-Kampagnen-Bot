@@ -110,6 +110,8 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
 31. Suche: Prefix-Hinweise verbessern:
    - Statt des aktuellen Inline-Menüs ein Modal („Info“) anbinden, das alle Prefixes mit ausführlichen Beispielen und Beschreibungstexten zeigt (lokalisiert).
    - Modal direkt neben dem Suchfeld aufrufbar (z. B. Info-Button), Inhalte aus den neuen Hint-Dateien speisen und bei Fehlern neutralen Fallback anzeigen.
+32. Beta-Builds:
+   - Windows- und Linux-Desktop-App (Client) bis morgen paketieren und als Betatest bereitstellen (Build-/Release-Prozess klären, Artefakte testen).
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

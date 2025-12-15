@@ -910,7 +910,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     <Share2Icon className='h-4 w-4' />
                   </button>
                 </InlineMenuTrigger>
-                <InlineMenuContent side='top' align='end' sideOffset={10}>
+                <InlineMenuContent side='bottom' align='end' sideOffset={10}>
                   <div className='py-1'>
                     <InlineMenuItem
                       icon={CopyIcon}
@@ -921,17 +921,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       }}
                     >
                       {t('skeet.share.copyLink', 'Link zum Post kopieren')}
-                    </InlineMenuItem>
-                    <InlineMenuItem
-                      icon={ExternalLinkIcon}
-                      onSelect={(event) => {
-                        event?.preventDefault?.()
-                        const url = `/thread/${encodeURIComponent(item?.uri || '')}`
-                        window.open(url, '_blank', 'noopener,noreferrer')
-                        setShareMenuOpen(false)
-                      }}
-                    >
-                      {t('skeet.share.openInApp', 'Im Kampagnen‑Tool öffnen')}
                     </InlineMenuItem>
                     <InlineMenuItem
                       icon={Link2Icon}

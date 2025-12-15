@@ -52,7 +52,7 @@ export default function RepostMenuButton ({
           <span className='tabular-nums'>{count}</span>
         </button>
       </InlineMenuTrigger>
-      <InlineMenuContent side='top' align='center' sideOffset={10} style={{ width: 220 }}>
+      <InlineMenuContent side='bottom' align='center' sideOffset={10} style={{ width: 220 }}>
         <div className='py-1 text-sm'>
           {!hasReposted ? (
             <InlineMenuItem icon={LoopIcon} onSelect={handleRepost}>

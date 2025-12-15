@@ -290,7 +290,6 @@ const messages = {
       share: {
         linkCopied: 'Link zum Post kopiert',
         copyLink: 'Link zum Post kopieren',
-        openInApp: 'Im Kampagnen‑Tool öffnen',
         directMessage: 'Direktnachricht',
         directMessageAction: 'Per Direktnachricht senden',
         embed: 'Embed',

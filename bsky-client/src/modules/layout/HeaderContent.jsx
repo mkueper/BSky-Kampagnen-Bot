@@ -87,7 +87,7 @@ export function TimelineHeader ({
                 {showBadge ? (
                   <span className='inline-flex h-2 w-2 items-center justify-center'>
                     <span
-                      className={`h-2 w-2 rounded-full ${isActive ? 'bg-white' : 'bg-primary'}`}
+                      className='h-2 w-2 rounded-full bg-primary'
                       aria-label={t('layout.timeline.newItems', 'Neue Elemente')}
                     />
                   </span>
