@@ -4,30 +4,23 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-14.12.2025
+15.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Doku, Terminologie und Upload-Pfade des Kampagnen‑Tools sind konsolidiert; About‑Seite, UI-Guides und Test-Doku spiegeln Freizugebende Posts, Fehlercodes und `data/medien` wider.
-- Docker-Bundle + Setup-Skript liefern nur noch Backend + Dashboard, inklusive `.env`-Generator, Auth-Hash und automatischer Migration.
-- Testkonventionen schreiben fachlich motivierte Fälle vor; Dashboard/Backend-Dokumente sind entsprechend angepasst und werden aktiv gepflegt.
-- Bluesky-Client: Zielarchitektur (eigenständige Desktop-App mit direktem `BskyAgent`) und Login-Konzept (Service-URL, Identifier, App-Passwort, zwei Persistenz-Checkboxen) stehen, Multi-Account bleibt nachgelagert.
-- `bskyAgentClient` bildet Login/Resume/Logout bereits ab; UI und Stores nutzen ihn noch nicht.
-- Aktueller Fokus: Wir arbeiten derzeit ausschließlich am Bluesky‑Client (`bsky-client`). Backend und Dashboard bleiben unangetastet; Änderungen in `packages/shared-*` erfolgen nur vorsichtig und kompatibel, weil sie beide Frontends betreffen können.
-- Bluesky-Client: Mitteilungen/Erwähnungen laufen stabil, Auto-Paging stoppt zuverlässig; Badge- und Scroll-Optimierungen sind umgesetzt.
-- Bluesky-Client: Navigation/Composer wurden auf neue UX gebracht (Buttons unten, Close-Icons entfernt, Thread-Modals begrenzt); Hover/Active-Styling der Tabs/Buttons orientiert sich am Dashboard, dunkle Themes brauchen noch Feinschliff.
-- Dashboard: Zeitpicker verhindern rückwirkende Zeitpunkte am selben Tag, Thread-Editor besitzt Scroll/Klick-Sync.
-- `skeet-history`-Listen besitzen eine Scroll-Begrenzung (≈4 Karten); ein Seed-Skript `scripts/seedDemoDatabase.ts` erstellt Demo-Skeets + Sendelogs (`data/demo-dashboard.sqlite`) zum Testen langer Historien.
-- VS-Code-Launch „Dev: App (Backend + Bsky-Client)“ funktioniert nach Fix des Backend-Wait-Skripts wieder out of the box.
-- Zufallsversatz für den Scheduler ist implementiert (Backend + Dashboard UI + Doku), inklusive `repeatAnchorAt`, Migration und Cron-Info-Dialog – das Input-Feld liegt momentan im Cron-Block; Layout wirkt etwas asymmetrisch, daher als künftiger Feinschliff vermerkt.
+- Chat-Funktionen des Clients nutzen nun einen robusten Fallback auf `api.bsky.chat`, wenn der klassische Proxy 404/XRPCNotSupported liefert; Konversationsliste, Detailansicht, Read-State und Polling laufen wieder ohne Fehler.
+- Share- und Repost-Menüs klappen in die gewünschten Richtungen, die Discover-Badges im Timeline-Header haben den gleichen Kontrast wie alle anderen Tabs.
+- `codex-plans-client.md` enthält jetzt den Beta-Hinweis (Windows & Linux App in Arbeit); Fokus bleibt auf dem Client, Backend/Dashboard unverändert stabil.
+- Docker-Bundle, Scheduler-Zufallsversatz, Demo-Daten-Skript und Dokumentation des Kampagnen-Tools sind weiterhin gültig, Tests laufen grün.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Kampagnen-Tool läuft als eigenständiger Serverdienst mit dokumentiertem Docker-Bundle, aufgeräumten Upload-Pfaden und konsistenter Doku/Test-Guidance. Für den Bluesky-Client existiert die Zielarchitektur (Desktop-App + direkter `BskyAgent`), aber UI/Auth-Layer müssen noch umgestellt werden. Dashboard & Backend lassen sich mit Demo-Daten (`scripts/seedDemoDatabase.ts`) und funktionierendem VS-Code-Launcher schnell starten.
-
-Im Client als nächstes: UX für Erwähnungen/Auto‑Paging finalisieren (wie Original Bluesky) und Thread‑Darstellung (Tiefe 6 + „weitere Antwort(en) lesen“) sauber planen.
+Nächste Session beginnt mit funktionsfähigem Chat-Fallback und stabilen Share-/Badge-Anpassungen. Priorität: Beta-Builds (Windows & Linux) erstellen, Installationswege testen und anschließend weitere Client-Baustellen (Timeline-Umschalter, Suche, Chats) angehen. Kampagnen-Tool/Dashboard werden nur bei Bedarf angerührt.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
+
+- Beta-Vorbereitung: Windows- und Linux-App paketieren, Smoke-Tests durchführen und Download-/Kommunikationsplan für den Betatest aufsetzen.
+
 [text](<../../Downloads/5D1CF368B8361FD0AABF71486C6920B9 (1).pdf>)
 ### 4.1 Client (Bluesky‑Desktop‑App)
 
