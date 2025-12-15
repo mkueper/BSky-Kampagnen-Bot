@@ -1,10 +1,10 @@
 {
-  "from": "@handle oder \"me\"",
-  "mention": "@handle oder \"me\"",
-  "mentions": "@handle oder \"me\"",
-  "to": "@handle oder \"me\"",
-  "domain": "example.com oder domain.tld",
-  "lang": "Sprachcodes wie de, en",
-  "since": "YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ",
-  "until": "YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ"
+  "from": "@handle, did:example oder \"me\" für eigene Posts",
+  "mention": "@handle, did:example oder \"me\" für Erwähnungen",
+  "mentions": "Mehrere Empfänger mit Komma trennen",
+  "to": "Post-Antworten an @handle oder \"me\"",
+  "domain": "Nur Inhalte einer Domain (z. B. example.com)",
+  "lang": "ISO-Sprachcodes, mehrere durch Komma (de,en)",
+  "since": "Startdatum (UTC) YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ",
+  "until": "Enddatum (UTC) YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ"
 }

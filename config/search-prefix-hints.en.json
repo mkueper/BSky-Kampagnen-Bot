@@ -1,10 +1,10 @@
 {
-  "from": "@handle or \"me\"",
-  "mention": "@handle or \"me\"",
-  "mentions": "@handle or \"me\"",
-  "to": "@handle or \"me\"",
-  "domain": "example.com or domain.tld",
-  "lang": "Language codes like en, de",
-  "since": "YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ",
-  "until": "YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ"
+  "from": "@handle, did:example or \"me\" to target your own posts",
+  "mention": "Matches posts mentioning @handle or \"me\"",
+  "mentions": "Use commas to list multiple recipients",
+  "to": "Replies directed to @handle or \"me\"",
+  "domain": "Limit results to a domain (e.g. example.com)",
+  "lang": "ISO language codes, comma separated (en,de)",
+  "since": "Start timestamp (UTC) YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ",
+  "until": "End timestamp (UTC) YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ"
 }
