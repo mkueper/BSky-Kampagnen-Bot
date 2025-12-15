@@ -154,7 +154,7 @@ export default function ThreadComposer({
   useEffect(() => {
     return () => {
       if (gifFetchControllerRef.current) {
-        try { gifFetchControllerRef.current.abort() } catch (e) { /* ignore */ }
+        try { gifFetchControllerRef.current.abort() } catch { /* ignore */ }
         gifFetchControllerRef.current = null
       }
     }

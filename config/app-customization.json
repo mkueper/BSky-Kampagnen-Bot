@@ -10,14 +10,14 @@
   },
   "search": {
     "advancedPrefixes": [
-      "from:",
-      "mention:",
-      "mentions:",
-      "domain:",
-      "to:",
-      "lang:",
-      "since:",
-      "until:"
+      ["from:", "@handle oder „me“", "Handle oder auch me für sich selbst verwendet"],
+      ["mention:", "@handle oder „me“"],
+      ["mentions:", "@handle oder „me“"],
+      ["to:", "@handle oder „me“"],
+      ["domain:", "example.com"],
+      ["lang:", "z. B. de, en"],
+      ["since:", "YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ"],
+      ["until:", "YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ"]
     ]
   }
 }

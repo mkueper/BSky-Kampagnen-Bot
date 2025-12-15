@@ -8,9 +8,20 @@ const SEARCH_TABS = [
   { id: 'latest', label: 'Neueste', labelKey: 'search.tabs.latest' },
   { id: 'people', label: 'Personen', labelKey: 'search.tabs.people' }
 ]
-const DEFAULT_ADVANCED_PREFIXES = ['from:', 'mention:', 'mentions:', 'domain:']
+const DEFAULT_ADVANCED_PREFIXES = [
+  ['from:', '@handle oder „me“'],
+  ['mention:', '@handle oder „me“'],
+  ['mentions:', '@handle oder „me“'],
+  ['to:', '@handle'],
+  ['domain:', 'example.com'],
+  ['lang:', 'de, en'],
+  ['since:', 'YYYY-MM-DD'],
+  ['until:', 'YYYY-MM-DD']
+]
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
 const RECENT_SEARCH_LIMIT = 8
+const RECENT_PROFILE_LIMIT = 8
+const RECENT_STORAGE_VERSION = 1
 
 const SearchContext = createContext(null)
 
@@ -37,7 +48,10 @@ function useProvideSearchContext () {
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('top')
   const [errorMessage, setErrorMessage] = useState('')
-  const [recentSearches, setRecentSearches] = useState([])
+  const [recentQueryEntries, setRecentQueryEntries] = useState([])
+  const [recentProfileEntries, setRecentProfileEntries] = useState([])
+  const recentQueryEntriesRef = useRef(recentQueryEntries)
+  const recentProfileEntriesRef = useRef(recentProfileEntries)
   const searchSignatureRef = useRef('')
 
   const normalizedDraft = draftQuery.trim()
@@ -51,15 +65,54 @@ function useProvideSearchContext () {
     return DEFAULT_ADVANCED_PREFIXES
   }, [clientConfig?.search?.advancedPrefixes])
 
-  const normalizedPrefixes = useMemo(
-    () => configuredAdvancedPrefixes
-      .map(prefix => (typeof prefix === 'string' ? prefix.trim().toLowerCase() : ''))
-      .filter(Boolean),
+  const advancedPrefixEntries = useMemo(
+    () => normalizeAdvancedPrefixEntries(configuredAdvancedPrefixes),
     [configuredAdvancedPrefixes]
   )
 
   const lowerDraft = normalizedDraft.toLowerCase()
-  const hasAdvancedFilter = normalizedPrefixes.some((prefix) => lowerDraft.startsWith(prefix))
+  const hasAdvancedFilter = useMemo(() => {
+    if (!lowerDraft) return false
+    return advancedPrefixEntries.some((entry) => lowerDraft.startsWith(entry.prefixLower))
+  }, [advancedPrefixEntries, lowerDraft])
+
+  const prefixTokenDetails = useMemo(() => getLastTokenDetails(draftQuery), [draftQuery])
+
+  const usedPrefixes = useMemo(
+    () => detectUsedPrefixes(draftQuery, advancedPrefixEntries),
+    [draftQuery, advancedPrefixEntries]
+  )
+
+  const showPrefixPicker = prefixTokenDetails.token === ':'
+
+  const prefixSuggestions = useMemo(() => {
+    if (!showPrefixPicker) return []
+    return advancedPrefixEntries.filter(entry => !usedPrefixes.has(entry.prefixLower))
+  }, [advancedPrefixEntries, showPrefixPicker, usedPrefixes])
+
+  const activePrefixEntry = useMemo(() => {
+    if (!prefixTokenDetails.tokenLower) return null
+    return advancedPrefixEntries.find(entry => prefixTokenDetails.tokenLower.startsWith(entry.prefixLower)) || null
+  }, [advancedPrefixEntries, prefixTokenDetails.tokenLower])
+
+  const activePrefixHint = activePrefixEntry?.hint || null
+  const showPrefixSuggestions = showPrefixPicker && prefixSuggestions.length > 0
+  const showInlinePrefixHint = Boolean(
+    activePrefixEntry &&
+    activePrefixHint &&
+    prefixTokenDetails.tokenLower === activePrefixEntry.prefixLower
+  )
+
+  const applyPrefixSuggestion = useCallback((entry) => {
+    if (!entry || !entry.prefix) return
+    setDraftQuery((current) => {
+      const details = getLastTokenDetails(current)
+      if (details.token !== ':') return current
+      const before = current.slice(0, details.startIndex)
+      const after = current.slice(details.startIndex + details.token.length)
+      return `${before}${entry.prefix}${after}`
+    })
+  }, [setDraftQuery])
 
   const availableTabs = useMemo(() => {
     if (!hasAdvancedFilter) return SEARCH_TABS
@@ -78,34 +131,52 @@ function useProvideSearchContext () {
     try {
       const raw = window.localStorage.getItem(RECENT_SEARCH_STORAGE_KEY)
       if (!raw) return
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        const normalized = parsed
-          .map(item => (typeof item === 'string' ? item.trim() : ''))
-          .filter(Boolean)
-          .slice(0, RECENT_SEARCH_LIMIT)
-        setRecentSearches(normalized)
-      }
+      const parsed = parseStoredRecents(raw)
+      setRecentQueryEntries(parsed.queries)
+      setRecentProfileEntries(parsed.profiles)
     } catch {
       // ignore malformed storage
+    }
+  }, [])
+
+  useEffect(() => {
+    recentQueryEntriesRef.current = recentQueryEntries
+  }, [recentQueryEntries])
+
+  useEffect(() => {
+    recentProfileEntriesRef.current = recentProfileEntries
+  }, [recentProfileEntries])
+
+  const persistRecents = useCallback((nextQueries, nextProfiles) => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify({
+        version: RECENT_STORAGE_VERSION,
+        queries: nextQueries,
+        profiles: nextProfiles
+      }))
+    } catch {
+      // ignore storage errors
     }
   }, [])
 
   const rememberSearch = useCallback((term) => {
     const normalized = term.trim()
     if (!normalized) return
-    setRecentSearches((prev) => {
-      const next = [normalized, ...prev.filter(item => item !== normalized)].slice(0, RECENT_SEARCH_LIMIT)
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify(next))
-        } catch {
-          // ignore storage errors
-        }
+    const timestamp = new Date().toISOString()
+    setRecentQueryEntries((prev) => {
+      const filtered = prev.filter(item => item.term !== normalized)
+      const existing = prev.find(item => item.term === normalized)
+      const nextEntry = {
+        term: normalized,
+        lastSearchedAt: timestamp,
+        lastResultCount: existing?.lastResultCount ?? null
       }
+      const next = [nextEntry, ...filtered].slice(0, RECENT_SEARCH_LIMIT)
+      persistRecents(next, recentProfileEntriesRef.current)
       return next
     })
-  }, [])
+  }, [persistRecents])
 
   const handleSelectRecent = useCallback((term) => {
     rememberSearch(term)
@@ -183,6 +254,22 @@ function useProvideSearchContext () {
     return pages.flatMap((page) => Array.isArray(page?.items) ? page.items : [])
   }, [pages])
 
+  useEffect(() => {
+    if (!hasQuery || !normalizedQuery) return
+    const count = mergedItems.length
+    setRecentQueryEntries((prev) => {
+      const index = prev.findIndex(entry => entry.term === normalizedQuery)
+      if (index === -1) return prev
+      const existing = prev[index]
+      if (existing.lastResultCount === count) return prev
+      const updatedEntry = { ...existing, lastResultCount: count }
+      const next = [...prev]
+      next[index] = updatedEntry
+      persistRecents(next, recentProfileEntriesRef.current)
+      return next
+    })
+  }, [hasQuery, mergedItems, normalizedQuery, persistRecents])
+
   const lastPage = pages[pages.length - 1] || null
   const cursor = hasQuery ? (lastPage?.cursor || null) : null
   const hasMore = hasQuery && Boolean(cursor)
@@ -244,6 +331,69 @@ function useProvideSearchContext () {
     }, false)
   }, [mutate])
 
+  const removeRecentSearch = useCallback((term) => {
+    const normalized = typeof term === 'string' ? term.trim() : ''
+    if (!normalized) return
+    setRecentQueryEntries((prev) => {
+      const next = prev.filter(entry => entry.term !== normalized)
+      persistRecents(next, recentProfileEntriesRef.current)
+      return next
+    })
+  }, [persistRecents])
+
+  const clearRecentSearches = useCallback(() => {
+    setRecentQueryEntries(() => {
+      const next = []
+      persistRecents(next, recentProfileEntriesRef.current)
+      return next
+    })
+  }, [persistRecents])
+
+  const rememberProfileVisit = useCallback((profile) => {
+    if (!profile || typeof profile !== 'object') return
+    const did = typeof profile.did === 'string' ? profile.did.trim() : ''
+    const handle = typeof profile.handle === 'string' ? profile.handle.trim() : ''
+    if (!did && !handle) return
+    const entry = {
+      did: did || null,
+      handle: handle || null,
+      displayName: typeof profile.displayName === 'string' ? profile.displayName : '',
+      avatar: typeof profile.avatar === 'string' ? profile.avatar : '',
+      lastVisitedAt: new Date().toISOString()
+    }
+    setRecentProfileEntries((prev) => {
+      const filtered = prev.filter(existing => !profileEntryMatches(existing, did, handle))
+      const next = [entry, ...filtered].slice(0, RECENT_PROFILE_LIMIT)
+      persistRecents(recentQueryEntriesRef.current, next)
+      return next
+    })
+  }, [persistRecents])
+
+  const removeRecentProfile = useCallback((identifier) => {
+    if (!identifier || typeof identifier !== 'object') return
+    const did = typeof identifier.did === 'string' ? identifier.did.trim() : ''
+    const handle = typeof identifier.handle === 'string' ? identifier.handle.trim() : ''
+    if (!did && !handle) return
+    setRecentProfileEntries((prev) => {
+      const next = prev.filter(entry => !profileEntryMatches(entry, did, handle))
+      persistRecents(recentQueryEntriesRef.current, next)
+      return next
+    })
+  }, [persistRecents])
+
+  const clearRecentProfiles = useCallback(() => {
+    setRecentProfileEntries(() => {
+      const next = []
+      persistRecents(recentQueryEntriesRef.current, next)
+      return next
+    })
+  }, [persistRecents])
+
+  const recentSearchTerms = useMemo(
+    () => recentQueryEntries.map(entry => entry.term),
+    [recentQueryEntries]
+  )
+
   return {
     draftQuery,
     setDraftQuery,
@@ -257,9 +407,159 @@ function useProvideSearchContext () {
     loading,
     loadingMore,
     error: errorMessage,
-    recentSearches,
+    recentSearches: recentSearchTerms,
+    recentSearchEntries: recentQueryEntries,
+    recentProfileEntries,
     handleSelectRecent,
+    removeRecentSearch,
+    clearRecentSearches,
+    rememberProfileVisit,
+    removeRecentProfile,
+    clearRecentProfiles,
+    prefixSuggestions,
+    showPrefixSuggestions,
+    activePrefixHint,
+    showInlinePrefixHint,
+    applyPrefixSuggestion,
     loadMore,
     handleEngagementChange
   }
+}
+
+function normalizeAdvancedPrefixEntries (value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => {
+      if (Array.isArray(entry)) {
+        const prefix = typeof entry[0] === 'string' ? entry[0].trim() : ''
+        if (!prefix) return null
+        const hint = typeof entry[1] === 'string' ? entry[1].trim() : ''
+        return { prefix, prefixLower: prefix.toLowerCase(), hint }
+      }
+      if (typeof entry === 'string') {
+        const prefix = entry.trim()
+        if (!prefix) return null
+        return { prefix, prefixLower: prefix.toLowerCase(), hint: '' }
+      }
+      if (entry && typeof entry === 'object') {
+        const prefix = typeof entry.prefix === 'string' ? entry.prefix.trim() : ''
+        if (!prefix) return null
+        const hint = typeof entry.hint === 'string' ? entry.hint.trim() : ''
+        return { prefix, prefixLower: prefix.toLowerCase(), hint }
+      }
+      return null
+    })
+    .filter(Boolean)
+}
+
+function getLastTokenDetails (value) {
+  const text = typeof value === 'string' ? value : ''
+  if (!text) return { token: '', tokenLower: '', startIndex: 0 }
+  const trailingWhitespace = /\s$/.test(text)
+  if (trailingWhitespace) {
+    return { token: '', tokenLower: '', startIndex: text.length }
+  }
+  const match = text.match(/(\S+)$/)
+  if (!match) return { token: '', tokenLower: '', startIndex: text.length }
+  const token = match[0]
+  return {
+    token,
+    tokenLower: token.toLowerCase(),
+    startIndex: text.length - token.length
+  }
+}
+
+function detectUsedPrefixes (value, entries) {
+  const used = new Set()
+  if (!value || !Array.isArray(entries) || entries.length === 0) {
+    return used
+  }
+  const lower = value.toLowerCase()
+  entries.forEach((entry) => {
+    if (!entry?.prefixLower) return
+    const pattern = new RegExp(`(^|\\s)${escapeRegExp(entry.prefixLower)}`, 'g')
+    if (pattern.test(lower)) {
+      used.add(entry.prefixLower)
+    }
+  })
+  return used
+}
+
+function escapeRegExp (value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function parseStoredRecents (value) {
+  try {
+    const raw = typeof value === 'string' ? JSON.parse(value) : value
+    if (Array.isArray(raw)) {
+      return {
+        queries: normalizeQueryEntries(raw),
+        profiles: []
+      }
+    }
+    if (raw && typeof raw === 'object') {
+      return {
+        queries: normalizeQueryEntries(raw.queries),
+        profiles: normalizeProfileEntries(raw.profiles)
+      }
+    }
+  } catch {
+    // ignore malformed storage
+  }
+  return { queries: [], profiles: [] }
+}
+
+function normalizeQueryEntries (value) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const normalized = value
+    .map(entry => {
+      if (typeof entry === 'string') {
+        const term = entry.trim()
+        return term ? { term, lastSearchedAt: null, lastResultCount: null } : null
+      }
+      if (entry && typeof entry === 'object') {
+        const term = typeof entry.term === 'string' ? entry.term.trim() : ''
+        if (!term) return null
+        const lastSearchedAt = typeof entry.lastSearchedAt === 'string' ? entry.lastSearchedAt : null
+        const lastResultCount = typeof entry.lastResultCount === 'number' && entry.lastResultCount >= 0
+          ? entry.lastResultCount
+          : null
+        return { term, lastSearchedAt, lastResultCount }
+      }
+      return null
+    })
+    .filter(Boolean)
+  return normalized.slice(0, RECENT_SEARCH_LIMIT)
+}
+
+function normalizeProfileEntries (value) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  const normalized = value
+    .map(entry => {
+      if (!entry || typeof entry !== 'object') return null
+      const did = typeof entry.did === 'string' ? entry.did.trim() : ''
+      const handle = typeof entry.handle === 'string' ? entry.handle.trim() : ''
+      if (!did && !handle) return null
+      return {
+        did: did || null,
+        handle: handle || null,
+        displayName: typeof entry.displayName === 'string' ? entry.displayName : '',
+        avatar: typeof entry.avatar === 'string' ? entry.avatar : '',
+        lastVisitedAt: typeof entry.lastVisitedAt === 'string' ? entry.lastVisitedAt : null
+      }
+    })
+    .filter(Boolean)
+  return normalized.slice(0, RECENT_PROFILE_LIMIT)
+}
+
+function profileEntryMatches (entry, did, handle) {
+  if (!entry) return false
+  if (entry.did && did) return entry.did === did
+  if (entry.handle && handle) return entry.handle === handle
+  return false
 }

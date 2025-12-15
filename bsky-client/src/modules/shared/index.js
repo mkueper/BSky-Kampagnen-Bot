@@ -2,11 +2,13 @@ export {
   Button,
   Card,
   MediaDialog,
+  ConfirmDialog,
   InlineMenu,
   InlineMenuTrigger,
   InlineMenuContent,
   InlineMenuItem,
-  SegmentMediaGrid
+  SegmentMediaGrid,
+  useConfirmDialog
 } from '@bsky-kampagnen-bot/shared-ui';
 export { default as RichText } from './RichText.jsx';
 export { default as RepostMenuButton } from './RepostMenuButton.jsx';

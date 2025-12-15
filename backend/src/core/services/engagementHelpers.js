@@ -49,6 +49,7 @@ function extractMastodonHandleFromUri(uri) {
     const domain = parsed.hostname || '';
     return domain ? `${local}@${domain}` : local;
   } catch (error) {
+    log.warn('Konnte Mastodon-Handle nicht aus URI bestimmen', { error: error?.message || String(error) });
     const fallback = uri.match(/@([^/]+)(?:\/|$)/);
     if (fallback && fallback[1]) {
       return fallback[1];

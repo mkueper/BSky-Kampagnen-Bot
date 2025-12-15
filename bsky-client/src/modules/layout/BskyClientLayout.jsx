@@ -39,12 +39,15 @@ const computeIsMobile = () =>
 function MobileNavBar ({
   activeSection,
   notificationsUnread,
+  chatUnread = 0,
   onSelect,
   interactionsLocked = false,
   onOpenMenu
 }) {
   const { t } = useTranslation()
   const items = NAV_ITEMS.filter(item => MOBILE_NAV_IDS.includes(item.id))
+  const normalizedNotif = Number.isFinite(notificationsUnread) ? notificationsUnread : 0
+  const normalizedChat = Number.isFinite(chatUnread) ? chatUnread : 0
   return (
     <nav
       className='pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4'
@@ -70,36 +73,52 @@ function MobileNavBar ({
         {items.map(item => {
           const Icon = item.icon
           const isActive = activeSection === item.id
-          const disabled = Boolean(item.disabled) || interactionsLocked
-          const showBadge =
-            item.id === 'notifications' && notificationsUnread > 0
-          const badgeLabel =
-            notificationsUnread > 30 ? '30+' : String(notificationsUnread)
+          const permanentlyDisabled = Boolean(item.disabled)
+          const disabled = permanentlyDisabled || interactionsLocked
+          const disabledHint = permanentlyDisabled && item.disabledHint ? item.disabledHint : null
+          const rawBadgeCount = item.id === 'notifications'
+            ? normalizedNotif
+            : (item.id === 'chat' ? normalizedChat : 0)
+          const showBadge = rawBadgeCount > 0
+          const badgeLabel = rawBadgeCount > 30 ? '30+' : String(rawBadgeCount)
+          const showPlaceholder = !showBadge && (item.id === 'notifications' || item.id === 'chat')
+          const badgeBaseClass = 'absolute -top-1 -right-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full px-1 text-xs font-semibold'
+          const badgeToneClass = isActive ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
           const baseLabel = t(item.labelKey, item.defaultLabel)
           const label = showBadge
-            ? t('nav.notificationsWithCount', '{label} ({count} neu)', {
-                label: baseLabel,
-                count: badgeLabel
-              })
+            ? t(
+                item.id === 'notifications'
+                  ? 'nav.notificationsWithCount'
+                  : 'nav.chatWithCount',
+                '{label} ({count} neu)',
+                { label: baseLabel, count: badgeLabel }
+              )
             : baseLabel
+          const ariaLabel = disabledHint ? `${label} (${disabledHint})` : label
           return (
             <button
               key={item.id}
               type='button'
               onClick={() => !disabled && onSelect(item.id)}
-              aria-label={label}
+              aria-label={ariaLabel}
               aria-current={isActive ? 'page' : undefined}
               disabled={disabled}
+              title={ariaLabel}
               className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary ${
                 isActive ? 'bg-background-subtle text-primary shadow-soft' : ''
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {Icon ? <Icon className='h-5 w-5' /> : null}
               {showBadge ? (
-                <span className={`absolute -top-1 -right-1 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full px-1 text-xs font-semibold ${
-                  isActive ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
-                }`}>
+                <span className={`${badgeBaseClass} ${badgeToneClass}`}>
                   {badgeLabel}
+                </span>
+              ) : showPlaceholder ? (
+                <span
+                  className={`${badgeBaseClass} ${badgeToneClass} pointer-events-none select-none opacity-0`}
+                  aria-hidden='true'
+                >
+                  0
                 </span>
               ) : null}
             </button>
@@ -113,6 +132,7 @@ function MobileNavBar ({
 export default function BskyClientLayout ({
   activeSection,
   notificationsUnread = 0,
+  chatUnread = 0,
   onSelectSection,
   onOpenCompose,
   onOpenComposeThread,
@@ -123,6 +143,7 @@ export default function BskyClientLayout ({
   detailPaneActive = false,
   scrollTopForceVisible = false,
   onScrollTopActivate,
+  navInteractionsLocked: navInteractionsLockedProp,
   accountProfiles = [],
   onSwitchAccount = null,
   onAddAccount = null,
@@ -193,7 +214,9 @@ export default function BskyClientLayout ({
     return () => mq.removeEventListener('change', handleChange)
   }, [])
 
-  const navInteractionsLocked = Boolean(detailPaneActive)
+  const navInteractionsLocked = typeof navInteractionsLockedProp === 'boolean'
+    ? navInteractionsLockedProp
+    : Boolean(detailPaneActive)
 
   const handleSelect = useCallback(
     (section, actorOrOptions = null, maybeOptions = {}) => {
@@ -295,7 +318,8 @@ export default function BskyClientLayout ({
     hasDetailPane
       ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-8'
       : '',
-    hasDetailPane ? 'mt-0' : ''
+    hasDetailPane ? 'mt-0' : '',
+    detailPaneActive ? 'h-full min-h-0' : ''
   )
 
   return (
@@ -312,9 +336,10 @@ export default function BskyClientLayout ({
           side='left'
           fitContent
         >
-          <SidebarNav
-            active={activeSection}
-            notificationsUnread={notificationsUnread}
+            <SidebarNav
+              active={activeSection}
+              notificationsUnread={notificationsUnread}
+              chatUnread={chatUnread}
             onSelect={handleMobileSelect}
             onCompose={() => {
               setMobileMenuOpen(false)
@@ -345,6 +370,7 @@ export default function BskyClientLayout ({
           <SidebarNav
             active={activeSection}
             notificationsUnread={notificationsUnread}
+            chatUnread={chatUnread}
             onSelect={handleSelect}
             onCompose={handleOpenCompose}
             onComposeThread={handleOpenComposeThread}
@@ -400,6 +426,7 @@ export default function BskyClientLayout ({
               <section
                 className={clsx(
                   'mt-0 xl:mt-0',
+                  detailPaneActive ? 'flex h-full min-h-0 flex-col' : '',
                   !detailPaneActive
                     ? 'xl:mt-0 xl:sticky xl:top-4 xl:self-start'
                     : '',
@@ -504,6 +531,7 @@ export default function BskyClientLayout ({
         <MobileNavBar
           activeSection={activeSection}
           notificationsUnread={notificationsUnread}
+          chatUnread={chatUnread}
           onSelect={handleSelect}
           onOpenMenu={() => setMobileMenuOpen(true)}
           themeToggle={themeToggleProps}

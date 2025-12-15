@@ -70,6 +70,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
 
     let hls = null
     let mounted = true
+    let handleReady = null
     ;(async () => {
       let Hls
       try {
@@ -86,7 +87,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       hls = new Hls()
       hls.loadSource(current.src)
       hls.attachMedia(videoEl)
-      const handleReady = () => {
+      handleReady = () => {
         videoEl.play?.().catch(() => {})
       }
       hls.on(Hls.Events.MANIFEST_PARSED, handleReady)
@@ -95,10 +96,21 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     return () => {
       mounted = false
       if (hls) {
-        try {
-          hls.off?.(hls.Events?.MANIFEST_PARSED)
-        } catch {}
-        try { hls.destroy() } catch {}
+        const manifestEvent = hls.Events?.MANIFEST_PARSED
+        if (handleReady && typeof hls.off === 'function' && manifestEvent) {
+          try {
+            hls.off(manifestEvent, handleReady)
+          } catch (cleanupError) {
+            console.warn('HLS-Listener konnte nicht entfernt werden.', cleanupError)
+          }
+        }
+        if (typeof hls.destroy === 'function') {
+          try {
+            hls.destroy()
+          } catch (cleanupError) {
+            console.warn('HLS-Instanz konnte nicht zerstört werden.', cleanupError)
+          }
+        }
         hls = null
       }
     }

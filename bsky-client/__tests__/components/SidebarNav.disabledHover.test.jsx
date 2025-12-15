@@ -41,15 +41,14 @@ const renderWithProviders = (props = {}) =>
   )
 
 describe('SidebarNav – disabled hover behavior', () => {
-  it('zeigt bei deaktivierten Nav-Buttons keine Hover-Interaktion (CSS-Override vorhanden)', () => {
+  it('macht den Chat-Button klickbar und mit Hover-Stil versehen', () => {
     renderWithProviders()
 
     const chatButton = document.querySelector('[data-nav-item="chat"]')
     expect(chatButton).toBeInTheDocument()
-    expect(chatButton).toBeDisabled()
-    // Prüfe, dass die disabled-Variante vorhanden ist und Hover-Effekte unterdrücken kann
-    expect(chatButton.className).toMatch(/disabled:pointer-events-none/)
-    expect(chatButton.className).toMatch(/cursor-not-allowed/)
+    expect(chatButton).not.toBeDisabled()
+    expect(chatButton.className).toMatch(/hover:bg-background-subtle\/80/)
+    expect(chatButton.className).toMatch(/hover:shadow-lg/)
   })
 
   it('hat einen auffälligen Hover-Stil für aktive/inaktive Buttons', () => {

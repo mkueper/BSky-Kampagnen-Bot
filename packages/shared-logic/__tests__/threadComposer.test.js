@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { splitThread, splitThreadSource, buildEffectiveSegments } from '../src/threadComposer.js'
+import { splitThread, splitThreadSource } from '../src/threadComposer.js'
 
 describe('splitThread / sentence splitting', () => {
   it('splits on hard break markers', () => {

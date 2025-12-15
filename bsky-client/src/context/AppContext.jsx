@@ -37,6 +37,12 @@ const QUOTE_REPOST_STORAGE_KEY = 'bsky.quoteReposts'
 const AppStateContext = createContext();
 const AppDispatchContext = createContext();
 
+const defaultChatViewerState = {
+  open: false,
+  convoId: null,
+  conversation: null
+};
+
 const initialState = {
   section: 'home',
   ...listViewInitialState,
@@ -59,6 +65,8 @@ const initialState = {
     query: '',
     tab: 'top'
   },
+  chatViewer: { ...defaultChatViewerState },
+  chatUnreadCount: 0,
   clientSettingsOpen: false
 };
 
@@ -289,6 +297,58 @@ function appReducer(state, action) {
         threadUnroll: { open: false }
       }
     }
+    case 'OPEN_CHAT_VIEWER': {
+      const payload = action || {}
+      const conversation = payload.conversation && typeof payload.conversation === 'object' ? payload.conversation : null
+      const convoId = typeof payload.conversationId === 'string'
+        ? payload.conversationId
+        : (conversation?.id || null)
+      if (!convoId) return state
+      return {
+        ...state,
+        chatViewer: {
+          open: true,
+          convoId,
+          conversation
+        },
+        profileViewer: state.profileViewer?.open ? { ...defaultProfileViewerState } : state.profileViewer,
+        hashtagSearch: {
+          ...state.hashtagSearch,
+          open: false
+        }
+      }
+    }
+    case 'CLOSE_CHAT_VIEWER': {
+      return {
+        ...state,
+        chatViewer: { ...defaultChatViewerState }
+      }
+    }
+    case 'PATCH_CHAT_VIEWER_SNAPSHOT': {
+      if (!state.chatViewer?.open || !state.chatViewer?.convoId) return state
+      const targetId = action.conversationId || state.chatViewer.convoId
+      if (targetId !== state.chatViewer.convoId) return state
+      const snapshot = action.snapshot && typeof action.snapshot === 'object' ? action.snapshot : null
+      if (!snapshot) return state
+      return {
+        ...state,
+        chatViewer: {
+          ...state.chatViewer,
+          conversation: {
+            ...(state.chatViewer.conversation || {}),
+            ...snapshot
+          }
+        }
+      }
+    }
+    case 'SET_CHAT_UNREAD': {
+      const nextCount = Number.isFinite(action.payload) ? Math.max(0, action.payload) : 0
+      if (nextCount === state.chatUnreadCount) return state
+      return {
+        ...state,
+        chatUnreadCount: nextCount
+      }
+    }
     case 'SET_CLIENT_SETTINGS_OPEN': {
       return {
         ...state,
@@ -366,7 +426,7 @@ function appReducer(state, action) {
   if (Object.keys(finalState).every(key => finalState[key] === state[key])) {
     // If no slice reducer changed the state, and it wasn't a cross-slice action,
     // it's an unknown action.
-    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE', 'OPEN_HASHTAG_SEARCH', 'CLOSE_HASHTAG_SEARCH'].includes(action.type)) {
+    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE', 'OPEN_HASHTAG_SEARCH', 'CLOSE_HASHTAG_SEARCH', 'OPEN_CHAT_VIEWER', 'CLOSE_CHAT_VIEWER', 'PATCH_CHAT_VIEWER_SNAPSHOT', 'SET_CHAT_UNREAD'].includes(action.type)) {
       // Uncomment to restore original behavior for unknown actions
       // throw new Error(`Unknown action: ${action.type}`);
     }

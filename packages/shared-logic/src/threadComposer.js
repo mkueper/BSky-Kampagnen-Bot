@@ -4,7 +4,7 @@ function splitIntoSentences (text) {
 
   // Basic sentence splitter: captures sentences including trailing punctuation and whitespace
   // Falls back to whole text when no matches found.
-  const re = /[^.!?]+[.!?]+[\])\"'’”]*\s*|[^.!?]+$/g
+  const re = /[^.!?]+[.!?]+[\])"'’”]*\s*|[^.!?]+$/g
   const matches = normalized.match(re)
   return matches && matches.length ? matches : [normalized]
 }

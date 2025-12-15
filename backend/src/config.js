@@ -21,10 +21,31 @@ require("dotenv").config();
 const { getCustomization, DEFAULT_CUSTOMIZATION } = require('./utils/customization');
 
 const customization = getCustomization();
+
+const normalizeAdvancedPrefixes = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (Array.isArray(entry)) {
+        const prefix = typeof entry[0] === 'string' ? entry[0].trim() : '';
+        if (!prefix) return null;
+        const hint = typeof entry[1] === 'string' ? entry[1].trim() : '';
+        return [prefix, hint];
+      }
+      if (typeof entry === 'string') {
+        const trimmed = entry.trim();
+        return trimmed ? [trimmed, ''] : null;
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
+
 const DEFAULT_CRON = "* * * * *"; // Standard: jede Minute prüfen
-const DEFAULT_ADVANCED_PREFIXES = DEFAULT_CUSTOMIZATION.search?.advancedPrefixes || ['from:', 'mention:', 'mentions:', 'domain:'];
-const configuredAdvancedPrefixes = Array.isArray(customization?.search?.advancedPrefixes) && customization.search.advancedPrefixes.length
-  ? customization.search.advancedPrefixes
+const DEFAULT_ADVANCED_PREFIXES = normalizeAdvancedPrefixes(DEFAULT_CUSTOMIZATION.search?.advancedPrefixes) || [];
+const configuredAdvancedPrefixesList = normalizeAdvancedPrefixes(customization?.search?.advancedPrefixes);
+const configuredAdvancedPrefixes = configuredAdvancedPrefixesList.length
+  ? configuredAdvancedPrefixesList
   : DEFAULT_ADVANCED_PREFIXES;
 /**
  * Parst Zahlenwerte robust, sonst Default.

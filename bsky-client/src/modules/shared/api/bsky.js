@@ -33,8 +33,12 @@ const FEED_META_BATCH_SIZE = 4
 const PROFILE_BATCH_SIZE = 25
 const feedMetaGlobalCache = new Map()
 
-const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined;
-const DEFAULT_BSKY_SERVICE = 'https://bsky.social';
+const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined
+const DEFAULT_BSKY_SERVICE = 'https://bsky.social'
+const DEFAULT_CHAT_PROXY_DID = 'did:web:api.bsky.chat'
+const CHAT_PROXY_SERVICE_SUFFIX = '#bsky_chat'
+const CHAT_PROXY_HEADER_VALUE = resolveChatProxyHeader()
+const CHAT_SERVICE_HEADERS = Object.freeze({ 'atproto-proxy': CHAT_PROXY_HEADER_VALUE })
 
 function clampNumber (value, min, max, fallback) {
   const numeric = Number(value)
@@ -60,6 +64,29 @@ function createListEntryId (base = '', context = '') {
     return randomId()
   }
   return `${normalizedBase || randomId()}::${normalizedContext}`
+}
+
+function resolveChatProxyHeader () {
+  const overrideHeader = normalizeStringConfigValue(GLOBAL_SCOPE?.__BSKY_CHAT_PROXY_HEADER__)
+  const overrideDid = normalizeStringConfigValue(GLOBAL_SCOPE?.__BSKY_CHAT_PROXY_DID__)
+  const candidate = overrideHeader || overrideDid
+  const normalized = normalizeChatProxyHeader(candidate)
+  if (normalized) return normalized
+  return `${DEFAULT_CHAT_PROXY_DID}${CHAT_PROXY_SERVICE_SUFFIX}`
+}
+
+function normalizeChatProxyHeader (value) {
+  if (!value) return ''
+  const trimmed = String(value).trim()
+  if (!trimmed) return ''
+  if (trimmed.includes('#')) return trimmed
+  return `${trimmed}${CHAT_PROXY_SERVICE_SUFFIX}`
+}
+
+function normalizeStringConfigValue (value) {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  return trimmed || ''
 }
 
 function mapPostView (post) {
@@ -150,6 +177,87 @@ function mapBlockedProfile (entry, { context = 'block-list' } = {}) {
     listEntryId,
     blockUri: entry?.uri || null,
     viewer: subject?.viewer ? { ...subject.viewer } : null
+  }
+}
+
+function mapChatProfile (profile, { context = 'chat-member' } = {}) {
+  if (!profile) return null
+  const did = profile.did || ''
+  const handle = profile.handle || ''
+  const label = profile.displayName || handle || did || ''
+  return {
+    id: did || handle || createListEntryId('member', context),
+    did,
+    handle,
+    displayName: profile.displayName || '',
+    avatar: profile.avatar || null,
+    chatDisabled: Boolean(profile.chatDisabled),
+    viewer: profile.viewer || null,
+    labels: profile.labels || null,
+    associated: profile.associated || null,
+    label
+  }
+}
+
+function mapChatMessageView (message) {
+  if (!message) return null
+  const base = {
+    id: message.id || null,
+    rev: message.rev || null,
+    sentAt: message.sentAt || null,
+    senderDid: message.sender?.did || null
+  }
+  const type = message.$type || ''
+  if (type === 'chat.bsky.convo.defs#deletedMessageView') {
+    return {
+      ...base,
+      type: 'deleted'
+    }
+  }
+  const text = typeof message.text === 'string' ? message.text : ''
+  return {
+    ...base,
+    type: 'message',
+    text,
+    facets: Array.isArray(message.facets) ? message.facets : null,
+    hasEmbed: Boolean(message.embed),
+    reactions: Array.isArray(message.reactions) ? message.reactions : null
+  }
+}
+
+function mapChatReactionView (reactionEntry) {
+  if (!reactionEntry) return null
+  const message = mapChatMessageView(reactionEntry.message)
+  const reaction = reactionEntry.reaction || {}
+  return {
+    message,
+    reaction: {
+      value: reaction.value || '',
+      createdAt: reaction.createdAt || null,
+      senderDid: reaction.sender?.did || null
+    }
+  }
+}
+
+function mapConversationEntry (convo, { context = 'chat', currentDid } = {}) {
+  if (!convo) return null
+  const members = Array.isArray(convo.members) ? convo.members.map((member, index) => (
+    mapChatProfile(member, { context: `${context}:member:${index}` })
+  )).filter(Boolean) : []
+  const lastMessage = mapChatMessageView(convo.lastMessage)
+  const lastReaction = mapChatReactionView(convo.lastReaction)
+  const lastActivityAt = lastMessage?.sentAt || lastReaction?.reaction?.createdAt || null
+  return {
+    id: convo.id || createListEntryId('chat', context),
+    rev: convo.rev || null,
+    members,
+    muted: Boolean(convo.muted),
+    status: convo.status || 'accepted',
+    unreadCount: Number(convo.unreadCount) || 0,
+    lastMessage,
+    lastReaction,
+    lastActivityAt,
+    currentDid: currentDid || null
   }
 }
 
@@ -522,6 +630,192 @@ async function fetchBlocksDirect ({ cursor, limit } = {}) {
     blocks,
     cursor: data?.cursor || null
   }
+}
+
+async function fetchChatConversationsDirect ({ cursor, limit, readState, status } = {}) {
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.listConvos) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  const safeLimit = clampNumber(limit, 1, 50, 25)
+  const params = { limit: safeLimit }
+  if (cursor) params.cursor = cursor
+  if (readState) params.readState = readState
+  if (status) params.status = status
+  let res
+  try {
+    res = await convoApi.listConvos(params, { headers: CHAT_SERVICE_HEADERS })
+  } catch (error) {
+    const errorCode = error?.error || error?.data?.error
+    const errorMessage = (error?.message || '').toLowerCase()
+    if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+      throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+    }
+    throw error
+  }
+  const data = res?.data ?? res ?? {}
+  const convos = Array.isArray(data?.convos) ? data.convos : []
+  const currentDid = agent.session?.did || null
+  const conversations = convos
+    .map((convo, index) => mapConversationEntry(convo, { context: `chat:${index}`, currentDid }))
+    .filter(Boolean)
+  return {
+    conversations,
+    cursor: data?.cursor || null
+  }
+}
+
+async function fetchChatConversationDirect ({ convoId } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.getConvo) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  let res
+  try {
+    res = await convoApi.getConvo({ convoId }, { headers: CHAT_SERVICE_HEADERS })
+  } catch (error) {
+    const errorCode = error?.error || error?.data?.error
+    const errorMessage = (error?.message || '').toLowerCase()
+    if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+      throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+    }
+    throw error
+  }
+  const data = res?.data ?? res ?? {}
+  const convo = data?.convo ? mapConversationEntry(data.convo, { context: `chat:${convoId}`, currentDid: agent.session?.did }) : null
+  return { conversation: convo }
+}
+
+async function fetchChatMessagesDirect ({ convoId, cursor, limit } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.getMessages) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  const safeLimit = clampNumber(limit, 1, 50, 30)
+  const params = { convoId, limit: safeLimit }
+  if (cursor) params.cursor = cursor
+  let res
+  try {
+    res = await convoApi.getMessages(params, { headers: CHAT_SERVICE_HEADERS })
+  } catch (error) {
+    const errorCode = error?.error || error?.data?.error
+    const errorMessage = (error?.message || '').toLowerCase()
+    if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+      throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+    }
+    throw error
+  }
+  const data = res?.data ?? res ?? {}
+  const messagesRaw = Array.isArray(data?.messages) ? data.messages : []
+  const messages = messagesRaw.map((entry) => mapChatMessageView(entry)).filter(Boolean)
+  return {
+    messages,
+    cursor: data?.cursor || null
+  }
+}
+
+async function sendChatMessageDirect ({ convoId, text }) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  const trimmed = typeof text === 'string' ? text.trim() : ''
+  if (!trimmed) {
+    throw new Error('Der Nachrichtentext darf nicht leer sein.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.sendMessage) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  const payload = {
+    convoId,
+    message: {
+      text: trimmed
+    }
+  }
+  try {
+    const res = await convoApi.sendMessage(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' })
+    const message = mapChatMessageView(res?.data)
+    return { message }
+  } catch (error) {
+    const errorCode = error?.error || error?.data?.error
+    const errorMessage = (error?.message || '').toLowerCase()
+    if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+      throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+    }
+    throw error
+  }
+}
+
+async function updateChatReadStateDirect ({ convoId, messageId } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.updateRead) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  const payload = { convoId }
+  if (messageId) payload.messageId = messageId
+  try {
+    const res = await convoApi.updateRead(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' })
+    const convo = res?.data?.convo
+    return {
+      conversation: convo ? mapConversationEntry(convo, { context: `chat:${convoId}`, currentDid: agent.session?.did }) : null
+    }
+  } catch (error) {
+    const errorCode = error?.error || error?.data?.error
+    const errorMessage = (error?.message || '').toLowerCase()
+    if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+      throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+    }
+    throw error
+  }
+}
+
+async function fetchChatUnreadSnapshotDirect () {
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  if (!convoApi?.listConvos) {
+    throw new Error('Chat-Funktionen sind derzeit nicht verfügbar.')
+  }
+  let cursor = null
+  let totalUnread = 0
+  let loops = 0
+  const MAX_LOOPS = 5
+  do {
+    const params = { limit: 50 }
+    if (cursor) params.cursor = cursor
+    let res
+    try {
+      res = await convoApi.listConvos(params, { headers: CHAT_SERVICE_HEADERS })
+    } catch (error) {
+      const errorCode = error?.error || error?.data?.error
+      const errorMessage = (error?.message || '').toLowerCase()
+      if (errorCode === 'InvalidToken' || errorMessage.includes('bad token method')) {
+        throw new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
+      }
+      throw error
+    }
+    const data = res?.data ?? res ?? {}
+    const convos = Array.isArray(data?.convos) ? data.convos : []
+    for (const convo of convos) {
+      totalUnread += Number(convo?.unreadCount) || 0
+    }
+    cursor = data?.cursor || null
+    loops += 1
+  } while (cursor && loops < MAX_LOOPS)
+  return { unreadCount: totalUnread }
 }
 
 async function fetchBookmarksDirect ({ cursor, limit } = {}) {
@@ -1377,6 +1671,30 @@ export async function fetchThread(uri) {
 
 export async function fetchBlocks ({ cursor, limit } = {}) {
   return fetchBlocksDirect({ cursor, limit })
+}
+
+export async function fetchChatConversations ({ cursor, limit, readState, status } = {}) {
+  return fetchChatConversationsDirect({ cursor, limit, readState, status })
+}
+
+export async function fetchChatConversation ({ convoId } = {}) {
+  return fetchChatConversationDirect({ convoId })
+}
+
+export async function fetchChatMessages ({ convoId, cursor, limit } = {}) {
+  return fetchChatMessagesDirect({ convoId, cursor, limit })
+}
+
+export async function sendChatMessage ({ convoId, text }) {
+  return sendChatMessageDirect({ convoId, text })
+}
+
+export async function updateChatReadState ({ convoId, messageId } = {}) {
+  return updateChatReadStateDirect({ convoId, messageId })
+}
+
+export async function fetchChatUnreadSnapshot () {
+  return fetchChatUnreadSnapshotDirect()
 }
 
 export async function muteActor (did) {

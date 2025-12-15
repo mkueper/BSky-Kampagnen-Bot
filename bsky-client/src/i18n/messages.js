@@ -34,6 +34,7 @@ const messages = {
       themeButton: 'Theme',
       themeSwitch: 'Theme wechseln – nächstes: {label}',
       notificationsWithCount: '{label} ({count} neu)',
+      chatWithCount: '{label} ({count} neu)',
       logout: 'Abmelden',
       logoutPending: 'Abmelden…',
       accountSwitchTitle: 'Account wechseln',
@@ -87,6 +88,63 @@ const messages = {
         feedManagerHint: 'Feed-Manager über die Seitenleiste öffnen.'
       }
     },
+    chat: {
+      header: {
+        title: 'Chats',
+        newChat: '+ Neuer Chat',
+        settings: 'Chat-Einstellungen'
+      },
+      list: {
+        description: 'Deine laufenden Konversationen.',
+        empty: 'Noch keine Chats vorhanden.',
+        loading: 'Chats werden geladen…',
+        errorTitle: 'Fehler beim Laden deiner Chats.',
+        errorBody: 'Chats konnten nicht geladen werden.',
+        loadMore: 'Mehr laden',
+        loadingMore: 'Lädt…',
+        requestLabel: 'Anfrage',
+        untitled: 'Konversation',
+        noMessages: 'Keine Nachrichten',
+        actions: {
+          more: 'Weitere Aktionen',
+          viewProfile: 'Zum Profil',
+          muteConversation: 'Konversation stummschalten',
+          blockAccount: 'Account blockieren',
+          reportConversation: 'Konversation melden',
+          leaveConversation: 'Konversation verlassen'
+        },
+        preview: {
+          you: 'Du',
+          deleted: 'Nachricht gelöscht',
+          attachment: 'Anhang',
+          noText: 'Kein Text'
+        }
+      },
+      settings: {
+        title: 'Chat-Einstellungen',
+        allowHeading: 'Erlaube neue Nachrichten von',
+        option: {
+          everyone: 'Jedem',
+          following: 'Nutzer, denen ich folge',
+          nobody: 'Niemand'
+        },
+        hint: 'Du kannst laufende Konversationen fortsetzen, unabhängig von dieser Einstellung.'
+      },
+      conversation: {
+        subtitleFallback: 'Direktnachrichten',
+        loading: 'Konversation wird geladen…',
+        errorTitle: 'Konversation konnte nicht geladen werden.',
+        empty: 'Noch keine Nachrichten.',
+        loadOlder: 'Ältere Nachrichten laden',
+        loadingOlder: 'Lädt…',
+        inputPlaceholder: 'Nachricht schreiben…',
+        send: 'Senden',
+        sending: 'Senden…',
+        sendError: 'Nachricht konnte nicht gesendet werden.',
+        deletedMessage: 'Nachricht gelöscht',
+        unknownSender: 'Unbekannt'
+      }
+    },
     search: {
       header: {
         title: 'Suche',
@@ -97,6 +155,10 @@ const messages = {
         top: 'Top',
         latest: 'Neueste',
         people: 'Personen'
+      },
+      prefixes: {
+        title: 'Such-Prefixe',
+        hint: 'Format: {value}'
       },
       recent: {
         title: 'Letzte Suchanfragen',
@@ -414,6 +476,10 @@ const messages = {
         latest: 'Latest',
         people: 'People'
       },
+      prefixes: {
+        title: 'Search prefixes',
+        hint: 'Format: {value}'
+      },
       recent: {
         title: 'Recent searches',
         empty: 'Enter a term to search Bluesky.',
@@ -437,6 +503,49 @@ const messages = {
         subtitleAll: 'From every user',
         errorHeading: 'Failed to load hashtag search.',
         errorBody: 'Search failed.'
+      }
+    },
+    chat: {
+      header: {
+        title: 'Chats',
+        newChat: '+ New chat',
+        settings: 'Chat settings'
+      },
+      list: {
+        description: 'Your ongoing conversations.',
+        empty: 'No chats available yet.',
+        loading: 'Loading chats…',
+        errorTitle: 'Failed to load your chats.',
+        errorBody: 'Chats could not be loaded.',
+        loadMore: 'Load more',
+        loadingMore: 'Loading…',
+        requestLabel: 'Request',
+        untitled: 'Conversation',
+        noMessages: 'No messages',
+        actions: {
+          more: 'More actions',
+          viewProfile: 'View profile',
+          muteConversation: 'Mute conversation',
+          blockAccount: 'Block account',
+          reportConversation: 'Report conversation',
+          leaveConversation: 'Leave conversation'
+        },
+        preview: {
+          you: 'You',
+          deleted: 'Message deleted',
+          attachment: 'Attachment',
+          noText: 'No text'
+        }
+      },
+      settings: {
+        title: 'Chat settings',
+        allowHeading: 'Allow new messages from',
+        option: {
+          everyone: 'Everyone',
+          following: 'People I follow',
+          nobody: 'Nobody'
+        },
+        hint: 'You can continue existing conversations regardless of this setting.'
       }
     },
     blocks: {

@@ -12,7 +12,12 @@ const DEFAULT_CUSTOMIZATION = {
     ]
   },
   search: {
-    advancedPrefixes: ['from:', 'mention:', 'mentions:', 'domain:']
+    advancedPrefixes: [
+      ['from:', '@handle oder did:example'],
+      ['mention:', '@handle'],
+      ['mentions:', '@handle'],
+      ['domain:', 'example.com']
+    ]
   }
 };
 

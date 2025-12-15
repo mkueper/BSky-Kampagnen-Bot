@@ -1,4 +1,5 @@
-import '@testing-library/jest-dom/vitest';
+import '@testing-library/jest-dom/vitest'
+import { Buffer } from 'node:buffer'
 
 // Polyfill helpers used by @atproto/lex-data in the test environment
 // Avoid noisy console warnings during tests by providing minimal implementations
@@ -20,7 +21,6 @@ if (typeof Uint8Array.fromBase64 !== 'function') {
 }
 
 if (typeof Uint8Array.prototype.toBase64 !== 'function') {
-	// eslint-disable-next-line func-names
 	Uint8Array.prototype.toBase64 = function () {
 		if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
 			return Buffer.from(this).toString('base64')

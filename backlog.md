@@ -21,9 +21,7 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 (leer)
 
 ## Bugs
-1. NAV-Badge für ungelesene Notifications aktualisiert sich erst nach dem Öffnen des Mitteilungs-Panels.
-2. Kampagnen-Tool: Reaktionen von Mastodon werden in den Gesendet-Karten nicht korrekt eingesammelt/angezeigt.
-3. Kampagnen-Tool: In den Gesendet-Karten eigene Posts unter Antworten ausblenden.
+Aktive Bugs werden pro Bereich in den Codex-Plänen geführt (siehe `codex-plans*.md`, z. B. Terminologie-Update & Timeline-Umschaltlogik).
 
 ## Review
 1. Pane-Routing über `react-router-dom` (HashRouter) weiter ausbauen (Nested Routes, Direktaufrufe für zukünftige Chats/Feeds).
@@ -40,6 +38,11 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 - Action-Typen/String-Konstanten sind zentralisiert und werden bei neuen Texten in beiden Sprachen gepflegt.
 - Self-view im Profil-Viewer ist verhindert.
 - Internationalisierung ist vorbereitet und umgesetzt (Texte zentral + UI-Komponenten umgestellt).
+
+### 2025-12-15
+- Mitteilungs-Badge aktualisiert sich sofort: ungelesene Notifications werden via IntersectionObserver automatisch als gelesen markiert.
+- Kampagnen-Tool: Mastodon-Zuordnungen (Handles/Status-IDs) sind robuster, eigene Replies werden beim Abruf ausgefiltert und Tests decken die Helferlogik ab.
+- Repost-Menü blendet inaktive Aktionen (z. B. „Post zitieren“, wenn bereits zitiert) aus und sorgt für klarere Interaktion.
 
 ### 2025-11-26
 - einen globalen SWRConfig Wrapper (z. B. in src/main.jsx) einführen, damit wir Default-Fetcher/Fehlerlogging zentral steuern können

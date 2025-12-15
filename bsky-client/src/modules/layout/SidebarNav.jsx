@@ -27,9 +27,9 @@ export const NAV_ITEMS = [
   { id: 'home', defaultLabel: 'Home', labelKey: 'nav.home', icon: HomeIcon },
   { id: 'search', defaultLabel: 'Suchen', labelKey: 'nav.search', icon: MagnifyingGlassIcon },
   { id: 'notifications', defaultLabel: 'Mitteilungen', labelKey: 'nav.notifications', icon: BellIcon },
-  { id: 'chat', defaultLabel: 'Chat', labelKey: 'nav.chat', icon: ChatBubbleIcon, disabled: true },
-  { id: 'feeds', defaultLabel: 'Feeds', labelKey: 'nav.feeds', icon: LayersIcon },
-  { id: 'lists', defaultLabel: 'Listen', labelKey: 'nav.lists', icon: ListBulletIcon },
+  { id: 'chat', defaultLabel: 'Chat', labelKey: 'nav.chat', icon: ChatBubbleIcon },
+  { id: 'feeds', defaultLabel: 'Feeds', labelKey: 'nav.feeds', icon: LayersIcon, disabled: true, disabledHint: 'TBD' },
+  { id: 'lists', defaultLabel: 'Listen', labelKey: 'nav.lists', icon: ListBulletIcon, disabled: true, disabledHint: 'TBD' },
   { id: 'saved', defaultLabel: 'Gespeichert', labelKey: 'nav.saved', icon: BookmarkIcon },
   { id: 'blocks', defaultLabel: 'Blockliste', labelKey: 'nav.blocks', icon: SlashIcon },
   { id: 'profile', defaultLabel: 'Profil', labelKey: 'nav.profile', icon: PersonIcon },
@@ -77,6 +77,7 @@ export default function SidebarNav ({
   onCompose,
   onComposeThread,
   notificationsUnread = 0,
+  chatUnread = 0,
   themeToggle = null,
   interactionsLocked = false,
   accountProfiles = [],
@@ -90,6 +91,7 @@ export default function SidebarNav ({
   const { t } = useTranslation()
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const normalizedUnread = Number.isFinite(notificationsUnread) ? notificationsUnread : 0
+  const normalizedChatUnread = Number.isFinite(chatUnread) ? chatUnread : 0
   const accounts = useMemo(
     () => (Array.isArray(accountProfiles) ? accountProfiles.filter(Boolean) : []),
     [accountProfiles]
@@ -289,17 +291,29 @@ export default function SidebarNav ({
           {NAV_ITEMS.map(item => {
             const Icon = item.icon
             const isActive = active === item.id
-            const disabled = Boolean(item.disabled) || interactionsLocked
-            const showBadge = item.id === 'notifications' && normalizedUnread > 0
-            const badgeLabel =
-              normalizedUnread > 30 ? '30+' : String(normalizedUnread)
-            const baseLabel = t(item.labelKey, item.defaultLabel)
+            const permanentlyDisabled = Boolean(item.disabled)
+            const disabled = permanentlyDisabled || interactionsLocked
+            const disabledHint = permanentlyDisabled && item.disabledHint ? item.disabledHint : null
+            const rawBadgeCount = item.id === 'notifications'
+              ? normalizedUnread
+              : (item.id === 'chat' ? normalizedChatUnread : 0)
+            const showBadge = rawBadgeCount > 0
+            const badgeLabel = rawBadgeCount > 30 ? '30+' : String(rawBadgeCount)
+          const showPlaceholder = !showBadge && (item.id === 'notifications' || item.id === 'chat')
+          const badgeBaseClass =
+            'absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full px-1 text-xs font-semibold shadow-sm'
+          const badgeToneClass = isActive ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'
+          const baseLabel = t(item.labelKey, item.defaultLabel)
             const label = showBadge
-              ? t('nav.notificationsWithCount', '{label} ({count} neu)', {
-                  label: baseLabel,
-                  count: badgeLabel
-                })
+              ? t(
+                  item.id === 'notifications'
+                    ? 'nav.notificationsWithCount'
+                    : 'nav.chatWithCount',
+                  '{label} ({count} neu)',
+                  { label: baseLabel, count: badgeLabel }
+                )
               : baseLabel
+            const ariaLabel = disabledHint ? `${label} (${disabledHint})` : label
             return (
               <button
                 key={item.id}
@@ -308,9 +322,9 @@ export default function SidebarNav ({
                 disabled={disabled}
                 aria-current={isActive ? 'page' : undefined}
                 aria-disabled={disabled || undefined}
-                aria-label={label}
+                aria-label={ariaLabel}
                 data-nav-item={item.id}
-                title={label}
+                title={ariaLabel}
                 className={cx(
                   SIDEBAR_BUTTON_BASE,
                   showFullLabels
@@ -325,14 +339,25 @@ export default function SidebarNav ({
               >
                 {Icon ? <Icon className='h-6 w-6 shrink-0' /> : null}
                 <span className={navLabelClassName}>{baseLabel}</span>
-                <span
-                  className={`absolute top-2 right-2 lg:static lg:ml-1 lg:mr-1 inline-flex h-5 w-[2.2rem] items-center justify-center rounded-full px-1 text-xs font-semibold shadow-sm transition-opacity ${
-                    showBadge ? 'opacity-100' : 'opacity-0'
-                  } ${isActive ? 'bg-white text-primary' : 'bg-primary text-primary-foreground'}`}
-                  aria-hidden={!showBadge}
-                >
-                  {badgeLabel}
-                </span>
+                {disabledHint ? (
+                  <span
+                    className={`${showFullLabels ? 'ml-auto' : 'hidden lg:inline-flex'} items-center rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground-muted`}
+                  >
+                    {disabledHint}
+                  </span>
+                ) : null}
+                {showBadge ? (
+                  <span className={`${badgeBaseClass} ${badgeToneClass}`}>
+                    {badgeLabel}
+                  </span>
+                ) : showPlaceholder ? (
+                  <span
+                    className={`${badgeBaseClass} ${badgeToneClass} pointer-events-none select-none opacity-0`}
+                    aria-hidden='true'
+                  >
+                    0
+                  </span>
+                ) : null}
               </button>
             )
           })}

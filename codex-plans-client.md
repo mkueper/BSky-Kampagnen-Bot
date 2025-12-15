@@ -113,6 +113,7 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
    - Profil-Historie wie im offiziellen Bluesky-Such-Overlay speichern (Avatare mit Entfernen-Icon), getrennt von Text-Queries.
    - Such-Queries als Buttons in voller Breite ablegen, pro Eintrag Trefferzahl + „Letzte Suche“-Zeitpunkt speichern.
    - Löschfunktion pro Query + „Verlauf leeren“ definieren; Datenspeicher (z. B. IndexedDB/localStorage) klären.
+    - Hinweis: Die aktuelle Prefix-Combobox wirkt noch unübersichtlich; UX-Verbesserung (Layout, Interaktion) später erneut prüfen.
 
 27. Suchverlauf erweitern (Schritt 2: UI):
    - UI im `SearchView` anpassen: Profil-Historie unter dem Suchfeld als Avatar-Kacheln rendern, darunter die Query-Buttons in einer Spalte mit rechtsbündigen Statistiken und Lösch-Icon.
@@ -122,6 +123,9 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
    - Wenn der Nutzer in einer Timeline auf einen Post antwortet, soll der eben gesendete Beitrag direkt in der aktiven Timeline an der korrekten Position erscheinen, ohne dass der komplette Feed neu geladen werden muss.
 29. NAV-Bar Buttons aufräumen:
    - Den Bereich rund um „Theme“, „Neuer Thread“ und „Neuer Post“ neu organisieren, damit Abstände, Gruppierung und Interaktion in der Navigationsleiste stimmig wirken (z. B. aufgeräumte Gruppierung oder visuelle Trennung).
+30. Chat-Sortierung konfigurierbar machen:
+   - Im Chat-Verlauf eine Option anbieten, ob Nachrichten auf- oder absteigend dargestellt werden sollen (z. B. Einstellung pro Nutzer oder per Toggle im Chat-Viewer) und sicherstellen, dass Auto-Scroll, Pagination und Read-Status mit beiden Modi funktionieren.
+   - Wenn die Reihenfolge invertiert (neueste oben) dargestellt wird, muss das Eingabefeld entsprechend an den Anfang der Liste wandern, damit Nutzer weiterhin ohne Scrollen antworten können.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

@@ -17,6 +17,7 @@ import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
 import { useListPolling } from './hooks/useListPolling'
 import { useNotificationPolling } from './hooks/useNotificationPolling'
+import { useChatPolling } from './hooks/useChatPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
@@ -34,6 +35,8 @@ import { SearchProvider } from './modules/search/SearchContext.jsx'
 import SearchHeader from './modules/search/SearchHeader.jsx'
 import { useBskyAuth } from './modules/auth/AuthContext.jsx'
 import LoginView from './modules/login/LoginView.jsx'
+import ChatHeader from './modules/chat/ChatHeader.jsx'
+import ChatConversationPane from './modules/chat/ChatConversationPane.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -75,6 +78,10 @@ const SettingsViewLazy = lazy(async () => {
 const ProfileViewLazy = lazy(async () => {
   const module = await import('./modules/profile/ProfileView')
   return { default: module.ProfileView ?? module.default }
+})
+const ChatListViewLazy = lazy(async () => {
+  const module = await import('./modules/chat/ChatListView.jsx')
+  return { default: module.default }
 })
 const SectionFallback = () => null
 
@@ -120,9 +127,11 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     activeListKey,
     lists,
     notificationsUnread,
+    chatUnreadCount,
     me,
     profileViewer,
-    hashtagSearch
+    hashtagSearch,
+    chatViewer
   } = useAppState()
   const dispatch = useAppDispatch()
   const {
@@ -164,6 +173,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
 
   useListPolling(lists, dispatch)
   useNotificationPolling(lists, dispatch)
+  useChatPolling(dispatch)
 
   const officialTabs = STATIC_TIMELINE_TABS
 
@@ -529,6 +539,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       return tabId
     })
   }, [refreshListByKey])
+  const handleStartNewChat = useCallback(() => {
+    console.info('Neuer Chat wird später implementiert.')
+  }, [])
 
   const threadActions = threadState.active ? (
     <>
@@ -622,6 +635,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         </div>
       )
     }
+    if (section === 'chat') {
+      return <ChatHeader onStartNewChat={handleStartNewChat} />
+    }
     if (section === 'blocks') {
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
@@ -655,12 +671,16 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     timelinePaneRefreshing,
     notificationPaneRefreshing,
     lists,
-    t
+    t,
+    handleStartNewChat
   ])
 
   const topBlock = null
 
   const handleSelectSection = useCallback((id, actor = null) => {
+    if (chatViewer?.open) {
+      dispatch({ type: 'CLOSE_CHAT_VIEWER' })
+    }
     if (id === 'dashboard') {
       if (typeof onNavigateDashboard === 'function') {
         onNavigateDashboard()
@@ -712,7 +732,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (threadState.active) closeThread({ force: true })
     dispatch({ type: 'SET_SECTION', payload: id, actor })
     pushSectionRoute(id)
-  }, [closeFeedMenu, closeThread, dispatch, lists, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey])
+  }, [chatViewer?.open, closeFeedMenu, closeThread, dispatch, lists, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey])
 
   const scrollTopForceVisible = Boolean(activeList?.hasNew)
 
@@ -734,12 +754,16 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const threadPane = threadState.active ? <ThreadView /> : null
   const profilePane = profileViewer?.open ? <ProfileViewerPane /> : null
   const hashtagPane = hashtagSearch?.open ? <HashtagSearchPane /> : null
-  const detailPane = threadPane || profilePane || hashtagPane
+  const chatPane = chatViewer?.open ? <ChatConversationPane /> : null
+  const detailPane = threadPane || profilePane || hashtagPane || chatPane
+  const chatPaneActive = Boolean(chatPane)
   const detailPaneActive = Boolean(
     (threadState.active && threadPane) ||
     (profileViewer?.open && profilePane) ||
-    (hashtagSearch?.open && hashtagPane)
+    (hashtagSearch?.open && hashtagPane) ||
+    (chatPaneActive)
   )
+  const navInteractionsLocked = detailPaneActive && !chatPaneActive
 
   const isSearchSection = section === 'search'
   if (isSearchSection) {
@@ -749,15 +773,17 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
           <BskyClientLayout
             activeSection={section}
             notificationsUnread={notificationsUnread}
+            chatUnread={chatUnreadCount}
             onSelectSection={handleSelectSection}
             onOpenCompose={openComposer}
             onOpenComposeThread={openThreadComposer}
             headerContent={<SearchHeader />}
             topBlock={topBlock}
-            scrollTopForceVisible={scrollTopForceVisible}
-            onScrollTopActivate={handleScrollTopActivate}
-            detailPane={detailPane}
-            detailPaneActive={detailPaneActive}
+           scrollTopForceVisible={scrollTopForceVisible}
+           onScrollTopActivate={handleScrollTopActivate}
+           detailPane={detailPane}
+           detailPaneActive={detailPaneActive}
+           navInteractionsLocked={navInteractionsLocked}
             accountProfiles={accountProfiles}
             onSwitchAccount={handleSwitchAccount}
             onAddAccount={handleAddAccount}
@@ -782,6 +808,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       <BskyClientLayout
         activeSection={section}
         notificationsUnread={notificationsUnread}
+        chatUnread={chatUnreadCount}
         onSelectSection={handleSelectSection}
         onOpenCompose={openComposer}
         onOpenComposeThread={openThreadComposer}
@@ -789,8 +816,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         topBlock={topBlock}
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
-        detailPane={detailPane}
-        detailPaneActive={detailPaneActive}
+       detailPane={detailPane}
+       detailPaneActive={detailPaneActive}
+       navInteractionsLocked={navInteractionsLocked}
         accountProfiles={accountProfiles}
         onSwitchAccount={handleSwitchAccount}
         onAddAccount={handleAddAccount}
@@ -832,6 +860,16 @@ function MainContent ({ notificationTab, notificationListKey, timelineListKey })
     )
   }
 
+  if (section === 'chat') {
+    return (
+      <div className='space-y-6'>
+        <Suspense fallback={<SectionFallback label='Chats' />}>
+          <ChatListViewLazy />
+        </Suspense>
+      </div>
+    )
+  }
+
   if (section === 'settings') {
     return (
       <Suspense fallback={<SectionFallback label='Einstellungen' />}>
@@ -867,7 +905,6 @@ function MainContent ({ notificationTab, notificationListKey, timelineListKey })
   }
 
   const placeholderText = {
-    chat: 'Chat folgt',
     feeds: 'Feeds folgt',
     lists: 'Listen folgt'
   }[section]
