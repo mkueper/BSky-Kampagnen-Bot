@@ -100,7 +100,19 @@ const messages = {
       },
       recent: {
         title: 'Letzte Suchanfragen',
-        empty: 'Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.'
+        empty: 'Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.',
+        profileTitle: 'Zuletzt angesehene Profile',
+        profileEmpty: 'Noch keine Profil-Historie vorhanden.',
+        profileClear: 'Alle entfernen',
+        profileRemove: 'Profil entfernen',
+        queryTitle: 'Letzte Suchanfragen',
+        queryEmpty: 'Gib einen Suchbegriff ein, um Bluesky zu durchsuchen.',
+        queryClear: 'Verlauf löschen',
+        queryRemove: 'Suche entfernen',
+        resultCount: '{count} Treffer',
+        resultCountUnknown: 'Treffer: –',
+        lastSearchedAt: 'Zuletzt: {value}',
+        lastSearchedUnknown: 'Zuletzt: –'
       },
       hashtag: {
         titleAll: '#{tag} – Posts ansehen',
@@ -146,14 +158,23 @@ const messages = {
       }
     },
     blocks: {
-      title: 'Blockliste',
-      subtitle: 'Alle Accounts, die du aktuell blockierst.',
+      title: 'Persönliche Blockliste',
+      subtitle: 'Alle Accounts, die du blockierst.',
+      note:
+        'Blockierte Accounts können nicht in deinen Threads antworten, dich erwähnen oder anderweitig mit dir interagieren. Du wirst ihre Inhalte nicht sehen und sie werden daran gehindert, deine zu sehen.',
       errorTitle: 'Fehler beim Laden deiner Blockliste.',
       errorBody: 'Blockliste konnte nicht geladen werden.',
       loading: 'Blockliste wird geladen…',
       empty: 'Du hast aktuell keine Accounts blockiert.',
       loadMore: 'Mehr laden',
-      loadingMore: 'Lädt…'
+      loadingMore: 'Lädt…',
+      actions: {
+        more: 'Weitere Aktionen',
+        viewProfile: 'Profil anzeigen',
+        copyLink: 'Link zum Profil kopieren',
+        unblock: 'Blockierung aufheben',
+        unblocking: 'Blockierung wird aufgehoben…'
+      }
     },
     skeet: {
       quote: {
@@ -381,6 +402,61 @@ const messages = {
       submitLabel: 'Sign in',
       errorFallback: 'Login failed.',
       footerHintStandalone: 'Tip: Manage app passwords in your Bluesky account under “Settings → App Passwords”.'
+    },
+    search: {
+      header: {
+        title: 'Search',
+        placeholder: 'Search posts or people…',
+        submit: 'Search'
+      },
+      tabs: {
+        top: 'Top',
+        latest: 'Latest',
+        people: 'People'
+      },
+      recent: {
+        title: 'Recent searches',
+        empty: 'Enter a term to search Bluesky.',
+        profileTitle: 'Recently viewed profiles',
+        profileEmpty: 'No profile history yet.',
+        profileClear: 'Clear all',
+        profileRemove: 'Remove profile',
+        queryTitle: 'Recent searches',
+        queryEmpty: 'Enter a term to search Bluesky.',
+        queryClear: 'Clear history',
+        queryRemove: 'Remove search',
+        resultCount: '{count} results',
+        resultCountUnknown: 'Results: —',
+        lastSearchedAt: 'Last: {value}',
+        lastSearchedUnknown: 'Last: —'
+      },
+      hashtag: {
+        titleAll: '#{tag} – view posts',
+        titleUser: '#{tag} – view user posts',
+        titleFallback: 'Hashtags – view posts',
+        subtitleAll: 'From every user',
+        errorHeading: 'Failed to load hashtag search.',
+        errorBody: 'Search failed.'
+      }
+    },
+    blocks: {
+      title: 'Personal block list',
+      subtitle: 'All accounts you block.',
+      note:
+        'Blocked accounts cannot reply in your threads, mention you or interact with you in any way. Their content stays hidden from you and they are prevented from viewing yours.',
+      errorTitle: 'Failed to load your block list.',
+      errorBody: 'Could not load the block list.',
+      loading: 'Loading block list…',
+      empty: 'You are not blocking any accounts.',
+      loadMore: 'Load more',
+      loadingMore: 'Loading…',
+      actions: {
+        more: 'More actions',
+        viewProfile: 'View profile',
+        copyLink: 'Copy profile link',
+        unblock: 'Unblock account',
+        unblocking: 'Unblocking…'
+      }
     },
     en: {
       reason: {

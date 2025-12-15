@@ -424,3 +424,7 @@ export const useAppDispatch = () => {
   }
   return context;
 };
+
+export const useOptionalAppDispatch = () => {
+  return useContext(AppDispatchContext) || null;
+};
