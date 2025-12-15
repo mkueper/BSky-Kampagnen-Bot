@@ -1,0 +1,10 @@
+{
+  "from": "@handle or \"me\"",
+  "mention": "@handle or \"me\"",
+  "mentions": "@handle or \"me\"",
+  "to": "@handle or \"me\"",
+  "domain": "example.com or domain.tld",
+  "lang": "Language codes like en, de",
+  "since": "YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ",
+  "until": "YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ"
+}

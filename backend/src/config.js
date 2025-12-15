@@ -18,9 +18,40 @@
  *   `/api/client-config` an das Dashboard geliefert.
  */
 require("dotenv").config();
+const fs = require('fs');
+const path = require('path');
 const { getCustomization, DEFAULT_CUSTOMIZATION } = require('./utils/customization');
 
+const APP_ROOT = process.env.APP_ROOT || process.cwd();
+
 const customization = getCustomization();
+
+const readJsonFile = (filePath) => {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      console.warn(`[config] Konnte ${filePath} nicht laden:`, error.message);
+    }
+    return null;
+  }
+};
+
+const normalizePrefixHintMap = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entries = Object.entries(value)
+    .map(([key, hint]) => {
+      if (!key) return null;
+      const id = String(key).trim();
+      if (!id) return null;
+      const text = typeof hint === 'string' ? hint.trim() : '';
+      return [id, text];
+    })
+    .filter(Boolean);
+  if (!entries.length) return null;
+  return Object.fromEntries(entries);
+};
 
 const normalizeAdvancedPrefixes = (value) => {
   if (!Array.isArray(value)) return [];
@@ -30,11 +61,19 @@ const normalizeAdvancedPrefixes = (value) => {
         const prefix = typeof entry[0] === 'string' ? entry[0].trim() : '';
         if (!prefix) return null;
         const hint = typeof entry[1] === 'string' ? entry[1].trim() : '';
-        return [prefix, hint];
+        const id = typeof entry[2] === 'string' ? entry[2].trim() : null;
+        return { id: id || null, prefix, hint };
       }
       if (typeof entry === 'string') {
         const trimmed = entry.trim();
-        return trimmed ? [trimmed, ''] : null;
+        return trimmed ? { id: null, prefix: trimmed, hint: '' } : null;
+      }
+      if (entry && typeof entry === 'object') {
+        const prefix = typeof entry.prefix === 'string' ? entry.prefix.trim() : '';
+        if (!prefix) return null;
+        const hint = typeof entry.hint === 'string' ? entry.hint.trim() : '';
+        const id = typeof entry.id === 'string' ? entry.id.trim() : null;
+        return { id: id || null, prefix, hint };
       }
       return null;
     })
@@ -47,6 +86,42 @@ const configuredAdvancedPrefixesList = normalizeAdvancedPrefixes(customization?.
 const configuredAdvancedPrefixes = configuredAdvancedPrefixesList.length
   ? configuredAdvancedPrefixesList
   : DEFAULT_ADVANCED_PREFIXES;
+
+const DEFAULT_PREFIX_HINTS = {
+  de: {
+    from: '@handle oder "me"',
+    mention: '@handle oder "me"',
+    mentions: '@handle oder "me"',
+    to: '@handle oder "me"',
+    domain: 'example.com',
+    lang: 'de, en',
+    since: 'YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ',
+    until: 'YYYY-MM-DD oder YYYY-MM-DDTHH:MM:SSZ'
+  },
+  en: {
+    from: '@handle or "me"',
+    mention: '@handle or "me"',
+    mentions: '@handle or "me"',
+    to: '@handle or "me"',
+    domain: 'example.com',
+    lang: 'en, de',
+    since: 'YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ',
+    until: 'YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ'
+  }
+};
+
+const loadPrefixHintsForLocale = (locale) => {
+  const filePath = path.join(APP_ROOT, 'config', `search-prefix-hints.${locale}.json`);
+  const parsed = readJsonFile(filePath);
+  const normalized = normalizePrefixHintMap(parsed);
+  if (normalized) return normalized;
+  return null;
+};
+
+const configuredPrefixHints = {
+  de: loadPrefixHintsForLocale('de') || DEFAULT_PREFIX_HINTS.de,
+  en: loadPrefixHintsForLocale('en') || DEFAULT_PREFIX_HINTS.en
+};
 /**
  * Parst Zahlenwerte robust, sonst Default.
  * @param {unknown} v
@@ -194,6 +269,7 @@ module.exports = {
     },
     search: {
       advancedPrefixes: configuredAdvancedPrefixes,
+      prefixHints: configuredPrefixHints
     },
   },
   /** Serverseitige Steuerung des Engagement-Collectors */

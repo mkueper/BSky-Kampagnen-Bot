@@ -9,14 +9,14 @@ const SEARCH_TABS = [
   { id: 'people', label: 'Personen', labelKey: 'search.tabs.people' }
 ]
 const DEFAULT_ADVANCED_PREFIXES = [
-  ['from:', '@handle oder „me“'],
-  ['mention:', '@handle oder „me“'],
-  ['mentions:', '@handle oder „me“'],
-  ['to:', '@handle'],
-  ['domain:', 'example.com'],
-  ['lang:', 'de, en'],
-  ['since:', 'YYYY-MM-DD'],
-  ['until:', 'YYYY-MM-DD']
+  { id: 'from', prefix: 'from:', hint: '@handle oder „me“' },
+  { id: 'mention', prefix: 'mention:', hint: '@handle oder „me“' },
+  { id: 'mentions', prefix: 'mentions:', hint: '@handle oder „me“' },
+  { id: 'to', prefix: 'to:', hint: '@handle oder „me“' },
+  { id: 'domain', prefix: 'domain:', hint: 'example.com' },
+  { id: 'lang', prefix: 'lang:', hint: 'de, en' },
+  { id: 'since', prefix: 'since:', hint: 'YYYY-MM-DD' },
+  { id: 'until', prefix: 'until:', hint: 'YYYY-MM-DD' }
 ]
 const RECENT_SEARCH_STORAGE_KEY = 'bsky-search-recent'
 const RECENT_SEARCH_LIMIT = 8
@@ -394,6 +394,8 @@ function useProvideSearchContext () {
     [recentQueryEntries]
   )
 
+  const prefixHintDictionary = clientConfig?.search?.prefixHints || null
+
   return {
     draftQuery,
     setDraftQuery,
@@ -421,6 +423,8 @@ function useProvideSearchContext () {
     activePrefixHint,
     showInlinePrefixHint,
     applyPrefixSuggestion,
+    advancedPrefixes: advancedPrefixEntries,
+    prefixHintDictionary,
     loadMore,
     handleEngagementChange
   }
@@ -434,18 +438,20 @@ function normalizeAdvancedPrefixEntries (value) {
         const prefix = typeof entry[0] === 'string' ? entry[0].trim() : ''
         if (!prefix) return null
         const hint = typeof entry[1] === 'string' ? entry[1].trim() : ''
-        return { prefix, prefixLower: prefix.toLowerCase(), hint }
+        const id = typeof entry[2] === 'string' ? entry[2].trim() : ''
+        return { id: id || null, prefix, prefixLower: prefix.toLowerCase(), hint }
       }
       if (typeof entry === 'string') {
         const prefix = entry.trim()
         if (!prefix) return null
-        return { prefix, prefixLower: prefix.toLowerCase(), hint: '' }
+        return { id: null, prefix, prefixLower: prefix.toLowerCase(), hint: '' }
       }
       if (entry && typeof entry === 'object') {
         const prefix = typeof entry.prefix === 'string' ? entry.prefix.trim() : ''
         if (!prefix) return null
         const hint = typeof entry.hint === 'string' ? entry.hint.trim() : ''
-        return { prefix, prefixLower: prefix.toLowerCase(), hint }
+        const id = typeof entry.id === 'string' ? entry.id.trim() : ''
+        return { id: id || null, prefix, prefixLower: prefix.toLowerCase(), hint }
       }
       return null
     })

@@ -158,7 +158,11 @@ const messages = {
       },
       prefixes: {
         title: 'Such-Prefixe',
-        hint: 'Format: {value}'
+        hint: 'Format: {value}',
+        infoButton: 'Prefix-Hinweise',
+        infoTitle: 'Such-Prefixe & Hinweise',
+        infoHint: 'Tipp: Drücke ":" um Prefixe direkt auszuwählen.',
+        infoEmpty: 'Keine zusätzlichen Hinweise vorhanden.'
       },
       recent: {
         title: 'Letzte Suchanfragen',
@@ -478,7 +482,11 @@ const messages = {
       },
       prefixes: {
         title: 'Search prefixes',
-        hint: 'Format: {value}'
+        hint: 'Format: {value}',
+        infoButton: 'Prefix info',
+        infoTitle: 'Search prefixes & hints',
+        infoHint: 'Tip: Press ":" to insert a prefix quickly.',
+        infoEmpty: 'No prefix hints available.'
       },
       recent: {
         title: 'Recent searches',

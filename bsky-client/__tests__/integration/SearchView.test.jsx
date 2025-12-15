@@ -28,6 +28,9 @@ vi.mock('../../src/modules/shared', () => ({
   Button: ({ children, ...props }) => <button {...props}>{children}</button>,
   Card: ({ children, ...props }) => <div {...props}>{children}</div>,
   RichText: ({ text }) => <span>{text}</span>,
+  InlineMenu: ({ children }) => <div>{children}</div>,
+  InlineMenuTrigger: ({ children }) => <>{children}</>,
+  InlineMenuContent: ({ children }) => <div>{children}</div>,
   searchBsky: searchBskyMock
 }))
 

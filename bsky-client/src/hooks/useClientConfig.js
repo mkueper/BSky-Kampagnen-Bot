@@ -3,7 +3,7 @@ import { useCallback, useSyncExternalStore } from 'react'
 const STORAGE_KEY = 'bsky-client-config:v1'
 const DEFAULT_CONFIG = {
   gifs: { tenorAvailable: false, tenorApiKey: '' },
-  search: { advancedPrefixes: null },
+  search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true }
 }
 
@@ -38,6 +38,9 @@ const normalizeConfig = (input = {}) => {
   }
   if (next.search.advancedPrefixes && !Array.isArray(next.search.advancedPrefixes)) {
     next.search.advancedPrefixes = null
+  }
+  if (next.search.prefixHints && (typeof next.search.prefixHints !== 'object' || Array.isArray(next.search.prefixHints))) {
+    next.search.prefixHints = null
   }
   next.gifs.tenorAvailable = Boolean(next.gifs.tenorAvailable)
   next.gifs.tenorApiKey = typeof next.gifs.tenorApiKey === 'string' ? next.gifs.tenorApiKey.trim() : ''

@@ -75,7 +75,8 @@ async function getClientConfig(req, res) {
         tenorAvailable: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
       },
       search: {
-        advancedPrefixes: config.CLIENT_CONFIG?.search?.advancedPrefixes || []
+        advancedPrefixes: config.CLIENT_CONFIG?.search?.advancedPrefixes || [],
+        prefixHints: config.CLIENT_CONFIG?.search?.prefixHints || null
       }
     });
   } catch (error) {

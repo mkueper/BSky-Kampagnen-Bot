@@ -13,10 +13,14 @@ const DEFAULT_CUSTOMIZATION = {
   },
   search: {
     advancedPrefixes: [
-      ['from:', '@handle oder did:example'],
-      ['mention:', '@handle'],
-      ['mentions:', '@handle'],
-      ['domain:', 'example.com']
+      { id: 'from', prefix: 'from:', hint: '@handle oder „me“' },
+      { id: 'mention', prefix: 'mention:', hint: '@handle oder „me“' },
+      { id: 'mentions', prefix: 'mentions:', hint: '@handle oder „me“' },
+      { id: 'to', prefix: 'to:', hint: '@handle oder „me“' },
+      { id: 'domain', prefix: 'domain:', hint: 'example.com' },
+      { id: 'lang', prefix: 'lang:', hint: 'de, en' },
+      { id: 'since', prefix: 'since:', hint: 'YYYY-MM-DD' },
+      { id: 'until', prefix: 'until:', hint: 'YYYY-MM-DD' }
     ]
   }
 };
