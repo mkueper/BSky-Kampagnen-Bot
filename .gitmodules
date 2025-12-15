@@ -1,3 +1,3 @@
 [submodule "packages/media-pickers"]
 	path = packages/media-pickers
-	url = git@github.com:mkueper/media-pickers.git
+	url = https://github.com/mkueper/media-pickers.git
