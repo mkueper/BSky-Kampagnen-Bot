@@ -88,7 +88,9 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       hls.loadSource(current.src)
       hls.attachMedia(videoEl)
       handleReady = () => {
-        videoEl.play?.().catch(() => {})
+        videoEl.play?.().catch((playError) => {
+          console.warn('Autoplay des HLS-Streams nicht möglich.', playError)
+        })
       }
       hls.on(Hls.Events.MANIFEST_PARSED, handleReady)
     })()
