@@ -56,20 +56,33 @@ InlineMenuContent.propTypes = {
   style: PropTypes.object
 }
 
-export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = false }) {
+export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = false, variant = 'default' }) {
+  const variantStyles = {
+    default: {
+      container: 'text-foreground hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm',
+      icon: 'text-foreground-muted'
+    },
+    destructive: {
+      container: 'text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/15',
+      icon: 'text-destructive'
+    },
+    warning: {
+      container: 'text-amber-900 bg-amber-100 font-semibold rounded-full hover:bg-amber-200 dark:text-amber-100 dark:bg-amber-400/20 dark:hover:bg-amber-300/30',
+      icon: 'text-amber-700 dark:text-amber-200'
+    }
+  }
+  const currentVariant = variantStyles[variant] || variantStyles.default
   return (
     <button
       type='button'
       onClick={onSelect}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${
-        disabled
-          ? 'opacity-50 cursor-not-allowed'
-          : 'hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm'
+      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container} ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
-      {Icon ? <Icon className='h-4 w-4 text-foreground-muted' /> : null}
-      <span className='text-foreground'>{children}</span>
+      {Icon ? <Icon className={`h-4 w-4 ${currentVariant.icon}`} /> : null}
+      <span className={variant === 'destructive' ? 'text-destructive' : variant === 'warning' ? 'text-amber-900 dark:text-amber-100' : 'text-foreground'}>{children}</span>
     </button>
   )
 }
@@ -78,7 +91,8 @@ InlineMenuItem.propTypes = {
   icon: PropTypes.elementType,
   children: PropTypes.node,
   onSelect: PropTypes.func,
-  disabled: PropTypes.bool
+  disabled: PropTypes.bool,
+  variant: PropTypes.oneOf(['default', 'destructive', 'warning'])
 }
 
 export function InlineMenu ({ open, onOpenChange, children }) {

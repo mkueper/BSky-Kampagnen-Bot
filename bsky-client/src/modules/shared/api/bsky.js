@@ -30,6 +30,7 @@ const TIMELINE_LABELS = { following: 'Following' }
 const FEED_META_CACHE_TTL_MS = 5 * 60 * 1000
 const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
+const PROFILE_BATCH_SIZE = 25
 const feedMetaGlobalCache = new Map()
 
 const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined;
@@ -146,7 +147,9 @@ function mapBlockedProfile (entry, { context = 'block-list' } = {}) {
     description: subject?.description || '',
     indexedAt: entry.indexedAt || subject?.indexedAt || null,
     createdAt: subject?.createdAt || null,
-    listEntryId
+    listEntryId,
+    blockUri: entry?.uri || null,
+    viewer: subject?.viewer ? { ...subject.viewer } : null
   }
 }
 
@@ -460,6 +463,36 @@ async function reorderPinnedFeedsDirect ({ order }) {
   return buildFeedResponseFromSavedFeeds(agent, ordered)
 }
 
+async function loadBlockedByStates (agent, blocks = []) {
+  if (!agent || !Array.isArray(blocks) || blocks.length === 0) {
+    return null
+  }
+  const dids = Array.from(new Set(
+    blocks
+      .map((entry) => entry?.did)
+      .filter((did) => typeof did === 'string' && did.length > 0)
+  ))
+  if (dids.length === 0) {
+    return null
+  }
+  const blockedByMap = new Map()
+  for (let index = 0; index < dids.length; index += PROFILE_BATCH_SIZE) {
+    const batch = dids.slice(index, index + PROFILE_BATCH_SIZE)
+    try {
+      const res = await agent.app.bsky.actor.getProfiles({ actors: batch })
+      const profiles = Array.isArray(res?.data?.profiles) ? res.data.profiles : []
+      for (const profile of profiles) {
+        if (profile?.viewer?.blockedBy && profile?.did) {
+          blockedByMap.set(profile.did, true)
+        }
+      }
+    } catch (error) {
+      console.warn('loadBlockedByStates: getProfiles fehlgeschlagen', error)
+    }
+  }
+  return blockedByMap
+}
+
 async function fetchBlocksDirect ({ cursor, limit } = {}) {
   const agent = assertActiveAgent()
   const safeLimit = clampNumber(limit, 1, 100, 50)
@@ -471,6 +504,20 @@ async function fetchBlocksDirect ({ cursor, limit } = {}) {
   const blocks = entries
     .map((entry, index) => mapBlockedProfile(entry, { context: `blocks:${index}` }))
     .filter(Boolean)
+  if (blocks.length) {
+    try {
+      const blockedByMap = await loadBlockedByStates(agent, blocks)
+      if (blockedByMap?.size) {
+        for (const entry of blocks) {
+          const did = entry?.did
+          if (!did || !blockedByMap.has(did)) continue
+          entry.viewer = { ...(entry.viewer || {}), blockedBy: true }
+        }
+      }
+    } catch (error) {
+      console.warn('fetchBlocksDirect: BlockedBy-Fallback fehlgeschlagen', error)
+    }
+  }
   return {
     blocks,
     cursor: data?.cursor || null
