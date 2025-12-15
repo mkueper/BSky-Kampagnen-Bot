@@ -148,6 +148,16 @@ export default function ThreadComposer({
   const emojiButtonRef = useRef(null)
   const previewUrlsRef = useRef(new Set())
   const lastCursorSegmentRef = useRef(0)
+  const gifFetchControllerRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (gifFetchControllerRef.current) {
+        try { gifFetchControllerRef.current.abort() } catch (e) { /* ignore */ }
+        gifFetchControllerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof controlledNumbering === 'boolean') {
@@ -530,8 +540,13 @@ export default function ThreadComposer({
         return
       }
       setMediaMessage('')
+      let controller = null
       try {
-        const response = await fetch(payload.downloadUrl)
+        controller = new AbortController()
+        gifFetchControllerRef.current = controller
+        const response = await fetch(payload.downloadUrl, {
+          signal: controller.signal,
+        })
         if (!response.ok) {
           throw new Error(mergedLabels.gifLoadFailed)
         }
@@ -558,7 +573,14 @@ export default function ThreadComposer({
           }
         }
       } catch (error) {
-        setMediaMessage(error?.message || mergedLabels.gifLoadFailed)
+        if (error?.name === 'AbortError') {
+          // fetch was aborted; ignore
+        } else {
+          setMediaMessage(error?.message || mergedLabels.gifLoadFailed)
+        }
+      } finally {
+        if (gifFetchControllerRef.current === controller)
+          gifFetchControllerRef.current = null
       }
     },
     [
@@ -834,6 +856,7 @@ export default function ThreadComposer({
                                   )
                                 : mergedLabels.addGifTitle
                             }
+                            aria-label={mergedLabels.addGifTitle}
                           >
                             <VideoIcon className='h-4 w-4' aria-hidden='true' />
                             <span>GIF</span>

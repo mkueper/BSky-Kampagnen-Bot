@@ -1,9 +1,12 @@
 function splitIntoSentences (text) {
   const normalized = text.replace(/\r\n/g, '\n')
-  if (!normalized.trim()) {
-    return ['']
-  }
-  return [normalized]
+  if (!normalized.trim()) return ['']
+
+  // Basic sentence splitter: captures sentences including trailing punctuation and whitespace
+  // Falls back to whole text when no matches found.
+  const re = /[^.!?]+[.!?]+[\])\"'’”]*\s*|[^.!?]+$/g
+  const matches = normalized.match(re)
+  return matches && matches.length ? matches : [normalized]
 }
 
 function splitAtWordBoundaries (text, limit) {
@@ -13,8 +16,21 @@ function splitAtWordBoundaries (text, limit) {
 
   while (remaining.length > limit) {
     const window = remaining.slice(0, limit + 1)
+
+    // Prefer to split at punctuation within the window (.,;:)
+    const lastPunct = Math.max(
+      window.lastIndexOf('.'),
+      window.lastIndexOf(','),
+      window.lastIndexOf(';'),
+      window.lastIndexOf(':')
+    )
+
     const lastWhitespace = window.lastIndexOf(' ')
-    const splitIndex = lastWhitespace > 0 ? lastWhitespace : limit
+    let splitIndex = -1
+    if (lastPunct > 0) splitIndex = lastPunct + 1
+    else if (lastWhitespace > 0) splitIndex = lastWhitespace
+    else splitIndex = limit
+
     const chunk = remaining.slice(0, splitIndex).trimEnd()
     if (chunk) {
       chunks.push(chunk)

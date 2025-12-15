@@ -11,12 +11,12 @@ const sizeClasses = {
 
 const variantClasses = {
   primary: 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/80 hover:shadow-card hover:brightness-110',
-  secondary: 'border border-border bg-background-subtle text-foreground hover:bg-background-subtle/70',
-  ghost: 'text-foreground hover:bg-background-subtle/60',
-  outline: 'border border-border bg-background text-foreground hover:bg-background-subtle/70',
+  secondary: 'border border-border bg-background-subtle text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/10 hover:shadow-lg',
+  ghost: 'text-foreground hover:bg-background-subtle/60 dark:hover:bg-primary/8 hover:shadow-sm',
+  outline: 'border border-border bg-background text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/8 hover:shadow-sm',
   destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80 hover:brightness-110',
   warning: 'border border-amber-400 bg-amber-500/15 text-amber-900 hover:bg-amber-500/25',
-  neutral: 'border border-border bg-background text-foreground hover:bg-background-subtle/70'
+  neutral: 'border border-border bg-background text-foreground hover:bg-background-subtle/70 dark:hover:bg-primary/8 hover:shadow-sm'
 }
 
 function classNames (...classes) {

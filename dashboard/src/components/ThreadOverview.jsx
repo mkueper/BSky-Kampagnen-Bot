@@ -413,8 +413,8 @@ function ThreadOverview ({
             ref={refProp}
           >
             <header className='flex flex-wrap items-center justify-between gap-3'>
-              <div>
-                <h3 className='text-lg font-semibold text-foreground'>
+              <div className='min-w-0'>
+                <h3 className='text-lg font-semibold text-foreground break-words'>
                   {thread.title || `Thread #${thread.id}`}
                 </h3>
                 <p className='text-sm text-foreground-muted'>

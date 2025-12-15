@@ -271,7 +271,7 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
               <button
                 key={branch.listEntryId || branch.uri || branch.cid}
                 type='button'
-                className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle'
+                className='w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-left shadow-soft transition hover:border-primary/60 hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
                 onClick={() => selectThreadFromItem?.(branch)}
               >
                 <p className='text-sm font-semibold text-foreground'>

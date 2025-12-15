@@ -15,9 +15,9 @@ const sizeClasses = {
 }
 
 const appearanceClasses = {
-  default: 'border border-border bg-background-subtle text-foreground hover:bg-background focus-visible:ring-primary/60',
+  default: 'border border-border bg-background-subtle text-foreground hover:bg-background dark:hover:bg-primary/10 focus-visible:ring-primary/60',
   inverted: 'border border-foreground bg-foreground text-background hover:bg-foreground/90 focus-visible:ring-background/60',
-  subtle: 'border border-border/60 bg-transparent text-foreground hover:bg-background-subtle focus-visible:ring-foreground/40'
+  subtle: 'border border-border/60 bg-transparent text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 focus-visible:ring-foreground/40'
 }
 
 export default function ThemeToggle ({
@@ -82,7 +82,6 @@ export default function ThemeToggle ({
         ) : (
           <span className='flex min-w-0 flex-col leading-tight'>
             <span className='text-xs font-medium uppercase tracking-wide text-foreground-muted'>{label}</span>
-            <span className='text-sm font-semibold text-foreground truncate'>{modeLabel || '—'}</span>
           </span>
         )
       ) : (

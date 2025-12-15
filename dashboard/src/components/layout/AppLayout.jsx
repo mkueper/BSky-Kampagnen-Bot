@@ -119,7 +119,7 @@ function AppLayout ({
                 {/* Mobile: schließt Overlay */}
                 <button
                   type='button'
-                  className='rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:hidden'
+                  className='rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm hover:text-foreground md:hidden' 
                   onClick={() => setMenuOpen(false)}
                 >
                   <HamburgerMenuIcon className='h-5 w-5 rotate-180' />
@@ -130,7 +130,7 @@ function AppLayout ({
                 {/* Desktop: klappt Hauptnavigation ein */}
                 <button
                   type='button'
-                  className='hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground md:inline-flex'
+                  className='hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm hover:text-foreground md:inline-flex' 
                   onClick={() => setNavCollapsed(true)}
                   aria-label='Navigation einklappen'
                   title='Navigation einklappen'

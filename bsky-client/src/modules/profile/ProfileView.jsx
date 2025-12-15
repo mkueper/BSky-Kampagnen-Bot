@@ -7,8 +7,11 @@ import {
   InlineMenu,
   InlineMenuTrigger,
   InlineMenuContent,
-  InlineMenuItem
+  InlineMenuItem,
+  ConfirmDialog,
+  useConfirmDialog
 } from '@bsky-kampagnen-bot/shared-ui'
+import { muteActor as apiMuteActor, unmuteActor as apiUnmuteActor, blockActor as apiBlockActor, unblockActor as apiUnblockActor } from '../shared/api/bsky'
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import {
@@ -36,7 +39,7 @@ function formatNumber (value) {
 }
 
 // This is a simplified view. We can reuse/enhance the ProfileCard from ProfilePreview later.
-function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false }) {
+function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false, onToggleMute, onToggleBlock }) {
   const relationBadges = useMemo(() => {
     const next = []
     if (profile.viewer?.followedBy) next.push({ label: 'Folgt dir', tone: 'primary' })
@@ -72,15 +75,19 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
     }
   }, [baseProfileUrl])
 
-  const menuItems = useMemo(() => ([
-    { label: 'Link zum Profil kopieren', icon: Link2Icon, onSelect: copyProfileLink, disabled: !baseProfileUrl },
-    { label: 'Posts durchsuchen', icon: MagnifyingGlassIcon, disabled: true },
-    { label: 'Zu Startpaketen hinzufügen', icon: RocketIcon, disabled: true },
-    { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true, dividerAfter: true },
-    { label: 'Account stummschalten', icon: SpeakerModerateIcon, disabled: true },
-    { label: 'Account blockieren', icon: CrossCircledIcon, disabled: true },
-    { label: 'Account melden', icon: ExclamationTriangleIcon, disabled: true }
-  ]), [baseProfileUrl, copyProfileLink])
+  const menuItems = useMemo(() => {
+    const muted = Boolean(profile?.viewer?.muted)
+    const blocking = Boolean(profile?.viewer?.blocking)
+    return [
+      { label: 'Link zum Profil kopieren', icon: Link2Icon, onSelect: copyProfileLink, disabled: !baseProfileUrl },
+      { label: 'Posts durchsuchen', icon: MagnifyingGlassIcon, disabled: true },
+      { label: 'Zu Startpaketen hinzufügen', icon: RocketIcon, disabled: true },
+      { label: 'Zu Listen hinzufügen', icon: ListBulletIcon, disabled: true, dividerAfter: true },
+      { label: muted ? 'Stummschaltung aufheben' : 'Account stummschalten', icon: SpeakerModerateIcon, onSelect: onToggleMute, disabled: !onToggleMute },
+      { label: blocking ? 'Blockierung aufheben' : 'Account blockieren', icon: CrossCircledIcon, onSelect: onToggleBlock, disabled: !onToggleBlock },
+      { label: 'Account melden', icon: ExclamationTriangleIcon, disabled: true }
+    ]
+  }, [baseProfileUrl, copyProfileLink, profile, onToggleMute, onToggleBlock])
 
   const isFollowing = Boolean(profile.viewer?.following)
   const followLabel = isFollowing ? 'Gefolgt' : 'Folgen'
@@ -274,7 +281,7 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
           type='button'
           aria-label='Weitere Aktionen'
           title='Aktionen'
-          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle disabled:cursor-not-allowed disabled:opacity-70'}
+          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70'}
         >
           <DotsHorizontalIcon className='h-4 w-4' />
         </button>
@@ -424,6 +431,71 @@ export default function ProfileView ({
   const isBlocking = Boolean(profile?.viewer?.blocking)
   const isInteractionBlocked = isBlockedBy || isBlocking
 
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
+
+  const toggleMute = useCallback(() => {
+    if (!profile || !profile.did) return
+    const currentlyMuted = Boolean(profile.viewer?.muted)
+    openConfirm({
+      title: currentlyMuted ? 'Stummschaltung aufheben' : 'Account stummschalten',
+      description: currentlyMuted ? 'Die Stummschaltung dieses Accounts aufheben?' : 'Werden Beiträge dieses Accounts stummschalten. Diese Beiträge werden ausgeblendet.',
+      confirmLabel: currentlyMuted ? 'Aufheben' : 'Stummschalten',
+      variant: currentlyMuted ? 'secondary' : 'destructive',
+      onConfirm: async () => {
+        // Optimistisches Update
+        setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), muted: !currentlyMuted } } : prev))
+        try {
+          if (currentlyMuted) {
+            await apiUnmuteActor(profile.did)
+          } else {
+            await apiMuteActor(profile.did)
+          }
+        } catch (err) {
+          // Rollback
+          setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), muted: currentlyMuted } } : prev))
+          setError(err?.message || 'Stummschalten fehlgeschlagen')
+        }
+      }
+    })
+  }, [profile, openConfirm])
+
+  const toggleBlock = useCallback(() => {
+    if (!profile || !profile.did) return
+    const currentBlockingValue = profile.viewer?.blocking
+    const blockingUri = typeof currentBlockingValue === 'string' ? currentBlockingValue : null
+    const currentlyBlocking = Boolean(currentBlockingValue)
+    const applyBlockingState = (value) => {
+      setProfile((prev) => (prev ? { ...prev, viewer: { ...(prev.viewer || {}), blocking: value } } : prev))
+    }
+    openConfirm({
+      title: currentlyBlocking ? 'Blockierung aufheben' : 'Account blockieren',
+      description: currentlyBlocking ? 'Blockierung dieses Accounts aufheben?' : 'Blockierte Accounts werden ausgeblendet und können nicht interagieren.',
+      confirmLabel: currentlyBlocking ? 'Aufheben' : 'Blockieren',
+      variant: currentlyBlocking ? 'secondary' : 'destructive',
+      onConfirm: async () => {
+        if (currentlyBlocking) {
+          applyBlockingState(null)
+          try {
+            await apiUnblockActor(profile.did, { blockUri: blockingUri })
+          } catch (err) {
+            applyBlockingState(currentBlockingValue || true)
+            setError(err?.message || 'Blockierung aufheben fehlgeschlagen')
+          }
+          return
+        }
+        applyBlockingState(true)
+        try {
+          const result = await apiBlockActor(profile.did)
+          const nextUri = result?.uri || null
+          applyBlockingState(nextUri || true)
+        } catch (err) {
+          applyBlockingState(null)
+          setError(err?.message || 'Blockieren fehlgeschlagen')
+        }
+      }
+    })
+  }, [profile, openConfirm])
+
   const tabConfig = useMemo(() => ([
     { id: 'posts', label: 'Beiträge', disabled: false },
     { id: 'replies', label: 'Antworten', disabled: false },
@@ -496,6 +568,8 @@ export default function ProfileView ({
           onBack={showHeroBackButton ? handleClose : null}
           isOwnProfile={isOwnProfile}
           tabsStuck={tabsStuck}
+          onToggleMute={toggleMute}
+          onToggleBlock={toggleBlock}
         />
       </div>
       <div ref={tabsSentinelRef} aria-hidden='true' className='h-1 w-full' />
@@ -562,6 +636,16 @@ export default function ProfileView ({
         position='bottom-left'
         offset={20}
         horizontalOffset={16}
+      />
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel={confirmDialog.cancelLabel}
+        variant={confirmDialog.variant || 'primary'}
+        onConfirm={confirmDialog.onConfirm || closeConfirm}
+        onCancel={closeConfirm}
       />
     </div>
   )

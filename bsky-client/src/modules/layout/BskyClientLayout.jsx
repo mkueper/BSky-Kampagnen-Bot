@@ -62,7 +62,7 @@ function MobileNavBar ({
             type='button'
             onClick={onOpenMenu}
             aria-label={t('nav.openMenu', 'Menü öffnen')}
-            className='inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary'
+            className='inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:text-primary hover:shadow-lg hover:scale-[1.02]'
           >
             <HamburgerMenuIcon className='h-5 w-5' />
           </button>

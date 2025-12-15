@@ -58,18 +58,18 @@ const isSameLabel = (left, right) => {
 const cx = (...parts) => parts.filter(Boolean).join(' ')
 
 const SIDEBAR_BUTTON_BASE =
-  'relative inline-flex items-center rounded-2xl text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+  'relative inline-flex items-center rounded-2xl text-sm transform transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 const SIDEBAR_BUTTON_SQUARE =
   'h-12 w-12 justify-center'
 const SIDEBAR_BUTTON_PILL =
   'lg:h-auto lg:w-auto lg:px-4 lg:py-3 lg:justify-start lg:gap-3'
 
 const SIDEBAR_BUTTON_ACTIVE =
-  'bg-primary text-primary-foreground shadow-soft'
+  'border border-border bg-background-subtle text-foreground shadow-soft'
 const SIDEBAR_BUTTON_INACTIVE =
-  'text-foreground-muted hover:bg-background-subtle hover:text-foreground hover:shadow-soft'
+  'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
 const SIDEBAR_BUTTON_DISABLED =
-  'opacity-50 cursor-not-allowed'
+  'opacity-50 cursor-not-allowed disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
 
 export default function SidebarNav ({
   active,
@@ -369,7 +369,7 @@ export default function SidebarNav ({
                     ? 'h-auto w-full justify-start gap-2 px-4 py-3'
                     : SIDEBAR_BUTTON_SQUARE,
                   showFullLabels ? '' : SIDEBAR_BUTTON_PILL,
-                  'gap-2 rounded-2xl border border-border bg-background-subtle text-sm font-semibold text-foreground shadow-soft hover:bg-background-subtle lg:w-full',
+                  'gap-2 rounded-2xl border border-border bg-background-subtle text-sm font-semibold text-foreground shadow-soft hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-lg lg:w-full',
                   interactionsLocked ? SIDEBAR_BUTTON_DISABLED : ''
                 )}
                 disabled={interactionsLocked}
@@ -389,13 +389,13 @@ export default function SidebarNav ({
             <button
               type='button'
               onClick={interactionsLocked ? undefined : onCompose}
-              className={cx(
+                className={cx(
                 SIDEBAR_BUTTON_BASE,
                 showFullLabels
                   ? 'h-auto w-full justify-start gap-2 px-4 py-3'
                   : SIDEBAR_BUTTON_SQUARE,
                 showFullLabels ? '' : SIDEBAR_BUTTON_PILL,
-                'gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 lg:w-full',
+                'gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-soft hover:opacity-95 hover:shadow-lg lg:w-full',
                 interactionsLocked ? SIDEBAR_BUTTON_DISABLED : ''
               )}
               disabled={interactionsLocked}

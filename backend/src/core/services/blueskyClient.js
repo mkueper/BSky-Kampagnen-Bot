@@ -271,6 +271,51 @@ function normalizeBoolean (value) {
   return undefined;
 }
 
+async function _tryCallGraphMethod (names = [], payloads = []) {
+  await ensureLoggedIn()
+  const api = agent.app?.bsky?.graph
+  if (!api) throw new Error('Graph-API nicht verfügbar')
+  const errors = []
+  for (const name of names) {
+    const fn = api[name]
+    if (typeof fn !== 'function') continue
+    for (const payload of payloads) {
+      try {
+        const res = await fn(payload)
+        return res?.data ?? res ?? {}
+      } catch (err) {
+        errors.push(err)
+      }
+    }
+  }
+  const last = errors.length > 0 ? errors[errors.length - 1] : new Error('Graph-Operation nicht unterstützt')
+  throw last
+}
+
+async function blockActor (did) {
+  const normalized = String(did || '').trim()
+  if (!normalized) throw createStatusError(400, 'did erforderlich')
+  return _tryCallGraphMethod(['block', 'createBlock'], [{ subject: normalized }, { actor: normalized }, { did: normalized }])
+}
+
+async function unblockActor (did) {
+  const normalized = String(did || '').trim()
+  if (!normalized) throw createStatusError(400, 'did erforderlich')
+  return _tryCallGraphMethod(['unblock', 'deleteBlock', 'removeBlock'], [{ subject: normalized }, { actor: normalized }, { did: normalized }])
+}
+
+async function muteActor (did) {
+  const normalized = String(did || '').trim()
+  if (!normalized) throw createStatusError(400, 'did erforderlich')
+  return _tryCallGraphMethod(['muteActor', 'mute', 'createMute'], [{ subject: normalized }, { actor: normalized }, { did: normalized }])
+}
+
+async function unmuteActor (did) {
+  const normalized = String(did || '').trim()
+  if (!normalized) throw createStatusError(400, 'did erforderlich')
+  return _tryCallGraphMethod(['unmuteActor', 'unmute', 'deleteMute'], [{ subject: normalized }, { actor: normalized }, { did: normalized }])
+}
+
 function normalizePushPayload (payload = {}, { includeAgeRestricted = false } = {}) {
   const serviceDid = String(payload?.serviceDid || '').trim();
   if (!serviceDid) throw createStatusError(400, 'serviceDid erforderlich');
@@ -502,6 +547,10 @@ module.exports = {
   pinSavedFeed,
   unpinSavedFeed,
   reorderPinnedFeeds,
+  blockActor,
+  unblockActor,
+  muteActor,
+  unmuteActor,
   /**
    * Holt die persönliche Timeline des eingeloggten Accounts (Home-Feed).
    *

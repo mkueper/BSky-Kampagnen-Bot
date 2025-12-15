@@ -209,14 +209,14 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
               key={tab.id}
               type='button'
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab.id ? 'bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:text-foreground'
+              className={`rounded-full px-4 py-2 text-sm font-medium transform transition-all duration-150 ease-out ${
+                activeTab === tab.id ? 'border border-border bg-background-subtle text-foreground shadow-soft' : 'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
               }`}
               aria-current={activeTab === tab.id ? 'page' : undefined}
             >
               {t(tab.labelKey || 'search.tabs.fallback', tab.label)}
             </button>
-          ))}
+          ))} 
         </div>
         {isLoadingInitial ? (
           <div className='flex min-h-[200px] items-center justify-center text-sm text-foreground-muted'>
@@ -244,7 +244,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
                   type='button'
                   onClick={() => setSize(size + 1)}
                   disabled={isLoadingMore}
-                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle disabled:opacity-60'
+                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:opacity-60' 
                 >
                   {t('common.actions.retry', 'Erneut versuchen')}
                 </button>

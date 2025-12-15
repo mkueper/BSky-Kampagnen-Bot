@@ -1,7 +1,7 @@
 import {
   createContext,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState
 } from 'react'
@@ -52,19 +52,19 @@ export function ThemeProvider ({ children }) {
   //   }
   // }, [theme])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof document === 'undefined') return
-    // DOM wurde beim Umschalten schon aktualisiert.
-    // Der Effekt soll nur beim Initial-Laden korrigieren.
+    // Set DOM theme synchronously to avoid a visual flash (paint) between
+    // the React state update and the CSS variables / .dark class taking effect.
     const activeTheme = THEMES.includes(theme) ? theme : DEFAULT_THEME
     const cfg = THEME_CONFIG[activeTheme] || THEME_CONFIG[DEFAULT_THEME]
     const colorScheme = cfg.colorScheme === 'dark' ? 'dark' : 'light'
-  
+
     const root = document.documentElement
     root.dataset.theme = activeTheme
     root.classList.toggle('dark', colorScheme === 'dark')
     root.style.colorScheme = colorScheme
-  
+
     try {
       window.localStorage.setItem('theme', activeTheme)
     } catch {
