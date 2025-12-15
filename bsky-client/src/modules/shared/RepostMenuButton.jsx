@@ -35,6 +35,8 @@ export default function RepostMenuButton ({
     onUnquote?.()
   }
 
+  const showQuoteAction = Boolean(onQuote) && !hasQuoted
+
   return (
     <InlineMenu open={open} onOpenChange={setOpen}>
       <InlineMenuTrigger>
@@ -67,9 +69,11 @@ export default function RepostMenuButton ({
               Zitierten Reskeet zurückziehen
             </InlineMenuItem>
           ) : null}
-          <InlineMenuItem icon={QuoteIcon} onSelect={handleQuote} disabled={!onQuote || Boolean(hasQuoted)}>
-            Post zitieren
-          </InlineMenuItem>
+          {showQuoteAction ? (
+            <InlineMenuItem icon={QuoteIcon} onSelect={handleQuote}>
+              Post zitieren
+            </InlineMenuItem>
+          ) : null}
         </div>
       </InlineMenuContent>
     </InlineMenu>

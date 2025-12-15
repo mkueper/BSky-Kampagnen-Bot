@@ -27,6 +27,7 @@ const messages = {
       blocks: 'Blockliste',
       profile: 'Profil',
       settings: 'Einstellungen',
+      clientSettings: 'Client-Einstellungen',
       dashboard: 'Dashboard',
       newPost: 'Neuer Post',
       newPostAria: 'Neuen Post erstellen',
@@ -307,10 +308,36 @@ const messages = {
       titleQuote: 'Post zitieren',
       cancel: 'Abbrechen',
       submit: 'Posten',
+      previewUnavailableStandalone:
+        'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.',
       discardTitle: 'Entwurf verwerfen',
       discardMessage:
         'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
       discardConfirm: 'Verwerfen'
+    },
+    clientSettings: {
+      title: 'Client-Einstellungen',
+      subtitle: 'Diese Optionen gelten nur lokal auf diesem Gerät.',
+      close: 'Schließen',
+      sections: {
+        gifsTitle: 'GIF-Integration',
+        gifsDescription: 'Tenor stellt GIF-Suche und Vorschau direkt im Composer bereit.',
+        unrollTitle: 'Unroll',
+        unrollDescription: 'Steuere, wie Unroll-Threads dargestellt werden.'
+      },
+      tenorToggle: 'Tenor-GIFs aktivieren',
+      tenorKeyLabel: 'Tenor API-Key',
+      tenorKeyPlaceholder: 'Key einfügen',
+      tenorKeyHelp: 'Der Key wird lokal gespeichert und nie an andere Dienste übertragen.',
+      unroll: {
+        showDividersLabel: 'Trennlinien zwischen Posts anzeigen',
+        showDividersHelp: 'Für eine kompaktere Darstellung kannst du die Trennlinien deaktivieren.'
+      },
+      future: {
+        heading: 'Noch mehr Einstellungen',
+        body: 'Weitere Optionen – z. B. Darstellung und lokale Workflows – folgen hier in Kürze.'
+      },
+      save: 'Speichern'
     }
   },
   en: {
@@ -325,6 +352,7 @@ const messages = {
       blocks: 'Blocks',
       profile: 'Profile',
       settings: 'Settings',
+      clientSettings: 'Client settings',
       dashboard: 'Dashboard',
       newPost: 'New post',
       newPostAria: 'Create new post',
@@ -422,9 +450,34 @@ const messages = {
       titleQuote: 'Quote post',
       cancel: 'Cancel',
       submit: 'Post',
+      previewUnavailableStandalone: 'Link preview is not available in standalone mode yet.',
       discardTitle: 'Entwurf verwerfen',
       discardMessage: 'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
       discardConfirm: 'Verwerfen'
+    },
+    clientSettings: {
+      title: 'Client settings',
+      subtitle: 'Applies only to this device and this standalone client.',
+      close: 'Close',
+      sections: {
+        gifsTitle: 'GIF integration',
+        gifsDescription: 'Enable Tenor to search and insert GIFs from the composer.',
+        unrollTitle: 'Unroll',
+        unrollDescription: 'Control how the unroll dialog renders author threads.'
+      },
+      tenorToggle: 'Enable Tenor GIFs',
+      tenorKeyLabel: 'Tenor API key',
+      tenorKeyPlaceholder: 'Enter API key',
+      tenorKeyHelp: 'The key is stored locally and never shared with other services.',
+      unroll: {
+        showDividersLabel: 'Show dividers between posts',
+        showDividersHelp: 'Disable the dividers for the most compact layout.'
+      },
+      future: {
+        heading: 'More settings coming soon',
+        body: 'Soon you can configure additional layout tweaks and local workflows here.'
+      },
+      save: 'Save'
     }
   }
 }

@@ -4,6 +4,7 @@ import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { buildAuthorTimeline } from './threadUtils'
 import { RichText } from '../shared'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 
 function extractImages (item) {
   const embed = item?.raw?.post?.embed || item?.embed || {}
@@ -43,10 +44,12 @@ export default function AuthorThreadUnrollModal () {
   const { threadState, threadUnroll } = useAppState()
   const { openMediaPreview } = useMediaLightbox()
   const { t } = useTranslation()
+  const { clientConfig } = useClientConfig()
 
   const { data } = threadState || {}
   const authorTimeline = useMemo(() => buildAuthorTimeline(data), [data])
   const author = authorTimeline[authorTimeline.length - 1]?.author || data?.focus?.author || null
+  const showDividers = clientConfig?.unroll?.showDividers !== false
 
   const handleClose = () => {
     dispatch({ type: 'CLOSE_THREAD_UNROLL' })
@@ -84,20 +87,28 @@ export default function AuthorThreadUnrollModal () {
               </div>
             </div>
           ) : null}
-          <div className='divide-y-2 divide-border'>
+          <div className={showDividers ? 'divide-y-2 divide-border' : 'space-y-2'}>
             {authorTimeline.map((node) => {
               const images = extractImages(node)
               const sanitizedText = sanitizeThreadText(node)
+              const rawRecordText = node?.raw?.post?.record?.text || ''
+              const facets =
+                sanitizedText === rawRecordText
+                  ? node?.raw?.post?.record?.facets
+                  : null
+              const articleClass = showDividers
+                ? 'space-y-2 py-4 first:pt-5 last:pb-0'
+                : 'space-y-2 py-1 first:pt-2 last:pb-1'
               return (
                 <article
                   key={node?.listEntryId || node?.uri || node?.cid}
-                  className='space-y-2 py-4 first:pt-5 last:pb-0'
+                  className={articleClass}
                 >
                   {sanitizedText ? (
                     <RichText
                       text={sanitizedText}
-                      facets={node?.raw?.post?.record?.facets}
-                      className='whitespace-pre-wrap break-words text-sm text-foreground'
+                      facets={facets}
+                      className={showDividers ? 'whitespace-pre-wrap break-words text-sm text-foreground' : 'whitespace-pre-wrap break-words text-sm text-foreground leading-relaxed'}
                     />
                   ) : null}
                   {images.length ? (

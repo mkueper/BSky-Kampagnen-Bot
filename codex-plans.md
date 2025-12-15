@@ -47,6 +47,10 @@ Im Client als nächstes: UX für Erwähnungen/Auto‑Paging finalisieren (wie Or
 8. Docker-Bundle/Setup-Skript um Option erweitern, beim Packen eine Demo-Datenbank zu erzeugen oder bestehende DB zu bereinigen.
 9. Cron-Formular visual harmonisieren (Zufallsversatz-Feld + Erläuterung deutlicher konsolidieren), sobald restliche Scheduler-Aufgaben erledigt sind.
 
+### 4.4 Terminologie & Konsistenz
+
+10. UI-Terminologie angleichen: In allen Frontends (Dashboard, bsky-client, shared-ui) „Skeet“ durch „Post“ ersetzen, inkl. Tooltips, Buttons, Texte und Übersetzungen, damit Nutzer konsistente Begriffe sehen.
+
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
 - Docker‑Bundle und Setup‑Skript liefern ein lauffähiges Kampagnen‑Tool ohne Bluesky‑Client; nach dem Entpacken und `setup-kampagnen-tool.sh` sind Backend und Dashboard erreichbar, Migrationen ausgeführt und `/data/medien` als Upload‑Pfad aktiv.

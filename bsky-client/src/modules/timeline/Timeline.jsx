@@ -6,7 +6,7 @@ import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { runListRefresh, runListLoadMore } from '../listView/listService.js'
+import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
 
 export default function Timeline ({ listKey = 'discover', renderMode, isActive = true }) {
@@ -152,6 +152,7 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
         itemHeight={220}
         virtualizationThreshold={100}
         overscan={4}
+        getItemId={getListItemId}
         renderItem={(it) => (
           <SkeetItem
             item={it}

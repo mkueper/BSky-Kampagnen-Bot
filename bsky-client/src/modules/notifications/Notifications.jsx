@@ -10,7 +10,7 @@ import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { runListRefresh, runListLoadMore } from '../listView/listService.js'
+import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
 
 
@@ -354,6 +354,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const dispatch = useAppDispatch()
   const { quoteReposts } = useAppState()
   const { t } = useTranslation()
+  const cardRef = useRef(null)
   const {
     author = {},
     reason = 'unknown',
@@ -423,6 +424,37 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       onMarkRead(item)
     }
   }, [isRead, onMarkRead, item])
+
+  useEffect(() => {
+    if (isRead) return undefined
+    const target = cardRef.current
+    if (!target) return undefined
+
+    if (typeof IntersectionObserver !== 'function') {
+      markAsRead()
+      return undefined
+    }
+
+    const root = typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+      if (entry.isIntersecting) {
+        markAsRead()
+        observer.disconnect()
+      }
+    }, {
+      root,
+      threshold: 0.35
+    })
+    observer.observe(target)
+    return () => {
+      observer.disconnect()
+    }
+  }, [isRead, markAsRead])
 
   const handleToggleLike = useCallback(async () => {
     clearError()
@@ -522,6 +554,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
   return (
     <Card
+      ref={cardRef}
       as='article'
       padding='p-4'
       hover={false}
@@ -1259,6 +1292,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         itemHeight={200}
         virtualizationThreshold={100}
         overscan={4}
+        getItemId={getListItemId}
         renderItem={(item) => (
           <NotificationCard
             item={item}

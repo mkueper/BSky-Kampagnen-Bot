@@ -84,6 +84,7 @@ export default function SidebarNav ({
   onAddAccount = null,
   onLogout = null,
   logoutPending = false,
+  onOpenClientSettings = null,
   showLabels = false
 }) {
   const { t } = useTranslation()
@@ -106,6 +107,7 @@ export default function SidebarNav ({
   const hasMenuAccounts = accounts.length > 0
   const menuTitle = t('nav.accountSwitchTitle', 'Account wechseln')
   const addAccountLabel = t('nav.addAccount', 'Weiteren Account hinzufügen')
+  const clientSettingsLabel = t('nav.clientSettings', 'Client-Einstellungen')
   const profileLabel = t('nav.viewProfile', 'Zum Profil')
   const resolvedThemeToggle = themeToggle || null
   const showThemeToggle = Boolean(resolvedThemeToggle)
@@ -132,6 +134,12 @@ export default function SidebarNav ({
     setAccountMenuOpen(false)
     if (typeof onLogout === 'function') {
       onLogout()
+    }
+  }
+  const handleOpenClientSettings = () => {
+    setAccountMenuOpen(false)
+    if (typeof onOpenClientSettings === 'function') {
+      onOpenClientSettings()
     }
   }
   const handleSwitchAccount = targetAccount => {
@@ -258,6 +266,11 @@ export default function SidebarNav ({
                 {typeof onAddAccount === 'function' ? (
                   <InlineMenuItem icon={PlusIcon} onSelect={handleAddAccount}>
                     {addAccountLabel}
+                  </InlineMenuItem>
+                ) : null}
+                {typeof onOpenClientSettings === 'function' ? (
+                  <InlineMenuItem icon={GearIcon} onSelect={handleOpenClientSettings}>
+                    {clientSettingsLabel}
                   </InlineMenuItem>
                 ) : null}
                 <InlineMenuItem icon={ExitIcon} onSelect={handleLogoutClick} disabled={logoutPending}>

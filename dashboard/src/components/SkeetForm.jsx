@@ -201,12 +201,19 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     : ''
   const hasContentOrMedia =
     content.trim().length > 0 || totalMediaCount > 0
+  const previewUnavailableMessage = t(
+    'posts.form.preview.unavailableStandalone',
+    'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+  )
   const {
     previewUrl,
     preview,
     loading: previewLoading,
     error: previewError
-  } = useLinkPreview(content, { enabled: !previewBlocked })
+  } = useLinkPreview(content, {
+    enabled: !previewBlocked,
+    unavailableMessage: previewUnavailableMessage
+  })
   const initializedRef = useRef(false)
   const prevEditingRef = useRef(Boolean(editingSkeet))
 

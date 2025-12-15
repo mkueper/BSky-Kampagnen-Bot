@@ -15,6 +15,7 @@ import { useTranslation } from '../../i18n/I18nProvider.jsx';
 import LoginView from '../login/LoginView.jsx'
 import { useInteractionSettingsControls } from '../composer/useInteractionSettingsControls.js'
 import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
+import ClientSettingsModal from '../settings/ClientSettingsModal.jsx'
 
 const THREAD_MEDIA_MAX_PER_SEGMENT = 4
 const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -45,7 +46,7 @@ function buildThreadReplyContext (root, parent) {
 }
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { clientConfig } = useClientConfig()
@@ -322,6 +323,10 @@ export function Modals() {
         onDraftChange={updateInteractionDraft}
         onLoadLists={loadLists}
         onSave={saveInteractionChanges}
+      />
+      <ClientSettingsModal
+        open={Boolean(clientSettingsOpen)}
+        onClose={() => dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
       />
 
     </>

@@ -93,6 +93,18 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
 20. Hover-Kontrast in Dark-Themes:
    - Hover-State so anpassen, dass er in dunklen Themes klar erkennbar ist (z. B. zusätzlicher Rahmen/Outline).
 
+21. Composer nach dem Planen geöffnet lassen (Option):
+   - Einstellung ergänzen, mit der sich das Verhalten nach „Post/Thread planen“ steuern lässt (z. B. Checkbox „Im Editor bleiben“); sofern aktiv, bleibt der Nutzer im Planungsmodus und kann direkt den nächsten Post vorbereiten, statt automatisch zu „Geplant/Aktivität“ zu springen.
+
+22. SearchView stabilisieren:
+   - Sicherstellen, dass `useSearchContext` nur verwendet wird, wenn der `SearchProvider` aktiv ist (z. B. guard in `ClientApp` oder fallback-Routing), damit der sporadische Fehler „useSearchContext muss innerhalb eines SearchProvider verwendet werden“ endgültig verschwindet.
+
+23. Timeline-Umschaltlogik überprüfen:
+   - Das Wechseln zwischen Timeline-Tabs (Home, Discover, Feeds etc.) zeigt aktuell Sprünge und reagiert empfindlich auf Badge-Updates. Gesamte Logik (Scroll-Positionen, Refresh-Verhalten, Badge-Resets) analysieren und stabilisieren.
+
+24. Link-Vorschau-Tipp UX:
+   - Im Composer prüfen, wie wir Bluesky’s Verhalten (Link einfügen → Vorschau → Link entfernen) kommunikativ oder technisch abbilden können, damit Nutzer die vollen 300 Zeichen erhalten und Vorschauen optional entfernen können (Hinweis/Tooltip oder automatische Hilfestellung).
+
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
 - Im `bsky-client` existieren keine direkten Imports aus `backend/**` oder `dashboard/**`; alle geteilten Bausteine kommen aus `packages/*`.

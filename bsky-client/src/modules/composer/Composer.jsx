@@ -13,6 +13,15 @@ const MAX_GIF_BYTES = 8 * 1024 * 1024
 const POST_CHAR_LIMIT = 300
 const PREVIEW_TYPING_DELAY = 600
 
+function normalizePreviewUrl (value) {
+  if (!value) return ''
+  try {
+    return new URL(String(value)).toString()
+  } catch {
+    return String(value || '').trim()
+  }
+}
+
 function createEmptyAltDialogState () {
   return {
     open: false,
@@ -228,6 +237,17 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [clientConfig?.gifs?.tenorApiKey])
 
   const urlCandidate = useMemo(() => detectUrlCandidate(text), [text])
+  const previewDismissed = useMemo(() => {
+    if (!dismissedPreviewUrl) return false
+    const normalizedDismissed = normalizePreviewUrl(dismissedPreviewUrl)
+    if (!normalizedDismissed) return false
+    const normalizedPreviewUri = normalizePreviewUrl(preview?.uri)
+    const normalizedPreviewUrl = normalizePreviewUrl(previewUrl)
+    return (
+      (normalizedPreviewUri && normalizedPreviewUri === normalizedDismissed) ||
+      (normalizedPreviewUrl && normalizedPreviewUrl === normalizedDismissed)
+    )
+  }, [dismissedPreviewUrl, preview?.uri, previewUrl])
 
   useEffect(() => {
     const normalized = urlCandidate.url || ''
@@ -262,47 +282,43 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
   useEffect(() => {
     const url = String(previewUrl || '').trim()
-    if (!url) return
-    if (dismissedPreviewUrl && dismissedPreviewUrl === url) return
-    let cancelled = false
-    const controller = new AbortController()
-    const debounceDelay = 600
-    const timeoutId = setTimeout(async () => {
-      if (cancelled) return
-      setPreviewLoading(true)
+    if (!url) {
+      setPreview(null)
       setPreviewError('')
-      try {
-        const res = await fetch(`/api/preview?url=${encodeURIComponent(url)}`, { signal: controller.signal })
-        if (!res.ok) {
-          const text = await res.text().catch(() => '')
-          throw new Error(text || `Preview fehlgeschlagen (HTTP ${res.status})`)
-        }
-        const data = await res.json()
-        if (cancelled) return
-        setPreview({
-          uri: data?.uri || url,
-          title: data?.title || '',
-          description: data?.description || '',
-          image: data?.image || '',
-          domain: data?.domain || ''
-        })
-        setPreviewError('')
-      } catch (e) {
-        if (cancelled) return
-        if (e?.name === 'AbortError') return
-        setPreview(null)
-        setPreviewError(e?.message || 'Preview fehlgeschlagen')
-      } finally {
-        if (!cancelled) setPreviewLoading(false)
-      }
-    }, debounceDelay)
+      setPreviewLoading(false)
+      return
+    }
+    if (previewDismissed) {
+      setPreview(null)
+      setPreviewError('')
+      setPreviewLoading(false)
+      return
+    }
+    let cancelled = false
+    setPreviewLoading(true)
+    const timeoutId = setTimeout(() => {
+      if (cancelled) return
+      setPreview({
+        uri: url,
+        title: '',
+        description: '',
+        image: '',
+        domain: ''
+      })
+      setPreviewError(
+        t(
+          'compose.previewUnavailableStandalone',
+          'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+        )
+      )
+      setPreviewLoading(false)
+    }, PREVIEW_TYPING_DELAY)
 
     return () => {
       cancelled = true
       clearTimeout(timeoutId)
-      controller.abort()
     }
-  }, [dismissedPreviewUrl, previewUrl])
+  }, [previewDismissed, previewUrl, t])
 
   function updateCursorFromTextarea (target) {
     if (!target) return
@@ -462,6 +478,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   function buildExternalPayload () {
     if (!preview || !preview?.uri) return null
     if (pendingMedia.length > 0) return null
+    if (previewDismissed) return null
     try {
       const normalizedUrl = new URL(preview.uri)
       return {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/i
 const TRAILING_PUNCTUATION = /[),.;!?]+$/
@@ -21,12 +21,13 @@ export function extractFirstUrl (text) {
   return match ? sanitizeUrl(match[0]) : ''
 }
 
-export function useLinkPreview (text, { enabled = true } = {}) {
+const DEFAULT_UNAVAILABLE_MESSAGE = 'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+
+export function useLinkPreview (text, { enabled = true, unavailableMessage = DEFAULT_UNAVAILABLE_MESSAGE } = {}) {
   const [previewUrl, setPreviewUrl] = useState('')
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const abortRef = useRef(null)
 
   const candidateUrl = useMemo(() => (enabled ? extractFirstUrl(text) : ''), [text, enabled])
 
@@ -36,45 +37,12 @@ export function useLinkPreview (text, { enabled = true } = {}) {
     setError('')
     if (!candidateUrl) {
       setLoading(false)
-      if (abortRef.current) {
-        abortRef.current.abort()
-        abortRef.current = null
-      }
       return
     }
 
-    const controller = new AbortController()
-    abortRef.current = controller
-    setLoading(true)
-
-    fetch(`/api/preview?url=${encodeURIComponent(candidateUrl)}`, { signal: controller.signal })
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          throw new Error(data?.error || `Preview fehlgeschlagen (HTTP ${res.status})`)
-        }
-        setPreview(data || null)
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return
-        setError(err?.message || 'Preview konnte nicht geladen werden.')
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-        if (abortRef.current === controller) {
-          abortRef.current = null
-        }
-      })
-
-    return () => {
-      controller.abort()
-      if (abortRef.current === controller) {
-        abortRef.current = null
-      }
-    }
-  }, [candidateUrl])
+    setLoading(false)
+    setError(unavailableMessage || DEFAULT_UNAVAILABLE_MESSAGE)
+  }, [candidateUrl, unavailableMessage])
 
   return {
     previewUrl,

@@ -4,6 +4,8 @@ import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'
 
 const DEFAULT_DISABLED_REASON = 'Link-Vorschauen stehen nur zur Verfügung, wenn keine Medien angehängt sind.'
+const DEFAULT_UNAVAILABLE_PREVIEW_MESSAGE =
+  'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
 
 function ContentWithLinkPreview ({
   content,
@@ -18,7 +20,10 @@ function ContentWithLinkPreview ({
     preview,
     loading,
     error
-  } = useLinkPreview(content, { enabled: !previewDisabled })
+  } = useLinkPreview(content, {
+    enabled: !previewDisabled,
+    unavailableMessage: DEFAULT_UNAVAILABLE_PREVIEW_MESSAGE
+  })
 
   return (
     <>

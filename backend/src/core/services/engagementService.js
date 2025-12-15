@@ -8,6 +8,7 @@ const {
   getStatus: getMastodonStatus,
   getStatusContext: getMastodonStatusContext,
 } = require('./mastodonClient');
+const { resolveOwnHandles, resolveMastodonIdentifiers, normalizeHandle } = require('./engagementHelpers');
 
 function parsePlatformResults(raw) {
   if (!raw) return {};
@@ -38,21 +39,6 @@ function findFirstAtUri(...candidates) {
     }
   }
   return null;
-}
-
-function extractMastodonStatusId(uri) {
-  if (typeof uri !== 'string' || uri.trim() === '') {
-    return null;
-  }
-  try {
-    const parsed = new URL(uri);
-    const segments = parsed.pathname.split('/').filter(Boolean);
-    return segments.pop() || null;
-  } catch (error) {
-    log.warn('Ungültige Mastodon-URI', { error: error?.message || String(error) });
-    const fallbackSegments = uri.split('/').filter(Boolean);
-    return fallbackSegments.pop() || null;
-  }
 }
 
 function normalizeTargetList(skeet) {
@@ -100,10 +86,11 @@ function stripHtml(input) {
   return decodeHtmlEntities(withoutTags).trim();
 }
 
-function extractMastodonReplies(descendants) {
+function extractMastodonReplies(descendants, ownHandle) {
   if (!Array.isArray(descendants)) {
     return [];
   }
+  const normalizedOwnHandle = normalizeHandle(ownHandle);
 
   return descendants
     .map((status) => {
@@ -116,6 +103,10 @@ function extractMastodonReplies(descendants) {
       const indexedAt = status.created_at || status.createdAt || new Date().toISOString();
 
       if (!authorHandle || !content) {
+        return null;
+      }
+      const normalizedAuthor = normalizeHandle(authorHandle);
+      if (normalizedOwnHandle && normalizedAuthor === normalizedOwnHandle) {
         return null;
       }
 
@@ -179,12 +170,7 @@ async function collectReactions(skeetId) {
 
   const mastodonEntry = platformResults.mastodon || {};
   const mastodonConfigured = hasMastodonCredentials();
-  const mastodonUrlCandidate = mastodonEntry.uri || mastodonEntry.raw?.url || mastodonEntry.raw?.uri || null;
-  let mastodonStatusId = mastodonEntry.statusId || null;
-  if (!mastodonStatusId && mastodonUrlCandidate) {
-    mastodonStatusId = extractMastodonStatusId(mastodonUrlCandidate);
-  }
-
+  const { statusId: mastodonStatusId, urlCandidate: mastodonUrlCandidate } = resolveMastodonIdentifiers(mastodonEntry);
   const shouldFetchMastodon = mastodonConfigured && (mastodonStatusId || mastodonUrlCandidate);
   if (shouldFetchMastodon) {
     if (mastodonStatusId) {
@@ -241,11 +227,12 @@ async function collectReactions(skeetId) {
   return payload;
 }
 
-function extractRepliesFromThread(thread) {
+function extractRepliesFromThread(thread, ownHandle) {
   if (!thread || typeof thread !== 'object') return [];
 
   const queue = Array.isArray(thread.replies) ? [...thread.replies] : [];
   const collected = [];
+  const normalizedOwnHandle = normalizeHandle(ownHandle);
 
   while (queue.length > 0) {
     const node = queue.shift();
@@ -263,6 +250,11 @@ function extractRepliesFromThread(thread) {
     const indexedAt = post.indexedAt ?? post.record?.createdAt ?? new Date().toISOString();
 
     if (!authorHandle) {
+      continue;
+    }
+
+    const normalizedAuthor = normalizeHandle(authorHandle);
+    if (normalizedOwnHandle && normalizedAuthor === normalizedOwnHandle) {
       continue;
     }
 
@@ -286,6 +278,7 @@ async function fetchReplies(skeetId) {
   }
 
   const platformResults = parsePlatformResults(skeet.platformResults);
+  const ownHandles = resolveOwnHandles({ platformResults });
   const responses = [];
   const errors = {};
 
@@ -295,7 +288,7 @@ async function fetchReplies(skeetId) {
   if (isAtUri(blueskyUri || '')) {
     try {
       const repliesData = await fetchBlueskyReplies(blueskyUri);
-      const blueskyReplies = extractRepliesFromThread(repliesData).map((reply) => ({
+      const blueskyReplies = extractRepliesFromThread(repliesData, ownHandles.bluesky).map((reply) => ({
         ...reply,
         platform: 'bluesky',
         createdAt: reply.indexedAt,
@@ -310,17 +303,13 @@ async function fetchReplies(skeetId) {
 
   const mastodonEntry = platformResults.mastodon || {};
   const mastodonConfigured = hasMastodonCredentials();
-  const mastodonUrlCandidate = mastodonEntry.uri || mastodonEntry.raw?.url || mastodonEntry.raw?.uri || null;
-  let mastodonStatusId = mastodonEntry.statusId || null;
-  if (!mastodonStatusId && mastodonUrlCandidate) {
-    mastodonStatusId = extractMastodonStatusId(mastodonUrlCandidate);
-  }
+  const { statusId: mastodonStatusId, urlCandidate: mastodonUrlCandidate } = resolveMastodonIdentifiers(mastodonEntry);
 
   if (mastodonConfigured && (mastodonStatusId || mastodonUrlCandidate)) {
     if (mastodonStatusId) {
       try {
         const context = await getMastodonStatusContext(mastodonStatusId);
-        const mastodonReplies = extractMastodonReplies(context?.descendants);
+        const mastodonReplies = extractMastodonReplies(context?.descendants, ownHandles.mastodon);
         responses.push(...mastodonReplies);
       } catch (error) {
         errors.mastodon = error?.message || 'Fehler beim Laden der Mastodon-Replies.';

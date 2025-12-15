@@ -58,7 +58,8 @@ const initialState = {
     description: '',
     query: '',
     tab: 'top'
-  }
+  },
+  clientSettingsOpen: false
 };
 
 function patchObjectIfMatches (obj, targetUri, patch) {
@@ -286,6 +287,12 @@ function appReducer(state, action) {
       return {
         ...state,
         threadUnroll: { open: false }
+      }
+    }
+    case 'SET_CLIENT_SETTINGS_OPEN': {
+      return {
+        ...state,
+        clientSettingsOpen: Boolean(action.payload)
       }
     }
     case 'SET_FEED_PICKER_STATE': {

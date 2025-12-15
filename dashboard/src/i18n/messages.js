@@ -185,7 +185,9 @@ const messages = {
         },
         preview: {
           label: 'Vorschau',
-          infoAria: 'Hinweis zur Vorschau anzeigen'
+          infoAria: 'Hinweis zur Vorschau anzeigen',
+          unavailableStandalone:
+            'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
         },
         infoButtonLabel: 'Info',
         infoButtonTitle: 'Hinweis anzeigen',
@@ -1102,7 +1104,8 @@ const messages = {
         },
         preview: {
           heading: 'Preview',
-          infoAria: 'Show hint for preview'
+          infoAria: 'Show hint for preview',
+          unavailableStandalone: 'Link preview is not available in standalone mode yet.'
         },
         infoButtonLabel: 'Info',
         infoButtonTitle: 'Show hint',

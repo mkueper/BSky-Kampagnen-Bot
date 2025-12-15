@@ -38,6 +38,7 @@ const defaultLabels = {
   placeholder: 'Example:\nIntro...\n---\nNext post...',
   numberingToggle: 'Append automatic numbering (1/x)',
   previewTitle: 'Preview',
+  previewUnavailable: 'Link preview is not available in standalone mode yet.',
   postsCounter: (count) => `${count} post${count === 1 ? '' : 's'}`,
   segmentLabel: (index) => `Post ${index}`,
   charCount: (count, max) => (max ? `${count} / ${max}` : `${count}`),
@@ -879,6 +880,7 @@ export default function ThreadComposer({
                     <SegmentLinkPreview
                       url={segmentUrl}
                       onDismiss={() => handleDismissPreview(segment.id, segmentUrl)}
+                      unavailableMessage={mergedLabels.previewUnavailable}
                     />
                   ) : null}
                   {Number.isFinite(mediaMaxPerSegment) ? (
@@ -1030,6 +1032,7 @@ ThreadComposer.propTypes = {
     altAddTitle: PropTypes.string,
     altEditTitle: PropTypes.string,
     threadLimitWarning: PropTypes.func,
+    previewUnavailable: PropTypes.string,
   }),
   className: PropTypes.string,
   onSegmentsChange: PropTypes.func,
@@ -1045,7 +1048,7 @@ ThreadComposer.propTypes = {
   footerAside: PropTypes.node,
 }
 
-function useSegmentLinkPreview(url) {
+function useSegmentLinkPreview(url, { unavailableMessage = '' } = {}) {
   const [state, setState] = useState({
     loading: false,
     data: null,
@@ -1057,43 +1060,27 @@ function useSegmentLinkPreview(url) {
       setState({ loading: false, data: null, error: '' })
       return
     }
-    let cancelled = false
-    const controller = new AbortController()
-    setState({ loading: true, data: null, error: '' })
-    const loadPreview = async () => {
-      try {
-        const response = await fetch(
-          `/api/preview?url=${encodeURIComponent(url)}`,
-          { signal: controller.signal },
-        )
-        if (!response.ok) {
-          const text = await response.text().catch(() => '')
-          throw new Error(text || `Preview fehlgeschlagen (${response.status})`)
-        }
-        const payload = await response.json()
-        if (cancelled) return
-        setState({ loading: false, data: payload, error: '' })
-      } catch (error) {
-        if (error?.name === 'AbortError' || cancelled) return
-        setState({
-          loading: false,
-          data: null,
-          error: error?.message || 'Preview fehlgeschlagen',
-        })
-      }
-    }
-    loadPreview()
+    setState({
+      loading: false,
+      data: { uri: url },
+      error: unavailableMessage || '',
+    })
     return () => {
-      cancelled = true
-      controller.abort()
+      setState((prev) =>
+        prev.loading
+          ? { loading: false, data: prev.data, error: prev.error }
+          : prev,
+      )
     }
-  }, [url])
+  }, [url, unavailableMessage])
 
   return state
 }
 
-function SegmentLinkPreview({ url, onDismiss }) {
-  const { loading, data, error } = useSegmentLinkPreview(url)
+function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
+  const { loading, data, error } = useSegmentLinkPreview(url, {
+    unavailableMessage,
+  })
   if (!url) return null
   let hostname = ''
   try {
@@ -1140,7 +1127,7 @@ function SegmentLinkPreview({ url, onDismiss }) {
           ) : null}
           <p className='mt-1 text-xs text-foreground-subtle'>{domain}</p>
           <div className='text-xs text-foreground-muted'>
-            {loading ? 'Lade…' : error ? 'Kein Preview' : ''}
+            {loading ? 'Lade…' : error ? error : ''}
           </div>
         </div>
       </div>
@@ -1151,4 +1138,5 @@ function SegmentLinkPreview({ url, onDismiss }) {
 SegmentLinkPreview.propTypes = {
   url: PropTypes.string.isRequired,
   onDismiss: PropTypes.func,
+  unavailableMessage: PropTypes.string,
 }

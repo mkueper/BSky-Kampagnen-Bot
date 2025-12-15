@@ -4,7 +4,6 @@
  * pro Plattform und speichert sie an den Segmenten bzw. im Thread-Metadatenfeld.
  */
 const { sequelize, Thread, ThreadSkeet, SkeetReaction } = require("@data/models");
-const { env } = require('@env');
 const events = require("./events");
 const { createLogger, isEngagementDebug } = require("@utils/logging");
 const log = createLogger('engagement');
@@ -14,6 +13,7 @@ const {
   getStatus: mastoGetStatus,
   getStatusContext: mastoGetStatusContext,
 } = require("./mastodonClient");
+const { resolveOwnHandles, normalizeHandle } = require('./engagementHelpers');
 
 function emitThreadEvent(eventName, payload) {
   try {
@@ -62,19 +62,11 @@ function stripHtml(input) {
     .trim();
 }
 
-const normalizeHandle = (handle) =>
-  typeof handle === 'string'
-    ? handle.trim().replace(/^@+/, '').toLowerCase()
-    : '';
-
-const OWN_HANDLES = {
-  bluesky: normalizeHandle(env?.bluesky?.identifier || ''),
-};
-
-function extractBskyRepliesFromThread(thread) {
+function extractBskyRepliesFromThread(thread, ownHandle) {
   if (!thread || typeof thread !== "object") return [];
   const out = [];
   const queue = Array.isArray(thread.replies) ? [...thread.replies] : [];
+  const normalizedOwn = normalizeHandle(ownHandle);
   while (queue.length) {
     const node = queue.shift();
     if (node?.replies?.length) queue.push(...node.replies);
@@ -85,7 +77,7 @@ function extractBskyRepliesFromThread(thread) {
     const indexedAt = post.indexedAt ?? post.record?.createdAt ?? new Date().toISOString();
     if (authorHandle && content) {
       const normalizedAuthor = normalizeHandle(authorHandle);
-      if (OWN_HANDLES.bluesky && normalizedAuthor === OWN_HANDLES.bluesky) {
+      if (normalizedOwn && normalizedAuthor === normalizedOwn) {
         continue;
       }
       out.push({ platform: "bluesky", authorHandle, content, createdAt: indexedAt });
@@ -94,14 +86,19 @@ function extractBskyRepliesFromThread(thread) {
   return out;
 }
 
-function extractMastoRepliesFromContext(context) {
+function extractMastoRepliesFromContext(context, ownHandle) {
   const list = Array.isArray(context?.descendants) ? context.descendants : [];
+  const normalizedOwn = normalizeHandle(ownHandle);
   return list
     .map((s) => {
       const authorHandle = s?.account?.acct || s?.account?.username || "";
       const content = stripHtml(String(s?.content || ""));
       const createdAt = s?.created_at || s?.createdAt || new Date().toISOString();
       if (!authorHandle || !content) return null;
+      const normalizedAuthor = normalizeHandle(authorHandle);
+      if (normalizedOwn && normalizedAuthor === normalizedOwn) {
+        return null;
+      }
       return { platform: "mastodon", authorHandle, content, createdAt };
     })
     .filter(Boolean);
@@ -125,6 +122,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
   // Metadaten-Struktur vorbereiten
   const metadata = thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata) ? { ...thread.metadata } : {};
   const platformResults = metadata.platformResults && typeof metadata.platformResults === "object" && !Array.isArray(metadata.platformResults) ? { ...metadata.platformResults } : {};
+  const ownHandles = resolveOwnHandles({ platformResults });
 
   const nowIso = new Date().toISOString();
   let totalLikes = 0;
@@ -194,7 +192,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
           reposts = r.repostsCount;
           if (includeReplies) {
             const tree = await bskyGetPostThread(uri);
-            replies = extractBskyRepliesFromThread(tree);
+            replies = extractBskyRepliesFromThread(tree, ownHandles.bluesky);
           }
           if (isEngagementDebug()) {
             log.debug(`Bsky segment | seq=${sequence} | uri=${uri} | likes=${likes} | reposts=${reposts} | replies=${replies.length}`);
@@ -208,7 +206,7 @@ async function refreshThreadEngagement(threadId, { includeReplies = true } = {})
             reposts = Number(s?.reblogs_count) || 0;
             if (includeReplies) {
               const ctx = await mastoGetStatusContext(statusId);
-              replies = extractMastoRepliesFromContext(ctx);
+              replies = extractMastoRepliesFromContext(ctx, ownHandles.mastodon);
             }
             if (isEngagementDebug()) {
               log.debug(`Masto segment | seq=${sequence} | statusId=${statusId} | likes=${likes} | reposts=${reposts} | replies=${replies.length}`);

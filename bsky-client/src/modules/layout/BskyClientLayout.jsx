@@ -127,7 +127,8 @@ export default function BskyClientLayout ({
   onSwitchAccount = null,
   onAddAccount = null,
   onLogout = null,
-  logoutPending = false
+  logoutPending = false,
+  onOpenClientSettings = null
 }) {
   const { t } = useTranslation()
   const [isMobile, setIsMobile] = useState(computeIsMobile)
@@ -225,6 +226,11 @@ export default function BskyClientLayout ({
       onOpenComposeThread()
     }
   }, [onOpenComposeThread])
+  const handleOpenClientSettings = useCallback(() => {
+    if (typeof onOpenClientSettings === 'function') {
+      onOpenClientSettings()
+    }
+  }, [onOpenClientSettings])
 
   const asideClassName = clsx(
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
@@ -325,6 +331,7 @@ export default function BskyClientLayout ({
             onAddAccount={onAddAccount}
             onLogout={onLogout}
             logoutPending={logoutPending}
+            onOpenClientSettings={handleOpenClientSettings}
             showLabels
           />
         </Drawer>
@@ -348,6 +355,7 @@ export default function BskyClientLayout ({
             onAddAccount={onAddAccount}
             onLogout={onLogout}
             logoutPending={logoutPending}
+            onOpenClientSettings={handleOpenClientSettings}
           />
         </aside>
       ) : null}

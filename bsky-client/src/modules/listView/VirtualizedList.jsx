@@ -9,6 +9,7 @@ export function VirtualizedList ({
   virtualizationThreshold = 100,
   itemHeight,
   overscan = 3,
+  getItemId,
   debugVirtualization = false,
   ...passthroughProps
 }) {
@@ -168,8 +169,15 @@ export function VirtualizedList ({
       >
         {visibleItems.map((item, index) => {
           const itemIndex = isVirtualized ? startIndex + index : index
+          const itemId =
+            typeof getItemId === 'function'
+              ? getItemId(item, itemIndex)
+              : null
           return (
-            <li key={getItemKey(item, itemIndex)}>
+            <li
+              key={getItemKey(item, itemIndex)}
+              {...(itemId ? { 'data-list-item-id': itemId } : {})}
+            >
               {renderItem(item, itemIndex)}
             </li>
           )

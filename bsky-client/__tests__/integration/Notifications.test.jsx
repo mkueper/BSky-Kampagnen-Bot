@@ -86,11 +86,15 @@ vi.mock('../../src/modules/shared', () => {
     clearError: () => {}
   })
 
-  const Card = ({ as: Component = 'div', children, ...rest }) => {
+  const Card = React.forwardRef(({ as: Component = 'div', children, ...rest }, ref) => {
     const { padding, hover, ...domProps } = rest
     const Tag = Component || 'div'
-    return <Tag {...domProps}>{children}</Tag>
-  }
+    return (
+      <Tag ref={ref} {...domProps}>
+        {children}
+      </Tag>
+    )
+  })
 
   const RepostMenuButton = ({ onRepost, onQuote }) => (
     <div>
@@ -168,7 +172,13 @@ vi.mock('../../src/modules/listView/listService.js', () => {
         }
       })
       return { ...page, items: nextItems }
-    }
+    },
+    getListItemId: (item) =>
+      item?.listEntryId ||
+      item?.uri ||
+      item?.cid ||
+      item?.id ||
+      null
   }
 })
 
@@ -354,6 +364,34 @@ describe('NotificationCard interactions', () => {
     expect(handleSelect).toHaveBeenCalledTimes(1)
     const selected = handleSelect.mock.calls[0][0]
     expect(selected?.uri).toBe(item.subject?.raw?.post?.uri ?? item.uri)
+  })
+
+  it('markiert ungelesene Einträge automatisch beim Sichtbarwerden', () => {
+    const item = { ...createNotification({ id: 'auto-1' }), isRead: false }
+    const handleMarkRead = vi.fn()
+    const originalObserver = global.IntersectionObserver
+    const observers = []
+
+    class ImmediateObserver {
+      constructor (callback) {
+        this.callback = callback
+        observers.push(this)
+      }
+      observe () {}
+      unobserve () {}
+      disconnect () {}
+    }
+
+    global.IntersectionObserver = ImmediateObserver
+
+    try {
+      renderWithProviders(<NotificationCard item={item} onMarkRead={handleMarkRead} />)
+      expect(observers).toHaveLength(1)
+      act(() => observers[0].callback([{ isIntersecting: true }]))
+      expect(handleMarkRead).toHaveBeenCalledWith(item)
+    } finally {
+      global.IntersectionObserver = originalObserver
+    }
   })
 
   it('löst Reply- und Quote-Aktionen für Antwort-Benachrichtigungen aus', async () => {
