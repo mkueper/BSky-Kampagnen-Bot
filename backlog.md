@@ -3,19 +3,15 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-1. Reducer-Logik im `AppContext` vereinfachen (z. B. strukturierte combineReducers-Variante).
-2. Direkte DOM-Zugriffe (z. B. `getElementById`) durch React-Refs (`useRef`) ersetzen, damit Scroll-Container/Observer konsistent steuerbar sind.
-3. Nachgeahmte Redux Muster durch Redux ersetzen (z,B, createSlice)
-4. Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
-5. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
+1. Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
+2. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
 
 ## Feature-Kandidaten
 1. Notifications-Filter: Konfigurationsbutton im Header mit echtem Filter-Overlay und speicherbarer Auswahl.
-2. Chat-Pane: Chat-Ansicht inkl. Routing, Feed, Composer und Integration ins Layout.
-3. Feeds-Sektion: Eigene Pane für Feed-Management/Explorer (Routing + Filter).
-4. Listen-Verwaltung: Pane für das Anzeigen/Erstellen von Listen (inkl. Detailansichten).
-5. Einstellungen erweitern: Konfigurationsbereich für weitere Optionen (z. B. Sprache, Notification-Filter, Experiment-Flags).
-6. Einheitlicher Ladeindikator: Spinner-Slots in allen Pane-Headern anzeigen (auch beim initialen Laden), damit Refresh-Status und Skeletons konsistent erkennbar bleiben.
+2. Feeds-Sektion: Eigene Pane für Feed-Management/Explorer (Routing + Filter).
+3. Listen-Verwaltung: Pane für das Anzeigen/Erstellen von Listen (inkl. Detailansichten).
+4. Einstellungen erweitern: Konfigurationsbereich für weitere Optionen (z. B. Sprache, Notification-Filter, Experiment-Flags).
+5. Einheitlicher Ladeindikator: Spinner-Slots in allen Pane-Headern anzeigen (auch beim initialen Laden), damit Refresh-Status und Skeletons konsistent erkennbar bleiben.
 
 ## In Progress
 (leer)
@@ -26,9 +22,7 @@ Aktive Bugs werden pro Bereich in den Codex-Plänen geführt (siehe `codex-plans
 ## Review
 1. Pane-Routing über `react-router-dom` (HashRouter) weiter ausbauen (Nested Routes, Direktaufrufe für zukünftige Chats/Feeds).
 2. Weitere Feeds (Notifications, SavedFeed etc.) auf useSWRInfinite ziehen.
-3. Beim Klicken in ein Suchergebnis soll der angeklickte Skeet in der Thread-Ansicht angezeigt werden. (Parent hochhangeln, bis zum ersten Post/Skeet)
-4. Detail-Pane (Profil/Mitteilungen) soll den kompletten rechten Bereich inkl. Header überlagern, damit Timeline-Controls nicht sichtbar bleiben.
-5. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
+3. Suche im Content-Pane an das Timeline/Mitteilungen-Layout anpassen (einheitlicher Header/Zurück-Button/Tabs).
 
 ## Done
 

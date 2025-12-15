@@ -21,13 +21,7 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Import‑Grenzen absichern:
-   - Im `bsky-client` alle Imports auf `bsky-client/src/**` und `packages/*` begrenzen; sicherstellen, dass es keine direkten Imports aus `backend/**` oder `dashboard/**` gibt (ggf. kleine ESLint‑Regel oder Projekt‑Konvention ergänzen).
-
-2. API‑Abhängigkeiten sichtbar machen:
-   - Alle aktuellen `/api/...`‑Aufrufe im `bsky-client` zentral dokumentieren (Auth/Session, `/api/me`, `/api/bsky/*`, `/api/uploads/*`, `/api/tenor/*`, `/api/client-config`) und im Code klar als „Backend‑Proxy für Bluesky“ kennzeichnen.
-
-3. Standalone-Modus vorbereiten:
+1. Standalone-Modus vorbereiten:
    - Ein Konfigurationsflag entwerfen (z. B. `VITE_CLIENT_MODE=backend|standalone`), das langfristig zwischen „Backend‑Modus“ (heutiges Verhalten) und „Standalone‑Modus“ (direkte Bluesky‑API) unterscheidet. Ziel: Schrittweise Entkopplung vom Backend, beginnend mit Auth/Session. Die Umstellung folgt einer festen Reihenfolge, damit jeder Schritt sofort live testbar ist:
      1. Auth & Session (`useBskyAuth`) – erledigt.
      2. Profil (`/api/me`) → Bluesky-Session/Profiles.
@@ -38,62 +32,49 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
      7. Uploads/Medien/Tenor → direkte Upload- & Drittanbieter-Integrationen.
      8. Client-Config/Polling → lokale Defaults oder separate Settings.
 
-4. Standalone Auth + API-Layer (Schritt 1):
-   - Einen neuen Auth-Store (`useBskyAuth`) implementieren, der `@atproto/api` direkt nutzt, Sessions speichert und UI-Status liefert (unauthenticated/authenticated/loading). Bestehende Hooks (LoginView etc.) darauf umstellen, ohne andere Module zu beeinflussen.
-
-5. Client-Config & .env Bereinigung:
+2. Client-Config & .env Bereinigung:
    - In `.env.sample` die Blöcke für Backend/Kampagnen‑Tool vs. `bsky-client` klarer labeln (Ports, VITE‑Variablen), damit künftige Missverständnisse bei Port‑ und Modus‑Konfiguration vermieden werden.
 
-6. ThreadComposer & gemeinsame Utils vorbereiten:
+3. ThreadComposer & gemeinsame Utils vorbereiten:
    - `ThreadComposer` als generische Komponente (zunächst im `bsky-client`) entwerfen und dabei Bild-/GIF‑Handling konsequent über gemeinsame Helfer laufen lassen (z. B. Split‑Logik, Komprimierung).
    - Eine neutrale Utils‑Schicht (z. B. `shared-logic`/`shared-utils`) als Ziel für Helfer wie `compressImage` und die Thread‑Segmentierung vormerken, statt diese dauerhaft in `shared-ui` zu belassen.
    - API-Replacements sollen nicht über neue Zwischen-APIs laufen; stattdessen verschieben wir wiederverwendbare Logik bewusst nach `shared-logic`/`shared-ui` und kapseln konkrete Protokolle (Bluesky, Mastodon, …) in kleine Client-Klassen wie den `BskyAgentClient`.
 
-7. README/Developer‑Hinweis:
+4. README/Developer‑Hinweis:
    - Kurz dokumentieren, dass `bsky-client` und Dashboard getrennte Frontends sind, die nur über `shared-ui`/`shared-logic` verbunden sind, und wie man jeden Teil im Dev‑Modus startet (`dev`, `dev:frontend`, `dev:bsky-client`).
-8. Generischen `ThreadComposer` in `shared-ui` vorbereiten:
-   - Eine generische UI‑Komponente `ThreadComposer` entwerfen, die über Props wie `value`, `onChange`, `maxLength`, `locale`, `hardBreakMarker` und `onSubmit(segments)` arbeitet und keinerlei Plattform‑ oder Scheduling‑Wissen enthält.
-   - Die Split‑Logik nach `shared-logic` auslagern (`splitThread({ text, maxLength, hardBreakMarker })`), so dass Dashboard, `bsky-client` und spätere Mastodon‑Unterstützung die gleiche Logik nutzen können.
-   - Im `bsky-client` den heutigen „+“‑Pfad perspektivisch durch einen „Sofort posten“-Einsatz von `ThreadComposer` ersetzen, während das Kampagnen‑Dashboard weiter seinen geplanten Scheduler nutzt.
-9. Timeline-Tabs (Client):
+
+5. Timeline-Tabs (Client):
    - Tabs für Timeline-Feeds (z. B. Discover/Following/Feeds) sauber definieren und im UI als echte Tabs abbilden (inkl. klarer Active-State, Refresh-Verhalten und Cursor-/Paging-Konsistenz je Tab).
 
-10. Binäre Badges in Timelines konfigurierbar machen:
+6. Binäre Badges in Timelines konfigurierbar machen:
    - Badges, die neue Inhalte anzeigen, prüfen/aktivieren.
    - Anzeige der binären Badges (z. B. „neu“/Zähler-Badges) in Timeline-Listen als Option unter „Aussehen“ vorsehen (Default wie bisher), damit das UI je nach Preference ruhiger geschaltet werden kann.
 
 11. Anmelde-Dialog erweitern (nicht sofort umsetzen):
    - Kontoauswahl anbieten, um zwischen vorhandenen Accounts wählen zu können (statt nur „neu anmelden“).
 
-12. Composer-Modal verbessern (Idee, nicht sofort umsetzen):
-   - Beim Antworten im Composer-Modal oberhalb des Eingabefelds den Post anzeigen, auf den geantwortet wird.
-
-13. Settings-UX vereinheitlichen (Notiz, später entscheiden):
+12. Settings-UX vereinheitlichen (Notiz, später entscheiden):
    - Prüfen, ob wir Settings sofort speichern oder ein explizites „Speichern“/„Übernehmen“ benötigen (globaler Speichern-Button vs. Feld-Commit z. B. per Häkchen).
-
-14. Push-UI modularisieren (Notiz, nicht sofort umsetzen):
+13. Push-UI modularisieren (Notiz, nicht sofort umsetzen):
    - Push-Konfiguration als wiederverwendbaren Baustein nach `packages/shared-ui` auslagern und im `bsky-client` vorerst nicht einbinden, bis ein echtes Push-Setup existiert.
 
-15. Login/Passwortfeld verbessern (Notiz, nicht sofort umsetzen):
-   - Im Passwort-Input einen Button „Passwort anzeigen“ ergänzen (Toggle Maskierung).
-
-16. Threads/Unterhaltungen begrenzen (Notiz, nicht sofort umsetzen):
+14. Threads/Unterhaltungen begrenzen (Notiz, nicht sofort umsetzen):
    - Unterhaltungen initial nur bis Tiefe 6 rendern; danach einen Button wie im Bluesky-UI („+ 1 weitere Antwort lesen“) anzeigen, der weitere Antworten nachlädt/aufklappt (erneut bis Tiefe 6, usw.).
 
-17. Erwähnungen/Auto-Paging UX klären (als nächstes):
+15. Erwähnungen/Auto-Paging UX klären (als nächstes):
    - Zielbild festlegen, wie im Original Bluesky: Mentions aus Notifications nachladen, ohne UI‑Sprünge, aber mit klarer Begrenzung/Stop‑Kriterium; aktuelles Verhalten (max. 5 Auto‑Loads) gemeinsam prüfen und ggf. feinjustieren.
    - Dabei das Paging-Verhalten des Originals prüfen (≈30–40 Items vorladen; beim Erreichen der Scroll-Schwelle weitere ≈30–40), insbesondere im Mentions-Tab.
 
 18. Composer: Einfügen aus Zwischenablage:
    - Im Composer das Einfügen von erlaubtem Content zulassen (Text, Emoji, Links, Bilder, GIF; Video ggf. später evaluieren).
 
-19. Unroll: Trennlinien-Option:
+18. Unroll: Trennlinien-Option:
    - Im Unroll-Fenster Trennlinien per Option in Einstellungen/Aussehen ein-/ausschaltbar machen.
 
-20. Hover-Kontrast in Dark-Themes:
+19. Hover-Kontrast in Dark-Themes:
    - Hover-State so anpassen, dass er in dunklen Themes klar erkennbar ist (z. B. zusätzlicher Rahmen/Outline).
 
-21. Composer nach dem Planen geöffnet lassen (Option):
+20. Composer nach dem Planen geöffnet lassen (Option):
    - Einstellung ergänzen, mit der sich das Verhalten nach „Post/Thread planen“ steuern lässt (z. B. Checkbox „Im Editor bleiben“); sofern aktiv, bleibt der Nutzer im Planungsmodus und kann direkt den nächsten Post vorbereiten, statt automatisch zu „Geplant/Aktivität“ zu springen.
 
 22. SearchView stabilisieren:
@@ -126,6 +107,9 @@ Der `bsky-client` läuft als eigenständiger Bluesky‑Client mit direktem `@atp
 30. Chat-Sortierung konfigurierbar machen:
    - Im Chat-Verlauf eine Option anbieten, ob Nachrichten auf- oder absteigend dargestellt werden sollen (z. B. Einstellung pro Nutzer oder per Toggle im Chat-Viewer) und sicherstellen, dass Auto-Scroll, Pagination und Read-Status mit beiden Modi funktionieren.
    - Wenn die Reihenfolge invertiert (neueste oben) dargestellt wird, muss das Eingabefeld entsprechend an den Anfang der Liste wandern, damit Nutzer weiterhin ohne Scrollen antworten können.
+31. Suche: Prefix-Hinweise verbessern:
+   - Statt des aktuellen Inline-Menüs ein Modal („Info“) anbinden, das alle Prefixes mit ausführlichen Beispielen und Beschreibungstexten zeigt (lokalisiert).
+   - Modal direkt neben dem Suchfeld aufrufbar (z. B. Info-Button), Inhalte aus den neuen Hint-Dateien speisen und bei Fehlern neutralen Fallback anzeigen.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
