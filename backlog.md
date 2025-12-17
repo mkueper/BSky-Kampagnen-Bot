@@ -3,8 +3,7 @@
 Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwischen den Phasen verschieben.
 
 ## Backlog
-1. Blockliste: Headertext „Alle Accounts, die du aktuell blockierst.“ auf „{count} Accounts werden blockiert.“ umstellen.
-2. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
+1. i18n-Texte perspektivisch aus JSON-Dateien laden (statt inline JS-Objekten), um spätere Locale-Erweiterungen zu vereinfachen.
 
 ## Feature-Kandidaten
 1. Notifications-Filter: Konfigurationsbutton im Header mit echtem Filter-Overlay und speicherbarer Auswahl.
