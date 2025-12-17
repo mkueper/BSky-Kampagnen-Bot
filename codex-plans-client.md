@@ -39,3 +39,5 @@ Bluesky-Client verhält sich UI/UX-seitig wie das Original (Scroll-Verhalten, Ba
 ## 6. Offene Fragen (keine Tasks)
 
 - Der Client bleibt dauerhaft standalone-first (direkt `@atproto/api`), kann aber optional wieder in das Dashboard eingebettet werden (z. B. via WebView). Shared-Komponenten/Utilities müssen bewusst paketneutral bleiben, um spätere Consumers (Mastodon-Client etc.) zu ermöglichen.
+- Bei Sprachsuchen (z. B. `searchPosts`) können optionale Sprachfilter gesetzt werden; merken, welche Sprachen zuletzt genutzt wurden.
+- Beim Modus "Post zitieren" sollten wir den zitierten Beitrag unterhalb der Texteingabe anzeigen (ggf. direkt unter der Buttonzeile), damit die Vorschau wie in der offiziellen App wahrgenommen wird.

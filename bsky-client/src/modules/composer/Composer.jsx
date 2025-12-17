@@ -125,6 +125,24 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [quote])
   const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
+  const replyInfo = useMemo(() => {
+    if (!reply || !reply.uri) return null
+    const author = reply.author || reply?.raw?.post?.author || {}
+    const record = reply.record || reply?.raw?.post?.record || {}
+    const textValue = reply.text ?? record?.text ?? ''
+    return {
+      uri: String(reply.uri),
+      cid: String(reply.cid || record?.cid || ''),
+      text: String(textValue || ''),
+      author: {
+        displayName: author.displayName || author.handle || '',
+        handle: author.handle || '',
+        avatar: author.avatar || null
+      }
+    }
+  }, [reply])
+  const replyInfoAuthorLabel = replyInfo ? (replyInfo.author.displayName || replyInfo.author.handle || 'Unbekannt') : ''
+  const replyInfoAuthorMissing = replyInfo ? !(replyInfo.author.displayName || replyInfo.author.handle) : false
   const pendingMediaItems = useMemo(
     () =>
       pendingMedia.map((item, idx) => ({
@@ -555,8 +573,47 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
-      {quoteInfo ? (
+      {replyInfo ? (
         <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
+          <div className='mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+            {t('compose.replyPreview', 'Antwort auf')}
+          </div>
+          <div className='flex items-start gap-3'>
+            {replyInfo.author.avatar ? (
+              <img
+                src={replyInfo.author.avatar}
+                alt=''
+                className='h-10 w-10 shrink-0 rounded-full border border-border object-cover'
+              />
+            ) : (
+              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+            )}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-semibold text-foreground'>
+                {replyInfoAuthorLabel}
+              </p>
+              {replyInfoAuthorMissing ? (
+                <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+              ) : null}
+              {replyInfo.author.handle ? (
+                <p className='truncate text-xs text-foreground-muted'>@{replyInfo.author.handle}</p>
+              ) : null}
+              {replyInfo.text ? (
+                <div className='mt-2 text-sm text-foreground'>
+                  <RichText
+                    text={replyInfo.text}
+                    className='whitespace-pre-wrap break-words text-sm text-foreground'
+                    hashtagContext={{ authorHandle: replyInfo?.author?.handle }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {quoteInfo ? (
+        <div className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${replyInfo ? 'mt-3' : ''}`}>
           <div className='flex items-start gap-3'>
             {quoteInfo.author.avatar ? (
               <img
