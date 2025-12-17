@@ -1,8 +1,12 @@
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/gi
+const GlobalURL = typeof globalThis !== 'undefined' && typeof globalThis.URL === 'function'
+  ? globalThis.URL
+  : null
 
 function toShortUrl (raw = '') {
+  if (!GlobalURL) return String(raw)
   try {
-    const parsed = new URL(String(raw))
+    const parsed = new GlobalURL(String(raw))
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return String(raw)
     }

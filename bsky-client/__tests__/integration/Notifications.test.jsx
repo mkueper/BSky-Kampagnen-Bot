@@ -112,6 +112,7 @@ vi.mock('../../src/modules/shared', () => {
   return {
     Button: ({ children, ...props }) => <button {...props}>{children}</button>,
     Card,
+    ProfilePreviewTrigger: ({ children }) => <>{children}</>,
     RichText: ({ text, className = '' }) => <span className={className}>{text}</span>,
     RepostMenuButton,
     deletePost: vi.fn(async () => ({ success: true })),

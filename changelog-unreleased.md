@@ -7,6 +7,11 @@
 
 ## 2025-12-12
 
+### Client & Backend
+
+- **Improvement:** Polling-Fallbacks richten sich nun an Bluesky: Chat-Logs werden alle 60 Sekunden abgefragt und Dashboard-Polling (Threads/Skeets) nutzt die gleichen Intervall-Defaults (60 s aktiv, 5 min idle/hidden). Server-Config (`CLIENT_CONFIG`) und Dashboard-Fallbacks wurden entsprechend angepasst; `.env.sample` dokumentiert die neuen Werte.
+
+
 ### Backend
 
 - **Feature:** Wiederkehrende Posts erhalten optional einen globalen Zufallsversatz (`SCHEDULER_RANDOM_OFFSET_MINUTES`), inkl. neuem Feld `repeatAnchorAt`, das die driftfreie Referenzzeit speichert; der Scheduler berechnet künftige Läufe jetzt aus diesem Anker und legt den zufälligen Offset pro Turnus an.

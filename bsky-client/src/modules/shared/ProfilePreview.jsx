@@ -82,10 +82,19 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           <div className='min-w-0'>
             <p className='truncate text-base font-semibold text-foreground'>{profile.displayName || profile.handle}</p>
             <p className='truncate text-sm text-foreground-muted'>@{profile.handle}</p>
-            {profile.viewer?.followedBy ? (
-              <span className='mt-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
-                Folgt dir
-              </span>
+            {(profile.viewer?.followedBy || profile.viewer?.following) ? (
+              <div className='mt-1 flex flex-wrap items-center gap-2'>
+                {profile.viewer?.followedBy ? (
+                  <span className='inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
+                    Folgt dir
+                  </span>
+                ) : null}
+                {profile.viewer?.following ? (
+                  <span className='inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-foreground'>
+                    Folge ich
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>

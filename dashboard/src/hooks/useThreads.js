@@ -125,8 +125,8 @@ export function useThreads (options = {}) {
   const pollingRef = useRef(null)
   const DEFAULTS = {
     threads: {
-      activeMs: 30000,   // 30s aktiv
-      idleMs: 120000,    // 2min idle
+      activeMs: 60000,   // 60s aktiv
+      idleMs: 300000,    // 5min idle
       hiddenMs: 300000,  // 5min hidden
       minimalHidden: false
     },

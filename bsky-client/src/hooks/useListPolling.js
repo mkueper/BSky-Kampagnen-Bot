@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { fetchServerTopId } from '../modules/listView/listService.js'
-
-const POLL_INTERVAL = 60000
+import { BLUESKY_LIST_POLL_MS } from '../config/blueskyIntervals.js'
 
 export function useListPolling(lists, dispatch) {
   const listsRef = useRef(lists)
@@ -40,7 +39,7 @@ export function useListPolling(lists, dispatch) {
     }
 
     poll()
-    const handle = setInterval(poll, POLL_INTERVAL)
+    const handle = setInterval(poll, BLUESKY_LIST_POLL_MS)
     return () => {
       cancelled = true
       clearInterval(handle)

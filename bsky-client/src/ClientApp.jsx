@@ -252,6 +252,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const skipScrollRestoreRef = useRef(false)
   const TIMELINE_ITEM_ESTIMATE = 220
   const NOTIFICATION_ITEM_ESTIMATE = 180
+  const SCROLL_TOP_THRESHOLD = 1
 
   const escapeSelectorValue = useCallback((value) => {
     if (!value) return ''
@@ -281,35 +282,77 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     return anchorItem ? getListItemId(anchorItem) || null : null
   }, [])
 
-  const saveScrollPosition = useCallback((key, scrollValue) => {
+  const getVisibleAnchor = useCallback((container) => {
+    if (!container) return null
+    const firstItem = container.querySelector('[data-list-item-id]')
+    if (!firstItem) return null
+    const anchorId = firstItem.getAttribute('data-list-item-id')
+    if (!anchorId) return null
+    const containerRect = container.getBoundingClientRect()
+    const itemRect = firstItem.getBoundingClientRect()
+    const offset = itemRect.top - containerRect.top
+    return { anchorId, offset }
+  }, [])
+
+  const saveScrollPosition = useCallback((key, scrollValue, options = {}) => {
     if (!key) return
     const listKey = extractListKey(key)
     const listState = listKey ? lists?.[listKey] : null
-    const anchorId = estimateAnchorId(listState, scrollValue || 0)
+    const normalizedScroll = typeof scrollValue === 'number' && scrollValue > SCROLL_TOP_THRESHOLD ? scrollValue : 0
+    let anchorId = null
+    let anchorOffset = 0
+    if (normalizedScroll > 0) {
+      const domAnchor = options?.container ? getVisibleAnchor(options.container) : null
+      if (domAnchor?.anchorId) {
+        anchorId = domAnchor.anchorId
+        anchorOffset = typeof domAnchor.offset === 'number' ? domAnchor.offset : 0
+      } else {
+        anchorId = estimateAnchorId(listState, normalizedScroll)
+      }
+    }
     scrollPositionsRef.current.set(key, {
-      top: scrollValue || 0,
+      top: normalizedScroll,
       anchorId: anchorId || null,
+      anchorOffset,
       savedAt: Date.now()
     })
-  }, [estimateAnchorId, extractListKey, lists])
+  }, [SCROLL_TOP_THRESHOLD, estimateAnchorId, extractListKey, getVisibleAnchor, lists])
 
-  const restoreAnchorIfNeeded = useCallback((container, anchorId) => {
-    if (!container || !anchorId) return
+  const restoreAnchorIfNeeded = useCallback((container, entry) => {
+    if (!container || !entry?.anchorId) return
+    const targetOffset = typeof entry.anchorOffset === 'number' ? entry.anchorOffset : 0
     requestAnimationFrame(() => {
-      const selector = `[data-list-item-id="${escapeSelectorValue(anchorId)}"]`
+      const selector = `[data-list-item-id="${escapeSelectorValue(entry.anchorId)}"]`
       const target = container.querySelector(selector)
       if (!target) return
       const containerRect = container.getBoundingClientRect()
       const targetRect = target.getBoundingClientRect()
-      const delta = targetRect.top - containerRect.top
+      const desiredTop = containerRect.top + targetOffset
+      const delta = targetRect.top - desiredTop
       container.scrollTop += delta
     })
   }, [escapeSelectorValue])
 
   const scrollActiveListToTop = useCallback(() => {
-    const el = getScrollContainer()
-    if (!el) return
-    el.scrollTop = 0
+    const scheduleScroll = () => {
+      const container = getScrollContainer()
+      if (!container) return
+      container.scrollTop = 0
+      // Zweiter Frame gleicht Layout-Korrekturen nach dem ersten Render aus.
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => {
+          const followUpContainer = getScrollContainer()
+          if (!followUpContainer) return
+          followUpContainer.scrollTop = 0
+        })
+      }
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(scheduleScroll)
+    } else {
+      scheduleScroll()
+    }
   }, [getScrollContainer])
 
   useEffect(() => {
@@ -319,7 +362,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     const activeKey = `${section}:${activeList?.key || ''}`
     const previousKey = scrollKeyRef.current
     if (previousKey && previousKey !== activeKey) {
-      saveScrollPosition(previousKey, el.scrollTop || 0)
+      saveScrollPosition(previousKey, el.scrollTop || 0, { container: el })
     }
     scrollKeyRef.current = activeKey
 
@@ -340,9 +383,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       const container = getScrollContainer()
       if (!container) return
       container.scrollTop = savedTop
-      const anchorId = savedEntry && typeof savedEntry === 'object' ? savedEntry.anchorId : null
-      if (anchorId) {
-        restoreAnchorIfNeeded(container, anchorId)
+      if (savedEntry && typeof savedEntry === 'object' && savedTop > SCROLL_TOP_THRESHOLD) {
+        restoreAnchorIfNeeded(container, savedEntry)
       }
     }
 
@@ -351,7 +393,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     } else {
       restore()
     }
-  }, [activeList?.key, getScrollContainer, restoreAnchorIfNeeded, saveScrollPosition, section])
+  }, [SCROLL_TOP_THRESHOLD, activeList?.key, getScrollContainer, restoreAnchorIfNeeded, saveScrollPosition, section])
   const accountProfiles = Array.isArray(authAccounts) && authAccounts.length > 0
     ? authAccounts
     : (me || authProfile)
@@ -393,12 +435,23 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: true })
   }, [dispatch])
 
+  const captureVisibleAnchor = useCallback(() => {
+    const container = getScrollContainer()
+    if (!container) return null
+    if (container.scrollTop <= SCROLL_TOP_THRESHOLD) return null
+    const anchor = getVisibleAnchor(container)
+    if (!anchor?.anchorId) return null
+    return { ...anchor, savedAt: Date.now() }
+  }, [SCROLL_TOP_THRESHOLD, getScrollContainer, getVisibleAnchor])
+
   const refreshListByKey = useCallback(async (key, options = {}) => {
     if (!key) return
     const isNotification = key.startsWith('notifs:')
     const meta = isNotification ? getNotificationListMeta(key) : getTimelineListMeta(key)
     if (!meta) return
     const listState = lists?.[key] || null
+    const shouldPreserveVisible = !options.scrollAfter && activeList?.key === key && section === (isNotification ? 'notifications' : 'home')
+    const preservedAnchorEntry = shouldPreserveVisible ? captureVisibleAnchor() : null
     try {
       const page = await runListRefresh({
         list: { ...(listState || {}), ...meta },
@@ -416,9 +469,25 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     } finally {
       if (options.scrollAfter) {
         scrollActiveListToTop()
+      } else if (preservedAnchorEntry) {
+        const container = getScrollContainer()
+        if (container) {
+          restoreAnchorIfNeeded(container, preservedAnchorEntry)
+        }
       }
     }
-  }, [dispatch, getNotificationListMeta, getTimelineListMeta, lists, scrollActiveListToTop])
+  }, [
+    activeList?.key,
+    captureVisibleAnchor,
+    dispatch,
+    getNotificationListMeta,
+    getTimelineListMeta,
+    getScrollContainer,
+    lists,
+    restoreAnchorIfNeeded,
+    scrollActiveListToTop,
+    section
+  ])
 
   const toggleFeedMenu = useCallback(() => {
     setFeedMenuOpen((prev) => !prev)
@@ -519,6 +588,34 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     }
   }, [buildCompositeListKey])
 
+  const restoreSavedEntry = useCallback((entry) => {
+    if (!entry) return false
+    const applyPosition = () => {
+      const container = getScrollContainer()
+      if (!container) return false
+      container.scrollTop = entry.top || 0
+      if (entry.anchorId) {
+        restoreAnchorIfNeeded(container, entry)
+      }
+      return true
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(applyPosition)
+      })
+      return true
+    }
+    return applyPosition()
+  }, [getScrollContainer, restoreAnchorIfNeeded])
+
+  const applySavedScrollPosition = useCallback((sectionName, listKeyValue) => {
+    const key = buildCompositeListKey(sectionName, listKeyValue)
+    if (!key) return false
+    const savedEntry = scrollPositionsRef.current.get(key)
+    if (!savedEntry) return false
+    return restoreSavedEntry(savedEntry)
+  }, [buildCompositeListKey, restoreSavedEntry])
+
   const handleTimelineTabSelect = useCallback((tabInfo) => {
     if (!tabInfo) return
     const meta = getTimelineListMeta(tabInfo)
@@ -544,12 +641,13 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       skipScrollRestoreRef.current = true
       scrollActiveListToTop()
     } else {
+      applySavedScrollPosition('home', nextKey)
       skipScrollRestoreRef.current = false
     }
     if (!existingList || !existingList.loaded) {
       refreshListByKey(nextKey, { scrollAfter: !hasSavedPosition })
     }
-  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop])
+  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition])
 
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {
@@ -560,9 +658,12 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         refreshListByKey(key, { scrollAfter: true })
         return prev
       }
+      const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
+      const restored = applySavedScrollPosition('notifications', key)
+      skipScrollRestoreRef.current = !restored
       return tabId
     })
-  }, [refreshListByKey, clearSavedScrollPosition])
+  }, [refreshListByKey, clearSavedScrollPosition, applySavedScrollPosition])
   const handleStartNewChat = useCallback(() => {
     console.info('Neuer Chat wird später implementiert.')
   }, [])
@@ -727,6 +828,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         refreshListByKey(notificationListKey, { scrollAfter: true })
       } else if (!notificationList || !notificationList.loaded) {
         refreshListByKey(notificationListKey)
+      } else {
+        applySavedScrollPosition('notifications', notificationListKey)
+        skipScrollRestoreRef.current = false
       }
       return
     }
@@ -740,6 +844,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         pushSectionRoute('home')
         if (!listLoaded) {
           refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
+        } else {
+          applySavedScrollPosition('home', timelineKeyRef.current)
+          skipScrollRestoreRef.current = false
         }
         return
       }

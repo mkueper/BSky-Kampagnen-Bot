@@ -27,6 +27,7 @@ const TIMELINE_TAB_CONFIG = {
 
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 const TIMELINE_LABELS = { following: 'Following' }
+const NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT = 5
 const FEED_META_CACHE_TTL_MS = 5 * 60 * 1000
 const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
@@ -789,6 +790,24 @@ async function fetchChatConversationsDirect ({ cursor, limit, readState, status 
   }
 }
 
+async function fetchChatLogsDirect ({ cursor } = {}) {
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  let data
+  try {
+    data = await executeChatRequest(
+      convoApi?.getLog ? () => convoApi.getLog(cursor ? { cursor } : {}, { headers: CHAT_SERVICE_HEADERS }) : null,
+      { nsid: 'chat.bsky.convo.getLog', httpMethod: 'GET', params: cursor ? { cursor } : {} }
+    )
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+  return {
+    logs: Array.isArray(data?.logs) ? data.logs : [],
+    cursor: data?.cursor || null
+  }
+}
+
 async function fetchChatConversationDirect ({ convoId } = {}) {
   if (!convoId) {
     throw new Error('conversationId ist erforderlich.')
@@ -1368,6 +1387,22 @@ async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {
   }
 }
 
+async function fetchNotificationsUnreadCountDirect () {
+  const client = getActiveBskyAgentClient()
+  const agent = client?.getAgent?.()
+  if (!agent?.app?.bsky?.notification?.getUnreadCount) return null
+  try {
+    const res = await agent.app.bsky.notification.getUnreadCount({})
+    const count = Number(res?.data?.count ?? res?.count ?? res?.data?.unreadCount ?? 0)
+    if (Number.isFinite(count)) {
+      return Math.max(0, count)
+    }
+  } catch (error) {
+    console.warn('getUnreadCount failed', error)
+  }
+  return null
+}
+
 async function uploadBlobFromFile (file) {
   if (!file) return null
   const agent = assertActiveAgent()
@@ -1730,16 +1765,21 @@ export async function fetchNotifications({ cursor, markSeen, filter, limit } = {
 }
 
 export async function fetchUnreadNotificationsCount () {
-  const snapshot = await fetchNotificationPollingSnapshot()
+  const directCount = await fetchNotificationsUnreadCountDirect()
+  if (typeof directCount === 'number') {
+    return { unreadCount: directCount }
+  }
+  const snapshot = await fetchNotificationPollingSnapshot({ limit: 1 })
   return { unreadCount: Number(snapshot?.unreadCount) || 0 }
 }
 
-export async function fetchNotificationPollingSnapshot () {
-  const allRaw = await listNotificationsRawDirect({ limit: 40, filter: 'all' })
+export async function fetchNotificationPollingSnapshot ({ limit = NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT } = {}) {
+  const safeLimit = clampNumber(limit, 1, 40, NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT)
+  const allRaw = await listNotificationsRawDirect({ limit: safeLimit, filter: 'all' })
   if (!allRaw) {
     return { unreadCount: 0, allTopId: null, mentionsTopId: null }
   }
-  const mentionsRaw = await listNotificationsRawDirect({ limit: 40, filter: 'mentions' })
+  const mentionsRaw = await listNotificationsRawDirect({ limit: safeLimit, filter: 'mentions' })
 
   const subjectMap = new Map()
   const toAggregatedItems = (notifications = []) => {
@@ -1786,6 +1826,22 @@ export async function sendChatMessage ({ convoId, text }) {
 
 export async function updateChatReadState ({ convoId, messageId } = {}) {
   return updateChatReadStateDirect({ convoId, messageId })
+}
+
+export async function fetchChatLogs ({ cursor } = {}) {
+  if (chatUnreadPollingDisabled) {
+    return { logs: [], cursor: null, disabled: true }
+  }
+  try {
+    return await fetchChatLogsDirect({ cursor })
+  } catch (error) {
+    if (isChatFeatureUnavailableError(error)) {
+      chatUnreadPollingDisabled = true
+      console.info('[chat] Chat-Polling deaktiviert (nicht verfügbar).', error)
+      return { logs: [], cursor: null, disabled: true }
+    }
+    throw error
+  }
 }
 
 export async function fetchChatUnreadSnapshot () {

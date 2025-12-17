@@ -1,7 +1,7 @@
 import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost } from '../shared'
+import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -12,6 +12,8 @@ import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
+import { useSWRConfig } from 'swr'
+import { NOTIFICATION_UNREAD_SWR_KEY } from '../../hooks/useNotificationPolling.js'
 
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
@@ -552,6 +554,37 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     openProfileViewer()
   }, [openProfileViewer])
 
+  const avatarVisual = author.avatar ? (
+    <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
+  ) : (
+    <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
+  )
+
+  const avatarWithPreview = profileActor
+    ? (
+      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
+        {avatarVisual}
+      </ProfilePreviewTrigger>
+      )
+    : avatarVisual
+
+  const renderAuthorLabel = useCallback((variant = 'button') => {
+    const textClass = `block truncate font-semibold ${variant === 'button' ? '' : 'text-foreground'}`
+    const content = (
+      <span className={textClass} title={authorLabel}>
+        {authorLabel}
+      </span>
+    )
+    if (profileActor) {
+      return (
+        <ProfilePreviewTrigger actor={profileActor} fallback={author} as='span' className='block max-w-full'>
+          {content}
+        </ProfilePreviewTrigger>
+      )
+    }
+    return content
+  }, [author, authorLabel, profileActor])
+
   return (
     <Card
       ref={cardRef}
@@ -579,16 +612,12 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       aria-label={canOpenItem ? 'Thread öffnen' : undefined}
     >
       <div className='flex items-start gap-3'>
-        {author.avatar ? (
-          canOpenProfileViewer ? (
-            <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
-              <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
-            </button>
-          ) : (
-            <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
-          )
+        {canOpenProfileViewer ? (
+          <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+            {avatarWithPreview}
+          </button>
         ) : (
-          <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
+          avatarWithPreview
         )}
         <div className='min-w-0 flex-1 space-y-2'>
           <div className='flex flex-wrap items-center gap-2 min-w-0'>
@@ -599,10 +628,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 className='truncate text-left font-semibold text-foreground transition hover:text-primary'
                 title={authorLabel}
               >
-                {authorLabel}
+                {renderAuthorLabel('button')}
               </button>
             ) : (
-              <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
+              renderAuthorLabel('static')
             )}
             <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted ml-auto'>
               {reasonLabel}
@@ -729,6 +758,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     ? (quoted.author.displayName || quoted.author.handle || t('notifications.card.authorUnknown', 'Unbekannt'))
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
+  const subjectAuthorLabel = author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')
   const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget || subject)
   const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
   const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
@@ -776,6 +806,39 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     onViewMedia(previewMedia, safeIndex)
   }, [onViewMedia, previewMedia])
 
+  const subjectAvatarVisual = author.avatar
+    ? (
+        <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
+      )
+    : (
+        <div className='h-8 w-8 rounded-full border border-border bg-background' />
+      )
+
+  const subjectAvatarWithPreview = profileActor
+    ? (
+      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
+        {subjectAvatarVisual}
+      </ProfilePreviewTrigger>
+      )
+    : subjectAvatarVisual
+
+  const renderSubjectAuthorLabel = useCallback((variant = 'button') => {
+    const textClass = `block truncate font-semibold ${variant === 'button' ? '' : 'text-foreground'}`
+    const content = (
+      <span className={textClass} title={subjectAuthorLabel}>
+        {subjectAuthorLabel}
+      </span>
+    )
+    if (profileActor) {
+      return (
+        <ProfilePreviewTrigger actor={profileActor} fallback={author} as='span' className='block max-w-full'>
+          {content}
+        </ProfilePreviewTrigger>
+      )
+    }
+    return content
+  }, [author, profileActor, subjectAuthorLabel])
+
   return (
     <div
       className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2 ${
@@ -791,17 +854,11 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       }) : undefined}
     >
       <div className='flex items-center gap-3'>
-        {author.avatar ? (
-          canOpenProfileViewer
-            ? (
-              <button type='button' onClick={openSubjectAuthor} className='h-8 w-8 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
-                <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
-              </button>
-              )
-            : <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
-        ) : (
-          <div className='h-8 w-8 rounded-full border border-border bg-background' />
-        )}
+        {canOpenProfileViewer ? (
+          <button type='button' onClick={openSubjectAuthor} className='h-8 w-8 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+            {subjectAvatarWithPreview}
+          </button>
+        ) : subjectAvatarWithPreview}
         <div className='min-w-0 flex-1'>
           {canOpenProfileViewer ? (
             <button
@@ -809,10 +866,10 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
               onClick={openSubjectAuthor}
               className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
             >
-              {author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}
+              {renderSubjectAuthorLabel('button')}
             </button>
           ) : (
-            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}</p>
+            renderSubjectAuthorLabel('static')
           )}
           {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
         </div>
@@ -1074,6 +1131,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
+  const { mutate } = useSWRConfig()
 
   const list = listKey ? lists?.[listKey] : null
   const listRef = useRef(list)
@@ -1091,8 +1149,10 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     running: false
   })
   const updateUnread = useCallback((count) => {
-    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: Math.max(0, count || 0) })
-  }, [dispatch])
+    const normalized = Math.max(0, count || 0)
+    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: normalized })
+    mutate(NOTIFICATION_UNREAD_SWR_KEY, { unreadCount: normalized }, false)
+  }, [dispatch, mutate])
 
   const isLoadingInitial = !list || !list.loaded
   const isLoadingMore = Boolean(list?.isLoadingMore)
