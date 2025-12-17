@@ -26,6 +26,12 @@ Aktive Bugs werden pro Bereich in den Codex-Plänen geführt (siehe `codex-plans
 
 ## Done
 
+### 2025-12-17
+- Timeline-/Mitteilungs-Tabs merken sich Scroll-Positionen und setzen nur noch bei echten Refreshes zurück; ScrollTop-Button & Badges arbeiten Bluesky-paritätisch.
+- Sidebar/Nav-Bar: Hover-States wurden überarbeitet, Badges bleiben ohne Layout-Sprung sichtbar und Profil-Pane nutzt die gleichen Hover-Overlays wie die Timeline.
+- Medien-Rendering im Timeline-Item reserviert den Platz bereits vor dem Laden (Platzhalter + Aspect Ratio), wodurch kein „Layout-Shift“ mehr auftritt.
+- Notifications Polling: `getUnreadCount` und Mentions-Tab nutzen dieselben Polling-Intervalle wie das Original; Badge verdoppelt sich nicht mehr und Refreshs werden sauber entkoppelt.
+
 ### 2025-12-14
 - Advanced-Search-Prefixes (z. B. `lang:`, `has:media`) sind umgesetzt.
 - Globaler `SWRConfig` Wrapper (Error-Boundaries/Logging) ist umgesetzt.

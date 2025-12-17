@@ -4,44 +4,30 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-16.12.2025
+17.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Scheduler besitzt adaptive Parallelität (konfigurierbar über `SCHEDULER_CONCURRENCY`) und loggt Lag/Retry-Infos; PostSendLogs werden atomar erfasst und Tests laufen grün.
-- Chat-Fallback, Discover-Badges und Share/Repost-Menüs im Client weiterhin stabil; Beta-Builds und restliche Client-Themen unverändert offen.
-- Docker-Bundle, Scheduler-Zufallsversatz, Demo-Skripte und Kampagnen-Dokumentation unverändert gültig; Backend-Tests laufen grün.
+- Scheduler & Backend sind nach Parallelitäts-/Logging-Updates stabil; Tests laufen grün und Deployment-Skripte bleiben unverändert nutzbar.
+- `bsky-client` deckt Auth, Timeline/Notifications, Composer und neue Scroll-UX vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen sind auf Bluesky-Parität.
+- Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Status nach den letzten Scheduler-/Auth-Anpassungen.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Starker Scheduler-Stand (Parallelität + adaptive Retries + bessere Logs) liegt vor. Nächste Session: Beta-Builds für den Bluesky-Client voranbringen, Timeline-/Suche-Baustellen adressieren und ggf. neue Scheduler-Metriken an Observability anbinden.
+Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; Fokus verschiebt sich auf Beta-Builds des stand-alone `bsky-client` sowie auf verbleibende Dokumentations-/Konfigurationsaufgaben (Standalone-Flag, `.env.sample`). Für das Dashboard stehen nur noch gezielte UX/Docs-Themen offen.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-- Beta-Vorbereitung: Windows- und Linux-App paketieren, Smoke-Tests durchführen und Download-/Kommunikationsplan für den Betatest aufsetzen; neue Scheduler-Variablen in README/docs ergänzen.
-
-[text](<../../Downloads/5D1CF368B8361FD0AABF71486C6920B9 (1).pdf>)
-### 4.1 Client (Bluesky‑Desktop‑App)
-
-1. Bluesky‑Client: Auth‑Store/Hook (`useBskyAuth`) entwerfen und implementieren, der einen zentralen `BskyAgentClient` kapselt, Session/Settings laden/speichern kann (zunächst für einen Account) und den Auth‑Status (`unauthenticated/authenticated/loading`) an die UI liefert.
-2. Bluesky‑Client: Login‑Modal als Popup integrieren (Service‑URL, Identifier, App‑Passwort, zwei Checkboxen, Link „App‑Passwort erstellen“), bei Erststart zwingend anzeigen (Abbrechen deaktiviert), später über ein Einstellungs‑/Avatar‑Menü erneut aufrufbar machen.
-3. Bluesky‑Client: Bestehende Login- und Session‑Hooks (`useSession`, `LoginView` mit `/api/auth/*`) schrittweise auf den neuen Auth‑Store umstellen, ohne andere Bereiche des Clients (Timeline, Composer) zu verändern.
-
-### 4.2 Dashboard (Kampagnen‑Oberfläche)
-
-4. Thread-Planer: Scroll-/Klick-Sync auf Mehrfach-Vorkommen und Fokuswechsel trimmen; Sonderfälle (ohne Trenner, Power-Navigation) dokumentieren und absichern.
-5. Vorschau-Fallback evaluieren, der fehlende Trenner über Textsuche kompensiert (optional aktivierbar, da heuristisch).
-6. History-Usability: Demo-Skeet-Historien in Doku aufnehmen (Screenshots, Hinweise zum Scroll-Limit) und `scripts/seedDemoDatabase.ts` kurz im README verlinken.
-
-### 4.3 Backend & Tooling
-
-7. Seed-Skript automatisiert in `package.json` (z. B. `npm run seed:demo`) verfügbar machen und mit kurzen CLI-Hinweisen testen.
-8. Docker-Bundle/Setup-Skript um Option erweitern, beim Packen eine Demo-Datenbank zu erzeugen oder bestehende DB zu bereinigen.
-9. Cron-Formular visual harmonisieren (Zufallsversatz-Feld + Erläuterung deutlicher konsolidieren), sobald restliche Scheduler-Aufgaben erledigt sind.
-
-### 4.4 Terminologie & Konsistenz
-
-10. UI-Terminologie angleichen: In allen Frontends (Dashboard, bsky-client, shared-ui) „Skeet“ durch „Post“ ersetzen, inkl. Tooltips, Buttons, Texte und Übersetzungen, damit Nutzer konsistente Begriffe sehen.
+1. Beta-Builds vorbereiten:
+   - Windows-/Linux-Electron-Builds paketieren, Smoke-Tests dokumentieren und Download/Release-Notizen (inkl. bekannter Limitierungen) aufsetzen.
+2. Standalone-Flag + Konfiguration:
+   - `VITE_CLIENT_MODE` + `.env.sample` aufsplitten, damit Backend-Proxy vs. Standalone-Betrieb klar konfigurierbar bleibt (inkl. README-Abschnitt „Frontends starten“).
+3. ThreadComposer/Shared Utils:
+   - Bild/GIF-Handling und ThreadComposer so aufteilen, dass Dashboard & Client dieselben Helpers aus `shared-logic` nutzen (kein doppelter Code mehr im Client).
+4. Dashboard UX/Doku:
+   - Thread-Planer Doku (Scroll/Power-Navigation), History-Screenshots und Seed-Skript (`npm run seed:demo`) nachziehen; Cron-UI-Text + README ergänzen.
+5. Terminologie angleichen:
+   - „Skeet“ → „Post“ in Dashboard, Client, shared-ui inkl. lokalisierter Strings; Checkliste in `docs/terminology` notieren.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
