@@ -36,4 +36,14 @@ describe('splitThread / sentence splitting', () => {
       expect(s.characterCount).toBeLessThanOrEqual(300)
     })
   })
+
+  it('counts shortened link lengths when evaluating segment limits', () => {
+    const url = 'https://example.com/this/is/a/very/long/path/that/exceeds/the/default/limit'
+    const text = `Intro ${url}`
+    const result = splitThread({ text, limit: 300, appendNumbering: false })
+    expect(result.previewSegments).toHaveLength(1)
+    const [segment] = result.previewSegments
+    expect(segment.formatted).toContain(url)
+    expect(segment.characterCount).toBeLessThan(segment.formatted.length)
+  })
 })

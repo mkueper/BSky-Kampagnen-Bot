@@ -7,6 +7,7 @@ import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useInteractionSettingsControls } from './useInteractionSettingsControls.js'
+import { calculateBlueskyPostLength } from '@bsky-kampagnen-bot/shared-logic'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -543,7 +544,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const showMediaGrid = pendingMediaItems.length > 0
   const showLinkPreview = !showMediaGrid && Boolean(previewUrl) && (!dismissedPreviewUrl || dismissedPreviewUrl !== previewUrl)
   const hasContent = text.trim().length > 0 || pendingMedia.length > 0
-  const characterCount = text.length
+  const characterCount = calculateBlueskyPostLength(text)
   const exceedsCharLimit = characterCount > POST_CHAR_LIMIT
 
   const handleCancelComposer = useCallback(() => {

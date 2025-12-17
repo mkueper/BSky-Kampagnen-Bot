@@ -20,3 +20,7 @@ export {
 } from './notifications.js'
 
 export { applyEngagementPatch } from './engagementPatch.js'
+export {
+  shortenLinksForCounting,
+  calculateBlueskyPostLength
+} from './blueskyText.js'

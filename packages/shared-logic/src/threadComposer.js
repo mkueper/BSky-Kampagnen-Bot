@@ -1,3 +1,5 @@
+import { shortenLinksForCounting } from './blueskyText.js'
+
 function splitIntoSentences (text) {
   const normalized = text.replace(/\r\n/g, '\n')
   if (!normalized.trim()) return ['']
@@ -185,7 +187,8 @@ function buildPreviewSegments (effectiveSegments, appendNumbering, limit) {
     const formattedContent = appendNumbering
       ? `${trimmedEnd}${numbering}`
       : trimmedEnd
-    const characterCount = formattedContent.length
+    const shortenedForCount = shortenLinksForCounting(formattedContent)
+    const characterCount = shortenedForCount.length
     const isEmpty = trimmedEnd.trim().length === 0
     const exceedsLimit =
       typeof limit === 'number' ? characterCount > limit : false
