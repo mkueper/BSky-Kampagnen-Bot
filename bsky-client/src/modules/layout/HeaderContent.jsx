@@ -46,7 +46,11 @@ export function TimelineHeader ({
   feedMenuOpen = false,
   onToggleFeedMenu,
   onCloseFeedMenu,
-  isRefreshing = false
+  isRefreshing = false,
+  languageFilter = '',
+  onLanguageChange,
+  languageOptions = null,
+  showLanguageFilter = true
 }) {
   const menuRef = useRef(null)
   const { t } = useTranslation()
@@ -62,6 +66,16 @@ export function TimelineHeader ({
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [feedMenuOpen, onCloseFeedMenu])
+
+  const availableLanguageOptions = (languageOptions && languageOptions.length)
+    ? languageOptions
+    : [
+        { value: '', label: t('layout.timeline.language.all', 'Alle Sprachen') },
+        { value: 'de', label: t('layout.timeline.language.de', 'Deutsch') },
+        { value: 'en', label: t('layout.timeline.language.en', 'Englisch') },
+        { value: 'fr', label: t('layout.timeline.language.fr', 'Französisch') },
+        { value: 'es', label: t('layout.timeline.language.es', 'Spanisch') }
+      ]
 
   return (
     <div className='relative flex items-center gap-2' data-component='BskyTimelineHeaderContent' ref={menuRef}>
@@ -101,6 +115,25 @@ export function TimelineHeader ({
         })}
       </HorizontalScrollContainer>
       <div className='flex flex-none items-center gap-2 pl-1'>
+        {showLanguageFilter ? (
+          <div className='flex items-center gap-2'>
+            <label htmlFor='timeline-language-filter' className='sr-only'>
+              {t('layout.timeline.languageFilterLabel', 'Sprachfilter')}
+            </label>
+            <select
+              id='timeline-language-filter'
+              value={languageFilter || ''}
+              onChange={(event) => onLanguageChange?.(event.target.value)}
+              className='h-9 rounded-full border border-border bg-background px-3 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+            >
+              {availableLanguageOptions.map((option) => (
+                <option key={option.value || 'all'} value={option.value || ''}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <span
           className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition-opacity ${
             isRefreshing ? 'opacity-100' : 'opacity-0'
@@ -166,5 +199,12 @@ TimelineHeader.propTypes = {
   feedMenuOpen: PropTypes.bool,
   onToggleFeedMenu: PropTypes.func,
   onCloseFeedMenu: PropTypes.func,
-  isRefreshing: PropTypes.bool
+  isRefreshing: PropTypes.bool,
+  languageFilter: PropTypes.string,
+  onLanguageChange: PropTypes.func,
+  languageOptions: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.string,
+    label: PropTypes.string
+  })),
+  showLanguageFilter: PropTypes.bool
 }

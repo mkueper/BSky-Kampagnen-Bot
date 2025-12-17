@@ -16,6 +16,7 @@ export default function LoginView ({
   const [serviceUrl, setServiceUrl] = useState(preferences.serviceUrl || '')
   const [identifier, setIdentifier] = useState(preferences.identifier || '')
   const [appPassword, setAppPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [rememberCredentials, setRememberCredentials] = useState(Boolean(preferences.rememberCredentials))
   const [rememberSession, setRememberSession] = useState(Boolean(preferences.rememberSession))
   const [submitting, setSubmitting] = useState(false)
@@ -160,17 +161,29 @@ export default function LoginView ({
                 {t('login.passwordHelp', 'App-Passwort erstellen')}
               </a>
             </div>
-            <input
-              id='login-password'
-              type='password'
-              className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
-              placeholder='xxxx-xxxx-xxxx-xxxx'
-              value={appPassword}
-              disabled={submitting}
-              onChange={(event) => setAppPassword(event.target.value)}
-              required
-              autoComplete='current-password'
-            />
+            <div className='relative'>
+              <input
+                id='login-password'
+                type={showPassword ? 'text' : 'password'}
+                className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 pr-28 text-sm text-foreground focus:border-primary focus:outline-none'
+                placeholder='xxxx-xxxx-xxxx-xxxx'
+                value={appPassword}
+                disabled={submitting}
+                onChange={(event) => setAppPassword(event.target.value)}
+                required
+                autoComplete='current-password'
+              />
+              <button
+                type='button'
+                className='absolute inset-y-0 right-3 my-1 rounded-full px-3 text-xs font-semibold text-foreground-muted transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                onClick={() => setShowPassword((current) => !current)}
+                disabled={submitting}
+              >
+                {showPassword
+                  ? t('login.passwordHide', 'Ausblenden')
+                  : t('login.passwordShow', 'Anzeigen')}
+              </button>
+            </div>
           </div>
 
           <div className='space-y-2 text-sm text-foreground'>

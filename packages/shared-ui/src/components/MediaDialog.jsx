@@ -38,6 +38,8 @@ export default function MediaDialog ({
   const [previewUrl, setPreviewUrl] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const altRef = useRef(null)
+  const hasInitialAlt = Boolean((initialAlt || '').trim())
+  const altLength = alt?.length || 0
 
   useEffect(() => {
     if (open) {
@@ -78,7 +80,7 @@ export default function MediaDialog ({
       open={open}
       onClose={onClose}
       title={title}
-      panelClassName='w-full max-w-sm'
+      panelClassName='w-full max-w-3xl'
       actions={(
         <>
           {validationMsg ? <span className='text-sm text-destructive mr-auto'>{validationMsg}</span> : null}
@@ -87,7 +89,7 @@ export default function MediaDialog ({
         </>
       )}
     >
-      <div className='space-y-3'>
+      <div className='space-y-6' style={{ minHeight: '360px' }}>
         {mode === 'upload' ? (
           <div>
             <button
@@ -139,35 +141,18 @@ export default function MediaDialog ({
           </div>
         ) : null}
         <div className='overflow-hidden rounded-xl border border-border bg-background-subtle p-2'>
-          <div className='relative w-full' style={{ height: 200 }}>
+          <div className='relative w-full' style={{ height: 280 }}>
             {mode === 'upload' && file ? (
-              <>
-                <div className='absolute left-2 top-2 z-10'>
-                  <button
-                    type='button'
-                    className='rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black'
-                    onClick={() => altRef.current?.focus({ preventScroll: true })}
-                    aria-label={alt?.trim() ? 'Alt-Text bearbeiten' : 'Alt-Text hinzufügen'}
-                  >
-                    {alt?.trim() ? 'ALT' : '+ ALT'}
-                  </button>
-                </div>
-                <div className='absolute right-2 top-2 z-10'>
-                  <button
-                    type='button'
-                    className='rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black'
-                    onClick={() => {
-                      if (inputRef.current) inputRef.current.value = ''
-                      setFile(null)
-                      setPreviewUrl(null)
-                      setLoaded(false)
-                    }}
-                    aria-label='Ausgewähltes Bild verwerfen'
-                  >
-                    ✕
-                  </button>
-                </div>
-              </>
+              <div className='absolute inset-x-0 top-2 z-10 flex justify-end px-2'>
+                <button
+                  type='button'
+                  className='rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black'
+                  onClick={() => altRef.current?.focus({ preventScroll: true })}
+                  aria-label='Alt-Text bearbeiten'
+                >
+                  ALT
+                </button>
+              </div>
             ) : null}
             {(previewUrl || (mode === 'alt' && previewSrc)) ? (
               <img
@@ -184,9 +169,17 @@ export default function MediaDialog ({
           </div>
         </div>
         <div>
-          <label className='text-sm font-medium text-foreground'>
-            Alt-Text {requireAltText ? <span className='text-destructive'>(Pflicht)</span> : null}
-          </label>
+          <div className='flex items-baseline justify-between gap-3'>
+            <label className='text-sm font-medium text-foreground'>
+              Alt-Text {requireAltText ? <span className='text-destructive'>(Pflicht)</span> : null}
+            </label>
+            <span className='text-xs text-foreground-muted tabular-nums'>{altLength}/2000</span>
+          </div>
+          <p className='mt-1 text-xs text-foreground-muted'>
+            {hasInitialAlt
+              ? 'Passe den vorhandenen Alt-Text bei Bedarf an.'
+              : 'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'}
+          </p>
           <textarea
             ref={altRef}
             rows={3}
@@ -196,7 +189,6 @@ export default function MediaDialog ({
             className='mt-1 w-full resize-y rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
             placeholder='Beschreibender Alt-Text'
           />
-          <div className='mt-1 text-right text-[11px] text-foreground-muted'>{(alt?.length || 0)}/2000</div>
         </div>
         {error ? <p className='text-sm text-destructive'>{error}</p> : null}
       </div>

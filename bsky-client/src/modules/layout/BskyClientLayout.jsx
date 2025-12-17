@@ -254,7 +254,6 @@ export default function BskyClientLayout ({
       onOpenClientSettings()
     }
   }, [onOpenClientSettings])
-
   const asideClassName = clsx(
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
     'fixed top-4 bottom-4 left-4',

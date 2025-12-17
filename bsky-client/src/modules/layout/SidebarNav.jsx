@@ -85,8 +85,8 @@ export default function SidebarNav ({
   onAddAccount = null,
   onLogout = null,
   logoutPending = false,
-  onOpenClientSettings = null,
-  showLabels = false
+  showLabels = false,
+  onOpenClientSettings = null
 }) {
   const { t } = useTranslation()
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)

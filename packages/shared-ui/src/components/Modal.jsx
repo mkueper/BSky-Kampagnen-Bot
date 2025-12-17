@@ -30,7 +30,7 @@ export default function Modal ({ open, title, children, onClose, actions, panelC
   if (!open) return null
 
   const content = (
-    <div className='fixed inset-0 z-[200] flex items-center justify-center'>
+    <div className='fixed inset-0 z-[200] flex items-center justify-center p-4'>
       <div className='absolute inset-0 bg-black/40' onClick={onClose} />
       <div className={['relative rounded-2xl border border-border bg-background-elevated p-4 shadow-soft', panelClassName || 'w-full max-w-md'].join(' ')}>
         {title ? <h3 className='text-base font-semibold text-foreground'>{title}</h3> : null}

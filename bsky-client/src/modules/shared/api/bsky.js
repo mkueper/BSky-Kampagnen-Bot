@@ -2043,13 +2043,16 @@ export async function fetchBookmarks({ cursor, limit } = {}) {
   return fetchBookmarksDirect({ cursor, limit })
 }
 
-async function searchPostsDirect ({ query, cursor, limit, sort = 'top' } = {}) {
+async function searchPostsDirect ({ query, cursor, limit, sort = 'top', language } = {}) {
   const normalizedQuery = String(query || '').trim()
   if (!normalizedQuery) return { items: [], cursor: null, type: sort }
   const agent = assertActiveAgent()
   const safeLimit = clampNumber(limit, 1, 100, 25)
   const params = { q: normalizedQuery, limit: safeLimit, sort }
   if (cursor) params.cursor = cursor
+  if (typeof language === 'string' && language.trim()) {
+    params.lang = language.trim().toLowerCase()
+  }
   const res = await agent.app.bsky.feed.searchPosts(params)
   const data = res?.data ?? res ?? {}
   const posts = Array.isArray(data?.posts) ? data.posts : []
@@ -2089,15 +2092,15 @@ async function searchActorsDirect ({ query, cursor, limit } = {}) {
   }
 }
 
-export async function searchBsky({ query, type, cursor, limit } = {}) {
+export async function searchBsky({ query, type, cursor, limit, language } = {}) {
   const normalizedType = typeof type === 'string' ? type.trim().toLowerCase() : ''
   if (normalizedType === 'people') {
     return searchActorsDirect({ query, cursor, limit })
   }
   if (normalizedType === 'latest') {
-    return searchPostsDirect({ query, cursor, limit, sort: 'latest' })
+    return searchPostsDirect({ query, cursor, limit, sort: 'latest', language })
   }
-  return searchPostsDirect({ query, cursor, limit, sort: 'top' })
+  return searchPostsDirect({ query, cursor, limit, sort: 'top', language })
 }
 
 export async function fetchProfile (actor) {

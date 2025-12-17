@@ -140,6 +140,7 @@ Der Tab **Konfiguration** enthält drei Bereiche:
 - **Composer:** Modal-Fenster zum sofortigen Posten (inkl. Reply-Funktion). Medien-Uploads und ALT-Texte funktionieren analog zum Kampagnen-Planer.
 - **Aktionen:** Like/Unlike, Repost/Unrepost direkt aus der Timeline.
 - **Einschränkungen:** Einige Sektionen (Suche, Benachrichtigungen, Chat, Feeds, Listen) sind derzeit Platzhalter – das Layout ist vorbereitet, Funktionalität folgt später.
+- **Übersetzungen:** Der Translate-Button öffnet (noch) einen lokalen oder privaten Übersetzungsdienst wie LibreTranslate. Die Übersetzungsfunktion ist in der aktuellen Phase ausschließlich für lokale oder private Übersetzungsdienste vorgesehen. Öffentliche Endpunkte sind bewusst ausgeschlossen.
 
 Der Direkt-Client verwendet dieselbe Login-Session wie der Scheduler. Ein fehlgeschlagener Bluesky-Login wirkt sich daher sowohl auf den Planer als auch auf den Direkt-Client aus.
 

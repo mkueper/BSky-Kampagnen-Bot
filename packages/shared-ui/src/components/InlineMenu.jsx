@@ -32,13 +32,13 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
       align={align}
       side={side}
       sideOffset={sideOffset}
-      className={`z-[250] rounded-2xl border border-border bg-background shadow-2xl focus-visible:outline-none ${className}`}
+      className={`z-[250] rounded-2xl border border-border bg-background-elevated shadow-2xl focus-visible:outline-none ${className}`}
       style={{ minWidth: 160, ...style }}
       {...rest}
     >
       {children}
       {withArrow ? (
-        <Popover.Arrow className='fill-background stroke-border' />
+        <Popover.Arrow className='fill-background-elevated stroke-border' />
       ) : null}
     </Popover.Content>
   )

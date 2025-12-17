@@ -233,6 +233,34 @@ function appReducer(state, action) {
       delete nextMap[targetUri]
       return { ...state, quoteReposts: nextMap }
     }
+    case 'REMOVE_POST': {
+      const targetUri = typeof action.payload === 'string' ? action.payload : null
+      if (!targetUri) return state
+      const currentLists = state.lists || {}
+      let listsChanged = false
+      const nextLists = {}
+      for (const [key, list] of Object.entries(currentLists)) {
+        const items = Array.isArray(list?.items) ? list.items : null
+        if (!items) {
+          nextLists[key] = list
+          continue
+        }
+        const filtered = items.filter(item => (item?.uri || item?.raw?.post?.uri) !== targetUri)
+        if (filtered.length !== items.length) {
+          listsChanged = true
+          nextLists[key] = { ...list, items: filtered }
+        } else {
+          nextLists[key] = list
+        }
+      }
+      const nextQuoteMap = { ...(state.quoteReposts || {}) }
+      delete nextQuoteMap[targetUri]
+      return {
+        ...state,
+        ...(listsChanged ? { lists: nextLists } : {}),
+        quoteReposts: nextQuoteMap
+      }
+    }
     case 'SET_SECTION': {
       const { payload: section, actor } = action;
       return {
@@ -426,7 +454,7 @@ function appReducer(state, action) {
   if (Object.keys(finalState).every(key => finalState[key] === state[key])) {
     // If no slice reducer changed the state, and it wasn't a cross-slice action,
     // it's an unknown action.
-    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE', 'OPEN_HASHTAG_SEARCH', 'CLOSE_HASHTAG_SEARCH', 'OPEN_CHAT_VIEWER', 'CLOSE_CHAT_VIEWER', 'PATCH_CHAT_VIEWER_SNAPSHOT', 'SET_CHAT_UNREAD'].includes(action.type)) {
+    if (!['SET_SECTION', 'OPEN_PROFILE_VIEWER', 'SET_FEED_PICKER_STATE', 'OPEN_HASHTAG_SEARCH', 'CLOSE_HASHTAG_SEARCH', 'OPEN_CHAT_VIEWER', 'CLOSE_CHAT_VIEWER', 'PATCH_CHAT_VIEWER_SNAPSHOT', 'SET_CHAT_UNREAD', 'SET_CLIENT_SETTINGS_OPEN'].includes(action.type)) {
       // Uncomment to restore original behavior for unknown actions
       // throw new Error(`Unknown action: ${action.type}`);
     }

@@ -181,7 +181,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       altBadge: 'ALT',
       altAddBadge: '+ ALT',
       altEditTitle: 'Alt-Text bearbeiten',
-      altAddTitle: 'Alt-Text hinzufügen'
+      altAddTitle: 'Alt-Text bearbeiten'
     }),
     []
   )
@@ -779,7 +779,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       <MediaDialog
         open={altDialog.open}
         mode='alt'
-        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text hinzufügen'}
+        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text bearbeiten'}
         previewSrc={altDialog.previewSrc}
         initialAlt={altDialog.initialAlt}
         onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}

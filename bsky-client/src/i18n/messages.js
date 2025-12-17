@@ -85,8 +85,20 @@ const messages = {
         feedButton: 'Feeds',
         pinnedFeeds: 'Gepinnte Feeds',
         noPins: 'Noch keine Pins vorhanden.',
-        feedManagerHint: 'Feed-Manager über die Seitenleiste öffnen.'
+        feedManagerHint: 'Feed-Manager über die Seitenleiste öffnen.',
+        languageFilterLabel: 'Sprachfilter',
+        language: {
+          all: 'Alle Sprachen',
+          de: 'Deutsch',
+          en: 'Englisch',
+          fr: 'Französisch',
+          es: 'Spanisch'
+        }
       }
+    },
+    settingsPage: {
+      title: 'Einstellungen',
+      empty: 'Aktuell gibt es hier keine konfigurierbaren Optionen.'
     },
     chat: {
       header: {
@@ -193,6 +205,7 @@ const messages = {
       status: {
         error: 'Fehler: {message}',
         empty: 'Keine Einträge gefunden.',
+        languageFilteredEmpty: 'Keine Beiträge in dieser Sprache.',
         loadingMore: 'Mehr laden…',
         endReached: 'Ende erreicht'
       },
@@ -273,6 +286,7 @@ const messages = {
         shareAria: 'Beitrag teilen',
         moreOptions: 'Mehr Optionen',
         translate: 'Übersetzen',
+        translating: 'Übersetze…',
         copyText: 'Post-Text kopieren',
         copyTextSuccess: 'Text kopiert',
         copySuccess: 'Kopiert',
@@ -294,6 +308,14 @@ const messages = {
         directMessageAction: 'Per Direktnachricht senden',
         embed: 'Embed',
         embedAction: 'Post einbetten'
+      },
+      translation: {
+        title: 'Übersetzung',
+        detected: 'Erkannt: {language}',
+        via: 'Automatisch übersetzt via LibreTranslate',
+        close: 'Schließen',
+        error: 'Übersetzung konnte nicht abgerufen werden.',
+        success: 'Übersetzung eingefügt.'
       }
     },
     notifications: {
@@ -407,24 +429,34 @@ const messages = {
       close: 'Schließen',
       sections: {
         gifsTitle: 'GIF-Integration',
-        gifsDescription: 'Tenor stellt GIF-Suche und Vorschau direkt im Composer bereit.',
+        gifsDescription: 'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.',
+        translationTitle: 'Übersetzungshilfe',
+        translationDescription: 'Konfiguriere LibreTranslate oder den Google-Fallback für Übersetzungen.',
         unrollTitle: 'Unroll',
-        unrollDescription: 'Steuere, wie Unroll-Threads dargestellt werden.'
+        unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.'
       },
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
-      tenorKeyPlaceholder: 'Key einfügen',
-      tenorKeyHelp: 'Der Key wird lokal gespeichert und nie an andere Dienste übertragen.',
+      tenorKeyPlaceholder: 'API-Key einfügen',
+      tenorKeyHelp: 'Der Key wird nur lokal gespeichert. Ohne Key ist die Tenor-Suche deaktiviert.',
+      translation: {
+        enableLabel: 'Übersetzungshilfe anzeigen',
+        baseUrlLabel: 'LibreTranslate-Server',
+        baseUrlPlaceholder: 'z. B. http://localhost:5000',
+        baseUrlHelp: 'Nur lokale oder private Endpunkte werden akzeptiert. Der Pfad /translate wird automatisch ergänzt.',
+        allowGoogleLabel: 'Google-Übersetzung als Fallback verwenden',
+        allowGoogleHelp: 'Ohne Server öffnet der Button Google Translate in einem neuen Tab.'
+      },
       unroll: {
         showDividersLabel: 'Trennlinien zwischen Posts anzeigen',
-        showDividersHelp: 'Für eine kompaktere Darstellung kannst du die Trennlinien deaktivieren.'
+        showDividersHelp: 'Deaktiviere die Trennlinien für eine kompakteste Darstellung.'
       },
       future: {
-        heading: 'Noch mehr Einstellungen',
+        heading: 'Weitere Optionen',
         body: 'Weitere Optionen – z. B. Darstellung und lokale Workflows – folgen hier in Kürze.'
       },
       save: 'Speichern'
-    }
+    },
   },
   en: {
     nav: {
@@ -511,6 +543,23 @@ const messages = {
         errorHeading: 'Failed to load hashtag search.',
         errorBody: 'Search failed.'
       }
+    },
+    skeet: {
+      actions: {
+        translating: 'Translating…'
+      },
+      translation: {
+        title: 'Translation',
+        detected: 'Detected: {language}',
+        via: 'Automatically translated via LibreTranslate',
+        close: 'Close',
+        error: 'Translation could not be fetched.',
+        success: 'Translation ready.'
+      }
+    },
+    settingsPage: {
+      title: 'Settings',
+      empty: 'There are no configurable options here right now.'
     },
     chat: {
       header: {
@@ -653,7 +702,9 @@ const messages = {
       close: 'Close',
       sections: {
         gifsTitle: 'GIF integration',
-        gifsDescription: 'Enable Tenor to search and insert GIFs from the composer.',
+        gifsDescription: 'Enable Tenor to search and insert GIFs right from the composer.',
+        translationTitle: 'Translation helper',
+        translationDescription: 'Configure LibreTranslate or fall back to Google Translate.',
         unrollTitle: 'Unroll',
         unrollDescription: 'Control how the unroll dialog renders author threads.'
       },
@@ -661,16 +712,24 @@ const messages = {
       tenorKeyLabel: 'Tenor API key',
       tenorKeyPlaceholder: 'Enter API key',
       tenorKeyHelp: 'The key is stored locally and never shared with other services.',
+      translation: {
+        enableLabel: 'Show translation helper',
+        baseUrlLabel: 'LibreTranslate server',
+        baseUrlPlaceholder: 'e.g. http://localhost:5000',
+        baseUrlHelp: 'Only local/private hosts are allowed. The /translate suffix is appended automatically.',
+        allowGoogleLabel: 'Use Google Translate as fallback',
+        allowGoogleHelp: 'If no server is configured, the button opens Google Translate in a new tab.'
+      },
       unroll: {
         showDividersLabel: 'Show dividers between posts',
         showDividersHelp: 'Disable the dividers for the most compact layout.'
       },
       future: {
-        heading: 'More settings coming soon',
-        body: 'Soon you can configure additional layout tweaks and local workflows here.'
+        heading: 'More options coming soon',
+        body: 'More layout tweaks and local workflow settings will follow soon.'
       },
       save: 'Save'
-    }
+    },
   }
 }
 

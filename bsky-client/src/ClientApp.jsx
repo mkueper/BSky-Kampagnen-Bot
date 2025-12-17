@@ -172,6 +172,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     openFeedManager
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
+  const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
 
   useListPolling(lists, dispatch)
   useNotificationPolling(lists, dispatch)
@@ -440,7 +441,6 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       setLogoutPending(false)
     }
   }, [logout, logoutPending])
-
   const handleOpenClientSettings = useCallback(() => {
     dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: true })
   }, [dispatch])
@@ -672,6 +672,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     }
   }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition, clearSavedScrollPosition])
 
+  const handleTimelineLanguageFilterChange = useCallback((value) => {
+    setTimelineLanguageFilter((value || '').toLowerCase())
+  }, [])
+
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {
       if (prev === tabId) {
@@ -738,6 +742,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
           onToggleFeedMenu={toggleFeedMenu}
           onCloseFeedMenu={closeFeedMenu}
           isRefreshing={timelinePaneRefreshing}
+          languageFilter={timelineLanguageFilter}
+          onLanguageChange={handleTimelineLanguageFilterChange}
+          showLanguageFilter={false}
         />
       )
     }
@@ -1011,6 +1018,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
           notificationTab={notificationTab}
           notificationListKey={notificationListKey}
           timelineListKey={timelineKeyRef.current}
+          timelineLanguageFilter={timelineLanguageFilter}
         />
       </BskyClientLayout>
       <Modals />
@@ -1018,12 +1026,12 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   )
 }
 
-function MainContent ({ notificationTab, notificationListKey, timelineListKey }) {
+function MainContent ({ notificationTab, notificationListKey, timelineListKey, timelineLanguageFilter }) {
   const { section } = useAppState()
   if (section === 'home') {
     return (
       <div className='space-y-6'>
-        <Timeline listKey={timelineListKey} isActive />
+        <Timeline listKey={timelineListKey} isActive languageFilter={timelineLanguageFilter} />
       </div>
     )
   }

@@ -91,6 +91,8 @@ Diese Regeln sind verbindlich und haben Vorrang vor allen anderen Anweisungen.
 
 Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Interaktionsmuster **über alle Pakete hinweg konsistent** bleiben (`dashboard`, `bsky-client`, `shared-ui`). Ändere **keine** UI-Designsysteme, Theme-Logik oder Component-APIs, außer es wird ausdrücklich verlangt.
 
+Wenn für eine Aufgabe bereits eine interne Komponente (z. B. Dialog, Popover, Formular-Element) existiert, verwende konsequent diese bestehende Lösung statt Browser-Defaults oder Drittanbieterkomponenten.
+
 ---
 
 ## 10. Erinnerung

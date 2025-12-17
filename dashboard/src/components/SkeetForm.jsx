@@ -183,7 +183,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     () => ({
       imageAlt: index =>
         t('posts.form.media.imageAltFallback', 'Bild {index}', { index }),
-      altAddTitle: t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altAddTitle: t('posts.form.media.altAddTitle', 'Alt‑Text bearbeiten'),
       altEditTitle: t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
       altBadge: t('posts.form.media.altBadge', 'ALT'),
       altAddBadge: t('posts.form.media.altAddBadge', '+ ALT'),
@@ -1496,7 +1496,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           title={
             altDialog.item.alt
               ? t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten')
-              : t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen')
+              : t('posts.form.media.altAddTitle', 'Alt‑Text bearbeiten')
           }
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}

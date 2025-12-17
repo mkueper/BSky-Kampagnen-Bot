@@ -424,7 +424,7 @@ function ThreadForm ({
     () => ({
       imageAlt: index =>
         t('threads.form.media.imageAltFallback', 'Bild {index}', { index }),
-      altAddTitle: t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altAddTitle: t('threads.form.media.altAddTitle', 'Alt‑Text bearbeiten'),
       altEditTitle: t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
       altBadge: t('threads.form.media.altBadge', 'ALT'),
       altAddBadge: t('threads.form.media.altAddBadge', '+ ALT'),
@@ -1686,7 +1686,7 @@ function ThreadForm ({
           title={
             altDialog.item.alt
               ? t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten')
-              : t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen')
+              : t('threads.form.media.altAddTitle', 'Alt‑Text bearbeiten')
           }
           mode='alt'
           previewSrc={altDialog.item.src}

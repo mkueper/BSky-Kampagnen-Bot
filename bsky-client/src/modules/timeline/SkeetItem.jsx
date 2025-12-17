@@ -8,6 +8,8 @@ import {
   Link2Icon,
   CopyIcon,
   CodeIcon,
+  GlobeIcon,
+  Cross2Icon,
   ExclamationTriangleIcon,
   MagicWandIcon,
   FaceIcon,
@@ -18,7 +20,10 @@ import {
   ScissorsIcon,
   TriangleRightIcon,
   BookmarkIcon,
-  BookmarkFilledIcon
+  BookmarkFilledIcon,
+  PinLeftIcon,
+  TrashIcon,
+  GearIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
@@ -32,15 +37,95 @@ import {
   InlineMenu,
   InlineMenuTrigger,
   InlineMenuContent,
-  InlineMenuItem
+  InlineMenuItem,
+  ConfirmDialog,
+  useConfirmDialog
 } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
+import { muteActor as apiMuteActor, blockActor as apiBlockActor } from '../shared/api/bsky'
+import { useBskyAuth } from '../auth/AuthContext.jsx'
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
 const DEFAULT_SINGLE_IMAGE_RATIO = 4 / 3
 const DEFAULT_MULTI_IMAGE_RATIO = 1
 
+const truthyValues = new Set(['1', 'true', 'yes', 'on'])
+const falsyValues = new Set(['0', 'false', 'no', 'off'])
+const DEFAULT_TRANSLATE_BASE = 'http://localhost:5000'
+
+const parseBoolean = (value, fallback = null) => {
+  if (typeof value === 'boolean') return value
+  if (value === undefined || value === null) return fallback
+  const normalized = String(value).trim().toLowerCase()
+  if (!normalized) return fallback
+  if (truthyValues.has(normalized)) return true
+  if (falsyValues.has(normalized)) return false
+  return fallback
+}
+
+const isPrivateHost = (hostname) => {
+  if (!hostname) return false
+  const normalized = hostname.replace(/^\[|\]$/g, '').toLowerCase()
+  if (normalized === 'localhost' || normalized === '::1') return true
+  if (normalized.startsWith('127.')) return true
+  if (normalized.startsWith('10.')) return true
+  if (normalized.startsWith('192.168.')) return true
+  if (normalized.startsWith('172.')) {
+    const parts = normalized.split('.')
+    const second = Number(parts[1])
+    if (parts.length >= 2 && Number.isFinite(second) && second >= 16 && second <= 31) {
+      return true
+    }
+  }
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true
+  return false
+}
+
+const normalizeTranslateEndpoint = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return null
+  try {
+    const parsed = new URL(rawUrl)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    if (!isPrivateHost(parsed.hostname)) return null
+    const trimmedPath = (parsed.pathname || '/').replace(/\/+$/, '')
+    const hasTranslateSuffix = trimmedPath.toLowerCase().endsWith('/translate')
+    const basePath = hasTranslateSuffix
+      ? (trimmedPath || '/translate')
+      : `${trimmedPath || ''}/translate`
+    const finalPath = basePath.startsWith('/') ? basePath : `/${basePath}`
+    return `${parsed.origin}${finalPath}`
+  } catch {
+    return null
+  }
+}
+
+const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
+  const translationConfig = clientConfig?.translation || {}
+  const baseFromConfig = typeof translationConfig.baseUrl === 'string' ? translationConfig.baseUrl.trim() : ''
+  const baseFromEnv = typeof envBaseUrl === 'string' ? envBaseUrl.trim() : ''
+  const allowGoogle = translationConfig.allowGoogle !== false
+  const explicitEnabled = typeof translationConfig.enabled === 'boolean' ? translationConfig.enabled : null
+  const envEnabled = parseBoolean(envEnabledRaw, null)
+  let featureEnabled = true
+  if (envEnabled !== null) {
+    featureEnabled = envEnabled
+  } else if (explicitEnabled !== null) {
+    featureEnabled = explicitEnabled
+  } else if (baseFromConfig || baseFromEnv) {
+    featureEnabled = true
+  } else {
+    featureEnabled = false
+  }
+  if (!featureEnabled) {
+    return { enabled: false, endpoint: null, allowGoogle: false }
+  }
+  const shouldFallbackToDefault = !(baseFromConfig || baseFromEnv) && !allowGoogle
+  const rawEndpoint = baseFromConfig || baseFromEnv || (shouldFallbackToDefault ? DEFAULT_TRANSLATE_BASE : '')
+  const endpoint = normalizeTranslateEndpoint(rawEndpoint)
+  return { enabled: true, endpoint, allowGoogle }
+}
 
 function extractMediaFromEmbed (item) {
   try {
@@ -246,7 +331,8 @@ function buildShareUrl (item) {
 }
 
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const { session } = useBskyAuth()
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -308,8 +394,23 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     [config]
   )
   const { quoteReposts } = useAppState()
+  const { clientConfig } = useClientConfig()
+  const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LIBRETRANSLATE_BASE_URL) ? import.meta.env.VITE_LIBRETRANSLATE_BASE_URL : ''
+  const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED) ? import.meta.env.VITE_TRANSLATION_ENABLED : null
+  const translationPreferences = useMemo(
+    () => resolveTranslationConfig(clientConfig, envTranslateBaseUrl, envTranslateEnabled),
+    [clientConfig, envTranslateBaseUrl, envTranslateEnabled]
+  )
+  const translationAbortRef = useRef(null)
+  const detectAbortRef = useRef(null)
+  const [translating, setTranslating] = useState(false)
+  const [translationResult, setTranslationResult] = useState(null)
+  const [translationError, setTranslationError] = useState('')
+  const [detectingLanguage, setDetectingLanguage] = useState(false)
+  const [detectedLanguage, setDetectedLanguage] = useState(null)
   const dispatch = useAppDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [quoteBusy, setQuoteBusy] = useState(false)
   const {
     likeCount,
@@ -453,11 +554,15 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     })
   }
 
-  const actorIdentifier = author?.did || author?.handle || ''
+  const actorDid = author?.did || ''
+  const actorIdentifier = actorDid || author?.handle || ''
   const shareUrl = useMemo(() => buildShareUrl(item), [item])
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [shareMenuOpen, setShareMenuOpen] = useState(false)
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [mutingAccount, setMutingAccount] = useState(false)
+  const [blockingAccount, setBlockingAccount] = useState(false)
+  const [menuActionError, setMenuActionError] = useState('')
   const menuRef = useRef(null)
 
 
@@ -475,6 +580,81 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }, [optionsOpen])
 
+  useEffect(() => {
+    return () => {
+      translationAbortRef.current?.abort?.()
+    }
+  }, [])
+  useEffect(() => {
+    return () => {
+      detectAbortRef.current?.abort?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [text, item?.uri])
+  const targetLanguage = useMemo(() => {
+    const base = (locale || navigator?.language || 'en').split('-')[0] || 'en'
+    return base.toLowerCase()
+  }, [locale])
+  const translationEndpoint = translationPreferences.endpoint
+  const translationEnabled = translationPreferences.enabled !== false
+  const allowGoogleFallback = translationPreferences.allowGoogle !== false
+  const canInlineTranslate = Boolean(translationEndpoint)
+  const translateUnavailable = !canInlineTranslate && !allowGoogleFallback
+  const detectEndpoint = useMemo(() => {
+    if (!translationEndpoint) return null
+    return translationEndpoint.replace(/\/translate$/i, '/detect')
+  }, [translationEndpoint])
+  const sameLanguageDetected = detectedLanguage && detectedLanguage === targetLanguage
+  const translateButtonDisabled = translateUnavailable ||
+    !text ||
+    !text.trim() ||
+    (canInlineTranslate && translating) ||
+    (sameLanguageDetected && !detectingLanguage)
+
+  useEffect(() => {
+    detectAbortRef.current?.abort?.()
+    if (!translationEnabled || !canInlineTranslate || !detectEndpoint || !text?.trim()) {
+      setDetectingLanguage(false)
+      setDetectedLanguage(null)
+      return
+    }
+    const controller = new AbortController()
+    detectAbortRef.current = controller
+    setDetectingLanguage(true)
+    const payload = JSON.stringify({ q: text })
+    fetch(detectEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: payload,
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Detect failed')
+        const data = await response.json()
+        const entry = Array.isArray(data)
+          ? data[0]
+          : Array.isArray(data?.detections) ? data.detections[0] : null
+        const lang = typeof entry?.language === 'string'
+          ? entry.language
+          : (typeof entry?.languageCode === 'string' ? entry.languageCode : null)
+        setDetectedLanguage(lang ? lang.toLowerCase() : null)
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return
+        setDetectedLanguage(null)
+      })
+      .finally(() => {
+        setDetectingLanguage(false)
+      })
+  }, [canInlineTranslate, detectEndpoint, text, translationEnabled])
+
   const copyToClipboard = async (value, successMessage = t('skeet.actions.copySuccess', 'Kopiert')) => {
     if (!value) return
     const fallback = () => window.prompt(t('skeet.actions.copyPrompt', 'Zum Kopieren'), value)
@@ -491,33 +671,286 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }
 
-  const showPlaceholder = (label) => {
+  const showPlaceholder = useCallback((label) => {
     setFeedbackMessage(t('skeet.actions.placeholder', '{label} ist noch nicht verfügbar.', { label }))
     window.setTimeout(() => setFeedbackMessage(''), 2400)
-  }
+  }, [t])
 
-  const menuActions = useMemo(() => [
-    {
-      label: t('skeet.actions.translate', 'Übersetzen'),
-      icon: MagicWandIcon,
-      action: () => {
-        const target = encodeURIComponent(text || '')
-        if (!target) { showPlaceholder(t('skeet.actions.translate', 'Übersetzen')); return }
-        const lang = (navigator?.language || 'en').split('-')[0] || 'en'
-        const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
-        window.open(url, '_blank', 'noopener,noreferrer')
+  const showMenuError = useCallback((message) => {
+    setMenuActionError(message)
+    window.setTimeout(() => setMenuActionError(''), 3200)
+  }, [])
+
+  const openExternalTranslate = useCallback(() => {
+    if (!allowGoogleFallback) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    const target = encodeURIComponent(text || '')
+    if (!target) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    const lang = targetLanguage || 'en'
+    const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [allowGoogleFallback, showPlaceholder, t, targetLanguage, text])
+
+  const handleInlineTranslate = useCallback(async () => {
+    if (!translationEnabled || !canInlineTranslate) {
+      return
+    }
+    if (!text || !text.trim()) {
+      setTranslationError(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      return
+    }
+    if (translating) return
+    translationAbortRef.current?.abort?.()
+    const controller = new AbortController()
+    translationAbortRef.current = controller
+    setTranslating(true)
+    setTranslationError('')
+    try {
+      const response = await fetch(translationEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          q: text,
+          source: 'auto',
+          target: targetLanguage || 'en',
+          format: 'text'
+        }),
+        signal: controller.signal
+      })
+      if (!response.ok) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
       }
-    },
-    { label: t('skeet.actions.copyText', 'Post-Text kopieren'), icon: CopyIcon, action: () => copyToClipboard(String(text || ''), t('skeet.actions.copyTextSuccess', 'Text kopiert')) },
-    { label: t('skeet.actions.showMore', 'Mehr davon anzeigen'), icon: FaceIcon, action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')) },
-    { label: t('skeet.actions.showLess', 'Weniger davon anzeigen'), icon: FaceIcon, action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')) },
-    { label: t('skeet.actions.muteThread', 'Thread stummschalten'), icon: SpeakerOffIcon, action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')) },
-    { label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'), icon: MixerVerticalIcon, action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')) },
-    { label: t('skeet.actions.hidePost', 'Post für mich ausblenden'), icon: EyeClosedIcon, action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')) },
-    { label: t('skeet.actions.muteAccount', 'Account stummschalten'), icon: SpeakerModerateIcon, action: () => showPlaceholder(t('skeet.actions.muteAccount', 'Account stummschalten')) },
-    { label: t('skeet.actions.blockAccount', 'Account blockieren'), icon: ScissorsIcon, action: () => showPlaceholder(t('skeet.actions.blockAccount', 'Account blockieren')) },
-    { label: t('skeet.actions.reportPost', 'Post melden'), icon: ExclamationTriangleIcon, action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')) }
-  ], [text, t])
+      const payload = await response.json()
+      const translated = (payload?.translatedText || payload?.translation || '').trim()
+      if (!translated) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      }
+      setTranslationResult({
+        text: translated,
+        detected: payload?.detectedLanguage?.language || payload?.detectedLanguage || null
+      })
+      setFeedbackMessage(t('skeet.translation.success', 'Übersetzung eingefügt.'))
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      setTranslationError(error?.message || t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+    } finally {
+      setTranslating(false)
+    }
+  }, [
+    canInlineTranslate,
+    t,
+    targetLanguage,
+    text,
+    translationEnabled,
+    translationEndpoint,
+    translating
+  ])
+
+  const handleTranslateAction = useCallback(() => {
+    if (!translationEnabled) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    if (canInlineTranslate) {
+      handleInlineTranslate()
+      return
+    }
+    if (allowGoogleFallback) {
+      openExternalTranslate()
+      return
+    }
+    showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+  }, [
+    allowGoogleFallback,
+    canInlineTranslate,
+    handleInlineTranslate,
+    openExternalTranslate,
+    showPlaceholder,
+    t,
+    translationEnabled
+  ])
+
+  const handleClearTranslation = useCallback(() => {
+    translationAbortRef.current?.abort?.()
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [])
+
+  const handleMuteAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.muteAccount', 'Account stummschalten'))
+      return
+    }
+    if (mutingAccount) return
+    setMenuActionError('')
+    setMutingAccount(true)
+    try {
+      await apiMuteActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.muteAccountSuccess', 'Account wurde stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteAccountError', 'Account konnte nicht stummgeschaltet werden.'))
+    } finally {
+      setMutingAccount(false)
+    }
+  }, [actorDid, mutingAccount, showMenuError, showPlaceholder, t])
+
+  const handleBlockAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.blockAccount', 'Account blockieren'))
+      return
+    }
+    if (blockingAccount) return
+    setMenuActionError('')
+    setBlockingAccount(true)
+    try {
+      await apiBlockActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.blockAccountSuccess', 'Account wurde blockiert.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.blockAccountError', 'Account konnte nicht blockiert werden.'))
+    } finally {
+      setBlockingAccount(false)
+    }
+  }, [actorDid, blockingAccount, showMenuError, showPlaceholder, t])
+
+  const viewer = item?.raw?.post?.viewer || item?.raw?.item?.viewer || item?.viewer || null
+  const authorDid = author?.did || null
+  const isOwnPost = Boolean(session?.did && authorDid && session.did === authorDid)
+  const [deletingPost, setDeletingPost] = useState(false)
+
+  const handleDeleteOwnPost = useCallback(async () => {
+    if (!item?.uri || deletingPost) return
+    openConfirm({
+      title: t('skeet.actions.confirmDeleteTitle', 'Post löschen?'),
+      description: t('skeet.actions.confirmDeleteDescription', 'Dieser Schritt ist endgültig. Der Post wird dauerhaft entfernt.'),
+      confirmLabel: t('skeet.actions.deletePost', 'Post löschen'),
+      cancelLabel: t('compose.cancel', 'Abbrechen'),
+      variant: 'destructive',
+      onConfirm: async () => {
+        setMenuActionError('')
+        setDeletingPost(true)
+        try {
+          await deletePost({ uri: item.uri })
+          dispatch({ type: 'REMOVE_POST', payload: item.uri })
+          setFeedbackMessage(t('skeet.actions.deletePostSuccess', 'Post gelöscht.'))
+          window.setTimeout(() => setFeedbackMessage(''), 2400)
+        } catch (error) {
+          showMenuError(error?.message || t('skeet.actions.deletePostError', 'Post konnte nicht gelöscht werden.'))
+        } finally {
+          setDeletingPost(false)
+        }
+      }
+    })
+  }, [deletePost, dispatch, item?.uri, deletingPost, openConfirm, showMenuError, t])
+
+  const menuActions = useMemo(() => {
+    const base = [
+      {
+        key: 'copy-text',
+        label: t('skeet.actions.copyText', 'Post-Text kopieren'),
+        icon: CopyIcon,
+        action: () => copyToClipboard(String(text || ''), t('skeet.actions.copyTextSuccess', 'Text kopiert'))
+      }
+    ]
+
+    if (isOwnPost) {
+      return [
+        ...base,
+        {
+          key: 'pin-post',
+          label: t('skeet.actions.pinPost', 'An dein Profil anheften'),
+          icon: PinLeftIcon,
+          action: () => showPlaceholder(t('skeet.actions.pinPost', 'Post anheften')),
+          disabled: true
+        },
+        {
+          key: 'edit-interactions',
+          label: t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten'),
+          icon: GearIcon,
+          action: () => showPlaceholder(t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten')),
+          disabled: true
+        },
+        {
+          key: 'delete-post',
+          label: t('skeet.actions.deletePost', 'Post löschen'),
+          icon: TrashIcon,
+          action: handleDeleteOwnPost,
+          disabled: deletingPost,
+          variant: 'destructive'
+        }
+      ]
+    }
+
+    return [
+      ...base,
+      {
+        key: 'show-more',
+        label: t('skeet.actions.showMore', 'Mehr davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'show-less',
+        label: t('skeet.actions.showLess', 'Weniger davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'mute-thread',
+        label: t('skeet.actions.muteThread', 'Thread stummschalten'),
+        icon: SpeakerOffIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'mute-words',
+        label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
+        icon: MixerVerticalIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'hide-post',
+        label: t('skeet.actions.hidePost', 'Post für mich ausblenden'),
+        icon: EyeClosedIcon,
+        action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')),
+        disabled: true
+      },
+      {
+        key: 'mute-account',
+        label: t('skeet.actions.muteAccount', 'Account stummschalten'),
+        icon: SpeakerModerateIcon,
+        action: handleMuteAccount,
+        disabled: mutingAccount
+      },
+      {
+        key: 'block-account',
+        label: t('skeet.actions.blockAccount', 'Account blockieren'),
+        icon: ScissorsIcon,
+        action: handleBlockAccount,
+        disabled: blockingAccount,
+        variant: 'destructive'
+      },
+      {
+        key: 'report-post',
+        label: t('skeet.actions.reportPost', 'Post melden'),
+        icon: ExclamationTriangleIcon,
+        action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')),
+        disabled: true
+      }
+    ]
+  }, [blockingAccount, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleMuteAccount, isOwnPost, mutingAccount, showPlaceholder, t, text, copyToClipboard])
 
   const handleProfileClick = (event) => {
     event.preventDefault()
@@ -578,6 +1011,28 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           disableHashtagMenu={disableHashtagMenu}
         />
       </div>
+      {translationResult ? (
+        <div className='mt-3 rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
+          <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
+            <span>{t('skeet.translation.title', 'Übersetzung')}</span>
+            <button
+              type='button'
+              className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              onClick={handleClearTranslation}
+            >
+              <Cross2Icon className='h-3 w-3' />
+              {t('skeet.translation.close', 'Schließen')}
+            </button>
+          </div>
+          <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
+          <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
+            {translationResult.detected
+              ? t('skeet.translation.detected', 'Erkannt: {language}', { language: translationResult.detected.toUpperCase() })
+              : null}
+            <span className='ml-2'>{t('skeet.translation.via', 'Automatisch übersetzt via LibreTranslate')}</span>
+          </p>
+        </div>
+      ) : null}
 
       {quoted ? (
         <div
@@ -955,6 +1410,22 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   </div>
                 </InlineMenuContent>
               </InlineMenu>
+              {translationEnabled ? (
+                <button
+                  type='button'
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
+                  title={translating && canInlineTranslate ? t('skeet.actions.translating', 'Übersetze…') : t('skeet.actions.translate', 'Übersetzen')}
+                  aria-label={t('skeet.actions.translate', 'Übersetzen')}
+                  onClick={handleTranslateAction}
+                  disabled={translateButtonDisabled}
+                >
+                  {translating && canInlineTranslate ? (
+                    <span className='h-4 w-4 animate-spin rounded-full border-2 border-border border-t-transparent' aria-hidden='true' />
+                  ) : (
+                    <GlobeIcon className='h-4 w-4' />
+                  )}
+                </button>
+              ) : null}
               <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
                 <InlineMenuTrigger>
                   <button
@@ -971,10 +1442,13 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       const Icon = entry.icon
                       return (
                         <InlineMenuItem
-                          key={entry.label}
+                          key={entry.key || entry.label}
                           icon={Icon}
+                          disabled={entry.disabled}
+                          variant={entry.variant || 'default'}
                           onSelect={(event) => {
                             event?.preventDefault?.()
+                            if (entry.disabled) return
                             try {
                               entry.action()
                             } catch {
@@ -995,11 +1469,27 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           {feedbackMessage ? (
             <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
           ) : null}
+          {translationError ? (
+            <p className='mt-2 text-xs text-red-600'>{translationError}</p>
+          ) : null}
           {actionError ? (
             <p className='mt-2 text-xs text-red-600'>{actionError}</p>
           ) : null}
+          {menuActionError ? (
+            <p className='mt-2 text-xs text-red-600'>{menuActionError}</p>
+          ) : null}
         </>
       ) : null}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel={confirmDialog.cancelLabel}
+        variant={confirmDialog.variant || 'primary'}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </Wrapper>
   )
 }
