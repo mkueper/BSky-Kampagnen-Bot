@@ -67,7 +67,7 @@ const SIDEBAR_BUTTON_PILL =
 const SIDEBAR_BUTTON_ACTIVE =
   'border border-border bg-background-subtle text-foreground shadow-soft'
 const SIDEBAR_BUTTON_INACTIVE =
-  'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
+  'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg'
 const SIDEBAR_BUTTON_DISABLED =
   'opacity-50 cursor-not-allowed disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
 
@@ -155,7 +155,7 @@ export default function SidebarNav ({
   return (
     <nav
       className={cx(
-        'relative flex h-full flex-col items-start gap-3',
+        'relative flex h-full flex-col items-start gap-3 overflow-x-hidden',
         showFullLabels ? 'w-max' : 'w-full'
       )}
       data-component='BskyPrimaryNav'

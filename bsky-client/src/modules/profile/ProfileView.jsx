@@ -560,7 +560,7 @@ export default function ProfileView ({
     <div
       ref={containerRef}
       id={PROFILE_SCROLL_CONTAINER_ID}
-      className='mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
+      className='mx-auto flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4'
     >
       <div className='relative z-10'>
         <ProfileMeta

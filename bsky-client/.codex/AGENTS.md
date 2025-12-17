@@ -30,6 +30,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ## 3. Git-Operationen (verbindliche Einschränkungen)
 
+* Wenn ich dich ausdrücklich auffordere, einen konkreten Git-Befehl auszuführen, hat diese Anweisung Vorrang vor den sonstigen Einschränkungen dieses Abschnitts.
 * Git-Operationen dürfen **niemals automatisch** ausgeführt werden.
 * Folgende Befehle oder äquivalente Aktionen sind **ausnahmslos untersagt**, solange keine ausdrückliche Anweisung oder Zustimmung von mir vorliegt:
 

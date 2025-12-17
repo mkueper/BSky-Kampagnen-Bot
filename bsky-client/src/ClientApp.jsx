@@ -9,7 +9,7 @@
  * - ScrollToTop/Home: refresh + harter Scroll nach oben, wenn supportsRefresh === true.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense, useLayoutEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
@@ -84,6 +84,8 @@ const ChatListViewLazy = lazy(async () => {
   return { default: module.default }
 })
 const SectionFallback = () => null
+
+const canRestoreListState = (list) => Boolean(list?.loaded && !list?.hasNew)
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
@@ -299,6 +301,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     const listKey = extractListKey(key)
     const listState = listKey ? lists?.[listKey] : null
     const normalizedScroll = typeof scrollValue === 'number' && scrollValue > SCROLL_TOP_THRESHOLD ? scrollValue : 0
+    if (normalizedScroll <= SCROLL_TOP_THRESHOLD) {
+      scrollPositionsRef.current.delete(key)
+      return
+    }
     let anchorId = null
     let anchorOffset = 0
     if (normalizedScroll > 0) {
@@ -355,7 +361,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     }
   }, [getScrollContainer])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = getScrollContainer()
     if (!el) return
 
@@ -377,11 +383,15 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       : typeof savedEntry === 'number'
         ? savedEntry
         : null
-    if (typeof savedTop !== 'number') return
+    if (typeof savedTop !== 'number' || savedTop <= SCROLL_TOP_THRESHOLD) {
+      return
+    }
 
     const restore = () => {
       const container = getScrollContainer()
-      if (!container) return
+      if (!container) {
+        return
+      }
       container.scrollTop = savedTop
       if (savedEntry && typeof savedEntry === 'object' && savedTop > SCROLL_TOP_THRESHOLD) {
         restoreAnchorIfNeeded(container, savedEntry)
@@ -622,12 +632,16 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (!meta) return
     const nextKey = meta.key
     const existingList = lists?.[nextKey]
+    const listHasNew = Boolean(existingList?.hasNew)
     const compositeKey = buildCompositeListKey('home', nextKey)
     const hasSavedPosition = scrollPositionsRef.current.has(compositeKey)
     if (threadState.active) closeThread({ force: true })
     closeFeedMenu()
     if (timelineKeyRef.current === nextKey) {
       skipScrollRestoreRef.current = true
+      if (listHasNew) {
+        clearSavedScrollPosition('home', nextKey)
+      }
       refreshListByKey(nextKey, { scrollAfter: true })
       return
     }
@@ -637,17 +651,26 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       dispatch({ type: 'SET_SECTION', payload: 'home' })
       pushSectionRoute('home')
     }
-    if (!hasSavedPosition) {
+    const canRestore = hasSavedPosition && canRestoreListState(existingList)
+    if (!canRestore) {
       skipScrollRestoreRef.current = true
-      scrollActiveListToTop()
+      if (listHasNew) {
+        clearSavedScrollPosition('home', nextKey)
+        refreshListByKey(nextKey, { scrollAfter: true })
+      } else {
+        scrollActiveListToTop()
+        if (!existingList || !existingList.loaded) {
+          refreshListByKey(nextKey, { scrollAfter: true })
+        }
+      }
     } else {
-      applySavedScrollPosition('home', nextKey)
-      skipScrollRestoreRef.current = false
+      const restored = applySavedScrollPosition('home', nextKey)
+      skipScrollRestoreRef.current = !restored
+      if (!existingList || !existingList.loaded) {
+        refreshListByKey(nextKey, { scrollAfter: !restored })
+      }
     }
-    if (!existingList || !existingList.loaded) {
-      refreshListByKey(nextKey, { scrollAfter: !hasSavedPosition })
-    }
-  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition])
+  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition, clearSavedScrollPosition])
 
   const handleNotificationTabSelect = useCallback((tabId) => {
     setNotificationTab((prev) => {
@@ -659,11 +682,21 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         return prev
       }
       const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
-      const restored = applySavedScrollPosition('notifications', key)
-      skipScrollRestoreRef.current = !restored
+      const targetList = lists?.[key]
+      const canRestore = canRestoreListState(targetList)
+      if (!canRestore) {
+        skipScrollRestoreRef.current = true
+        if (targetList?.hasNew) {
+          clearSavedScrollPosition('notifications', key)
+        }
+        refreshListByKey(key, { scrollAfter: true })
+      } else {
+        const restored = applySavedScrollPosition('notifications', key)
+        skipScrollRestoreRef.current = !restored
+      }
       return tabId
     })
-  }, [refreshListByKey, clearSavedScrollPosition, applySavedScrollPosition])
+  }, [lists, refreshListByKey, clearSavedScrollPosition, applySavedScrollPosition])
   const handleStartNewChat = useCallback(() => {
     console.info('Neuer Chat wird später implementiert.')
   }, [])
@@ -826,11 +859,20 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         skipScrollRestoreRef.current = true
         clearSavedScrollPosition('notifications', notificationListKey)
         refreshListByKey(notificationListKey, { scrollAfter: true })
-      } else if (!notificationList || !notificationList.loaded) {
-        refreshListByKey(notificationListKey)
       } else {
-        applySavedScrollPosition('notifications', notificationListKey)
-        skipScrollRestoreRef.current = false
+        const canRestoreNotifications = canRestoreListState(notificationList)
+        if (!canRestoreNotifications) {
+          skipScrollRestoreRef.current = true
+          if (notificationList?.hasNew) {
+            clearSavedScrollPosition('notifications', notificationListKey)
+            refreshListByKey(notificationListKey, { scrollAfter: true })
+          } else {
+            refreshListByKey(notificationListKey)
+          }
+        } else {
+          const restored = applySavedScrollPosition('notifications', notificationListKey)
+          skipScrollRestoreRef.current = !restored
+        }
       }
       return
     }
@@ -839,14 +881,19 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         closeThread({ force: true })
       }
       const listLoaded = Boolean(timelineList?.loaded)
+      const listHasNew = Boolean(timelineList?.hasNew)
       if (section !== 'home') {
         dispatch({ type: 'SET_SECTION', payload: 'home' })
         pushSectionRoute('home')
-        if (!listLoaded) {
+        if (!listLoaded || listHasNew) {
+          skipScrollRestoreRef.current = true
+          if (listHasNew) {
+            clearSavedScrollPosition('home', timelineKeyRef.current)
+          }
           refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
         } else {
-          applySavedScrollPosition('home', timelineKeyRef.current)
-          skipScrollRestoreRef.current = false
+          const restored = applySavedScrollPosition('home', timelineKeyRef.current)
+          skipScrollRestoreRef.current = !restored
         }
         return
       }
@@ -866,7 +913,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     if (threadState.active) closeThread({ force: true })
     dispatch({ type: 'SET_SECTION', payload: id, actor })
     pushSectionRoute(id)
-  }, [chatViewer?.open, clearSavedScrollPosition, closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey, notificationList, timelineList])
+  }, [chatViewer?.open, clearSavedScrollPosition, closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey, notificationList, timelineList, applySavedScrollPosition])
 
   const scrollTopForceVisible = Boolean(activeList?.hasNew)
 

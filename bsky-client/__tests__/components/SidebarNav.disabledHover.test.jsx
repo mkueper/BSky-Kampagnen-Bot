@@ -59,7 +59,6 @@ describe('SidebarNav – disabled hover behavior', () => {
     expect(searchButton.className).toMatch(/hover:bg-background-subtle\/80/)
     expect(searchButton.className).toMatch(/dark:hover:bg-primary\/10/)
     expect(searchButton.className).toMatch(/hover:shadow-lg/)
-    expect(searchButton.className).toMatch(/hover:scale-\[1.02\]/)
   })
 
   it('zeigt den aktiven Button in sekundärem Stil (border + bg)', () => {

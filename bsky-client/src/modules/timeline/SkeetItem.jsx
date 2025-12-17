@@ -38,6 +38,8 @@ import { parseAspectRatioValue } from '../shared/utils/media.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
+const DEFAULT_SINGLE_IMAGE_RATIO = 4 / 3
+const DEFAULT_MULTI_IMAGE_RATIO = 1
 
 
 function extractMediaFromEmbed (item) {
@@ -83,7 +85,8 @@ function extractMediaFromEmbed (item) {
           type: 'image',
           src,
           thumb: img?.thumb || img?.fullsize || src,
-          alt: img?.alt || ''
+          alt: img?.alt || '',
+          aspectRatio: parseAspectRatioValue(img?.aspectRatio) || null
         }
       })
       .filter(Boolean)
@@ -288,6 +291,22 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     : ''
   const quoteClickable = !quotedStatusMessage && quoted?.uri && typeof onSelect === 'function'
   const { config } = useCardConfig()
+  const getImageContainerStyle = useCallback(
+    (image, { single = true } = {}) => {
+      const fallbackRatio = single ? DEFAULT_SINGLE_IMAGE_RATIO : DEFAULT_MULTI_IMAGE_RATIO
+      const ratio = image?.aspectRatio || fallbackRatio
+      const limit = single ? (config?.singleMax ?? 360) : (config?.multiMax ?? 180)
+      const baseStyle = {
+        width: '100%',
+        backgroundColor: 'var(--background-subtle, #f6f6f6)'
+      }
+      if (config?.mode === 'fixed') {
+        return { ...baseStyle, height: limit, maxHeight: limit }
+      }
+      return { ...baseStyle, aspectRatio: ratio, maxHeight: limit }
+    },
+    [config]
+  )
   const { quoteReposts } = useAppState()
   const dispatch = useAppDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
@@ -625,21 +644,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               onKeyDown={(event) => handleMediaKeyDown(event, images[0].mediaIndex ?? 0)}
               aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
             >
-              <img
-                src={images[0].src}
-                alt={images[0].alt || ''}
-                className='w-full rounded-xl border border-border'
-                style={{
-                  ...(config?.mode === 'fixed'
-                    ? { height: (config?.singleMax ?? 360), maxHeight: (config?.singleMax ?? 360) }
-                    : { maxHeight: (config?.singleMax ?? 360) }),
-                  width: '100%',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  backgroundColor: 'var(--background-subtle, #f6f6f6)'
-                }}
-                loading='lazy'
-              />
+              <div
+                className='relative w-full overflow-hidden rounded-xl border border-border'
+                style={getImageContainerStyle(images[0], { single: true })}
+              >
+                <img
+                  src={images[0].src}
+                  alt={images[0].alt || ''}
+                  className='h-full w-full object-contain'
+                  loading='lazy'
+                />
+              </div>
             </div>
           ) : (
             <div className='grid gap-2'
@@ -655,21 +670,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   onKeyDown={(event) => handleMediaKeyDown(event, im.mediaIndex ?? idx)}
                   aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
                 >
-                  <img
-                    src={im.src}
-                    alt={im.alt || ''}
-                    className='w-full rounded-xl border border-border'
-                    style={{
-                      ...(config?.mode === 'fixed'
-                        ? { height: (config?.multiMax ?? 180), maxHeight: (config?.multiMax ?? 180) }
-                        : { maxHeight: (config?.multiMax ?? 180) }),
-                      width: '100%',
-                      height: 'auto',
-                      objectFit: 'contain',
-                      backgroundColor: 'var(--background-subtle, #f6f6f6)'
-                    }}
-                    loading='lazy'
-                  />
+                  <div
+                    className='relative w-full overflow-hidden rounded-xl border border-border'
+                    style={getImageContainerStyle(im, { single: false })}
+                  >
+                    <img
+                      src={im.src}
+                      alt={im.alt || ''}
+                      className='h-full w-full object-contain'
+                      loading='lazy'
+                    />
+                  </div>
                 </div>
               ))}
             </div>
