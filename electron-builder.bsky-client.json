@@ -1,0 +1,48 @@
+{
+  "appId": "com.mkueper.bsky-client",
+  "productName": "BSky Client Beta",
+  "extraMetadata": {
+    "main": "electron/main-bsky-client.js"
+  },
+  "files": [
+    {
+      "from": "electron",
+      "to": "electron",
+      "filter": [
+        "main-bsky-client.js",
+        "preload.js",
+        "tempBridge.js",
+        "windowState.js"
+      ]
+    },
+    "bsky-client/dist/**/*",
+    "package.json"
+  ],
+  "directories": {
+    "buildResources": "build"
+  },
+  "linux": {
+    "icon": "build/icon.png",
+    "category": "Utility",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ]
+  },
+  "win": {
+    "icon": "build/icon.png",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ]
+  }
+}

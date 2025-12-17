@@ -8,7 +8,6 @@ import {
   Link2Icon,
   CopyIcon,
   CodeIcon,
-  ExternalLinkIcon,
   ExclamationTriangleIcon,
   MagicWandIcon,
   FaceIcon,

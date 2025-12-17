@@ -1,10 +1,10 @@
-const { app, BrowserWindow, Menu, shell, screen, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const fsp = require('fs/promises')
 const http = require('http')
 const os = require('os')
-const crypto = require('crypto')
+const { registerTempFileBridge } = require('./tempBridge')
+const { loadWindowState, persistWindowState } = require('./windowState')
 
 // Ensure Chromium sandbox is disabled on Linux AppImage before any browser process spawns
 if (process.platform === 'linux') {
@@ -32,145 +32,6 @@ if (process.platform === 'linux') {
 }
 
 let mainWindow
-let saveWindowStateTimeout = null
-let clientTempDir = null
-let tempBridgeRegistered = false
-
-function loadWindowState () {
-  try {
-    const storePath = path.join(app.getPath('userData'), 'window-state.json')
-    const raw = fs.existsSync(storePath) ? fs.readFileSync(storePath, 'utf8') : ''
-    const json = raw ? JSON.parse(raw) : null
-    if (!json || typeof json !== 'object') throw new Error('no state')
-    const display = screen.getDisplayMatching({ x: json.x || 0, y: json.y || 0, width: json.width || 0, height: json.height || 0 })
-    const wa = display && display.workArea ? display.workArea : { x: 0, y: 0, width: 1920, height: 1080 }
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
-    const width = clamp(json.width || 1240, 800, wa.width)
-    const height = clamp(json.height || 980, 600, wa.height)
-    const x = json.x != null ? json.x : Math.floor(wa.x + (wa.width - width) / 2)
-    const y = json.y != null ? json.y : Math.floor(wa.y + (wa.height - height) / 2)
-    return { x, y, width, height, isMaximized: Boolean(json.isMaximized) }
-  } catch { return { width: 1240, height: 980, isMaximized: false } }
-}
-
-function saveWindowStateDebounced () {
-  try { if (saveWindowStateTimeout) clearTimeout(saveWindowStateTimeout) } catch { /* ignore */ }
-  saveWindowStateTimeout = setTimeout(() => {
-    try {
-      if (!mainWindow) return
-      const isMaximized = mainWindow.isMaximized()
-      const bounds = isMaximized ? mainWindow.getNormalBounds() : mainWindow.getBounds()
-      const state = { ...bounds, isMaximized }
-      const storePath = path.join(app.getPath('userData'), 'window-state.json')
-      fs.mkdirSync(path.dirname(storePath), { recursive: true })
-      fs.writeFileSync(storePath, JSON.stringify(state))
-    } catch { /* ignore */ }
-  }, 250)
-}
-
-function ensureDirWritable (dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true })
-  fs.accessSync(dirPath, fs.constants.W_OK)
-}
-
-function resolveClientTempDir () {
-  if (clientTempDir) return clientTempDir
-  const attempts = [
-    path.join(app.getPath('temp'), 'bsky-client'),
-    path.join(app.getPath('userData'), 'temp')
-  ]
-  for (const candidate of attempts) {
-    try {
-      ensureDirWritable(candidate)
-      clientTempDir = candidate
-      return candidate
-    } catch {
-      /* ignore and try next */
-    }
-  }
-  const fallback = path.join(os.tmpdir(), `bsky-client-${process.pid}`)
-  ensureDirWritable(fallback)
-  clientTempDir = fallback
-  return fallback
-}
-
-const TEMP_FILE_PREFIX = 'bsky-media'
-function createTempId (fileName = 'upload.bin') {
-  const ext = path.extname(fileName || '')
-  const uuid = typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : crypto.randomBytes(16).toString('hex')
-  return `${TEMP_FILE_PREFIX}-${Date.now()}-${uuid}${ext}`
-}
-
-function resolveTempFilePath (tempId) {
-  const safeName = path.basename(tempId || '')
-  return path.join(clientTempDir || resolveClientTempDir(), safeName)
-}
-
-async function cleanupTempDir (maxAgeMs = 24 * 60 * 60 * 1000) {
-  const dir = resolveClientTempDir()
-  const entries = await fsp.readdir(dir, { withFileTypes: true })
-  const threshold = Date.now() - Math.max(0, Number(maxAgeMs) || 0)
-  let removed = 0
-  await Promise.all(entries.map(async (entry) => {
-    if (!entry.isFile()) return
-    try {
-      const fullPath = path.join(dir, entry.name)
-      const stat = await fsp.stat(fullPath)
-      if (stat.mtimeMs < threshold) {
-        await fsp.unlink(fullPath)
-        removed += 1
-      }
-    } catch {
-      /* ignore individual cleanup errors */
-    }
-  }))
-  return removed
-}
-
-function registerTempFileBridge () {
-  if (tempBridgeRegistered) return
-  const dir = resolveClientTempDir()
-  process.env.BSKY_CLIENT_TEMP_DIR = process.env.BSKY_CLIENT_TEMP_DIR || dir
-
-  ipcMain.handle('bsky-temp:get-dir', () => dir)
-  ipcMain.handle('bsky-temp:write', async (_event, payload = {}) => {
-    const { fileName = 'upload.bin', buffer } = payload
-    if (!buffer) throw new Error('buffer erforderlich')
-    const data = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)
-    const tempId = createTempId(fileName)
-    const target = resolveTempFilePath(tempId)
-    await fsp.writeFile(target, data)
-    return { tempId, bytesWritten: data.length }
-  })
-  ipcMain.handle('bsky-temp:read', async (_event, payload = {}) => {
-    const { tempId } = payload
-    if (!tempId) throw new Error('tempId erforderlich')
-    const target = resolveTempFilePath(tempId)
-    const exists = fs.existsSync(target)
-    if (!exists) return null
-    return fsp.readFile(target)
-  })
-  ipcMain.handle('bsky-temp:delete', async (_event, payload = {}) => {
-    const { tempId } = payload
-    if (!tempId) return { success: false }
-    const target = resolveTempFilePath(tempId)
-    try {
-      await fsp.unlink(target)
-      return { success: true }
-    } catch {
-      return { success: false }
-    }
-  })
-  ipcMain.handle('bsky-temp:cleanup', async (_event, payload = {}) => {
-    const maxAgeMs = payload?.maxAgeMs
-    const removed = await cleanupTempDir(maxAgeMs)
-    return { removed }
-  })
-
-  tempBridgeRegistered = true
-}
 // Backend läuft im selben Prozess (require), kein Child-Prozess nötig
 
 function getAppRoot () {
@@ -247,9 +108,9 @@ function startBackend () {
 }
 
 function createWindow () {
-  registerTempFileBridge()
+  registerTempFileBridge(app)
   const backendPort = startBackend()
-  const state = loadWindowState()
+  const state = loadWindowState(app)
   const browserOpts = {
     width: state.width || 1240,
     height: state.height || 980,
@@ -268,6 +129,7 @@ function createWindow () {
   mainWindow = new BrowserWindow(browserOpts)
 
   mainWindow.once('ready-to-show', () => mainWindow.show())
+  persistWindowState(app, mainWindow)
   try { if (state.isMaximized) mainWindow.maximize() } catch { /* ignore */ }
 
   // ——— Minimal-Menü (nur Edit-Rollen), Menüleiste verstecken ———
@@ -328,13 +190,6 @@ function createWindow () {
       const editable = params.isEditable || Boolean(params?.selectionText)
       if (!editable) e.preventDefault()
     })
-  } catch { /* ignore */ }
-
-  // ——— Persist window state on resize/move/close ———
-  try {
-    mainWindow.on('resize', saveWindowStateDebounced)
-    mainWindow.on('move', saveWindowStateDebounced)
-    mainWindow.on('close', saveWindowStateDebounced)
   } catch { /* ignore */ }
 
   const devUrl = process.env.VITE_DEV_SERVER_URL
