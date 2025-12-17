@@ -7,6 +7,7 @@
  */
 const skeetService = require('@core/services/skeetService');
 const scheduler = require('@core/services/scheduler');
+const { getBooleanQueryFlag, sendControllerError } = require('./helpers/controllerUtils');
 
 /**
  * GET /api/skeets[?includeDeleted=1|true|yes|all][&onlyDeleted=1|true|yes]
@@ -20,12 +21,12 @@ const scheduler = require('@core/services/scheduler');
  */
 async function getSkeets(req, res) {
   try {
-    const includeDeleted = ["1", "true", "yes", "all"].includes((req.query.includeDeleted || "").toString().toLowerCase());
-    const onlyDeleted = ["1", "true", "yes"].includes((req.query.onlyDeleted || "").toString().toLowerCase());
+    const includeDeleted = getBooleanQueryFlag(req, 'includeDeleted', { allowAllToken: 'all' });
+    const onlyDeleted = getBooleanQueryFlag(req, 'onlyDeleted');
     const skeets = await skeetService.listSkeets({ includeDeleted, onlyDeleted, includeMedia: true });
     res.json(skeets);
   } catch (error) {
-    res.status(500).json({ error: error?.message || 'Fehler beim Laden der Skeets.' });
+    sendControllerError(res, error, { defaultStatus: 500, fallbackMessage: 'Fehler beim Laden der Skeets.' });
   }
 }
 
@@ -49,7 +50,7 @@ async function createSkeet(req, res) {
     const skeet = await skeetService.createSkeet(req.body || {});
     res.status(201).json(skeet);
   } catch (error) {
-    res.status(400).json({ error: error?.message || 'Fehler beim Anlegen des Skeets.' });
+    sendControllerError(res, error, { defaultStatus: 400, fallbackMessage: 'Fehler beim Anlegen des Skeets.' });
   }
 }
 
@@ -66,12 +67,11 @@ async function updateSkeet(req, res) {
     const skeet = await skeetService.updateSkeet(id, req.body || {});
     res.json(skeet);
   } catch (error) {
-    const message = error?.message || 'Fehler beim Aktualisieren des Skeets.';
-    if (message.includes('nicht gefunden')) {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(400).json({ error: message });
-    }
+    sendControllerError(res, error, {
+      defaultStatus: 400,
+      notFoundPatterns: ['nicht gefunden'],
+      fallbackMessage: 'Fehler beim Aktualisieren des Skeets.',
+    });
   }
 }
 
@@ -85,16 +85,15 @@ async function updateSkeet(req, res) {
 async function deleteSkeet(req, res) {
   const { id } = req.params;
   try {
-    const permanent = ["1", "true", "yes"].includes((req.query.permanent || "").toString().toLowerCase());
+    const permanent = getBooleanQueryFlag(req, 'permanent');
     await skeetService.deleteSkeet(id, { permanent });
     res.status(204).send();
   } catch (error) {
-    const message = error?.message || 'Fehler beim Löschen des Skeets.';
-    if (message.includes('nicht gefunden')) {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(500).json({ error: message });
-    }
+    sendControllerError(res, error, {
+      defaultStatus: 500,
+      notFoundPatterns: ['nicht gefunden'],
+      fallbackMessage: 'Fehler beim Löschen des Skeets.',
+    });
   }
 }
 
@@ -118,15 +117,12 @@ async function retractSkeet(req, res) {
     const summary = await skeetService.retractSkeetCompletely(id);
     res.json(summary);
   } catch (error) {
-    const message = error?.message || 'Fehler beim Entfernen des Skeets.';
-    const status = error?.status || (
-      message.includes('nicht gefunden')
-        ? 404
-        : (message.includes('keine veröffentlichten Plattformdaten') || message.includes('Zielplattformen'))
-          ? 400
-          : 500
-    );
-    res.status(status).json({ error: message });
+    sendControllerError(res, error, {
+      defaultStatus: 500,
+      notFoundPatterns: ['nicht gefunden'],
+      badRequestPatterns: ['keine veröffentlichten plattformdaten', 'zielplattformen'],
+      fallbackMessage: 'Fehler beim Entfernen des Skeets.',
+    });
   }
 }
 
@@ -143,12 +139,11 @@ async function restoreSkeet(req, res) {
     const skeet = await skeetService.restoreSkeet(id);
     res.json(skeet);
   } catch (error) {
-    const message = error?.message || 'Fehler beim Reaktivieren des Skeets.';
-    if (message.includes('nicht gefunden')) {
-      res.status(404).json({ error: message });
-    } else {
-      res.status(400).json({ error: message });
-    }
+    sendControllerError(res, error, {
+      defaultStatus: 400,
+      notFoundPatterns: ['nicht gefunden'],
+      fallbackMessage: 'Fehler beim Reaktivieren des Skeets.',
+    });
   }
 }
 
@@ -166,8 +161,11 @@ module.exports = {
       const fresh = await Skeet.findByPk(id, { include: [{ model: SkeetMedia, as: 'media', separate: true, order: [["order","ASC"],["id","ASC"]] }] });
       res.json(fresh ? fresh.toJSON() : { id });
     } catch (error) {
-      const status = error?.status || 500;
-      res.status(status).json({ error: error?.message || 'Fehler beim sofortigen Veröffentlichen des Skeets.' });
+      sendControllerError(res, error, {
+        defaultStatus: 500,
+        notFoundPatterns: ['nicht gefunden'],
+        fallbackMessage: 'Fehler beim sofortigen Veröffentlichen des Skeets.',
+      });
     }
   }
 };

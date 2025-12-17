@@ -200,6 +200,23 @@ module.exports = {
   SCHEDULER_RANDOM_OFFSET_MINUTES:
     toNumber(process.env.SCHEDULER_RANDOM_OFFSET_MINUTES, 0),
   /**
+   * Maximale Anzahl parallel verarbeiteter Scheduler-Jobs (Skeets/Threads).
+   */
+  SCHEDULER_CONCURRENCY: Math.max(1, toNumber(process.env.SCHEDULER_CONCURRENCY, 3)),
+  /**
+   * Ab wann (in Millisekunden) ein Scheduler-Lag als Warnung geloggt wird.
+   */
+  SCHEDULER_LAG_WARN_THRESHOLD_MS:
+    toNumber(process.env.SCHEDULER_LAG_WARN_THRESHOLD_MS, 60_000),
+  /**
+   * Basisverzögerung für erneute Veröffentlichungsversuche nach Fehlern (ms).
+   */
+  SCHEDULER_RETRY_BASE_MS: toNumber(process.env.SCHEDULER_RETRY_BASE_MS, 60_000),
+  /**
+   * Obergrenze für adaptive Backoff-Verzögerungen (ms).
+   */
+  SCHEDULER_RETRY_MAX_MS: toNumber(process.env.SCHEDULER_RETRY_MAX_MS, 600_000),
+  /**
    * Fallback‑Locale für serverseitige Formatierungen.
    * Reihenfolge: `LOCALE` → `VITE_LOCALE` → "de-DE".
    */

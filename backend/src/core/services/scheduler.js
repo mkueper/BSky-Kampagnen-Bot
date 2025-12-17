@@ -9,7 +9,7 @@
 const cron = require("node-cron");
 const { Op } = require("sequelize");
 const config = require("@config");
-const { Skeet, Thread, ThreadSkeet, PostSendLog } = require("@data/models");
+const { sequelize, Skeet, Thread, ThreadSkeet, PostSendLog } = require("@data/models");
 const postService = require("./postService");
 const events = require("./events");
 const settingsService = require("./settingsService");
@@ -30,6 +30,11 @@ let schedulerRandomOffsetMinutes = clampRandomOffsetMinutes(
   Number(config.SCHEDULER_RANDOM_OFFSET_MINUTES || 0)
 );
 const MAX_ERROR_MESSAGE_LENGTH = 500;
+const SCHEDULER_CONCURRENCY = Math.max(1, Number(config.SCHEDULER_CONCURRENCY || 1));
+const SCHEDULER_LAG_WARN_THRESHOLD_MS = Math.max(
+  0,
+  Number(config.SCHEDULER_LAG_WARN_THRESHOLD_MS || 60_000)
+);
 
 function clampRandomOffsetMinutes(value) {
   const minutes = Number(value);
@@ -73,6 +78,53 @@ function getTargetPlatforms(skeet) {
   return normalized.length > 0 ? normalized : ["bluesky"];
 }
 
+async function runWithConcurrency(items, handler, limit = SCHEDULER_CONCURRENCY) {
+  const total = Array.isArray(items) ? items.length : 0;
+  const stats = { total, succeeded: 0, failed: 0 };
+  if (!total) return stats;
+  const maxWorkers = Math.max(1, Number(limit) || 1);
+  let index = 0;
+
+  async function worker() {
+    while (true) {
+      const currentIndex = index++;
+      if (currentIndex >= total) break;
+      try {
+        await handler(items[currentIndex]);
+        stats.succeeded += 1;
+      } catch {
+        stats.failed += 1;
+      }
+    }
+  }
+
+  const workers = new Array(Math.min(maxWorkers, total)).fill(null).map(() => worker());
+  await Promise.all(workers);
+  return stats;
+}
+
+function logLagIfNeeded(scope, items, now) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const scheduledAt = items[0]?.scheduledAt ? new Date(items[0].scheduledAt) : null;
+  if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) return;
+  const lagMs = now.getTime() - scheduledAt.getTime();
+  if (lagMs >= SCHEDULER_LAG_WARN_THRESHOLD_MS) {
+    log.warn(`${scope} scheduler lag detected`, {
+      oldestScheduledAt: scheduledAt.toISOString(),
+      lagMs,
+      queueSize: items.length,
+    });
+  }
+}
+
+function getAdaptiveRetryDelay(metadata = {}) {
+  const baseMs = Math.max(1_000, Number(config.SCHEDULER_RETRY_BASE_MS || RETRY_DELAY_MS));
+  const maxMs = Math.max(baseMs, Number(config.SCHEDULER_RETRY_MAX_MS || baseMs * 10));
+  const attempts = Math.max(1, Number(metadata.retryAttempt || 1));
+  const factor = Math.pow(2, Math.max(0, attempts - 1));
+  return Math.min(baseMs * factor, maxMs);
+}
+
 async function logPostSendAttempt({
   skeetId,
   platform,
@@ -82,21 +134,39 @@ async function logPostSendAttempt({
   errorCode = null,
   errorMessage = null,
 }) {
+  let transaction;
   try {
-    const attemptCount = await PostSendLog.count({ where: { skeetId } });
-    await PostSendLog.create({
-      skeetId,
-      platform,
-      status,
-      postedAt,
-      postUri: postUri || null,
-      errorCode: errorCode || null,
-      errorMessage: errorMessage
-        ? String(errorMessage).slice(0, MAX_ERROR_MESSAGE_LENGTH)
-        : null,
-      attempt: attemptCount + 1,
+    transaction = await sequelize.transaction();
+    const lastAttempt = await PostSendLog.max("attempt", {
+      where: { skeetId },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
     });
+    const attempt = Number.isFinite(lastAttempt) ? Number(lastAttempt) + 1 : 1;
+    await PostSendLog.create(
+      {
+        skeetId,
+        platform,
+        status,
+        postedAt,
+        postUri: postUri || null,
+        errorCode: errorCode || null,
+        errorMessage: errorMessage
+          ? String(errorMessage).slice(0, MAX_ERROR_MESSAGE_LENGTH)
+          : null,
+        attempt,
+      },
+      { transaction }
+    );
+    await transaction.commit();
   } catch (error) {
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch {
+        /* ignore */
+      }
+    }
     log.warn("Konnte PostSendLog nicht speichern", {
       error: error?.message || String(error),
     });
@@ -447,6 +517,7 @@ async function dispatchSkeet(skeet) {
   const targetPlatforms = getTargetPlatforms(current);
   const normalizedPlatforms = Array.from(new Set(targetPlatforms));
   const results = ensureResultsObject(current.platformResults);
+  const metadata = ensureMetadataObject(current.metadata);
   const successOrder = [];
 
   for (const platformId of targetPlatforms) {
@@ -581,8 +652,15 @@ async function dispatchSkeet(skeet) {
       updates.status = "sent";
       updates.pendingReason = null;
       updates.repeatAnchorAt = null;
+      metadata.retryAttempt = 0;
+      metadata.nextRetryAt = null;
+      metadata.lastRetryDelayMs = null;
     } else {
-      updates.scheduledAt = new Date(Date.now() + RETRY_DELAY_MS);
+      metadata.retryAttempt = Number(metadata.retryAttempt || 0) + 1;
+      const delay = getAdaptiveRetryDelay(metadata);
+      updates.scheduledAt = new Date(Date.now() + delay);
+      metadata.lastRetryDelayMs = delay;
+      metadata.nextRetryAt = updates.scheduledAt.toISOString();
     }
   } else {
     // Wiederkehrende Skeets bleiben im Status "scheduled"
@@ -591,12 +669,19 @@ async function dispatchSkeet(skeet) {
     }
     if (allSent) {
       updates.pendingReason = null;
+      metadata.retryAttempt = 0;
+      metadata.nextRetryAt = null;
+      metadata.lastRetryDelayMs = null;
     }
     if (nextAnchor) {
       updates.repeatAnchorAt = nextAnchor;
       updates.scheduledAt = randomizedNextRun || nextAnchor;
     } else {
-      updates.scheduledAt = new Date(Date.now() + RETRY_DELAY_MS);
+      metadata.retryAttempt = Number(metadata.retryAttempt || 0) + 1;
+      const delay = getAdaptiveRetryDelay(metadata);
+      updates.scheduledAt = new Date(Date.now() + delay);
+      metadata.lastRetryDelayMs = delay;
+      metadata.nextRetryAt = updates.scheduledAt.toISOString();
       updates.repeatAnchorAt = current.repeatAnchorAt || current.scheduledAt || null;
     }
   }
@@ -641,7 +726,10 @@ async function processDueSkeets(now = new Date()) {
   //   }))
   // );
 
-  for (const skeet of dueSkeets) {
+  logLagIfNeeded('skeet', dueSkeets, now);
+
+  const startedAt = Date.now();
+  const stats = await runWithConcurrency(dueSkeets, async (skeet) => {
     try {
       if (discardMode) {
         // Demo: Nicht senden, sondern als "veröffentlicht" markieren
@@ -649,8 +737,8 @@ async function processDueSkeets(now = new Date()) {
         if (current) {
           const targetPlatforms = getTargetPlatforms(current);
           const normalizedPlatforms = Array.from(new Set(targetPlatforms));
-          const now = new Date();
-          const nowIso = now.toISOString();
+          const nowDate = new Date();
+          const nowIso = nowDate.toISOString();
 
           const results = {};
           for (const platformId of normalizedPlatforms) {
@@ -672,7 +760,7 @@ async function processDueSkeets(now = new Date()) {
             platformResults: results,
             targetPlatforms: normalizedPlatforms.length > 0 ? normalizedPlatforms : ["bluesky"],
             postUri: fakeUri,
-            postedAt: now,
+            postedAt: nowDate,
           };
 
           if (current.repeat === "none") {
@@ -692,12 +780,26 @@ async function processDueSkeets(now = new Date()) {
           try { events.emit('skeet:updated', { id: current.id, status: 'published' }); } catch { /* ignore SSE emit error */ }
           log.info("Discard-Mode: Skeet als veröffentlicht markiert (Demo)", { id: current.id });
         }
-        continue;
+        return;
       }
       await dispatchSkeet(skeet);
     } catch (error) {
       log.error("Fehler beim Senden eines Skeets", { id: skeet.id, error: error?.message || String(error) });
+      throw error;
     }
+  });
+
+  if (dueSkeets.length > 0) {
+    const durationMs = Date.now() - startedAt;
+    log.info("Scheduler tick (skeets) abgeschlossen", {
+      count: dueSkeets.length,
+      succeeded: stats.succeeded,
+      failed: stats.failed,
+      durationMs,
+      concurrency: SCHEDULER_CONCURRENCY,
+    });
+  } else {
+    log.debug("Scheduler tick (skeets) – keine fälligen Einträge");
   }
 }
 
@@ -919,7 +1021,10 @@ async function processDueThreads(now = new Date()) {
     limit: MAX_BATCH_SIZE,
   });
 
-  for (const thread of dueThreads) {
+  logLagIfNeeded('thread', dueThreads, now);
+
+  const startedAt = Date.now();
+  const stats = await runWithConcurrency(dueThreads, async (thread) => {
     try {
       if (discardMode) {
         const { ThreadSkeetMedia } = require('../../data/models');
@@ -929,8 +1034,8 @@ async function processDueThreads(now = new Date()) {
         if (current) {
           const targetPlatforms = getTargetPlatforms(current);
           const normalizedPlatforms = Array.from(new Set(targetPlatforms));
-          const now = new Date();
-          const nowIso = now.toISOString();
+          const nowDate = new Date();
+          const nowIso = nowDate.toISOString();
 
           const metadata = ensureMetadataObject(current.metadata);
           const platformResults = {};
@@ -956,7 +1061,7 @@ async function processDueThreads(now = new Date()) {
           // Segmente mit Dummy-RemoteId/postedAt versehen
           if (Array.isArray(current.segments)) {
             for (const segment of current.segments) {
-              await segment.update({ remoteId: `demo://thread/${current.id}/seg/${segment.sequence}`, postedAt: now });
+              await segment.update({ remoteId: `demo://thread/${current.id}/seg/${segment.sequence}`, postedAt: nowDate });
             }
           }
 
@@ -974,12 +1079,26 @@ async function processDueThreads(now = new Date()) {
 
           log.info("Discard-Mode: Thread als veröffentlicht markiert (Demo)", { id: current.id });
         }
-        continue;
+        return;
       }
       await dispatchThread(thread);
     } catch (error) {
       log.error("Fehler beim Senden eines Threads", { id: thread.id, error: error?.message || String(error) });
+      throw error;
     }
+  });
+
+  if (dueThreads.length > 0) {
+    const durationMs = Date.now() - startedAt;
+    log.info("Scheduler tick (threads) abgeschlossen", {
+      count: dueThreads.length,
+      succeeded: stats.succeeded,
+      failed: stats.failed,
+      durationMs,
+      concurrency: SCHEDULER_CONCURRENCY,
+    });
+  } else {
+    log.debug("Scheduler tick (threads) – keine fälligen Einträge");
   }
 }
 

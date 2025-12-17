@@ -4,22 +4,21 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-15.12.2025
+16.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Chat-Funktionen des Clients nutzen nun einen robusten Fallback auf `api.bsky.chat`, wenn der klassische Proxy 404/XRPCNotSupported liefert; Konversationsliste, Detailansicht, Read-State und Polling laufen wieder ohne Fehler.
-- Share- und Repost-Menüs klappen in die gewünschten Richtungen, die Discover-Badges im Timeline-Header haben den gleichen Kontrast wie alle anderen Tabs.
-- `codex-plans-client.md` enthält jetzt den Beta-Hinweis (Windows & Linux App in Arbeit); Fokus bleibt auf dem Client, Backend/Dashboard unverändert stabil.
-- Docker-Bundle, Scheduler-Zufallsversatz, Demo-Daten-Skript und Dokumentation des Kampagnen-Tools sind weiterhin gültig, Tests laufen grün.
+- Scheduler besitzt adaptive Parallelität (konfigurierbar über `SCHEDULER_CONCURRENCY`) und loggt Lag/Retry-Infos; PostSendLogs werden atomar erfasst und Tests laufen grün.
+- Chat-Fallback, Discover-Badges und Share/Repost-Menüs im Client weiterhin stabil; Beta-Builds und restliche Client-Themen unverändert offen.
+- Docker-Bundle, Scheduler-Zufallsversatz, Demo-Skripte und Kampagnen-Dokumentation unverändert gültig; Backend-Tests laufen grün.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Nächste Session beginnt mit funktionsfähigem Chat-Fallback und stabilen Share-/Badge-Anpassungen. Priorität: Beta-Builds (Windows & Linux) erstellen, Installationswege testen und anschließend weitere Client-Baustellen (Timeline-Umschalter, Suche, Chats) angehen. Kampagnen-Tool/Dashboard werden nur bei Bedarf angerührt.
+Starker Scheduler-Stand (Parallelität + adaptive Retries + bessere Logs) liegt vor. Nächste Session: Beta-Builds für den Bluesky-Client voranbringen, Timeline-/Suche-Baustellen adressieren und ggf. neue Scheduler-Metriken an Observability anbinden.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-- Beta-Vorbereitung: Windows- und Linux-App paketieren, Smoke-Tests durchführen und Download-/Kommunikationsplan für den Betatest aufsetzen.
+- Beta-Vorbereitung: Windows- und Linux-App paketieren, Smoke-Tests durchführen und Download-/Kommunikationsplan für den Betatest aufsetzen; neue Scheduler-Variablen in README/docs ergänzen.
 
 [text](<../../Downloads/5D1CF368B8361FD0AABF71486C6920B9 (1).pdf>)
 ### 4.1 Client (Bluesky‑Desktop‑App)
