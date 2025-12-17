@@ -9,6 +9,7 @@ function buildLocalConfig (config = {}) {
   const gifs = config?.gifs || {}
   const unroll = config?.unroll || {}
   const translation = config?.translation || {}
+  const composer = config?.composer || {}
   return {
     gifs: {
       tenorAvailable: Boolean(gifs.tenorAvailable),
@@ -21,6 +22,9 @@ function buildLocalConfig (config = {}) {
       enabled: translation.enabled === true,
       baseUrl: translation.baseUrl || '',
       allowGoogle: translation.allowGoogle !== false
+    },
+    composer: {
+      showReplyPreview: composer.showReplyPreview !== false
     }
   }
 }
@@ -49,13 +53,15 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedTranslationEnabled = clientConfig?.translation?.enabled === true
     const savedTranslationBase = clientConfig?.translation?.baseUrl || ''
     const savedTranslationAllowGoogle = clientConfig?.translation?.allowGoogle !== false
+    const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
     return (
       Boolean(localConfig.gifs.tenorAvailable) !== Boolean(clientConfig?.gifs?.tenorAvailable) ||
       (localConfig.gifs.tenorApiKey || '') !== (clientConfig?.gifs?.tenorApiKey || '') ||
       Boolean(localConfig.unroll.showDividers) !== savedShowDividers ||
       Boolean(localConfig.translation.enabled) !== savedTranslationEnabled ||
       (localConfig.translation.baseUrl || '') !== savedTranslationBase ||
-      Boolean(localConfig.translation.allowGoogle) !== savedTranslationAllowGoogle
+      Boolean(localConfig.translation.allowGoogle) !== savedTranslationAllowGoogle ||
+      Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview
     )
   }, [clientConfig, localConfig])
 
@@ -80,6 +86,9 @@ export default function ClientSettingsModal ({ open, onClose }) {
         enabled: Boolean(localConfig.translation.enabled),
         baseUrl: localConfig.translation.baseUrl?.trim() || '',
         allowGoogle: Boolean(localConfig.translation.allowGoogle)
+      },
+      composer: {
+        showReplyPreview: Boolean(localConfig.composer.showReplyPreview)
       }
     })
     handleClose()
@@ -90,7 +99,6 @@ export default function ClientSettingsModal ({ open, onClose }) {
       <div
         className='absolute inset-0 bg-black/40 backdrop-blur-sm'
         aria-hidden='true'
-        onClick={handleClose}
       />
       <Card
         as='div'
@@ -142,14 +150,39 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   )}
                 </p>
               </section>
-              <section className='space-y-2 rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-foreground-muted'>
-                <p className='font-semibold text-foreground'>
-                  {t('clientSettings.future.heading', 'Weitere Optionen')}
-                </p>
-                <p>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.sections.composerTitle', 'Composer')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t(
+                      'clientSettings.sections.composerDescription',
+                      'Steuert lokale Hilfen beim Antworten und Zitieren.'
+                    )}
+                  </p>
+                </div>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.composer.showReplyPreview)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        composer: {
+                          ...current.composer,
+                          showReplyPreview: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <span>{t('clientSettings.composer.showReplyPreviewLabel', 'Antwort-Vorschau anzeigen')}</span>
+                </label>
+                <p className='text-xs text-foreground-muted'>
                   {t(
-                    'clientSettings.future.body',
-                    'Allgemeine Features wie Barrierefreiheit, Medien-Handling und Tastaturkürzel folgen hier in Kürze.'
+                    'clientSettings.composer.showReplyPreviewHelp',
+                    'Blendet den Beitrag ein, auf den du antwortest. Deaktiviere die Option für ein kompakteres Composer-Layout.'
                   )}
                 </p>
               </section>

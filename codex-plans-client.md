@@ -28,6 +28,8 @@ Bluesky-Client verhält sich UI/UX-seitig wie das Original (Scroll-Verhalten, Ba
    - README + `docs/development/*` um Abschnitt „Getrennte Frontends starten“ erweitern (`npm run dev`, `npm run dev:bsky-client`, Ports, Login-Hinweise).
 5. Beta-Builds vorbereiten:
    - Electron-Builds für Windows/Linux paketieren (Test-Signaturen reichen aus), Smoke-Test-Skript ergänzen und Download/Changelog im Repo dokumentieren.
+6. Portale/Modal-Mounts aufräumen:
+   - Gemeinsamen Portal-Container definieren oder `portalled={false}` evaluieren, damit vor Releases keine zig leeren `<div>` unter `<body>` entstehen; Aufwand (Refactor aller InlineMenus/Modals) vorher kurz schätzen.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
