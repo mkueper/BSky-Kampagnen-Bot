@@ -42,6 +42,7 @@ const CHAT_PROXY_HEADER_VALUE = resolveChatProxyHeader()
 const CHAT_SERVICE_HEADERS = Object.freeze({ 'atproto-proxy': CHAT_PROXY_HEADER_VALUE })
 let chatProxyFailed = false
 let cachedChatServiceBaseUrl = null
+let chatUnreadPollingDisabled = false
 
 function clampNumber (value, min, max, fallback) {
   const numeric = Number(value)
@@ -126,6 +127,21 @@ function transformChatApiError (error) {
     return new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
   }
   return error
+}
+
+function isChatFeatureUnavailableError (error) {
+  if (!error) return false
+  const status = Number(error?.status ?? error?.statusCode)
+  if ([400, 401, 403, 404].includes(status)) return true
+  const code = (error?.error || error?.data?.error || '').toLowerCase()
+  if (code === 'xrpcnotsupported' || code === 'featuredisabled') return true
+  const message = (error?.message || '').toLowerCase()
+  if (!message) return false
+  return (
+    message.includes('chat-api derzeit nicht verfügbar') ||
+    message.includes('chat api currently unavailable') ||
+    message.includes('chat-api')
+  )
 }
 
 function buildChatServiceUrl (nsid, params) {
@@ -1773,7 +1789,19 @@ export async function updateChatReadState ({ convoId, messageId } = {}) {
 }
 
 export async function fetchChatUnreadSnapshot () {
-  return fetchChatUnreadSnapshotDirect()
+  if (chatUnreadPollingDisabled) {
+    return { unreadCount: 0, disabled: true }
+  }
+  try {
+    return await fetchChatUnreadSnapshotDirect()
+  } catch (error) {
+    if (isChatFeatureUnavailableError(error)) {
+      chatUnreadPollingDisabled = true
+      console.info('[chat] Chat-Polling deaktiviert (nicht verfügbar).', error)
+      return { unreadCount: 0, disabled: true }
+    }
+    throw error
+  }
 }
 
 export async function muteActor (did) {

@@ -28,6 +28,7 @@ export function useListPolling(lists, dispatch) {
         if (cancelled) return
         try {
           const serverTopId = await fetchServerTopId(list, 1)
+          if (cancelled) return
           if (!serverTopId) continue
           if (list.topId && serverTopId !== list.topId) {
             dispatchRef.current?.({ type: 'LIST_MARK_HAS_NEW', payload: list.key })
