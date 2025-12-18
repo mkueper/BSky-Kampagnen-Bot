@@ -421,24 +421,44 @@ const messages = {
       discardTitle: 'Entwurf verwerfen',
       discardMessage:
         'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
-      discardConfirm: 'Verwerfen'
+      discardConfirm: 'Verwerfen',
+      context: {
+        replyLabel: 'Antwort auf',
+        quoteLabel: 'Zitat von',
+        quoteRemove: 'Zitat entfernen',
+        authorMissing: 'Autorinformationen wurden nicht mitgeliefert.'
+      },
+      preview: {
+        placeholder: 'Dein Text erscheint hier.',
+        emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.'
+      }
     },
     clientSettings: {
       title: 'Client-Einstellungen',
       subtitle: 'Diese Optionen gelten nur lokal auf diesem Gerät.',
       close: 'Schließen',
+      general: {
+        introTitle: 'Lokale Steuerung',
+        introBody: 'Diese Einstellungen gelten ausschließlich im aktuellen Browser und helfen dir, den Client an deine Arbeitsweise anzupassen.'
+      },
       sections: {
         gifsTitle: 'GIF-Integration',
         gifsDescription: 'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.',
         translationTitle: 'Übersetzungshilfe',
         translationDescription: 'Konfiguriere LibreTranslate oder den Google-Fallback für Übersetzungen.',
         unrollTitle: 'Unroll',
-        unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.'
+        unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.',
+        composerTitle: 'Composer',
+        composerDescription: 'Steuert lokale Hilfen beim Antworten und Zitieren.'
       },
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
       tenorKeyPlaceholder: 'API-Key einfügen',
       tenorKeyHelp: 'Der Key wird nur lokal gespeichert. Ohne Key ist die Tenor-Suche deaktiviert.',
+      composer: {
+        showReplyPreviewLabel: 'Antwort-Vorschau anzeigen',
+        showReplyPreviewHelp: 'Blendet den Beitrag ein, auf den du antwortest. Deaktiviere die Option für ein kompakteres Composer-Layout.'
+      },
       translation: {
         enableLabel: 'Übersetzungshilfe anzeigen',
         baseUrlLabel: 'LibreTranslate-Server',
@@ -692,26 +712,46 @@ const messages = {
       cancel: 'Cancel',
       submit: 'Post',
       previewUnavailableStandalone: 'Link preview is not available in standalone mode yet.',
-      discardTitle: 'Entwurf verwerfen',
-      discardMessage: 'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
-      discardConfirm: 'Verwerfen'
+      discardTitle: 'Discard draft',
+      discardMessage: 'Are you sure you want to discard this draft?',
+      discardConfirm: 'Discard',
+      context: {
+        replyLabel: 'Replying to',
+        quoteLabel: 'Quoting',
+        quoteRemove: 'Remove quote',
+        authorMissing: 'Author information is missing.'
+      },
+      preview: {
+        placeholder: 'Your text will appear here.',
+        emptyHint: 'Add text, media or a link to see the preview.'
+      }
     },
     clientSettings: {
       title: 'Client settings',
       subtitle: 'Applies only to this device and this standalone client.',
       close: 'Close',
+      general: {
+        introTitle: 'Local controls',
+        introBody: 'These preferences stay in this browser and help you tailor the client to your workflow.'
+      },
       sections: {
         gifsTitle: 'GIF integration',
         gifsDescription: 'Enable Tenor to search and insert GIFs right from the composer.',
         translationTitle: 'Translation helper',
         translationDescription: 'Configure LibreTranslate or fall back to Google Translate.',
         unrollTitle: 'Unroll',
-        unrollDescription: 'Control how the unroll dialog renders author threads.'
+        unrollDescription: 'Control how the unroll dialog renders author threads.',
+        composerTitle: 'Composer',
+        composerDescription: 'Control how replies and quotes show helpful context.'
       },
       tenorToggle: 'Enable Tenor GIFs',
       tenorKeyLabel: 'Tenor API key',
       tenorKeyPlaceholder: 'Enter API key',
       tenorKeyHelp: 'The key is stored locally and never shared with other services.',
+      composer: {
+        showReplyPreviewLabel: 'Show reply preview',
+        showReplyPreviewHelp: 'Displays the post you are replying to. Disable it for a tighter composer layout.'
+      },
       translation: {
         enableLabel: 'Show translation helper',
         baseUrlLabel: 'LibreTranslate server',

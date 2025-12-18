@@ -5,7 +5,8 @@ const DEFAULT_CONFIG = {
   gifs: { tenorAvailable: false, tenorApiKey: '' },
   search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true },
-  translation: { enabled: null, baseUrl: '', allowGoogle: true }
+  translation: { enabled: null, baseUrl: '', allowGoogle: true },
+  composer: { showReplyPreview: true }
 }
 
 let currentConfig = null
@@ -36,7 +37,8 @@ const normalizeConfig = (input = {}) => {
     gifs: { ...DEFAULT_CONFIG.gifs, ...(input?.gifs || {}) },
     search: { ...DEFAULT_CONFIG.search, ...(input?.search || {}) },
     unroll: { ...DEFAULT_CONFIG.unroll, ...(input?.unroll || {}) },
-    translation: { ...DEFAULT_CONFIG.translation, ...(input?.translation || {}) }
+    translation: { ...DEFAULT_CONFIG.translation, ...(input?.translation || {}) },
+    composer: { ...DEFAULT_CONFIG.composer, ...(input?.composer || {}) }
   }
   if (next.search.advancedPrefixes && !Array.isArray(next.search.advancedPrefixes)) {
     next.search.advancedPrefixes = null
@@ -55,6 +57,7 @@ const normalizeConfig = (input = {}) => {
     ? next.translation.baseUrl.trim()
     : ''
   next.translation.allowGoogle = next.translation.allowGoogle !== false
+  next.composer.showReplyPreview = next.composer.showReplyPreview !== false
   return next
 }
 
@@ -89,7 +92,8 @@ export function useClientConfig () {
       gifs: { ...(base.gifs || {}), ...(patchObject?.gifs || {}) },
       search: { ...(base.search || {}), ...(patchObject?.search || {}) },
       unroll: { ...(base.unroll || {}), ...(patchObject?.unroll || {}) },
-      translation: { ...(base.translation || {}), ...(patchObject?.translation || {}) }
+      translation: { ...(base.translation || {}), ...(patchObject?.translation || {}) },
+      composer: { ...(base.composer || {}), ...(patchObject?.composer || {}) }
     }
     updateSnapshot(next)
   }, [])

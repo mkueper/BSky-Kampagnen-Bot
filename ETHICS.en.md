@@ -25,7 +25,7 @@ This project is committed to strengthening an informed public sphere, where comm
 
 ## Misuse and Ethical Concerns
 
-Although the **MIT License** permits unrestricted use of the software, the maintainers explicitly state that the following types of usage are **not aligned with the purpose or values** of this project:
+Although the **GNU General Public License v3.0 (GPL‑3.0)** permits broad use of the software under the terms of the GPL, the maintainers explicitly state that the following types of usage are **not aligned with the purpose or values** of this project:
 
 * Creating or amplifying **disinformation**, misleading narratives, or intentionally false claims.
 * Manipulating public debate through **covert automation**, **inauthentic identities**, **opaque message boosting**, or other deceptive techniques.
@@ -48,6 +48,6 @@ The maintainers may publicly distance the project from forks, deployments, or ca
 
 ## Commitment to Open Source
 
-This project remains **free**, **open**, and **MIT-licensed**. The guidelines outlined in this document are **ethical commitments**, not legal restrictions. They clarify the project's mission, set expectations for responsible use, and express the values that guide its development.
+This project remains **free**, **open**, and **released under the GPL‑3.0**. The guidelines outlined in this document are **ethical commitments**, not additional legal restrictions. They clarify the project's mission, set expectations for responsible use, and express the values that guide its development.
 
 We invite all individuals and organizations who share these values to use, improve, and collaborate on this project in support of a more informed, resilient digital public sphere.

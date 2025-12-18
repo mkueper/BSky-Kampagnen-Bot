@@ -52,6 +52,7 @@ function detectUrlCandidate (text = '') {
 export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel }) {
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
+  const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
   const dispatch = useAppDispatch()
   const {
     interactionSettings,
@@ -573,10 +574,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
-      {replyInfo ? (
+      {allowReplyPreview && replyInfo ? (
         <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
           <div className='mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-            {t('compose.replyPreview', 'Antwort auf')}
+            {t('compose.context.replyLabel', 'Antwort auf')}
           </div>
           <div className='flex items-start gap-3'>
             {replyInfo.author.avatar ? (
@@ -593,7 +594,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 {replyInfoAuthorLabel}
               </p>
               {replyInfoAuthorMissing ? (
-                <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                <p className='text-xs text-foreground-muted'>
+                  {t('compose.context.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}
+                </p>
               ) : null}
               {replyInfo.author.handle ? (
                 <p className='truncate text-xs text-foreground-muted'>@{replyInfo.author.handle}</p>
@@ -613,7 +616,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       ) : null}
 
       {quoteInfo ? (
-        <div className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${replyInfo ? 'mt-3' : ''}`}>
+        <div className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${(allowReplyPreview && replyInfo) ? 'mt-3' : ''}`}>
           <div className='flex items-start gap-3'>
             {quoteInfo.author.avatar ? (
               <img
@@ -629,7 +632,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 {quoteInfoAuthorLabel}
               </p>
               {quoteInfoAuthorMissing ? (
-                <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                <p className='text-xs text-foreground-muted'>
+                  {t('compose.context.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}
+                </p>
               ) : null}
               {quoteInfo.author.handle ? (
                 <p className='truncate text-xs text-foreground-muted'>@{quoteInfo.author.handle}</p>
@@ -649,9 +654,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 type='button'
                 className='ml-2 rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
                 onClick={onCancelQuote}
-                title='Zitat entfernen'
+                title={t('compose.context.quoteRemove', 'Zitat entfernen')}
               >
-                Entfernen
+                {t('compose.context.quoteRemove', 'Zitat entfernen')}
               </button>
             ) : null}
           </div>
@@ -723,7 +728,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               {characterCount}/{POST_CHAR_LIMIT}
             </span>
           </div>
-          <article className='mt-4 rounded-2xl border border-border bg-background-subtle p-4'>
+          <article className='mt-4 min-h-[16rem] rounded-2xl border border-border bg-background-subtle p-4'>
             {text.trim() ? (
               <RichText
                 text={text}
@@ -731,7 +736,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               />
             ) : (
               <p className='text-sm text-foreground-muted'>
-                Dein Text erscheint hier.
+                {t('compose.preview.placeholder', 'Dein Text erscheint hier.')}
               </p>
             )}
             {showMediaGrid ? (
@@ -780,7 +785,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             ) : null}
             {!text.trim() && !showMediaGrid && !showLinkPreview ? (
               <p className='mt-4 text-xs text-foreground-muted'>
-                Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.
+                {t('compose.preview.emptyHint', 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.')}
               </p>
             ) : null}
           </article>
