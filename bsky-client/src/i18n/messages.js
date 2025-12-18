@@ -68,6 +68,11 @@ const messages = {
         midnight: 'Mitternacht'
       }
     },
+    app: {
+      status: {
+        switchAccount: 'Konto wird gewechselt…'
+      }
+    },
     layout: {
       headers: {
         notifications: 'Mitteilungen',
@@ -77,17 +82,31 @@ const messages = {
       notifications: {
         tabAll: 'Alle',
         tabMentions: 'Erwähnungen',
-        configure: 'Filter konfigurieren'
+        configure: 'Filter konfigurieren',
+        listAll: 'Mitteilungen',
+        listMentions: 'Erwähnungen'
       },
       thread: {
         title: 'Thread-Ansicht',
-        back: 'Zurück zur Timeline'
+        back: 'Zurück zur Timeline',
+        actions: {
+          unroll: 'Thread entrollen',
+          refresh: 'Aktualisieren'
+        }
       },
       timeline: {
+        tabs: {
+          discover: 'Entdecken',
+          following: 'Following',
+          friendsPopular: 'Beliebt bei Freunden',
+          mutuals: 'Gemeinsame Follows',
+          bestOfFollows: 'Best of Follows'
+        },
         feedButton: 'Feeds',
         pinnedFeeds: 'Gepinnte Feeds',
         noPins: 'Noch keine Pins vorhanden.',
         feedManagerHint: 'Feed-Manager über die Seitenleiste öffnen.',
+        feedFallback: 'Feed',
         languageFilterLabel: 'Sprachfilter',
         language: {
           all: 'Alle Sprachen',
@@ -195,7 +214,8 @@ const messages = {
       header: {
         title: 'Chats',
         newChat: '+ Neuer Chat',
-        settings: 'Chat-Einstellungen'
+        settings: 'Chat-Einstellungen',
+        newChatPending: 'Neuer Chat wird später implementiert.'
       },
       list: {
         description: 'Deine laufenden Konversationen.',
@@ -252,7 +272,8 @@ const messages = {
       header: {
         title: 'Suche',
         placeholder: 'Nach Posts oder Personen suchen…',
-        submit: 'Suchen'
+        submit: 'Suchen',
+        clear: 'Eingabe löschen'
       },
       tabs: {
         top: 'Top',
@@ -261,11 +282,7 @@ const messages = {
       },
       prefixes: {
         title: 'Such-Prefixe',
-        hint: 'Format: {value}',
-        infoButton: 'Prefix-Hinweise',
-        infoTitle: 'Such-Prefixe & Hinweise',
-        infoHint: 'Tipp: Drücke ":" um Prefixe direkt auszuwählen.',
-        infoEmpty: 'Keine zusätzlichen Hinweise vorhanden.'
+        hint: 'Format: {value}'
       },
       recent: {
         title: 'Letzte Suchanfragen',
@@ -724,7 +741,8 @@ const messages = {
       header: {
         title: 'Search',
         placeholder: 'Search posts or people…',
-        submit: 'Search'
+        submit: 'Search',
+        clear: 'Clear search'
       },
       tabs: {
         top: 'Top',
@@ -733,11 +751,7 @@ const messages = {
       },
       prefixes: {
         title: 'Search prefixes',
-        hint: 'Format: {value}',
-        infoButton: 'Prefix info',
-        infoTitle: 'Search prefixes & hints',
-        infoHint: 'Tip: Press ":" to insert a prefix quickly.',
-        infoEmpty: 'No prefix hints available.'
+        hint: 'Format: {value}'
       },
       recent: {
         title: 'Recent searches',
@@ -851,7 +865,8 @@ const messages = {
       header: {
         title: 'Chats',
         newChat: '+ New chat',
-        settings: 'Chat settings'
+        settings: 'Chat settings',
+        newChatPending: 'New chat will arrive soon.'
       },
       list: {
         description: 'Your ongoing conversations.',
@@ -1049,6 +1064,11 @@ const messages = {
         midnight: 'Midnight'
       }
     },
+    app: {
+      status: {
+        switchAccount: 'Switching account…'
+      }
+    },
     layout: {
       headers: {
         notifications: 'Notifications',
@@ -1058,17 +1078,31 @@ const messages = {
       notifications: {
         tabAll: 'All',
         tabMentions: 'Mentions',
-        configure: 'Configure filters'
+        configure: 'Configure filters',
+        listAll: 'Notifications',
+        listMentions: 'Mentions'
       },
       thread: {
         title: 'Thread view',
-        back: 'Back to timeline'
+        back: 'Back to timeline',
+        actions: {
+          unroll: 'Unroll',
+          refresh: 'Refresh'
+        }
       },
       timeline: {
+        tabs: {
+          discover: 'Discover',
+          following: 'Following',
+          friendsPopular: 'Popular with friends',
+          mutuals: 'Mutuals',
+          bestOfFollows: 'Best of follows'
+        },
         feedButton: 'Feeds',
         pinnedFeeds: 'Pinned feeds',
         noPins: 'No pins yet.',
         feedManagerHint: 'Open the feed manager via the sidebar.',
+        feedFallback: 'Feed',
         languageFilterLabel: 'Language filter',
         language: {
           all: 'All languages',
