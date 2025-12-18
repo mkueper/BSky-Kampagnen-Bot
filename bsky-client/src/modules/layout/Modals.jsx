@@ -8,7 +8,9 @@ import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { Button, MediaLightbox, publishPost } from '../shared';
 import { ConfirmDialog } from '@bsky-kampagnen-bot/shared-ui';
 import { Composer, ComposeModal } from '../composer';
+import ReplyPreviewCard from '../composer/ReplyPreviewCard.jsx'
 import { ThreadComposer } from '@bsky-kampagnen-bot/shared-ui'
+import { buildReplyContext, buildReplyInfo } from '../composer/replyUtils.js'
 import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
@@ -50,7 +52,7 @@ export function Modals() {
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { clientConfig } = useClientConfig()
-  const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering } = useComposer();
+  const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering, setComposeMode } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
   const {
     feedPicker,
@@ -64,6 +66,7 @@ export function Modals() {
   const { t } = useTranslation();
   const [threadSending, setThreadSending] = useState(false)
   const [threadError, setThreadError] = useState('')
+  const [threadMediaDraft, setThreadMediaDraft] = useState([])
   const {
     interactionSettings,
     data: interactionData,
@@ -104,10 +107,13 @@ export function Modals() {
     }
   }, [clientConfig?.gifs?.tenorApiKey])
 
+  const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+  const replyInfo = useMemo(() => buildReplyInfo(replyTarget), [replyTarget])
+  const initialReplyContext = useMemo(() => buildReplyContext(replyTarget), [replyTarget])
+
   const effectiveComposeMode = useMemo(() => {
-    if (replyTarget || quoteTarget) return 'single'
     return composeMode === 'thread' ? 'thread' : 'single'
-  }, [composeMode, quoteTarget, replyTarget])
+  }, [composeMode])
 
   const handleThreadSubmit = useCallback(async (segments) => {
     const error = resolveThreadSubmitError(segments, t)
@@ -129,30 +135,48 @@ export function Modals() {
 
       let root = null
       let parent = null
+      let replyPatched = false
       for (let i = 0; i < usable.length; i++) {
         const { text: content, mediaEntries } = usable[i]
-        const reply = i === 0 ? null : buildThreadReplyContext(root, parent)
+        const reply = i === 0 ? initialReplyContext : buildThreadReplyContext(root, parent)
         const res = await publishPost({ text: content, mediaEntries, reply, interactions })
         if (!res?.uri || !res?.cid) {
           throw new Error(t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
         }
         if (i === 0) root = res
         parent = res
+        if (!replyPatched && reply?.parent?.uri) {
+          dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: reply.parent.uri, patch: { replyDelta: 1 } } })
+          replyPatched = true
+        }
       }
       setThreadSource('')
+      setThreadMediaDraft([])
       closeComposer()
     } catch (e) {
       setThreadError(e?.message || t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
     } finally {
       setThreadSending(false)
     }
-  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData])
+  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData, initialReplyContext, dispatch])
+
+  const handleThreadDraftTransfer = useCallback(({ text = '', media = [] } = {}) => {
+    setThreadSource(text || '')
+    setThreadMediaDraft(Array.isArray(media) ? media : [])
+    setComposeMode('thread')
+  }, [setComposeMode, setThreadSource])
 
   useEffect(() => {
     if (feedManagerOpen) {
       refreshFeeds({ force: true });
     }
   }, [feedManagerOpen, refreshFeeds]);
+
+  useEffect(() => {
+    if (!composeOpen) {
+      setThreadMediaDraft([])
+    }
+  }, [composeOpen])
 
   const handleDiscardDecision = useCallback((requiresConfirm) => {
     if (requiresConfirm) {
@@ -171,8 +195,12 @@ export function Modals() {
     if (!hasThreadContent) {
       setThreadSource('')
     }
-    handleDiscardDecision(hasThreadContent)
-  }, [threadSource, setThreadSource, handleDiscardDecision])
+    const hasTransferMedia = threadMediaDraft.length > 0
+    if (hasTransferMedia) {
+      setThreadMediaDraft([])
+    }
+    handleDiscardDecision(hasThreadContent || hasTransferMedia)
+  }, [threadMediaDraft.length, threadSource, setThreadSource, handleDiscardDecision])
 
   return (
     <>
@@ -190,6 +218,9 @@ export function Modals() {
       >
         {effectiveComposeMode === 'thread' ? (
           <div className='space-y-4'>
+            {allowReplyPreview && replyInfo ? (
+              <ReplyPreviewCard info={replyInfo} t={t} />
+            ) : null}
             <div className='h-[64vh] min-h-[480px]'>
               <ThreadComposer
                 className='h-full'
@@ -239,6 +270,8 @@ export function Modals() {
                     {t('compose.cancel', 'Abbrechen')}
                   </Button>
                 }
+                initialMediaEntries={threadMediaDraft}
+                onInitialMediaApplied={() => setThreadMediaDraft([])}
               />
             </div>
             {threadError ? (
@@ -254,6 +287,7 @@ export function Modals() {
               closeComposer();
             }}
             onCancel={handleComposerCancel}
+            onConvertToThread={handleThreadDraftTransfer}
           />
         )}
       </ComposeModal>

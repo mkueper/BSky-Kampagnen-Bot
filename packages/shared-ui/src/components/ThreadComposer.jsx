@@ -122,6 +122,8 @@ export default function ThreadComposer({
   gifPickerMaxBytes = 8 * 1024 * 1024,
   gifPickerStyles = DEFAULT_GIF_PICKER_STYLES,
   footerAside = null,
+  initialMediaEntries = [],
+  onInitialMediaApplied = null,
 }) {
   const mergedLabels = mergeLabels(labels)
   const [internalNumbering, setInternalNumbering] = useState(true)
@@ -146,10 +148,13 @@ export default function ThreadComposer({
       ? controlledNumbering
       : internalNumbering
   const textareaRef = useRef(null)
+  const previewContainerRef = useRef(null)
+  const previewSegmentRefs = useRef(new Map())
   const emojiButtonRef = useRef(null)
   const previewUrlsRef = useRef(new Set())
   const lastCursorSegmentRef = useRef(0)
   const gifFetchControllerRef = useRef(null)
+  const initialMediaAppliedRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -199,6 +204,7 @@ export default function ThreadComposer({
     totalSegments,
     rawToEffectiveStartIndex,
     effectiveOffsets,
+    rawSegments,
   } = useMemo(
     () =>
       splitThread({
@@ -234,6 +240,42 @@ export default function ThreadComposer({
       onSegmentsChange(previewWithMedia)
     }
   }, [previewWithMedia, onSegmentsChange])
+
+  useEffect(() => {
+    if (initialMediaAppliedRef.current) return
+    if (!Array.isArray(initialMediaEntries) || initialMediaEntries.length === 0) return
+    const targetSegmentId = previewSegments[0]?.id ?? 0
+    if (!Number.isFinite(targetSegmentId)) return
+    const normalized = initialMediaEntries
+      .filter((entry) => {
+        if (!entry || !entry.file) return false
+        if (typeof File === 'undefined') return true
+        return entry.file instanceof File
+      })
+      .slice(0, mediaMaxPerSegment)
+      .map((entry) => {
+        const previewUrl = entry.file ? URL.createObjectURL(entry.file) : ''
+        if (previewUrl && previewUrl.startsWith('blob:')) {
+          registerPreviewUrl(previewUrl)
+        }
+        return {
+          id: createMediaId(),
+          file: entry.file,
+          altText: entry.altText || '',
+          previewUrl
+        }
+      })
+      .filter(Boolean)
+    if (!normalized.length) return
+    initialMediaAppliedRef.current = true
+    setPendingMedia((prev) => ({
+      ...prev,
+      [targetSegmentId]: normalized
+    }))
+    if (typeof onInitialMediaApplied === 'function') {
+      onInitialMediaApplied()
+    }
+  }, [initialMediaEntries, mediaMaxPerSegment, onInitialMediaApplied, previewSegments, registerPreviewUrl])
 
   useEffect(() => {
     setPendingMedia((prev) => {
@@ -364,6 +406,37 @@ export default function ThreadComposer({
     ],
   )
 
+  const setPreviewSegmentRef = useCallback((index, node) => {
+    if (!Number.isFinite(index)) return
+    if (node) {
+      previewSegmentRefs.current.set(index, node)
+    } else {
+      previewSegmentRefs.current.delete(index)
+    }
+  }, [])
+
+  const scrollPreviewToSegment = useCallback((segmentIndex, behavior = 'smooth') => {
+    if (!Number.isFinite(segmentIndex)) return
+    const container = previewContainerRef.current
+    if (!container) return
+    const target = previewSegmentRefs.current.get(segmentIndex)
+    if (!target) return
+    const containerRect = container.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const above = targetRect.top < containerRect.top
+    const below = targetRect.bottom > containerRect.bottom
+    if (!above && !below) return
+    const scrollOffset = target.offsetTop - container.clientHeight / 3
+    container.scrollTo({
+      top: Math.max(scrollOffset, 0),
+      behavior,
+    })
+  }, [])
+
+  useEffect(() => {
+    scrollPreviewToSegment(lastCursorSegmentRef.current ?? 0, 'auto')
+  }, [previewSegments.length, scrollPreviewToSegment])
+
   const rememberCursorSegment = useCallback(
     (target) => {
       if (!target) return
@@ -371,9 +444,11 @@ export default function ThreadComposer({
         typeof target.selectionStart === 'number'
           ? target.selectionStart
           : (value || '').length
-      lastCursorSegmentRef.current = getSegmentIdForCursor(pos)
+      const segmentIndex = getSegmentIdForCursor(pos)
+      lastCursorSegmentRef.current = segmentIndex
+      scrollPreviewToSegment(segmentIndex)
     },
-    [getSegmentIdForCursor, value],
+    [getSegmentIdForCursor, scrollPreviewToSegment, value],
   )
 
   const handleInsertSeparator = useCallback(() => {
@@ -662,6 +737,47 @@ export default function ThreadComposer({
     [rememberCursorSegment],
   )
 
+  const handlePreviewSegmentClick = useCallback(
+    (segmentIndex) => {
+      if (!Number.isFinite(segmentIndex)) return
+      const textarea = textareaRef.current
+      const offsets = Array.isArray(effectiveOffsets) ? effectiveOffsets[segmentIndex] : null
+      if (!textarea || !offsets) return
+      const { rawIndex, offsetInRaw } = offsets
+      if (!Number.isFinite(rawIndex) || !Number.isFinite(offsetInRaw)) return
+      const normalizedValue = String(value || '').replace(/\r\n/g, '\n')
+      const delimiter = `\n${hardBreakMarker}\n`
+      let globalIndex = 0
+      for (let i = 0; i < rawIndex; i++) {
+        const rawSegment = String(rawSegments?.[i] || '').replace(/\r\n/g, '\n')
+        globalIndex += rawSegment.length
+        globalIndex += delimiter.length
+      }
+      globalIndex += offsetInRaw
+      const cursorIndex = Math.min(Math.max(globalIndex, 0), normalizedValue.length)
+      try {
+        textarea.focus()
+        textarea.selectionStart = cursorIndex
+        textarea.selectionEnd = cursorIndex
+        lastCursorSegmentRef.current = segmentIndex
+        scrollPreviewToSegment(segmentIndex)
+      } catch {
+        /* ignore cursor updates */
+      }
+    },
+    [effectiveOffsets, hardBreakMarker, rawSegments, scrollPreviewToSegment, value],
+  )
+
+  const handlePreviewSegmentPointer = useCallback(
+    (event, segmentIndex) => {
+      // ignore clicks originating from buttons/inputs/links inside the card
+      const interactiveTarget = event.target?.closest?.('button, input, a')
+      if (interactiveTarget) return
+      handlePreviewSegmentClick(segmentIndex)
+    },
+    [handlePreviewSegmentClick],
+  )
+
   const exceedsThreadLimit = totalSegments > MAX_THREAD_SEGMENTS
 
   const submitDisabled =
@@ -785,7 +901,7 @@ export default function ThreadComposer({
               {mergedLabels.postsCounter(totalSegments)}
             </span>
           </div>
-          <div className='mt-4 flex-1 space-y-3 overflow-y-auto pr-1'>
+          <div ref={previewContainerRef} className='mt-4 flex-1 space-y-3 overflow-y-auto pr-1'>
             {previewWithMedia.map((segment, index) => {
               const mediaItems = mediaItemsBySegment.get(segment.id) || []
               const currentCount = Math.min(
@@ -804,7 +920,9 @@ export default function ThreadComposer({
               return (
                 <article
                   key={segment.id}
+                  ref={(node) => setPreviewSegmentRef(index, node)}
                   className='rounded-2xl border border-border bg-background-subtle p-4'
+                  onClick={(event) => handlePreviewSegmentPointer(event, index)}
                 >
                   <header className='flex flex-wrap items-center justify-between gap-3 text-xs'>
                     <span className='font-semibold text-foreground'>
@@ -1046,6 +1164,11 @@ ThreadComposer.propTypes = {
   gifPickerMaxBytes: PropTypes.number,
   gifPickerStyles: PropTypes.object,
   footerAside: PropTypes.node,
+  initialMediaEntries: PropTypes.arrayOf(PropTypes.shape({
+    file: PropTypes.any,
+    altText: PropTypes.string
+  })),
+  onInitialMediaApplied: PropTypes.func,
 }
 
 function useSegmentLinkPreview(url, { unavailableMessage = '' } = {}) {

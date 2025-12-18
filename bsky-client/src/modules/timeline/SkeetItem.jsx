@@ -32,6 +32,7 @@ import {
   RichText,
   RepostMenuButton,
   ProfilePreviewTrigger,
+  ActorProfileLink,
   Card,
   InlineMenu,
   InlineMenuTrigger,
@@ -230,7 +231,8 @@ function extractExternalFromEmbed (item) {
   } catch { return null }
 }
 
-function extractQuoteFromEmbed (item) {
+function extractQuoteFromEmbed (item, translateFn) {
+  const translate = typeof translateFn === 'function' ? translateFn : (_key, fallback) => fallback
   try {
     const post = item?.raw?.post || {}
     const e = post?.embed || {}
@@ -255,7 +257,7 @@ function extractQuoteFromEmbed (item) {
         text: '',
         author: {},
         status: 'blocked',
-        statusMessage: 'Dieser Beitrag ist geschützt oder blockiert.'
+        statusMessage: translate('skeet.quote.status.blocked', 'Dieser Beitrag ist geschützt oder blockiert.')
       }
     }
     if (viewType.endsWith('#viewNotFound')) {
@@ -265,7 +267,7 @@ function extractQuoteFromEmbed (item) {
         text: '',
         author: {},
         status: 'not_found',
-        statusMessage: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.'
+        statusMessage: translate('skeet.quote.status.not_found', 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.')
       }
     }
     if (viewType.endsWith('#viewDetached')) {
@@ -275,7 +277,7 @@ function extractQuoteFromEmbed (item) {
         text: '',
         author: {},
         status: 'detached',
-        statusMessage: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+        statusMessage: translate('skeet.quote.status.detached', 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.')
       }
     }
     const author = view?.author || {}
@@ -301,12 +303,12 @@ function extractReasonContext (item) {
     if (!reason || typeof reason !== 'object') return null
     const type = String(reason?.$type || reason?.type || '').toLowerCase()
     const actor = reason?.by || reason?.actor || {}
-    const actorLabel = actor.displayName || actor.handle || actor.did || 'Jemand'
+    const actorLabel = actor.displayName || actor.handle || actor.did || ''
     if (type.includes('repost')) {
-      return `${actorLabel} hat repostet`
+      return { type: 'repost', actorLabel }
     }
     if (type.includes('like')) {
-      return `${actorLabel} gefällt das`
+      return { type: 'like', actorLabel }
     }
     return null
   } catch {
@@ -358,7 +360,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       originalUrl: external.uri
     }
   }, [external, t])
-  const quoted = useMemo(() => extractQuoteFromEmbed(item), [item])
+  const quoted = useMemo(() => extractQuoteFromEmbed(item, t), [item, t])
   const replyCountStat = Number(
     item?.stats?.replyCount ??
     item?.raw?.post?.replyCount ??
@@ -366,7 +368,18 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     item?.replyCount ??
     0
   )
-  const contextLabel = useMemo(() => extractReasonContext(item), [item])
+  const contextInfo = useMemo(() => extractReasonContext(item), [item])
+  const contextLabel = useMemo(() => {
+    if (!contextInfo) return null
+    const actorLabel = contextInfo.actorLabel || t('skeet.context.unknownActor', 'Jemand')
+    if (contextInfo.type === 'repost') {
+      return t('skeet.context.repost', '{actor} hat repostet', { actor: actorLabel })
+    }
+    if (contextInfo.type === 'like') {
+      return t('skeet.context.like', '{actor} gefällt das', { actor: actorLabel })
+    }
+    return null
+  }, [contextInfo, t])
   const quotedAuthorLabel = quoted
     ? (quoted.author?.displayName || quoted.author?.handle || t('skeet.quote.authorUnknown', 'Unbekannt'))
     : ''
@@ -977,25 +990,24 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           </ProfilePreviewTrigger>
         </button>
         <div className='min-w-0 flex-1'>
-          <button
-            type='button'
-            onClick={handleProfileClick}
+          <ActorProfileLink
+            actor={actorIdentifier}
+            handle={author?.handle || ''}
+            anchor={item?.uri || null}
             className='inline-flex max-w-full flex-col min-w-0 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
           >
-            <ProfilePreviewTrigger
-              actor={actorIdentifier}
-              fallback={author}
-              as='span'
-            >
-              <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</p>
-              <p className='truncate text-sm text-foreground-muted'>@{author.handle}</p>
-            </ProfilePreviewTrigger>
-          </button>
+            <span className='inline-flex flex-col text-left'>
+              <span className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</span>
+              {author.handle ? (
+                <span className='truncate text-sm text-foreground-muted'>@{author.handle}</span>
+              ) : null}
+            </span>
+          </ActorProfileLink>
         </div>
         <div className='ml-auto flex items-center gap-1'>
           {createdAt ? (
             <time className='whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
-              {new Date(createdAt).toLocaleString('de-DE')}
+              {new Date(createdAt).toLocaleString(locale || 'de-DE')}
             </time>
           ) : null}
         </div>
@@ -1068,7 +1080,13 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       <p className='text-xs text-foreground-muted'>{t('skeet.quote.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}</p>
                     ) : null}
                 {quoted.author?.handle ? (
-                  <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+                  <ActorProfileLink
+                    actor={quoted.author?.did || quoted.author?.handle}
+                    handle={quoted.author?.handle}
+                    className='truncate text-xs text-foreground-muted text-left hover:text-primary'
+                  >
+                    @{quoted.author.handle}
+                  </ActorProfileLink>
                 ) : null}
                 {quoted.text ? (
                   <div className='mt-2 text-sm text-foreground'>
@@ -1145,9 +1163,12 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         <div className='mt-3 space-y-2' data-component='BskySkeetVideos'>
           {videos.map((video) => {
             const singleMediaMax = config?.singleMax ?? 360
-            const ratio = parseAspectRatioValue(video.aspectRatio) || (16 / 9)
-            const previewContainerStyle = {
-              aspectRatio: ratio,
+            const previewStyle = getImageContainerStyle(
+              { aspectRatio: parseAspectRatioValue(video.aspectRatio), type: 'video' },
+              { single: true }
+            )
+            const containerStyle = {
+              ...previewStyle,
               width: '100%',
               maxHeight: singleMediaMax,
               backgroundColor: 'var(--background-subtle, #000)'
@@ -1168,7 +1189,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               >
                 <div
                   className='relative w-full overflow-hidden rounded-xl'
-                  style={previewContainerStyle}
+                  style={containerStyle}
                 >
                   {video.poster ? (
                     <img

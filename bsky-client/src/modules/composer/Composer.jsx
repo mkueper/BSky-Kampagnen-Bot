@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
-import { VideoIcon } from '@radix-ui/react-icons'
+import { VideoIcon, ImageIcon, FaceIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useAppDispatch } from '../../context/AppContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useInteractionSettingsControls } from './useInteractionSettingsControls.js'
 import { calculateBlueskyPostLength } from '@bsky-kampagnen-bot/shared-logic'
+import { fetchLinkPreviewMetadata } from './linkPreviewService.js'
+import ReplyPreviewCard from './ReplyPreviewCard.jsx'
+import { buildReplyContext, buildReplyInfo } from './replyUtils.js'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -49,7 +52,7 @@ function detectUrlCandidate (text = '') {
   }
 }
 
-export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel }) {
+export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel, onConvertToThread = null }) {
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
   const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
@@ -126,24 +129,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [quote])
   const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
-  const replyInfo = useMemo(() => {
-    if (!reply || !reply.uri) return null
-    const author = reply.author || reply?.raw?.post?.author || {}
-    const record = reply.record || reply?.raw?.post?.record || {}
-    const textValue = reply.text ?? record?.text ?? ''
-    return {
-      uri: String(reply.uri),
-      cid: String(reply.cid || record?.cid || ''),
-      text: String(textValue || ''),
-      author: {
-        displayName: author.displayName || author.handle || '',
-        handle: author.handle || '',
-        avatar: author.avatar || null
-      }
-    }
-  }, [reply])
-  const replyInfoAuthorLabel = replyInfo ? (replyInfo.author.displayName || replyInfo.author.handle || 'Unbekannt') : ''
-  const replyInfoAuthorMissing = replyInfo ? !(replyInfo.author.displayName || replyInfo.author.handle) : false
+  const replyInfo = useMemo(() => buildReplyInfo(reply), [reply])
   const pendingMediaItems = useMemo(
     () =>
       pendingMedia.map((item, idx) => ({
@@ -316,27 +302,38 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
     let cancelled = false
     setPreviewLoading(true)
-    const timeoutId = setTimeout(() => {
-      if (cancelled) return
-      setPreview({
-        uri: url,
-        title: '',
-        description: '',
-        image: '',
-        domain: ''
+    setPreviewError('')
+    fetchLinkPreviewMetadata(url)
+      .then((data) => {
+        if (cancelled) return
+        setPreview(data)
+        setPreviewError('')
+        setPreviewLoading(false)
       })
-      setPreviewError(
-        t(
-          'compose.previewUnavailableStandalone',
-          'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
-        )
-      )
-      setPreviewLoading(false)
-    }, PREVIEW_TYPING_DELAY)
+      .catch((error) => {
+        if (cancelled) return
+        if (error?.code === 'PREVIEW_UNAVAILABLE') {
+          setPreviewError(
+            t(
+              'compose.previewUnavailableStandalone',
+              'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+            )
+          )
+        } else if (error?.code === 'PREVIEW_TIMEOUT') {
+          setPreviewError(
+            t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.')
+          )
+        } else {
+          setPreviewError(
+            error?.message || t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.')
+          )
+        }
+        setPreview(null)
+        setPreviewLoading(false)
+      })
 
     return () => {
       cancelled = true
-      clearTimeout(timeoutId)
     }
   }, [previewDismissed, previewUrl, t])
 
@@ -525,14 +522,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     if (sending) return
     setSending(true)
     try {
-      const replyContext = reply && reply.uri && reply.cid
-        ? (() => {
-            const parent = { uri: reply.uri, cid: reply.cid }
-            const rootReply = reply.raw?.post?.record?.reply?.root
-            const root = rootReply && rootReply.uri && rootReply.cid ? rootReply : parent
-            return { root, parent }
-          })()
-        : null
+      const replyContext = buildReplyContext(reply)
       const sent = await publishPost({
         text: content,
         mediaEntries: pendingMedia.map((entry) => ({ file: entry.file, altText: entry.altText || '' })),
@@ -572,47 +562,24 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }, [hasContent, onCancel])
 
+  const convertToThread = useCallback(() => {
+    if (typeof onConvertToThread !== 'function') return
+    onConvertToThread({
+      text,
+      media: pendingMedia.map((entry) => ({
+        file: entry.file,
+        altText: entry.altText || ''
+      }))
+    })
+  }, [onConvertToThread, pendingMedia, text])
+
+  const canRequestThread = Boolean(reply && typeof onConvertToThread === 'function')
+  const convertButtonTitle = t('compose.thread.convertHint', 'Antwort in einen Thread umwandeln, um mehrere Posts zu senden.')
+
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
       {allowReplyPreview && replyInfo ? (
-        <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
-          <div className='mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-            {t('compose.context.replyLabel', 'Antwort auf')}
-          </div>
-          <div className='flex items-start gap-3'>
-            {replyInfo.author.avatar ? (
-              <img
-                src={replyInfo.author.avatar}
-                alt=''
-                className='h-10 w-10 shrink-0 rounded-full border border-border object-cover'
-              />
-            ) : (
-              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
-            )}
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-semibold text-foreground'>
-                {replyInfoAuthorLabel}
-              </p>
-              {replyInfoAuthorMissing ? (
-                <p className='text-xs text-foreground-muted'>
-                  {t('compose.context.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}
-                </p>
-              ) : null}
-              {replyInfo.author.handle ? (
-                <p className='truncate text-xs text-foreground-muted'>@{replyInfo.author.handle}</p>
-              ) : null}
-              {replyInfo.text ? (
-                <div className='mt-2 text-sm text-foreground'>
-                  <RichText
-                    text={replyInfo.text}
-                    className='whitespace-pre-wrap break-words text-sm text-foreground'
-                    hashtagContext={{ authorHandle: replyInfo?.author?.handle }}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <ReplyPreviewCard info={replyInfo} t={t} />
       ) : null}
 
       {quoteInfo ? (
@@ -685,8 +652,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               onClick={() => setMediaDialogOpen(true)}
               disabled={mediaDisabled}
               title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
+              aria-label={mediaDisabled ? 'Medienlimit erreicht' : 'Bild oder GIF hochladen'}
             >
-              <span className='text-base leading-none md:text-lg'>🖼️</span>
+              <ImageIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
             {tenorAvailable ? (
               <Button
@@ -697,7 +665,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
               >
                 <VideoIcon className='h-4 w-4' aria-hidden='true' />
-                <span>GIF</span>
+                <span className='sr-only'>GIF</span>
               </Button>
             ) : null}
             <Button
@@ -707,8 +675,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               onClick={() => setEmojiPickerOpen((v) => !v)}
               title='Emoji auswählen'
               aria-expanded={emojiPickerOpen}
+              aria-label='Emoji auswählen'
             >
-              <span className='text-base leading-none md:text-lg'>😊</span>
+              <FaceIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
           </div>
         </div>
@@ -776,9 +745,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                       <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
                     ) : null}
                     <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
-                    <div className='text-xs text-foreground-muted'>
-                      {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
-                    </div>
+                <div className='text-xs text-foreground-muted'>
+                  {previewLoading ? t('compose.preview.loading', 'Lade Vorschau…') : (previewError || '')}
+                </div>
                   </div>
                 </div>
               </div>
@@ -819,6 +788,17 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
           ) : null}
         </div>
         <div className='flex items-center gap-3'>
+          {canRequestThread ? (
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={convertToThread}
+              disabled={sending}
+              title={convertButtonTitle}
+            >
+              {t('compose.thread.convertButton', 'In Thread umwandeln')}
+            </Button>
+          ) : null}
           {onCancel ? (
             <Button type='button' variant='secondary' onClick={handleCancelComposer} disabled={sending}>
               {t('compose.cancel', 'Abbrechen')}

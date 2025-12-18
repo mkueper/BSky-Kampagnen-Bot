@@ -568,7 +568,9 @@ const messages = {
         empty: 'Thread ist leer.',
         exceedsLimit: 'Mindestens ein Segment überschreitet das Limit.',
         sendFailed: 'Thread konnte nicht gesendet werden.',
-        sending: 'Sende…'
+        sending: 'Sende…',
+        convertButton: 'In Thread umwandeln',
+        convertHint: 'Antwort in einen Thread umwandeln, um mehrere Posts zu senden.'
       },
       interactions: {
         buttonTitle: 'Interaktionen konfigurieren',
@@ -1128,7 +1130,9 @@ const messages = {
         empty: 'Thread is empty.',
         exceedsLimit: 'At least one segment exceeds the limit.',
         sendFailed: 'Thread could not be posted.',
-        sending: 'Sending…'
+        sending: 'Sending…',
+        convertButton: 'Convert to thread',
+        convertHint: 'Switch this reply into thread mode to send multiple posts.'
       },
       interactions: {
         buttonTitle: 'Configure interactions',
