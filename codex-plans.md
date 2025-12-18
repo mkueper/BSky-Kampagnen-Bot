@@ -11,6 +11,7 @@
 - Scheduler & Backend laufen nach den jüngsten Parallelitäts-/Logging-Updates stabil; alle Tests sind grün und Deployment-Skripte unverändert nutzbar.
 - `bsky-client` deckt Auth, Timelines/Notifications, Composer und Scroll-UX weiterhin vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen bleiben auf Bluesky-Parität.
 - Client-Einstellungen schließen nicht mehr durch Overlay-Klicks, Lokalisierungen/Lizenztexte wurden korrigiert und die Repo-Version ist nach Release auf `1.1.3-dev` hochgezogen; Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Stand nach den letzten Scheduler-/Auth-Anpassungen.
+- Suche im Client bietet jetzt Keyboard-freundliche Präfix-Hints mit eigenem Clear-Button; Hover-only-Interaktionen wurden entfernt, damit Prefixe konsistent eingefügt werden.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
@@ -22,11 +23,13 @@ Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; als n
    - Windows-/Linux-Electron-Builds paketieren, Smoke-Tests dokumentieren und Download/Release-Notizen (inkl. bekannter Limitierungen) aufsetzen.
 2. Standalone-Flag + Konfiguration:
    - `VITE_CLIENT_MODE` + `.env.sample` aufsplitten, damit Backend-Proxy vs. Standalone-Betrieb klar konfigurierbar bleibt (inkl. README-Abschnitt „Frontends starten“).
-3. ThreadComposer/Shared Utils:
+3. Link-Vorschau & Profil-Links im Client-Composer:
+   - Preview-Service (Fetcher + optionaler Proxy) anbinden, Previews direkt im Thread-Composer anzeigen und Handles zu klickbaren Profil-Triggern machen.
+4. ThreadComposer/Shared Utils:
    - Bild/GIF-Handling und ThreadComposer so aufteilen, dass Dashboard & Client dieselben Helpers aus `shared-logic` nutzen (kein doppelter Code mehr im Client).
-4. Dashboard UX/Doku:
+5. Dashboard UX/Doku:
    - Thread-Planer Doku (Scroll/Power-Navigation), History-Screenshots und Seed-Skript (`npm run seed:demo`) nachziehen; Cron-UI-Text + README ergänzen.
-5. Terminologie angleichen:
+6. Terminologie angleichen:
    - „Skeet“ → „Post“ in Dashboard, Client, shared-ui inkl. lokalisierter Strings; Checkliste in `docs/terminology` notieren.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
