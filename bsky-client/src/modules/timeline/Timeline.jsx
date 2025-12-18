@@ -148,11 +148,11 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
         setLanguageSearchState({
           items: [],
           loading: false,
-          error: err?.message || 'Sprachsuche fehlgeschlagen.'
+          error: err?.message || t('timeline.status.languageSearchFailed', 'Sprachsuche fehlgeschlagen.')
         })
       })
     return () => { ignore = true }
-  }, [normalizedLanguageFilter, showLanguageSearch])
+  }, [normalizedLanguageFilter, showLanguageSearch, t])
 
   useEffect(() => {
     if (!normalizedLanguageFilter) return

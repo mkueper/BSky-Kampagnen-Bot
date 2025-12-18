@@ -37,13 +37,14 @@ import { useBskyAuth } from './modules/auth/AuthContext.jsx'
 import LoginView from './modules/login/LoginView.jsx'
 import ChatHeader from './modules/chat/ChatHeader.jsx'
 import ChatConversationPane from './modules/chat/ChatConversationPane.jsx'
+import { useClientConfig } from './hooks/useClientConfig.js'
 
 const STATIC_TIMELINE_TABS = [
-  { id: 'discover', label: 'Discover', type: 'official', value: 'discover', origin: 'official' },
-  { id: 'following', label: 'Following', type: 'timeline', value: 'following', origin: 'official' },
-  { id: 'friends-popular', label: 'Popular with Friends', type: 'feed', value: 'friends-popular', feedUri: null, origin: 'official' },
-  { id: 'mutuals', label: 'Mutuals', type: 'feed', value: 'mutuals', feedUri: null, origin: 'official' },
-  { id: 'best-of-follows', label: 'Best of Follows', type: 'feed', value: 'best-of-follows', feedUri: null, origin: 'official' }
+  { id: 'discover', labelKey: 'layout.timeline.tabs.discover', fallback: 'Discover', type: 'official', value: 'discover', origin: 'official' },
+  { id: 'following', labelKey: 'layout.timeline.tabs.following', fallback: 'Following', type: 'timeline', value: 'following', origin: 'official' },
+  { id: 'friends-popular', labelKey: 'layout.timeline.tabs.friendsPopular', fallback: 'Popular with Friends', type: 'feed', value: 'friends-popular', feedUri: null, origin: 'official' },
+  { id: 'mutuals', labelKey: 'layout.timeline.tabs.mutuals', fallback: 'Mutuals', type: 'feed', value: 'mutuals', feedUri: null, origin: 'official' },
+  { id: 'best-of-follows', labelKey: 'layout.timeline.tabs.bestOfFollows', fallback: 'Best of Follows', type: 'feed', value: 'best-of-follows', feedUri: null, origin: 'official' }
 ]
 
 const SECTION_ROUTE_MAP = {
@@ -103,6 +104,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
     session: authSession,
     activeAccountId: authActiveAccountId
   } = useBskyAuth()
+  const { t } = useTranslation()
 
   const hasAuthenticatedContext = Boolean(authActiveAccountId || authSession)
   if (authStatus === 'loading' && !hasAuthenticatedContext) return null
@@ -115,7 +117,9 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm'>
           <div className='flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-3 shadow-soft'>
             <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
-            <span className='text-sm font-medium text-foreground'>Konto wird gewechselt…</span>
+            <span className='text-sm font-medium text-foreground'>
+              {t('app.status.switchAccount', 'Switching account…')}
+            </span>
           </div>
         </div>
       ) : null}
@@ -144,7 +148,14 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     switchAccount,
     beginAddAccount
   } = useBskyAuth()
-  const { t } = useTranslation()
+  const { t, locale, setLocale } = useTranslation()
+  const { clientConfig } = useClientConfig()
+  const preferredLocale = clientConfig?.locale || 'de'
+  useEffect(() => {
+    if (preferredLocale && preferredLocale !== locale) {
+      setLocale(preferredLocale)
+    }
+  }, [preferredLocale, locale, setLocale])
   const location = useLocation()
   const navigate = useNavigate()
   const previousSectionRef = useRef(section)
@@ -178,16 +189,22 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   useNotificationPolling(lists, dispatch)
   useChatPolling(dispatch)
 
-  const officialTabs = STATIC_TIMELINE_TABS
+  const officialTabs = useMemo(() => {
+    return STATIC_TIMELINE_TABS.map((tab) => ({
+      ...tab,
+      label: t(tab.labelKey, tab.fallback)
+    }))
+  }, [t])
 
   const pinnedTabs = useMemo(() => {
+    const fallbackLabel = t('layout.timeline.feedFallback', 'Feed')
     return (feedPicker?.pinned || [])
       .filter((entry) => entry.type === 'feed')
       .map((entry) => {
         const listState = lists?.[entry.id]
         return {
           id: entry.id,
-          label: entry.displayName || entry.feedUri || 'Feed',
+          label: entry.displayName || entry.feedUri || fallbackLabel,
           feedUri: entry.feedUri || entry.value,
           value: entry.feedUri || entry.value,
           type: 'feed',
@@ -196,7 +213,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
           hasNew: Boolean(listState?.hasNew)
         }
       })
-  }, [feedPicker?.pinned, lists])
+  }, [feedPicker?.pinned, lists, t])
 
   const timelineTabs = useMemo(() => {
     return officialTabs.map((tab) => {
@@ -237,13 +254,15 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     return {
       key,
       kind: 'notifications',
-      label: filter === 'mentions' ? 'Mentions' : 'Notifications',
+      label: filter === 'mentions'
+        ? t('layout.notifications.listMentions', 'Mentions')
+        : t('layout.notifications.listAll', 'Notifications'),
       route: '/notifications',
       supportsPolling: true,
       supportsRefresh: true,
       data: { type: 'notifications', filter }
     }
-  }, [])
+  }, [t])
 
   const getScrollContainer = useCallback(
     () => (typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null),
@@ -702,8 +721,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     })
   }, [lists, refreshListByKey, clearSavedScrollPosition, applySavedScrollPosition])
   const handleStartNewChat = useCallback(() => {
-    console.info('Neuer Chat wird später implementiert.')
-  }, [])
+    console.info(t('chat.header.newChatPending', 'New chat coming soon.'))
+  }, [t])
 
   const threadActions = threadState.active ? (
     <>
@@ -713,10 +732,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         disabled={!threadState.isAuthorThread}
         onClick={() => threadState.isAuthorThread ? dispatch({ type: 'OPEN_THREAD_UNROLL' }) : null}
       >
-        Unroll
+        {t('layout.thread.actions.unroll', 'Unroll')}
       </Button>
       <Button variant='secondary' size='pill' onClick={() => reloadThread()} disabled={threadState.loading}>
-        Aktualisieren
+        {t('layout.thread.actions.refresh', 'Refresh')}
       </Button>
     </>
   ) : null

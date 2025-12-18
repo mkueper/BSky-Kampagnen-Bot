@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react'
-import { Card, RichText } from '../shared'
+import { Card, RichText, ActorProfileLink } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
@@ -136,7 +136,13 @@ export default function SearchView () {
                 )}
                 <div className='min-w-0'>
                   <p className='font-semibold text-foreground truncate'>{person.displayName || person.handle}</p>
-                  <p className='text-sm text-foreground-muted truncate'>@{person.handle}</p>
+                  <ActorProfileLink
+                    actor={person.did || person.handle}
+                    handle={person.handle}
+                    className='text-sm text-foreground-muted truncate text-left hover:text-primary'
+                  >
+                    @{person.handle}
+                  </ActorProfileLink>
                   {person.description ? (
                     <p className='mt-2 text-sm text-foreground'>
                       <RichText

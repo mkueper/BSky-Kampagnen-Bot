@@ -210,6 +210,12 @@ Ohne konfigurierte Werte (`AUTH_*`) verweigert das Backend sämtliche geschützt
 - UI‑Overrides (Dashboard) werden dauerhaft in der Datenbank gespeichert und vom Backend in `/api/client-config` gegenüber Env/VITE bevorzugt ausgeliefert.
 - Portauflösung (Server): `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
 
+### Link-Vorschau im Bluesky-Client
+
+- Damit der Bluesky-Client OG/Twitter-Metatags laden kann, setze `VITE_PREVIEW_PROXY_URL` auf einen erreichbaren Proxy – beispielsweise `http://localhost:3000/api/preview`, wenn das Backend parallel läuft.
+- Alternativ kann zur Laufzeit `window.__BSKY_PREVIEW_ENDPOINT__` (String) oder `window.__BSKY_PREVIEW_FETCH__` (Promise-basierte Fetch-Funktion) gesetzt werden, z. B. aus dem Electron-Preload heraus.
+- Ist kein Proxy konfiguriert, zeigt der Client wie bisher den Hinweis, dass Link-Vorschauen im Standalone-Modus nicht verfügbar sind.
+
 Sicherheitshinweis: `.env` nicht committen und lokal restriktive Rechte setzen (z. B. `chmod 600 .env`).
 
 ---

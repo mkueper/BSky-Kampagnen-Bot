@@ -22,6 +22,7 @@ vi.mock('../../../src/modules/shared/api/bsky', () => ({
 
 import ProfileView from '../../../src/modules/profile/ProfileView.jsx'
 import * as api from '../../../src/modules/shared/api/bsky'
+import { I18nProvider } from '../../../src/i18n/I18nProvider.jsx'
 
 describe('Profile actions: mute & block', () => {
   beforeEach(() => {
@@ -39,7 +40,11 @@ describe('Profile actions: mute & block', () => {
     api.fetchProfile.mockResolvedValue(profile)
     api.muteActor.mockResolvedValue({ ok: true })
 
-    render(<ProfileView actor='did:example:1' />)
+    render(
+      <I18nProvider initialLocale='de'>
+        <ProfileView actor='did:example:1' />
+      </I18nProvider>
+    )
 
     // Wait for profile to load
     await screen.findByText('@alice')

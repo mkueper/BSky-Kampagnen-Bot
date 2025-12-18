@@ -1,7 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'bsky-client-config:v1'
+const SUPPORTED_LOCALES = ['de', 'en']
 const DEFAULT_CONFIG = {
+  locale: 'de',
   gifs: { tenorAvailable: false, tenorApiKey: '' },
   search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true },
@@ -34,6 +36,7 @@ const normalizeConfig = (input = {}) => {
   const next = {
     ...DEFAULT_CONFIG,
     ...(input || {}),
+    locale: input?.locale,
     gifs: { ...DEFAULT_CONFIG.gifs, ...(input?.gifs || {}) },
     search: { ...DEFAULT_CONFIG.search, ...(input?.search || {}) },
     unroll: { ...DEFAULT_CONFIG.unroll, ...(input?.unroll || {}) },
@@ -58,6 +61,8 @@ const normalizeConfig = (input = {}) => {
     : ''
   next.translation.allowGoogle = next.translation.allowGoogle !== false
   next.composer.showReplyPreview = next.composer.showReplyPreview !== false
+  const normalizedLocale = typeof next.locale === 'string' ? next.locale.trim().toLowerCase() : ''
+  next.locale = SUPPORTED_LOCALES.includes(normalizedLocale) ? normalizedLocale : DEFAULT_CONFIG.locale
   return next
 }
 
@@ -89,6 +94,7 @@ export function useClientConfig () {
     const next = {
       ...base,
       ...(patchObject || {}),
+      locale: patchObject?.locale || base.locale,
       gifs: { ...(base.gifs || {}), ...(patchObject?.gifs || {}) },
       search: { ...(base.search || {}), ...(patchObject?.search || {}) },
       unroll: { ...(base.unroll || {}), ...(patchObject?.unroll || {}) },

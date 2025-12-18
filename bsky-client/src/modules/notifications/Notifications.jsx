@@ -913,6 +913,13 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
         (() => {
           const singleMax = config?.singleMax ?? 256
           const ratio = parseAspectRatioValue(preview.video.aspectRatio) || (16 / 9)
+          const previewStyle = {
+            aspectRatio: ratio,
+            width: '100%',
+            maxHeight: singleMax,
+            minHeight: singleMax,
+            backgroundColor: 'var(--background-subtle, #000)'
+          }
           return (
             <button
               type='button'
@@ -928,13 +935,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             >
               <div
                 className='relative w-full overflow-hidden rounded-xl'
-                style={{
-                  aspectRatio: ratio,
-                  width: '100%',
-                  maxHeight: singleMax,
-                  minHeight: singleMax,
-                  backgroundColor: 'var(--background-subtle, #000)'
-                }}
+                style={previewStyle}
               >
                 {preview.video.poster ? (
                   <img

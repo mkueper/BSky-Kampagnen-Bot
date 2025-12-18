@@ -25,8 +25,8 @@ function ThreadNodeList ({
   onSelect,
   onOpenDeepReplies
 }) {
-  if (!Array.isArray(nodes) || nodes.length === 0) return null
   const { t } = useTranslation()
+  if (!Array.isArray(nodes) || nodes.length === 0) return null
 
   return (
     <div className='space-y-4'>
@@ -40,7 +40,6 @@ function ThreadNodeList ({
         const isFocus = highlightUri && node?.uri === highlightUri
         const nextDepth = depth + 1
         const allowChildRendering = hasChildren && nextDepth < maxDepth
-        const showDepthStub = hasChildren && !allowChildRendering
         const verticalStyle = {
           top: depth === 0 ? `${CONNECTOR_OFFSET}px` : '0px',
           height: hasChildren || !isLast ? 'calc(100% + 16px)' : `${CONNECTOR_OFFSET}px`

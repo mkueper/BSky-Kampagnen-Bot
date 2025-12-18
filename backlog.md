@@ -11,6 +11,7 @@ Dokumentiert offene oder geplante Aufgaben. Bitte bei Änderungen die Punkte zwi
 3. Listen-Verwaltung: Pane für das Anzeigen/Erstellen von Listen (inkl. Detailansichten).
 4. Einstellungen erweitern: Konfigurationsbereich für weitere Optionen (z. B. Sprache, Notification-Filter, Experiment-Flags).
 5. Einheitlicher Ladeindikator: Spinner-Slots in allen Pane-Headern anzeigen (auch beim initialen Laden), damit Refresh-Status und Skeletons konsistent erkennbar bleiben.
+6. Handles anklickbar machen und detailierte Profilansichten (inkl. Beiträge) aus dem Client heraus öffnen – analog zum Dashboard-Profilviewer.
 
 ## In Progress
 (leer)
