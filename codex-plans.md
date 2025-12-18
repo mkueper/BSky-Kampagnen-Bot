@@ -8,13 +8,13 @@
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
-- Scheduler & Backend sind nach Parallelitäts-/Logging-Updates stabil; Tests laufen grün und Deployment-Skripte bleiben unverändert nutzbar.
-- `bsky-client` deckt Auth, Timeline/Notifications, Composer und neue Scroll-UX vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen sind auf Bluesky-Parität.
-- Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Status nach den letzten Scheduler-/Auth-Anpassungen.
+- Scheduler & Backend laufen nach den jüngsten Parallelitäts-/Logging-Updates stabil; alle Tests sind grün und Deployment-Skripte unverändert nutzbar.
+- `bsky-client` deckt Auth, Timelines/Notifications, Composer und Scroll-UX weiterhin vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen bleiben auf Bluesky-Parität.
+- Client-Einstellungen schließen nicht mehr durch Overlay-Klicks, Lokalisierungen/Lizenztexte wurden korrigiert und die Repo-Version ist nach Release auf `1.1.3-dev` hochgezogen; Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Stand nach den letzten Scheduler-/Auth-Anpassungen.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; Fokus verschiebt sich auf Beta-Builds des stand-alone `bsky-client` sowie auf verbleibende Dokumentations-/Konfigurationsaufgaben (Standalone-Flag, `.env.sample`). Für das Dashboard stehen nur noch gezielte UX/Docs-Themen offen.
+Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; als nächstes kümmern wir uns um Standalone-Flag/Config-Split, Portal-/Modal-Aufräumarbeiten (gemeinsamer Container, `portalled`-Strategie), ThreadComposer-Refactor und anschließend Beta-Builds/Dokumentation.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
