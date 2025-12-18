@@ -1,7 +1,7 @@
 import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger } from '../shared'
+import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger, ActorProfileLink } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -295,19 +295,19 @@ function extractQuotedPost (subject) {
   if (viewType.endsWith('#viewBlocked')) {
     return {
       status: 'blocked',
-      statusMessage: 'Dieser Beitrag ist geschützt oder blockiert.'
+      statusMessage: ''
     }
   }
   if (viewType.endsWith('#viewNotFound')) {
     return {
       status: 'not_found',
-      statusMessage: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.'
+      statusMessage: ''
     }
   }
   if (viewType.endsWith('#viewDetached')) {
     return {
       status: 'detached',
-      statusMessage: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+      statusMessage: ''
     }
   }
   const author = view?.author || {}
@@ -355,7 +355,7 @@ function buildReplyTarget (notification) {
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
   const dispatch = useAppDispatch()
   const { quoteReposts } = useAppState()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const cardRef = useRef(null)
   const {
     author = {},
@@ -368,8 +368,8 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
   const subjectType = useMemo(() => resolveSubjectType(subject), [subject])
   const subjectLabel = useMemo(() => {
-    const defaults = { post: 'Beitrag', reply: 'Antwort', repost: 'Repost' }
-    const fallback = defaults[subjectType] || defaults.post
+    const fallbackMap = { post: 'Beitrag', reply: 'Antwort', repost: 'Repost' }
+    const fallback = fallbackMap[subjectType] || fallbackMap.post
     return t(`notifications.subject.${subjectType}`, fallback)
   }, [subjectType, t])
   const reasonInfo = REASON_COPY[reason] || formatAppBskyReason(reason, t) || {
@@ -384,7 +384,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     : (reasonInfo.descriptionKey
         ? t(reasonInfo.descriptionKey, reasonInfo.description || '')
         : (reasonInfo.description || ''))
-  const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
+  const timestamp = indexedAt ? new Date(indexedAt).toLocaleString(locale || 'de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
   const profileActor = author?.did || author?.handle || ''
@@ -609,7 +609,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       }}
       role={canOpenItem ? 'button' : undefined}
       tabIndex={canOpenItem ? 0 : undefined}
-      aria-label={canOpenItem ? 'Thread öffnen' : undefined}
+      aria-label={canOpenItem ? t('notifications.card.openThread', 'Thread öffnen') : undefined}
     >
       <div className='flex items-start gap-3'>
         {canOpenProfileViewer ? (
@@ -744,12 +744,12 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
   const dispatch = useAppDispatch()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { config } = useCardConfig()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const previewMedia = preview?.media || []
-  const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
+  const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString(locale || 'de-DE') : ''
   const profileActor = author?.did || author?.handle || ''
   const canOpenProfileViewer = Boolean(profileActor)
   const showQuoted = isViaRepostReason(reason)
@@ -1003,7 +1003,13 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                       <p className='text-xs text-foreground-muted'>{quotedAuthorMissingLabel}</p>
                     ) : null}
                     {quoted.author?.handle ? (
-                      <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+                      <ActorProfileLink
+                        actor={quoted.author?.did || quoted.author?.handle}
+                        handle={quoted.author?.handle}
+                        className='truncate text-xs text-foreground-muted text-left hover:text-primary'
+                      >
+                        @{quoted.author.handle}
+                      </ActorProfileLink>
                     ) : null}
                   </div>
                 </div>

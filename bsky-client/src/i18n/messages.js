@@ -31,6 +31,8 @@ const messages = {
       dashboard: 'Dashboard',
       newPost: 'Neuer Post',
       newPostAria: 'Neuen Post erstellen',
+      newThread: 'Neuer Thread',
+      newThreadAria: 'Neuen Thread erstellen',
       themeButton: 'Theme',
       themeSwitch: 'Theme wechseln – nächstes: {label}',
       notificationsWithCount: '{label} ({count} neu)',
@@ -94,6 +96,95 @@ const messages = {
           fr: 'Französisch',
           es: 'Spanisch'
         }
+      }
+    },
+    profile: {
+      relation: {
+        followsYou: 'Folgt dir',
+        youFollow: 'Von dir gefolgt',
+        muted: 'Stummgeschaltet',
+        blocked: 'Blockiert',
+        blockedYou: 'Blockiert dich'
+      },
+      stats: {
+        followers: 'Follower',
+        following: 'Folge ich',
+        posts: 'Beiträge'
+      },
+      menu: {
+        copyLink: 'Link zum Profil kopieren',
+        searchPosts: 'Posts durchsuchen',
+        addStarterPack: 'Zu Startpaketen hinzufügen',
+        addToList: 'Zu Listen hinzufügen',
+        mute: 'Account stummschalten',
+        unmute: 'Stummschaltung aufheben',
+        block: 'Account blockieren',
+        unblock: 'Blockierung aufheben',
+        report: 'Account melden',
+        relationHeading: 'Beziehung',
+        labelsHeading: 'Labels',
+        labelFallback: 'Label'
+      },
+      follow: {
+        following: 'Gefolgt',
+        follow: 'Folgen',
+        followingTitle: 'Du folgst diesem Profil bereits',
+        followTitle: 'Folgen (bald verfügbar)'
+      },
+      actions: {
+        back: 'Zurück',
+        notificationsLabel: 'Benachrichtigungen verwalten',
+        notificationsTitle: 'Benachrichtigungen (bald verfügbar)',
+        messageLabel: 'Nachricht senden',
+        messageTitle: 'Nachricht (bald verfügbar)',
+        editProfile: 'Profil bearbeiten',
+        moreLabel: 'Weitere Aktionen',
+        moreTitle: 'Aktionen'
+      },
+      labels: {
+        assigned: '{count, plural, one {# Kennzeichnung wurde diesem Account zugeordnet} other {# Kennzeichnungen wurden diesem Account zugeordnet}}'
+      },
+      hidden: {
+        heading: 'Beiträge ausgeblendet',
+        blockedBy: 'Dieser Account blockiert dich. Beiträge, Antworten und Medien werden ausgeblendet.',
+        youBlocked: 'Du blockierst diesen Account. Beiträge, Antworten und Medien bleiben ausgeblendet, bis du die Blockierung aufhebst.'
+      },
+      confirm: {
+        mute: {
+          title: 'Account stummschalten',
+          description: 'Beiträge dieses Accounts stummschalten? Diese Beiträge werden ausgeblendet.',
+          confirm: 'Stummschalten'
+        },
+        unmute: {
+          title: 'Stummschaltung aufheben',
+          description: 'Die Stummschaltung dieses Accounts aufheben?',
+          confirm: 'Aufheben'
+        },
+        block: {
+          title: 'Account blockieren',
+          description: 'Blockierte Accounts werden ausgeblendet und können nicht interagieren.',
+          confirm: 'Blockieren'
+        },
+        unblock: {
+          title: 'Blockierung aufheben',
+          description: 'Blockierung dieses Accounts aufheben?',
+          confirm: 'Aufheben'
+        }
+      },
+      errors: {
+        muteToggleFailed: 'Stummschalten fehlgeschlagen',
+        unblockFailed: 'Blockierung aufheben fehlgeschlagen',
+        blockFailed: 'Blockieren fehlgeschlagen',
+        noActor: 'Kein Profil zum Anzeigen ausgewählt.',
+        loadFailed: 'Profil konnte nicht geladen werden.',
+        notFound: 'Profil nicht gefunden.'
+      },
+      tabs: {
+        posts: 'Beiträge',
+        replies: 'Antworten',
+        media: 'Medien',
+        videos: 'Videos',
+        likes: 'Likes'
       }
     },
     settingsPage: {
@@ -206,6 +297,7 @@ const messages = {
         error: 'Fehler: {message}',
         empty: 'Keine Einträge gefunden.',
         languageFilteredEmpty: 'Keine Beiträge in dieser Sprache.',
+        languageSearchFailed: 'Sprachsuche fehlgeschlagen.',
         loadingMore: 'Mehr laden…',
         endReached: 'Ende erreicht'
       },
@@ -269,14 +361,19 @@ const messages = {
       quote: {
         authorUnknown: 'Unbekannt',
         authorMissing: 'Autorinformationen wurden nicht mitgeliefert.',
+        undoSuccess: 'Zitat zurückgezogen.',
+        undoError: 'Zitat konnte nicht zurückgezogen werden.',
         status: {
           blocked: 'Dieser Beitrag ist geschützt oder blockiert.',
-          not_found:
-            'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
-          detached:
-            'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.',
+          not_found: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.',
+          detached: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.',
           unavailable: 'Der Original-Beitrag kann nicht angezeigt werden.'
         }
+      },
+      context: {
+        unknownActor: 'Jemand',
+        repost: '{actor} hat repostet',
+        like: '{actor} gefällt das'
       },
       media: {
         imageOpen: 'Bild vergrößert anzeigen',
@@ -307,9 +404,20 @@ const messages = {
         muteWords: 'Wörter und Tags stummschalten',
         hidePost: 'Post für mich ausblenden',
         muteAccount: 'Account stummschalten',
+        muteAccountSuccess: 'Account wurde stummgeschaltet.',
+        muteAccountError: 'Account konnte nicht stummgeschaltet werden.',
         blockAccount: 'Account blockieren',
+        blockAccountSuccess: 'Account wurde blockiert.',
+        blockAccountError: 'Account konnte nicht blockiert werden.',
         reportPost: 'Post melden',
-        placeholder: '{label} ist noch nicht verfügbar.'
+        placeholder: '{label} ist noch nicht verfügbar.',
+        pinPost: 'An dein Profil anheften',
+        editInteractions: 'Interaktionseinstellungen bearbeiten',
+        deletePost: 'Post löschen',
+        deletePostSuccess: 'Post gelöscht.',
+        deletePostError: 'Post konnte nicht gelöscht werden.',
+        confirmDeleteTitle: 'Post löschen?',
+        confirmDeleteDescription: 'Dieser Schritt ist endgültig. Der Post wird dauerhaft entfernt.'
       },
       share: {
         linkCopied: 'Link zum Post kopiert',
@@ -345,9 +453,12 @@ const messages = {
         authorUnknown: 'Unbekannt',
         authorMissing:
           'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.',
+        openThread: 'Thread öffnen',
         actions: {
           reply: 'Antworten',
-          like: 'Gefällt mir'
+          like: 'Gefällt mir',
+          quoteUndoSuccess: 'Zitat zurückgezogen.',
+          quoteUndoError: 'Zitat konnte nicht zurückgezogen werden.'
         }
       },
       preview: {
@@ -365,6 +476,9 @@ const messages = {
               'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
           }
         }
+      },
+      actions: {
+        loadMore: 'Mehr laden…'
       },
       reason: {
         like: {
@@ -422,6 +536,7 @@ const messages = {
     },
     compose: {
       titleNew: 'Neuer Post',
+      titleThread: 'Neuer Thread',
       titleReply: 'Antworten',
       titleQuote: 'Post zitieren',
       cancel: 'Abbrechen',
@@ -432,6 +547,61 @@ const messages = {
       discardMessage:
         'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
       discardConfirm: 'Verwerfen',
+      thread: {
+        empty: 'Thread ist leer.',
+        exceedsLimit: 'Mindestens ein Segment überschreitet das Limit.',
+        sendFailed: 'Thread konnte nicht gesendet werden.',
+        sending: 'Sende…'
+      },
+      interactions: {
+        buttonTitle: 'Interaktionen konfigurieren',
+        loading: 'Lade Interaktionseinstellungen…',
+        loadError: 'Interaktionseinstellungen konnten nicht geladen werden.',
+        saveError: 'Einstellungen konnten nicht gespeichert werden.',
+        retry: 'Erneut versuchen',
+        title: 'Post-Interaktionseinstellungen',
+        subtitle: 'Bestimme, wer antworten oder zitieren darf.',
+        replyHeading: 'Wer kann antworten',
+        option: {
+          everyone: 'Jeder',
+          limited: 'Nur ausgewählte Gruppen',
+          followers: 'Follower',
+          following: 'Personen, denen du folgst',
+          mentioned: 'Erwähnte Accounts',
+          oneList: '1 Liste',
+          multiList: '{count} Listen',
+          none: 'Keine Ausnahmen'
+        },
+        summary: {
+          everyone: 'Antworten: Jeder',
+          restricted: 'Antworten: Begrenzt',
+          none: 'Antworten: Niemand'
+        },
+        checkbox: {
+          followers: 'Deine Follower',
+          'followers.desc': 'Accounts, die dir folgen.',
+          following: 'Personen, denen du folgst',
+          'following.desc': 'Erhalte Antworten aus deinem Feed.',
+          mentioned: 'Personen, die du erwähnst',
+          'mentioned.desc': 'Gilt für alle @-Erwähnungen im Post.',
+          lists: 'Aus deinen Listen auswählen'
+        },
+        lists: {
+          loading: 'Listen werden geladen…',
+          empty: 'Du hast noch keine Listen erstellt.',
+          selected: '{count} Listen ausgewählt',
+          helper: 'Keine Liste ausgewählt.',
+          disabled: 'Aktiviere „Nur ausgewählte Gruppen“, um Listen zu verwenden.',
+          error: 'Listen konnten nicht geladen werden.'
+        },
+        quotes: {
+          title: 'Zitieren dieses Posts erlauben',
+          desc: 'Deaktiviert die Möglichkeit, deinen Post zu zitieren.',
+          allowed: 'Zitate: erlaubt',
+          disabled: 'Zitate: deaktiviert'
+        },
+        note: 'Diese Auswahl gilt auch zukünftig als Standard.'
+      },
       context: {
         replyLabel: 'Antwort auf',
         quoteLabel: 'Zitat von',
@@ -440,16 +610,28 @@ const messages = {
       },
       preview: {
         placeholder: 'Dein Text erscheint hier.',
-        emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.'
+        emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.',
+        loading: 'Lade Vorschau…',
+        error: 'Link-Vorschau konnte nicht geladen werden.',
+        timeout: 'Link-Vorschau hat zu lange gebraucht.'
       }
     },
     clientSettings: {
+      tabs: {
+        general: 'Allgemein',
+        layout: 'Layout',
+        services: 'Externe Dienste',
+        placeholder: 'Dieser Bereich wird demnächst freigeschaltet.'
+      },
       title: 'Client-Einstellungen',
       subtitle: 'Diese Optionen gelten nur lokal auf diesem Gerät.',
       close: 'Schließen',
       general: {
-        introTitle: 'Lokale Steuerung',
-        introBody: 'Diese Einstellungen gelten ausschließlich im aktuellen Browser und helfen dir, den Client an deine Arbeitsweise anzupassen.'
+        languageTitle: 'Sprache',
+        languageBody: 'Steuert die Sprache für Navigation, Buttons und Meldungen. Die Auswahl wird lokal gespeichert.',
+        languageLabel: 'Anzeigesprache',
+        languageHint: 'Wirken sofort und nur auf diesem Gerät – perfekt, wenn du mehrere Accounts mit unterschiedlichen Sprachen nutzt.',
+        languageSelectHint: 'Ändern'
       },
       sections: {
         gifsTitle: 'GIF-Integration',
@@ -485,6 +667,12 @@ const messages = {
         heading: 'Weitere Optionen',
         body: 'Weitere Optionen – z. B. Darstellung und lokale Workflows – folgen hier in Kürze.'
       },
+      language: {
+        options: {
+          de: 'Deutsch',
+          en: 'Englisch'
+        }
+      },
       save: 'Speichern'
     },
   },
@@ -504,6 +692,8 @@ const messages = {
       dashboard: 'Dashboard',
       newPost: 'New post',
       newPostAria: 'Create new post',
+      newThread: 'New thread',
+      newThreadAria: 'Create new thread',
       themeButton: 'Theme',
       themeSwitch: 'Switch theme – next: {label}',
       notificationsWithCount: '{label} ({count} new)',
@@ -575,8 +765,74 @@ const messages = {
       }
     },
     skeet: {
+      quote: {
+        authorUnknown: 'Unknown',
+        authorMissing: 'Author information is missing.',
+        undoSuccess: 'Quote removed.',
+        undoError: 'Quote could not be removed.',
+        status: {
+          blocked: 'This post is protected or blocked.',
+          not_found: 'The original post was removed or is no longer available.',
+          detached: 'The original post was detached and cannot be shown.',
+          unavailable: 'The original post cannot be displayed.'
+        }
+      },
+      context: {
+        unknownActor: 'Someone',
+        repost: '{actor} reposted this',
+        like: '{actor} liked this'
+      },
+      media: {
+        imageOpen: 'View image in full size',
+        videoOpen: 'Open video',
+        videoLabel: 'Video',
+        gifAlt: 'GIF',
+        gifAltTitle: 'GIF: {title}',
+        gifBadge: 'GIF',
+        gifHint: 'Click to view'
+      },
       actions: {
-        translating: 'Translating…'
+        reply: 'Reply',
+        like: 'Like',
+        bookmarkAdd: 'Bookmark',
+        bookmarkRemove: 'Saved',
+        share: 'Share',
+        shareAria: 'Share post',
+        moreOptions: 'More options',
+        translate: 'Translate',
+        translating: 'Translating…',
+        copyText: 'Copy post text',
+        copyTextSuccess: 'Text copied',
+        copySuccess: 'Copied',
+        copyPrompt: 'Copy text',
+        showMore: 'Show more like this',
+        showLess: 'Show less like this',
+        muteThread: 'Mute thread',
+        muteWords: 'Mute words & tags',
+        hidePost: 'Hide post for me',
+        muteAccount: 'Mute account',
+        muteAccountSuccess: 'Account muted.',
+        muteAccountError: 'Failed to mute account.',
+        blockAccount: 'Block account',
+        blockAccountSuccess: 'Account blocked.',
+        blockAccountError: 'Failed to block account.',
+        reportPost: 'Report post',
+        placeholder: '{label} is not available yet.',
+        pinPost: 'Pin to your profile',
+        editInteractions: 'Edit interaction settings',
+        deletePost: 'Delete post',
+        deletePostSuccess: 'Post deleted.',
+        deletePostError: 'Could not delete post.',
+        confirmDeleteTitle: 'Delete post?',
+        confirmDeleteDescription: 'This action is permanent. The post will be removed.'
+      },
+      share: {
+        linkCopied: 'Post link copied',
+        copyLink: 'Copy post link',
+        directMessage: 'Direct message',
+        directMessageAction: 'Send via direct message',
+        embed: 'Embed',
+        embedAction: 'Embed this post'
       },
       translation: {
         title: 'Translation',
@@ -635,7 +891,27 @@ const messages = {
       }
     },
     timeline: {
+      status: {
+        error: 'Error: {message}',
+        empty: 'No entries found.',
+        languageFilteredEmpty: 'No posts in this language.',
+        languageSearchFailed: 'Language search failed.',
+        loadingMore: 'Load more…',
+        endReached: 'End reached'
+      },
       thread: {
+        titleWithName: 'Thread by {name}',
+        titleFallback: 'Thread',
+        actions: {
+          unroll: 'Unroll',
+          refresh: 'Refresh'
+        },
+        noAuthorPosts: 'No posts from this author found.',
+        branches: {
+          title: 'Branches',
+          unknown: 'Unknown',
+          noText: 'No text available.'
+        },
         depthStub: {
           title: 'More replies',
           action: 'Continue ({count})',
@@ -646,6 +922,10 @@ const messages = {
           backLevel: 'Back to previous level',
           backTimeline: 'Back to thread view'
         }
+      },
+      unrollModal: {
+        back: 'Back',
+        title: 'Read author thread'
       }
     },
     blocks: {
@@ -667,7 +947,47 @@ const messages = {
         unblocking: 'Unblocking…'
       }
     },
-    en: {
+    notifications: {
+      status: {
+        loadError: 'Notifications could not be loaded.',
+        empty: 'No notifications found.',
+        loading: 'Loading…',
+        autoLoading: 'More notifications are loading automatically…',
+        refreshing: 'Refreshing…'
+      },
+      subject: {
+        post: 'Post',
+        reply: 'Reply',
+        repost: 'Repost'
+      },
+      card: {
+        authorUnknown: 'Unknown',
+        authorMissing: 'Bluesky did not provide profile details for this notification.',
+        openThread: 'Open thread',
+        actions: {
+          reply: 'Reply',
+          like: 'Like',
+          quoteUndoSuccess: 'Quote removed.',
+          quoteUndoError: 'Quote could not be removed.'
+        }
+      },
+      preview: {
+        profileFallback: 'Profile',
+        videoOpen: 'Open video',
+        videoLabel: 'Video',
+        originalPost: 'Original post',
+        quoted: {
+          authorMissing: 'Author information is missing.',
+          status: {
+            blocked: 'This post is protected or blocked.',
+            not_found: 'The original post was removed or is no longer available.',
+            detached: 'The original post was detached and cannot be shown.'
+          }
+        }
+      },
+      actions: {
+        loadMore: 'Load more…'
+      },
       reason: {
         like: {
           label: 'Like',
@@ -729,8 +1049,39 @@ const messages = {
         midnight: 'Midnight'
       }
     },
+    layout: {
+      headers: {
+        notifications: 'Notifications',
+        blocks: 'Personal block list',
+        saved: 'Saved posts'
+      },
+      notifications: {
+        tabAll: 'All',
+        tabMentions: 'Mentions',
+        configure: 'Configure filters'
+      },
+      thread: {
+        title: 'Thread view',
+        back: 'Back to timeline'
+      },
+      timeline: {
+        feedButton: 'Feeds',
+        pinnedFeeds: 'Pinned feeds',
+        noPins: 'No pins yet.',
+        feedManagerHint: 'Open the feed manager via the sidebar.',
+        languageFilterLabel: 'Language filter',
+        language: {
+          all: 'All languages',
+          de: 'German',
+          en: 'English',
+          fr: 'French',
+          es: 'Spanish'
+        }
+      }
+    },
     compose: {
       titleNew: 'New post',
+      titleThread: 'New thread',
       titleReply: 'Reply',
       titleQuote: 'Quote post',
       cancel: 'Cancel',
@@ -739,6 +1090,61 @@ const messages = {
       discardTitle: 'Discard draft',
       discardMessage: 'Are you sure you want to discard this draft?',
       discardConfirm: 'Discard',
+      thread: {
+        empty: 'Thread is empty.',
+        exceedsLimit: 'At least one segment exceeds the limit.',
+        sendFailed: 'Thread could not be posted.',
+        sending: 'Sending…'
+      },
+      interactions: {
+        buttonTitle: 'Configure interactions',
+        loading: 'Loading interaction settings…',
+        loadError: 'Interaction settings could not be loaded.',
+        saveError: 'Settings could not be saved.',
+        retry: 'Try again',
+        title: 'Post interaction settings',
+        subtitle: 'Decide who can reply or quote.',
+        replyHeading: 'Who can reply',
+        option: {
+          everyone: 'Everyone',
+          limited: 'Selected groups only',
+          followers: 'Followers',
+          following: 'People you follow',
+          mentioned: 'Mentioned accounts',
+          oneList: '1 list',
+          multiList: '{count} lists',
+          none: 'No exceptions'
+        },
+        summary: {
+          everyone: 'Replies: everyone',
+          restricted: 'Replies: limited',
+          none: 'Replies: nobody'
+        },
+        checkbox: {
+          followers: 'Your followers',
+          'followers.desc': 'Accounts that follow you.',
+          following: 'People you follow',
+          'following.desc': 'Get replies from your feed.',
+          mentioned: 'People you mention',
+          'mentioned.desc': 'Applies to every @ mention in the post.',
+          lists: 'Pick from your lists'
+        },
+        lists: {
+          loading: 'Loading lists…',
+          empty: 'You have not created any lists yet.',
+          selected: '{count} lists selected',
+          helper: 'No list selected.',
+          disabled: 'Enable “Selected groups only” to use lists.',
+          error: 'Lists could not be loaded.'
+        },
+        quotes: {
+          title: 'Allow quoting this post',
+          desc: 'Disables the ability to quote your post.',
+          allowed: 'Quotes: allowed',
+          disabled: 'Quotes: disabled'
+        },
+        note: 'This choice also becomes your default.'
+      },
       context: {
         replyLabel: 'Replying to',
         quoteLabel: 'Quoting',
@@ -747,16 +1153,28 @@ const messages = {
       },
       preview: {
         placeholder: 'Your text will appear here.',
-        emptyHint: 'Add text, media or a link to see the preview.'
+        emptyHint: 'Add text, media or a link to see the preview.',
+        loading: 'Loading preview…',
+        error: 'Link preview could not be loaded.',
+        timeout: 'Link preview request timed out.'
       }
     },
     clientSettings: {
+      tabs: {
+        general: 'General',
+        layout: 'Layout',
+        services: 'External services',
+        placeholder: 'This section will be unlocked soon.'
+      },
       title: 'Client settings',
       subtitle: 'Applies only to this device and this standalone client.',
       close: 'Close',
       general: {
-        introTitle: 'Local controls',
-        introBody: 'These preferences stay in this browser and help you tailor the client to your workflow.'
+        languageTitle: 'Language',
+        languageBody: 'Applies to navigation, buttons, and dialogs. Stored locally for each device.',
+        languageLabel: 'Display language',
+        languageHint: 'Takes effect immediately and only on this device—ideal for multi-account setups with different locales.',
+        languageSelectHint: 'Change'
       },
       sections: {
         gifsTitle: 'GIF integration',
@@ -792,7 +1210,102 @@ const messages = {
         heading: 'More options coming soon',
         body: 'More layout tweaks and local workflow settings will follow soon.'
       },
+      language: {
+        options: {
+          de: 'German',
+          en: 'English'
+        }
+      },
       save: 'Save'
+    },
+    profile: {
+      relation: {
+        followsYou: 'Follows you',
+        youFollow: 'Followed by you',
+        muted: 'Muted',
+        blocked: 'Blocked',
+        blockedYou: 'Blocked you'
+      },
+      stats: {
+        followers: 'Followers',
+        following: 'Following',
+        posts: 'Posts'
+      },
+      menu: {
+        copyLink: 'Copy profile link',
+        searchPosts: 'Search posts',
+        addStarterPack: 'Add to starter packs',
+        addToList: 'Add to lists',
+        mute: 'Mute account',
+        unmute: 'Unmute account',
+        block: 'Block account',
+        unblock: 'Unblock account',
+        report: 'Report account',
+        relationHeading: 'Relationship',
+        labelsHeading: 'Labels',
+        labelFallback: 'Label'
+      },
+      follow: {
+        following: 'Following',
+        follow: 'Follow',
+        followingTitle: 'You already follow this profile',
+        followTitle: 'Follow (coming soon)'
+      },
+      actions: {
+        back: 'Back',
+        notificationsLabel: 'Manage notifications',
+        notificationsTitle: 'Notifications (coming soon)',
+        messageLabel: 'Send message',
+        messageTitle: 'Message (coming soon)',
+        editProfile: 'Edit profile',
+        moreLabel: 'More actions',
+        moreTitle: 'Actions'
+      },
+      labels: {
+        assigned: '{count, plural, one {# label assigned to this account} other {# labels assigned to this account}}'
+      },
+      hidden: {
+        heading: 'Posts hidden',
+        blockedBy: 'This account blocked you. Posts, replies, and media are hidden.',
+        youBlocked: 'You blocked this account. Posts, replies, and media remain hidden until you unblock it.'
+      },
+      confirm: {
+        mute: {
+          title: 'Mute account',
+          description: 'Mute posts from this account? They will be hidden.',
+          confirm: 'Mute'
+        },
+        unmute: {
+          title: 'Unmute account',
+          description: 'Unmute this account?',
+          confirm: 'Unmute'
+        },
+        block: {
+          title: 'Block account',
+          description: 'Blocked accounts are hidden and cannot interact with you.',
+          confirm: 'Block'
+        },
+        unblock: {
+          title: 'Unblock account',
+          description: 'Unblock this account?',
+          confirm: 'Unblock'
+        }
+      },
+      errors: {
+        muteToggleFailed: 'Mute toggle failed.',
+        unblockFailed: 'Failed to unblock account.',
+        blockFailed: 'Failed to block account.',
+        noActor: 'No profile selected.',
+        loadFailed: 'Profile could not be loaded.',
+        notFound: 'Profile not found.'
+      },
+      tabs: {
+        posts: 'Posts',
+        replies: 'Replies',
+        media: 'Media',
+        videos: 'Videos',
+        likes: 'Likes'
+      }
     },
   }
 }

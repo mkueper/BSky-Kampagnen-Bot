@@ -217,6 +217,10 @@ export default function BskyClientLayout ({
   const navInteractionsLocked = typeof navInteractionsLockedProp === 'boolean'
     ? navInteractionsLockedProp
     : Boolean(detailPaneActive)
+  const newPostLabel = t('nav.newPost', 'Neuer Post')
+  const newPostAria = t('nav.newPostAria', 'Neuen Post erstellen')
+  const newThreadLabel = t('nav.newThread', 'Neuer Thread')
+  const newThreadAria = t('nav.newThreadAria', 'Neuen Thread erstellen')
 
   const handleSelect = useCallback(
     (section, actorOrOptions = null, maybeOptions = {}) => {
@@ -464,15 +468,15 @@ export default function BskyClientLayout ({
                   <InlineMenuTrigger>
                     <button
                       type='button'
-                      onClick={() => setComposeMenuOpen(true)}
-                      className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-                      style={{ bottom: mobileNavReservedSpace }}
-                      aria-label='Neuen Beitrag verfassen'
-                      title='Neuen Beitrag verfassen'
-                    >
-                      <PlusIcon className='h-6 w-6' />
-                      <span className='hidden sm:inline'>Neu</span>
-                    </button>
+                    onClick={() => setComposeMenuOpen(true)}
+                    className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+                    style={{ bottom: mobileNavReservedSpace }}
+                    aria-label={newPostAria}
+                    title={newPostAria}
+                  >
+                    <PlusIcon className='h-6 w-6' />
+                    <span className='hidden sm:inline'>{newPostLabel}</span>
+                  </button>
                   </InlineMenuTrigger>
                   <InlineMenuContent side='top' align='end' sideOffset={10} className='w-56'>
                     <div className='py-1 text-sm'>
@@ -480,19 +484,19 @@ export default function BskyClientLayout ({
                         icon={PlusIcon}
                         onSelect={() => {
                           setComposeMenuOpen(false)
-                          handleOpenCompose()
-                        }}
-                      >
-                        Neuer Post
+                        handleOpenCompose()
+                      }}
+                    >
+                      {newPostLabel}
                       </InlineMenuItem>
                       <InlineMenuItem
                         icon={PlusIcon}
                         onSelect={() => {
                           setComposeMenuOpen(false)
-                          handleOpenComposeThread()
-                        }}
-                      >
-                        Neuer Thread
+                        handleOpenComposeThread()
+                      }}
+                    >
+                      {newThreadLabel}
                       </InlineMenuItem>
                     </div>
                   </InlineMenuContent>
@@ -504,22 +508,22 @@ export default function BskyClientLayout ({
                     onClick={handleOpenComposeThread}
                     className='fixed right-5 inline-flex items-center gap-2 rounded-full border border-border bg-background-elevated px-4 py-3 text-base font-semibold text-foreground shadow-soft hover:bg-background'
                     style={{ bottom: '96px' }}
-                    aria-label='Neuer Thread'
-                    title='Neuen Thread posten'
+                    aria-label={newThreadAria}
+                    title={newThreadLabel}
                   >
                     <PlusIcon className='h-6 w-6' />
-                    <span className='hidden sm:inline'>Neuer Thread</span>
+                    <span className='hidden sm:inline'>{newThreadLabel}</span>
                   </button>
                   <button
                     type='button'
                     onClick={handleOpenCompose}
                     className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
                     style={{ bottom: '20px' }}
-                    aria-label='Neuer Post'
-                    title='Neuen Post posten'
+                    aria-label={newPostAria}
+                    title={newPostLabel}
                   >
                     <PlusIcon className='h-6 w-6' />
-                    <span className='hidden sm:inline'>Neuer Post</span>
+                    <span className='hidden sm:inline'>{newPostLabel}</span>
                   </button>
                 </>
               )}

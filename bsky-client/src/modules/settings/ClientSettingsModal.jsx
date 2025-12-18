@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { createPortal } from 'react-dom'
 import { Card, Button } from '../shared'
+import { CheckIcon, ChevronDownIcon } from '@radix-ui/react-icons'
+import * as Select from '@radix-ui/react-select'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+
+const LANGUAGE_OPTIONS = [
+  { value: 'de', labelKey: 'clientSettings.language.options.de', fallback: 'Deutsch' },
+  { value: 'en', labelKey: 'clientSettings.language.options.en', fallback: 'English' }
+]
 
 function buildLocalConfig (config = {}) {
   const gifs = config?.gifs || {}
@@ -11,6 +18,7 @@ function buildLocalConfig (config = {}) {
   const translation = config?.translation || {}
   const composer = config?.composer || {}
   return {
+    locale: config?.locale || 'de',
     gifs: {
       tenorAvailable: Boolean(gifs.tenorAvailable),
       tenorApiKey: gifs.tenorApiKey || ''
@@ -32,7 +40,7 @@ function buildLocalConfig (config = {}) {
 const CLIENT_SETTING_TABS = [
   { id: 'general', labelKey: 'clientSettings.tabs.general', fallback: 'Allgemein' },
   { id: 'layout', labelKey: 'clientSettings.tabs.layout', fallback: 'Layout' },
-  { id: 'services', labelKey: 'clientSettings.tabs.services', fallback: 'Fremddienste' }
+  { id: 'services', labelKey: 'clientSettings.tabs.services', fallback: 'Externe Dienste' }
 ]
 
 export default function ClientSettingsModal ({ open, onClose }) {
@@ -49,12 +57,14 @@ export default function ClientSettingsModal ({ open, onClose }) {
   }, [open, clientConfig])
 
   const hasChanges = useMemo(() => {
+    const savedLocale = clientConfig?.locale || 'de'
     const savedShowDividers = clientConfig?.unroll?.showDividers !== false
     const savedTranslationEnabled = clientConfig?.translation?.enabled === true
     const savedTranslationBase = clientConfig?.translation?.baseUrl || ''
     const savedTranslationAllowGoogle = clientConfig?.translation?.allowGoogle !== false
     const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
     return (
+      (localConfig.locale || 'de') !== savedLocale ||
       Boolean(localConfig.gifs.tenorAvailable) !== Boolean(clientConfig?.gifs?.tenorAvailable) ||
       (localConfig.gifs.tenorApiKey || '') !== (clientConfig?.gifs?.tenorApiKey || '') ||
       Boolean(localConfig.unroll.showDividers) !== savedShowDividers ||
@@ -64,6 +74,11 @@ export default function ClientSettingsModal ({ open, onClose }) {
       Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview
     )
   }, [clientConfig, localConfig])
+
+  const selectedLanguageLabel = useMemo(() => {
+    const current = LANGUAGE_OPTIONS.find(opt => opt.value === (localConfig.locale || 'de')) || LANGUAGE_OPTIONS[0]
+    return t(current.labelKey, current.fallback)
+  }, [localConfig.locale, t])
 
   if (!open) return null
 
@@ -75,6 +90,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
 
   const handleSave = () => {
     setClientConfig({
+      locale: localConfig.locale || 'de',
       gifs: {
         tenorAvailable: Boolean(localConfig.gifs.tenorAvailable),
         tenorApiKey: localConfig.gifs.tenorApiKey?.trim() || ''
@@ -140,13 +156,67 @@ export default function ClientSettingsModal ({ open, onClose }) {
           {activeTab === 'general' && (
             <div className='grid gap-6 md:grid-cols-2'>
               <section className='space-y-3 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
-                <p className='text-sm font-semibold text-foreground'>
-                  {t('clientSettings.general.introTitle', 'Lokale Steuerung')}
-                </p>
-                <p className='text-sm text-foreground-muted'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.general.languageTitle', 'Sprache')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t(
+                      'clientSettings.general.languageBody',
+                      'Steuert die Sprache für Navigation, Buttons und Meldungen. Die Auswahl wird lokal gespeichert.'
+                    )}
+                  </p>
+                </div>
+                <div className='space-y-2 text-sm font-semibold text-foreground'>
+                  <span>{t('clientSettings.general.languageLabel', 'Anzeigesprache')}</span>
+                  <Select.Root
+                    value={localConfig.locale || 'de'}
+                    onValueChange={(nextValue) => {
+                      setLocalConfig((current) => ({
+                        ...current,
+                        locale: nextValue
+                      }))
+                    }}
+                  >
+                    <Select.Trigger className='flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm font-semibold text-foreground shadow-soft transition hover:border-primary/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' aria-label={t('clientSettings.general.languageLabel', 'Anzeigesprache')}>
+                      <div className='flex w-full items-center justify-between'>
+                        <Select.Value aria-label={selectedLanguageLabel}>
+                          {selectedLanguageLabel}
+                        </Select.Value>
+                        <span className='inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-foreground-muted'>
+                          {t('clientSettings.general.languageSelectHint', 'Ändern')}
+                          <ChevronDownIcon className='h-4 w-4' />
+                        </span>
+                      </div>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content
+                        align='start'
+                        sideOffset={6}
+                        className='z-[300] overflow-hidden rounded-2xl border border-border bg-background-elevated text-sm text-foreground shadow-2xl focus-visible:outline-none'
+                      >
+                        <Select.Viewport className='space-y-1 p-2'>
+                          {LANGUAGE_OPTIONS.map((option) => (
+                            <Select.Item
+                              key={option.value}
+                              value={option.value}
+                              className='flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 font-medium outline-none transition data-[highlighted]:bg-background-subtle/80 data-[state=checked]:bg-primary/10'
+                            >
+                              <Select.ItemText>{t(option.labelKey, option.fallback)}</Select.ItemText>
+                              <Select.ItemIndicator>
+                                <CheckIcon className='h-4 w-4 text-primary' />
+                              </Select.ItemIndicator>
+                            </Select.Item>
+                          ))}
+                        </Select.Viewport>
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
+                </div>
+                <p className='text-xs text-foreground-muted'>
                   {t(
-                    'clientSettings.general.introBody',
-                    'Diese Einstellungen gelten ausschließlich im aktuellen Browser und helfen dir, den Client an deine Arbeitsweise anzupassen.'
+                    'clientSettings.general.languageHint',
+                    'Wirken sofort und nur auf diesem Gerät – perfekt, wenn du mehrere Accounts mit unterschiedlichen Sprachen nutzt.'
                   )}
                 </p>
               </section>
