@@ -11,7 +11,6 @@ import {
   GlobeIcon,
   Cross2Icon,
   ExclamationTriangleIcon,
-  MagicWandIcon,
   FaceIcon,
   SpeakerOffIcon,
   SpeakerModerateIcon,
@@ -822,7 +821,6 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }, [actorDid, blockingAccount, showMenuError, showPlaceholder, t])
 
-  const viewer = item?.raw?.post?.viewer || item?.raw?.item?.viewer || item?.viewer || null
   const authorDid = author?.did || null
   const isOwnPost = Boolean(session?.did && authorDid && session.did === authorDid)
   const [deletingPost, setDeletingPost] = useState(false)
