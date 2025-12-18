@@ -221,6 +221,16 @@ const messages = {
           title: 'Verzweigungen',
           unknown: 'Unbekannt',
           noText: 'Kein Text verfügbar.'
+        },
+        depthStub: {
+          title: 'Weitere Antworten',
+          action: 'Fortsetzen ({count})',
+          description: 'Noch mehr Antworten in dieser Verzweigung.',
+          helperTitle: 'Fortsetzung tieferer Ebenen',
+          parentLabel: 'Übergeordneter Beitrag',
+          empty: 'Keine weiteren Antworten.',
+          backLevel: 'Zurück zur vorherigen Ebene',
+          backTimeline: 'Zurück zur Thread-Ansicht'
         }
       },
       unrollModal: {
@@ -622,6 +632,20 @@ const messages = {
           nobody: 'Nobody'
         },
         hint: 'You can continue existing conversations regardless of this setting.'
+      }
+    },
+    timeline: {
+      thread: {
+        depthStub: {
+          title: 'More replies',
+          action: 'Continue ({count})',
+          description: 'More replies are hidden in this branch.',
+          helperTitle: 'Continuing deeper levels',
+          parentLabel: 'Parent post',
+          empty: 'No more replies.',
+          backLevel: 'Back to previous level',
+          backTimeline: 'Back to thread view'
+        }
       }
     },
     blocks: {

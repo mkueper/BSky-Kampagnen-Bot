@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import { useAppDispatch, useAppState } from '../../context/AppContext'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
@@ -12,17 +12,21 @@ import { useTranslation } from '../../i18n/I18nProvider.jsx'
 const CONNECTOR_OFFSET = 28
 const INDENT_STEP = 30
 const BASE_PADDING = 32
+const MAX_THREAD_DEPTH = 6
 
 function ThreadNodeList ({
   nodes = [],
   depth = 0,
+  maxDepth = MAX_THREAD_DEPTH,
   highlightUri,
   onReply,
   onQuote,
   onViewMedia,
-  onSelect
+  onSelect,
+  onOpenDeepReplies
 }) {
   if (!Array.isArray(nodes) || nodes.length === 0) return null
+  const { t } = useTranslation()
 
   return (
     <div className='space-y-4'>
@@ -34,6 +38,9 @@ function ThreadNodeList ({
         const appliedIndent = depth * INDENT_STEP
         const connectorLeft = BASE_PADDING - 14 + appliedIndent
         const isFocus = highlightUri && node?.uri === highlightUri
+        const nextDepth = depth + 1
+        const allowChildRendering = hasChildren && nextDepth < maxDepth
+        const showDepthStub = hasChildren && !allowChildRendering
         const verticalStyle = {
           top: depth === 0 ? `${CONNECTOR_OFFSET}px` : '0px',
           height: hasChildren || !isLast ? 'calc(100% + 16px)' : `${CONNECTOR_OFFSET}px`
@@ -79,15 +86,37 @@ function ThreadNodeList ({
 
             {hasChildren ? (
               <div className='mt-2'>
-                <ThreadNodeList
-                  nodes={node.replies}
-                  depth={depth + 1}
-                  highlightUri={highlightUri}
-                  onReply={onReply}
-                  onQuote={onQuote}
-                  onViewMedia={onViewMedia}
-                  onSelect={onSelect}
-                />
+                {allowChildRendering ? (
+                  <ThreadNodeList
+                    nodes={node.replies}
+                    depth={nextDepth}
+                    maxDepth={maxDepth}
+                    highlightUri={highlightUri}
+                    onReply={onReply}
+                    onQuote={onQuote}
+                    onViewMedia={onViewMedia}
+                    onSelect={onSelect}
+                    onOpenDeepReplies={onOpenDeepReplies}
+                  />
+                ) : (
+                  <div style={{ paddingLeft: `${BASE_PADDING + appliedIndent + INDENT_STEP}px` }}>
+                    <div className='rounded-2xl border border-dashed border-border/70 bg-background-subtle/40 p-3 text-sm text-foreground'>
+                      <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                        <p className='text-sm font-medium text-foreground'>{t('timeline.thread.depthStub.title', 'Weitere Antworten')}</p>
+                        <button
+                          type='button'
+                          className='inline-flex items-center justify-center rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-foreground hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                          onClick={() => onOpenDeepReplies?.({ parent: node, replies: node.replies })}
+                        >
+                          {t('timeline.thread.depthStub.action', 'Fortsetzen ({count})', { count: node.replies.length })}
+                        </button>
+                      </div>
+                      <p className='mt-1 text-xs text-foreground-muted'>
+                        {t('timeline.thread.depthStub.description', 'Noch mehr Antworten in dieser Verzweigung.')}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -104,6 +133,8 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
   const { openMediaPreview } = useMediaLightbox()
   const { openReplyComposer, openQuoteComposer } = useComposer()
   const { t } = useTranslation()
+  const [deepThreadStack, setDeepThreadStack] = useState([])
+  const detailScrollRef = useRef(null)
 
   const { error, data, active, viewMode = 'full' } = state || {}
   const parents = Array.isArray(data?.parents) ? data.parents : []
@@ -157,6 +188,7 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
       .slice(0, 25)
   }, [focus, threadAuthorDid])
   const handleClose = useCallback(() => {
+    setDeepThreadStack([])
     closeThread({ force: true })
   }, [closeThread])
 
@@ -168,6 +200,34 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
     if (!state.isAuthorThread) return
     dispatch({ type: 'OPEN_THREAD_UNROLL' })
   }, [dispatch, state.isAuthorThread])
+
+  const handleOpenDeepReplies = useCallback((payload) => {
+    const parent = payload?.parent || null
+    const replies = Array.isArray(payload?.replies) ? payload.replies : []
+    if (!parent || replies.length === 0) return
+    setDeepThreadStack((prev) => [...prev, { parent, replies }])
+  }, [])
+
+  const handleExitDeepReplies = useCallback(() => {
+    setDeepThreadStack((prev) => prev.slice(0, -1))
+  }, [])
+
+  useEffect(() => {
+    setDeepThreadStack([])
+  }, [focus?.uri, viewMode])
+
+  const currentDeepView = deepThreadStack.length > 0 ? deepThreadStack[deepThreadStack.length - 1] : null
+
+  useEffect(() => {
+    if (!currentDeepView) return
+    const el = detailScrollRef.current
+    if (!el) return
+    try {
+      el.scrollTo({ top: 0, behavior: 'auto' })
+    } catch {
+      el.scrollTop = 0
+    }
+  }, [currentDeepView])
 
   if (!active) return null
 
@@ -209,11 +269,13 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
   const renderFullThread = () => (
     <ThreadNodeList
       nodes={threadNodes}
+      maxDepth={MAX_THREAD_DEPTH}
       highlightUri={focus?.uri}
       onReply={openReplyComposer}
       onQuote={openQuoteComposer}
       onViewMedia={openMediaPreview}
       onSelect={selectThreadFromItem}
+      onOpenDeepReplies={handleOpenDeepReplies}
     />
   )
 
@@ -241,6 +303,56 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
     )
   )
 
+  const renderDeepThreadView = () => {
+    if (!currentDeepView) return null
+    const parentNode = currentDeepView.parent
+    const replies = Array.isArray(currentDeepView.replies) ? currentDeepView.replies : []
+    const backLabel = deepThreadStack.length > 1
+      ? t('timeline.thread.depthStub.backLevel', 'Zurück zur vorherigen Ebene')
+      : t('timeline.thread.depthStub.backTimeline', 'Zurück zur Thread-Ansicht')
+
+    return (
+      <div className='space-y-4'>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Button variant='secondary' size='pill' onClick={handleExitDeepReplies}>
+            {backLabel}
+          </Button>
+          <p className='text-xs uppercase tracking-wide text-foreground-muted'>
+            {t('timeline.thread.depthStub.helperTitle', 'Fortsetzung tieferer Ebenen')}
+          </p>
+        </div>
+        <div className='rounded-2xl border border-border bg-background p-3'>
+          <p className='mb-2 text-xs font-semibold uppercase tracking-wide text-foreground-muted'>
+            {t('timeline.thread.depthStub.parentLabel', 'Übergeordneter Beitrag')}
+          </p>
+          <SkeetItem
+            item={parentNode}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelect={selectThreadFromItem}
+          />
+        </div>
+        {replies.length === 0 ? (
+          <p className='text-sm text-foreground-muted'>
+            {t('timeline.thread.depthStub.empty', 'Keine weiteren Antworten.')}
+          </p>
+        ) : (
+          <ThreadNodeList
+            nodes={replies}
+            highlightUri={focus?.uri}
+            onReply={openReplyComposer}
+            onQuote={openQuoteComposer}
+            onViewMedia={openMediaPreview}
+            onSelect={selectThreadFromItem}
+            maxDepth={MAX_THREAD_DEPTH}
+            onOpenDeepReplies={handleOpenDeepReplies}
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
     <BskyDetailPane
       header={{
@@ -253,14 +365,14 @@ export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout
       registerLayoutHeader={registerLayoutHeader}
       renderHeaderInLayout={renderHeaderInLayout}
     >
-      <div className='h-full space-y-4 overflow-y-auto px-4 py-4 select-none'>
+      <div ref={detailScrollRef} className='h-full space-y-4 overflow-y-auto px-4 py-4 select-none'>
         {error ? (
           <p className='text-sm text-red-600'>{error}</p>
         ) : null}
         {!error && focus ? (
           viewMode === 'author'
             ? renderAuthorThread()
-            : renderFullThread()
+            : (currentDeepView ? renderDeepThreadView() : renderFullThread())
         ) : null}
         {showBranchPanel ? (
           <section className='mt-6 space-y-3 border-t border-border/60 pt-4'>
