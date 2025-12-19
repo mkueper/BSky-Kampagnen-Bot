@@ -22,6 +22,7 @@ scripts/
 ├─ docker-bundle.sh       # Erstellt ein Deploy-Zip (inkl. SQLite, Dockerfiles)
 ├─ smokeBlueskyPost.ts    # Minimaler End-to-End-Test für Bluesky-Posts
 ├─ smokeMastodonPost.ts   # Experimenteller Smoke-Test für Mastodon (optional)
+├─ dev-link-preview.js    # Lokaler Link-Vorschau-Proxy für den Bluesky-Client (Standalone-Entwicklung)
 └─ README.md
 ```
 
@@ -86,3 +87,23 @@ chmod +x .git/hooks/pre-commit
 Hinweise:
 - Der Hook ist ein Template in `scripts/git-hooks/pre-commit` und wird nicht automatisch installiert.
 - In CI kann `npm run changelog:lint` direkt als Schritt ausgeführt werden.
+### Link-Preview-Proxy (lokal)
+
+```bash
+npm run dev:preview-proxy
+# oder
+node scripts/dev-link-preview.js
+```
+
+Der Proxy lauscht standardmäßig auf `http://127.0.0.1:3456/preview`. Kombiniere ihn mit `VITE_PREVIEW_PROXY_URL=http://127.0.0.1:3456/preview`, damit der Bluesky-Client auch ohne Backend echte Link-Vorschauen rendern kann. Port/Host lassen sich über `PREVIEW_PROXY_PORT` bzw. `PREVIEW_PROXY_HOST` überschreiben.
+
+#### Docker-Variante
+
+Unter `docker/link-preview-proxy.Dockerfile` kannst du ein schlankes Container-Image bauen:
+
+```bash
+docker build -f docker/link-preview-proxy.Dockerfile -t bsky-preview-proxy .
+docker run --rm -p 3456:3456 bsky-preview-proxy
+```
+
+Env-Variablen wie `PREVIEW_PROXY_HOST`, `PREVIEW_PROXY_PORT` oder `PREVIEW_PROXY_PATH` können via `docker run -e …` gesetzt werden.

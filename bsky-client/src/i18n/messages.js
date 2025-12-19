@@ -632,7 +632,8 @@ const messages = {
         emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.',
         loading: 'Lade Vorschau…',
         error: 'Link-Vorschau konnte nicht geladen werden.',
-        timeout: 'Link-Vorschau hat zu lange gebraucht.'
+        timeout: 'Link-Vorschau hat zu lange gebraucht.',
+        dismiss: 'Link-Vorschau entfernen'
       }
     },
     clientSettings: {
@@ -1194,7 +1195,8 @@ const messages = {
         emptyHint: 'Add text, media or a link to see the preview.',
         loading: 'Loading preview…',
         error: 'Link preview could not be loaded.',
-        timeout: 'Link preview request timed out.'
+        timeout: 'Link preview request timed out.',
+        dismiss: 'Remove link preview'
       }
     },
     clientSettings: {

@@ -39,6 +39,10 @@ const defaultLabels = {
   numberingToggle: 'Append automatic numbering (1/x)',
   previewTitle: 'Preview',
   previewUnavailable: 'Link preview is not available in standalone mode yet.',
+  previewLoading: 'Loading preview…',
+  previewError: 'Link preview could not be loaded.',
+  previewTimeout: 'Link preview took too long.',
+  previewDismissTitle: 'Remove link preview',
   postsCounter: (count) => `${count} post${count === 1 ? '' : 's'}`,
   segmentLabel: (index) => `Post ${index}`,
   charCount: (count, max) => (max ? `${count} / ${max}` : `${count}`),
@@ -124,6 +128,7 @@ export default function ThreadComposer({
   footerAside = null,
   initialMediaEntries = [],
   onInitialMediaApplied = null,
+  linkPreviewFetcher = null,
 }) {
   const mergedLabels = mergeLabels(labels)
   const [internalNumbering, setInternalNumbering] = useState(true)
@@ -997,8 +1002,15 @@ export default function ThreadComposer({
                   {showLinkPreview ? (
                     <SegmentLinkPreview
                       url={segmentUrl}
+                      fetcher={linkPreviewFetcher}
                       onDismiss={() => handleDismissPreview(segment.id, segmentUrl)}
-                      unavailableMessage={mergedLabels.previewUnavailable}
+                      labels={{
+                        previewUnavailable: mergedLabels.previewUnavailable,
+                        previewLoading: mergedLabels.previewLoading,
+                        previewError: mergedLabels.previewError,
+                        previewTimeout: mergedLabels.previewTimeout,
+                        previewDismissTitle: mergedLabels.previewDismissTitle,
+                      }}
                     />
                   ) : null}
                   {Number.isFinite(mediaMaxPerSegment) ? (
@@ -1151,6 +1163,10 @@ ThreadComposer.propTypes = {
     altEditTitle: PropTypes.string,
     threadLimitWarning: PropTypes.func,
     previewUnavailable: PropTypes.string,
+    previewLoading: PropTypes.string,
+    previewError: PropTypes.string,
+    previewTimeout: PropTypes.string,
+    previewDismissTitle: PropTypes.string,
   }),
   className: PropTypes.string,
   onSegmentsChange: PropTypes.func,
@@ -1169,40 +1185,91 @@ ThreadComposer.propTypes = {
     altText: PropTypes.string
   })),
   onInitialMediaApplied: PropTypes.func,
+  linkPreviewFetcher: PropTypes.func,
 }
 
-function useSegmentLinkPreview(url, { unavailableMessage = '' } = {}) {
+function useSegmentLinkPreview(
+  url,
+  { unavailableMessage = '', fetcher = null } = {},
+) {
   const [state, setState] = useState({
     loading: false,
     data: null,
     error: '',
+    errorCode: '',
   })
 
   useEffect(() => {
     if (!url) {
-      setState({ loading: false, data: null, error: '' })
+      setState({ loading: false, data: null, error: '', errorCode: '' })
       return
     }
-    setState({
-      loading: false,
-      data: { uri: url },
-      error: unavailableMessage || '',
-    })
-    return () => {
-      setState((prev) =>
-        prev.loading
-          ? { loading: false, data: prev.data, error: prev.error }
-          : prev,
-      )
+    if (typeof fetcher !== 'function') {
+      setState({
+        loading: false,
+        data: { uri: url },
+        error: unavailableMessage || '',
+        errorCode: 'PREVIEW_UNAVAILABLE',
+      })
+      return
     }
-  }, [url, unavailableMessage])
+    let ignore = false
+    setState({ loading: true, data: null, error: '', errorCode: '' })
+    Promise.resolve()
+      .then(() => fetcher(url))
+      .then((payload) => {
+        if (ignore) return
+        const normalized =
+          payload && typeof payload === 'object'
+            ? {
+                uri: payload.uri || url,
+                title: payload.title || '',
+                description: payload.description || '',
+                image: payload.image || '',
+                domain: payload.domain || '',
+              }
+            : { uri: url }
+        setState({
+          loading: false,
+          data: normalized,
+          error: '',
+          errorCode: '',
+        })
+      })
+      .catch((err) => {
+        if (ignore) return
+        const code = err?.code || ''
+        const message =
+          code === 'PREVIEW_UNAVAILABLE'
+            ? unavailableMessage || ''
+            : err?.message || ''
+        setState({
+          loading: false,
+          data: null,
+          error: message,
+          errorCode: code,
+        })
+      })
+    return () => {
+      ignore = true
+    }
+  }, [url, fetcher, unavailableMessage])
 
   return state
 }
 
-function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
-  const { loading, data, error } = useSegmentLinkPreview(url, {
-    unavailableMessage,
+function SegmentLinkPreview({ url, fetcher, onDismiss, labels }) {
+  const mergedLabels = labels || {}
+  const {
+    previewUnavailable = '',
+    previewLoading = '',
+    previewError = '',
+    previewTimeout = '',
+    previewDismissTitle = '',
+  } = mergedLabels
+  const { loading, data, error, errorCode } = useSegmentLinkPreview(url, {
+    unavailableMessage: previewUnavailable,
+    fetcher,
   })
   if (!url) return null
   let hostname = ''
@@ -1215,6 +1282,16 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
   const description = data?.description || ''
   const domain = data?.domain || hostname
   const image = data?.image || ''
+  const errorMessage = (() => {
+    if (!error && !errorCode) return ''
+    if (errorCode === 'PREVIEW_TIMEOUT') {
+      return previewTimeout || previewError || error || ''
+    }
+    if (errorCode === 'PREVIEW_UNAVAILABLE') {
+      return previewUnavailable || previewError || error || ''
+    }
+    return error || previewError
+  })()
 
   return (
     <div className='relative mt-3 rounded-2xl border border-border bg-background p-3'>
@@ -1222,7 +1299,8 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
         <button
           type='button'
           className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background-subtle text-sm text-foreground-muted hover:text-foreground'
-          title='Link-Vorschau entfernen'
+          title={previewDismissTitle || 'Remove link preview'}
+          aria-label={previewDismissTitle || 'Remove link preview'}
           onClick={onDismiss}
         >
           ×
@@ -1250,7 +1328,7 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
           ) : null}
           <p className='mt-1 text-xs text-foreground-subtle'>{domain}</p>
           <div className='text-xs text-foreground-muted'>
-            {loading ? 'Lade…' : error ? error : ''}
+            {loading ? previewLoading || 'Loading…' : errorMessage}
           </div>
         </div>
       </div>
@@ -1261,5 +1339,12 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
 SegmentLinkPreview.propTypes = {
   url: PropTypes.string.isRequired,
   onDismiss: PropTypes.func,
-  unavailableMessage: PropTypes.string,
+  fetcher: PropTypes.func,
+  labels: PropTypes.shape({
+    previewUnavailable: PropTypes.string,
+    previewLoading: PropTypes.string,
+    previewError: PropTypes.string,
+    previewTimeout: PropTypes.string,
+    previewDismissTitle: PropTypes.string,
+  }),
 }

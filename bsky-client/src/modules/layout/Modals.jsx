@@ -18,6 +18,7 @@ import LoginView from '../login/LoginView.jsx'
 import { useInteractionSettingsControls } from '../composer/useInteractionSettingsControls.js'
 import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
 import ClientSettingsModal from '../settings/ClientSettingsModal.jsx'
+import { fetchLinkPreviewMetadata } from '../composer/linkPreviewService.js'
 
 const THREAD_MEDIA_MAX_PER_SEGMENT = 4
 const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -110,6 +111,13 @@ export function Modals() {
   const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
   const replyInfo = useMemo(() => buildReplyInfo(replyTarget), [replyTarget])
   const initialReplyContext = useMemo(() => buildReplyContext(replyTarget), [replyTarget])
+  const threadPreviewLabels = useMemo(() => ({
+    previewUnavailable: t('compose.previewUnavailableStandalone', 'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'),
+    previewLoading: t('compose.preview.loading', 'Lade Vorschau…'),
+    previewError: t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.'),
+    previewTimeout: t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.'),
+    previewDismissTitle: t('compose.preview.dismiss', 'Link-Vorschau entfernen')
+  }), [t])
 
   const effectiveComposeMode = useMemo(() => {
     return composeMode === 'thread' ? 'thread' : 'single'
@@ -272,6 +280,8 @@ export function Modals() {
                 }
                 initialMediaEntries={threadMediaDraft}
                 onInitialMediaApplied={() => setThreadMediaDraft([])}
+                linkPreviewFetcher={fetchLinkPreviewMetadata}
+                labels={threadPreviewLabels}
               />
             </div>
             {threadError ? (

@@ -12,10 +12,11 @@
 - `bsky-client` deckt Auth, Timelines/Notifications, Composer und Scroll-UX weiterhin vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen bleiben auf Bluesky-Parität.
 - Client-Einstellungen schließen nicht mehr durch Overlay-Klicks, Lokalisierungen/Lizenztexte wurden korrigiert und die Repo-Version ist nach Release auf `1.1.3-dev` hochgezogen; Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Stand nach den letzten Scheduler-/Auth-Anpassungen.
 - Suche im Client bietet jetzt Keyboard-freundliche Präfix-Hints mit eigenem Clear-Button; Hover-only-Interaktionen wurden entfernt, damit Prefixe konsistent eingefügt werden.
+- Link-Vorschauen sind sowohl im Einzel-Composer als auch im Thread-Composer angebunden; ein lokaler Proxy (`npm run dev:preview-proxy`) inklusive Dockerfile deckt den Standalone-Fall ab, und die i18n-Labels sind vereinheitlicht.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; als nächstes kümmern wir uns um Standalone-Flag/Config-Split, Portal-/Modal-Aufräumarbeiten (gemeinsamer Container, `portalled`-Strategie), ThreadComposer-Refactor und anschließend Beta-Builds/Dokumentation.
+Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung. Der Client verfügt jetzt über einen getesteten Link-Preview-Flow (inkl. dev-Proxy). Als nächstes fokussieren wir Standalone-Flag/Config-Split, Portal-/Modal-Aufräumarbeiten (gemeinsamer Container, `portalled`-Strategie), ThreadComposer-Refactor sowie Beta-Builds/Dokumentation und die Integration des Preview-Fetchers in Electron/Container-Umgebungen.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
@@ -24,7 +25,7 @@ Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung; als n
 2. Standalone-Flag + Konfiguration:
    - `VITE_CLIENT_MODE` + `.env.sample` aufsplitten, damit Backend-Proxy vs. Standalone-Betrieb klar konfigurierbar bleibt (inkl. README-Abschnitt „Frontends starten“).
 3. Link-Vorschau & Profil-Links im Client-Composer:
-   - Preview-Service (Fetcher + optionaler Proxy) anbinden, Previews direkt im Thread-Composer anzeigen und Handles zu klickbaren Profil-Triggern machen.
+   - Electron-Preload und Docker-Variante des Dev-Proxys anbinden, damit Standalone-/Desktop-Builds ohne Extra-Konfiguration funktionieren; Handles zu klickbaren Profil-Triggern machen.
 4. ThreadComposer/Shared Utils:
    - Bild/GIF-Handling und ThreadComposer so aufteilen, dass Dashboard & Client dieselben Helpers aus `shared-logic` nutzen (kein doppelter Code mehr im Client).
 5. Dashboard UX/Doku:
