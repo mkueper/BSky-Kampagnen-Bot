@@ -865,7 +865,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     </div>
   ) : null
   const topBlockClassName = section === 'notifications' ? '!pb-3 sm:!pb-4' : ''
-  const scrollContainerClassName = section === 'notifications' ? '!pt-0 sm:!pt-0' : ''
+  const scrollContainerClassName =
+    section === 'notifications' || section === 'home'
+      ? '!pt-0 sm:!pt-0'
+      : ''
 
   const handleSelectSection = useCallback((id, actor = null) => {
     if (chatViewer?.open) {
