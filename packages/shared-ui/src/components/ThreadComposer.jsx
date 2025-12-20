@@ -856,7 +856,7 @@ export default function ThreadComposer({
             onSelect={handleSelectionUpdate}
             onKeyUp={handleSelectionUpdate}
             onClick={handleSelectionUpdate}
-            className='mt-2 h-full min-h-[16rem] flex-1 rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
+            className='mt-2 h-full min-h-[16rem] flex-1 rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
             placeholder={placeholder || mergedLabels.placeholder}
             disabled={disabled}
             aria-label={mergedLabels.title}
@@ -877,7 +877,7 @@ export default function ThreadComposer({
               <button
                 ref={emojiButtonRef}
                 type='button'
-                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary'
                 title='Emoji einfügen'
                 aria-label='Emoji einfügen'
                 onClick={() => setEmojiPickerOpen((open) => !open)}
@@ -887,7 +887,7 @@ export default function ThreadComposer({
               </button>
               <button
                 type='button'
-                className='inline-flex h-10 items-center justify-center rounded-full border border-border bg-background-subtle px-4 text-sm font-medium text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                className='inline-flex h-10 items-center justify-center rounded-full border border-border bg-background-subtle px-4 text-sm font-medium text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary'
                 onClick={handleInsertSeparator}
                 disabled={disabled}
               >
@@ -949,7 +949,7 @@ export default function ThreadComposer({
                       <div className='flex items-center gap-2'>
                         <button
                           type='button'
-                          className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60'
+                          className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary'
                           onClick={() =>
                             setMediaDialog({ open: true, segmentId: segment.id })
                           }
@@ -968,7 +968,7 @@ export default function ThreadComposer({
                         {gifPickerEnabled ? (
                           <button
                             type='button'
-                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60'
+                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary'
                             onClick={() =>
                               setGifPickerState({ open: true, segmentId: segment.id })
                             }

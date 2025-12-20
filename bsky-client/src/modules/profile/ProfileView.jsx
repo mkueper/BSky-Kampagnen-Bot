@@ -96,7 +96,7 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
   const followTitle = isFollowing
     ? t('profile.follow.followingTitle', 'Du folgst diesem Profil bereits')
     : t('profile.follow.followTitle', 'Folgen (bald verfügbar)')
-  const circleButtonClass = 'inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background text-foreground transition hover:border-foreground/70 disabled:cursor-not-allowed disabled:opacity-60'
+  const circleButtonClass = 'inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background text-foreground transition hover:border-foreground/70'
 
   if (!profile) return null
   return (
@@ -126,7 +126,7 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
               <button
                 type='button'
                 disabled
-                className='inline-flex items-center rounded-full border border-border/70 bg-background/80 px-4 py-1.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:border-foreground/70 disabled:cursor-not-allowed disabled:opacity-70'
+                className='inline-flex items-center rounded-full border border-border/70 bg-background/80 px-4 py-1.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:border-foreground/70'
               >
                 {t('profile.actions.editProfile', 'Profil bearbeiten')}
               </button>
@@ -161,10 +161,10 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
                 type='button'
                 disabled
                 title={followTitle}
-                className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold disabled:cursor-not-allowed ${
+                className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold ${
                   isFollowing
                     ? 'border border-primary/60 bg-primary/15 text-primary'
-                    : 'border border-border bg-background text-foreground disabled:opacity-70'
+                    : 'border border-border bg-background text-foreground'
                 }`}
               >
                 {followLabel}
@@ -286,7 +286,7 @@ function ProfileActionsMenu ({ labels = [], relationBadges = [], triggerClassNam
           type='button'
           aria-label={t('profile.actions.moreLabel', 'Weitere Aktionen')}
           title={t('profile.actions.moreTitle', 'Aktionen')}
-          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-70'}
+          className={triggerClassName || 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm'}
         >
           <DotsHorizontalIcon className='h-4 w-4' />
         </button>
@@ -617,7 +617,7 @@ export default function ProfileView ({
                       isActive
                         ? 'border-foreground bg-foreground text-background'
                         : 'border-border bg-background text-foreground hover:border-foreground/60'
-                    } ${tab.disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                    }`}
                   >
                     {tab.label}
                   </button>

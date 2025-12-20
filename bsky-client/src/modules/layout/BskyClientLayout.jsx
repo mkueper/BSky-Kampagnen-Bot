@@ -106,7 +106,7 @@ function MobileNavBar ({
               title={ariaLabel}
               className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary ${
                 isActive ? 'bg-background-subtle text-primary shadow-soft' : ''
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              }`}
             >
               {Icon ? <Icon className='h-5 w-5' /> : null}
               {showBadge ? (
@@ -138,6 +138,8 @@ export default function BskyClientLayout ({
   onOpenComposeThread,
   headerContent,
   topBlock,
+  topBlockClassName = '',
+  scrollContainerClassName = '',
   children,
   detailPane = null,
   detailPaneActive = false,
@@ -278,11 +280,12 @@ export default function BskyClientLayout ({
   const mobileNavReservedSpace = `calc(var(--bottom-nav-height, ${MOBILE_NAV_HEIGHT}px) + var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
   const bottomPaddingValue = isMobile ? '16px' : undefined
   const isProfileSection = activeSection === 'profile'
-  const scrollContainerClassName = clsx(
+  const resolvedScrollContainerClassName = clsx(
     'flex-1 min-h-0 h-full',
     isProfileSection
       ? 'overflow-y-auto p-[2px] sm:p-2'
-      : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
+      : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4',
+    scrollContainerClassName
   )
   const mainClassName = clsx({
     'flex h-full w-full min-h-0 justify-center': isProfileSection,
@@ -401,7 +404,10 @@ export default function BskyClientLayout ({
 
         {showTopBlock ? (
           <section
-            className='space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6'
+            className={clsx(
+              'space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6',
+              topBlockClassName
+            )}
             data-component='BskyTopBlock'
           >
             {topBlock}
@@ -410,7 +416,7 @@ export default function BskyClientLayout ({
 
         <div
           id='bsky-scroll-container'
-          className={scrollContainerClassName}
+          className={resolvedScrollContainerClassName}
           data-component='BskyScrollContainer'
           style={{
             scrollbarGutter: 'stable',

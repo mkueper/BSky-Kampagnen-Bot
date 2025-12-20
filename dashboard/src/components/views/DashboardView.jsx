@@ -200,7 +200,7 @@ function DashboardView ({
                       value='pending'
                       className={`whitespace-nowrap rounded-full px-4 py-2 transition ${
                         pendingDisabled
-                          ? 'cursor-not-allowed text-foreground-muted opacity-50'
+                          ? ''
                           : activeTab === 'pending'
                             ? 'bg-background-elevated shadow-soft'
                             : 'text-foreground-muted hover:text-foreground'

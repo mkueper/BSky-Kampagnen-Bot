@@ -86,7 +86,7 @@ export default function TimeZonePicker ({
           disabled={disabled}
           value={value || ''}
           onChange={handleChange}
-          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+          className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
         >
           <option value=''>{placeholderLabel}</option>
           {zones.favorites.length > 0 ? (
