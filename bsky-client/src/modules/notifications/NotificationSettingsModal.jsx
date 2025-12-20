@@ -462,7 +462,8 @@ export default function NotificationSettingsModal ({ open, onClose, onProfileOpe
                   </span>
                 </button>
                 {isOpen ? (
-                  <div className='border-t border-border px-4 py-4 space-y-4'>
+                  <div className='px-4 pb-4'>
+                    <div className='space-y-4 rounded-2xl border border-border-muted bg-background-elevated/50 px-4 py-4 shadow-soft'>
                     {item.type === 'filterable' ? (
                       <>
                         <div className='space-y-2'>
@@ -625,6 +626,7 @@ export default function NotificationSettingsModal ({ open, onClose, onProfileOpe
                         </label>
                       </div>
                     ) : null}
+                    </div>
                   </div>
                 ) : null}
               </Card>

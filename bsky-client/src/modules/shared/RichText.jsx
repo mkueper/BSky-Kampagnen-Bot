@@ -220,6 +220,7 @@ export default function RichText ({
 
   const handleMentionClick = (event, did) => {
     event.preventDefault()
+    event.stopPropagation()
     if (!did) return
     dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: did })
   }
@@ -242,6 +243,7 @@ export default function RichText ({
               href={segment.href}
               target={target}
               rel={rel}
+              onClick={(event) => event.stopPropagation()}
               className='text-primary underline decoration-primary/40 hover:decoration-primary'
             >
               {segment.text}
