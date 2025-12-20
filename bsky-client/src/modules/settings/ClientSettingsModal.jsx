@@ -36,7 +36,12 @@ function buildLocalConfig (config = {}) {
       showReplyPreview: composer.showReplyPreview !== false
     },
     layout: {
-      autoPlayGifs: layout.autoPlayGifs === true
+      autoPlayGifs: layout.autoPlayGifs === true,
+      inlineVideo: layout.inlineVideo === true || layout.inlineYoutube === true,
+      videoAllowListEnabled: layout.videoAllowListEnabled !== false,
+      videoAllowList: Array.isArray(layout.videoAllowList)
+        ? layout.videoAllowList
+        : (Array.isArray(layout.youtubeAllowList) ? layout.youtubeAllowList : [])
     }
   }
 }
@@ -44,6 +49,7 @@ function buildLocalConfig (config = {}) {
 const CLIENT_SETTING_TABS = [
   { id: 'general', labelKey: 'clientSettings.tabs.general', fallback: 'Allgemein' },
   { id: 'layout', labelKey: 'clientSettings.tabs.layout', fallback: 'Layout' },
+  { id: 'video', labelKey: 'clientSettings.tabs.video', fallback: 'Videos' },
   { id: 'services', labelKey: 'clientSettings.tabs.services', fallback: 'Externe Dienste' }
 ]
 
@@ -52,11 +58,13 @@ export default function ClientSettingsModal ({ open, onClose }) {
   const { t } = useTranslation()
   const [localConfig, setLocalConfig] = useState(() => buildLocalConfig(clientConfig))
   const [activeTab, setActiveTab] = useState(CLIENT_SETTING_TABS[0].id)
+  const [newVideoHost, setNewVideoHost] = useState('')
 
   useEffect(() => {
     if (open) {
       setLocalConfig(buildLocalConfig(clientConfig))
       setActiveTab(CLIENT_SETTING_TABS[0].id)
+      setNewVideoHost('')
     }
   }, [open, clientConfig])
 
@@ -68,6 +76,19 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedTranslationAllowGoogle = clientConfig?.translation?.allowGoogle !== false
     const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
     const savedAutoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
+    const savedInlineVideo = clientConfig?.layout?.inlineVideo === true
+    const savedVideoAllowListEnabled = clientConfig?.layout?.videoAllowListEnabled !== false
+    const savedVideoAllowList = Array.isArray(clientConfig?.layout?.videoAllowList)
+      ? clientConfig.layout.videoAllowList
+      : []
+    const normalizedSavedAllowList = savedVideoAllowList
+      .map((entry) => String(entry || '').trim().toLowerCase())
+      .filter(Boolean)
+      .sort()
+    const normalizedLocalAllowList = (localConfig.layout.videoAllowList || [])
+      .map((entry) => String(entry || '').trim().toLowerCase())
+      .filter(Boolean)
+      .sort()
     return (
       (localConfig.locale || 'de') !== savedLocale ||
       Boolean(localConfig.gifs.tenorAvailable) !== Boolean(clientConfig?.gifs?.tenorAvailable) ||
@@ -77,7 +98,10 @@ export default function ClientSettingsModal ({ open, onClose }) {
       (localConfig.translation.baseUrl || '') !== savedTranslationBase ||
       Boolean(localConfig.translation.allowGoogle) !== savedTranslationAllowGoogle ||
       Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview ||
-      Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs
+      Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs ||
+      Boolean(localConfig.layout.inlineVideo) !== savedInlineVideo ||
+      Boolean(localConfig.layout.videoAllowListEnabled) !== savedVideoAllowListEnabled ||
+      JSON.stringify(normalizedLocalAllowList) !== JSON.stringify(normalizedSavedAllowList)
     )
   }, [clientConfig, localConfig])
 
@@ -113,10 +137,63 @@ export default function ClientSettingsModal ({ open, onClose }) {
         showReplyPreview: Boolean(localConfig.composer.showReplyPreview)
       },
       layout: {
-        autoPlayGifs: Boolean(localConfig.layout.autoPlayGifs)
+        autoPlayGifs: Boolean(localConfig.layout.autoPlayGifs),
+        inlineVideo: Boolean(localConfig.layout.inlineVideo),
+        videoAllowListEnabled: Boolean(localConfig.layout.videoAllowListEnabled),
+        videoAllowList: Array.isArray(localConfig.layout.videoAllowList)
+          ? localConfig.layout.videoAllowList
+          : []
       }
     })
     handleClose()
+  }
+
+  const normalizeVideoHost = (value) => {
+    if (!value) return ''
+    const trimmed = String(value || '').trim().toLowerCase()
+    if (!trimmed) return ''
+    try {
+      const withProtocol = trimmed.includes('://') ? trimmed : `https://${trimmed}`
+      const parsed = new URL(withProtocol)
+      return parsed.hostname.replace(/^www\./, '')
+    } catch {
+      return trimmed.split('/')[0].replace(/^www\./, '')
+    }
+  }
+
+  const handleAddVideoHost = () => {
+    const normalized = normalizeVideoHost(newVideoHost)
+    if (!normalized) return
+    setLocalConfig((current) => {
+      const currentList = Array.isArray(current.layout.videoAllowList)
+        ? current.layout.videoAllowList
+        : []
+      if (currentList.includes(normalized)) {
+        return current
+      }
+      if (currentList.length >= 10) {
+        return current
+      }
+      const limitedList = [...currentList, normalized]
+      return {
+        ...current,
+        layout: {
+          ...current.layout,
+          videoAllowList: limitedList
+        }
+      }
+    })
+    setNewVideoHost('')
+  }
+
+  const handleRemoveVideoHost = (host) => {
+    setLocalConfig((current) => ({
+      ...current,
+      layout: {
+        ...current.layout,
+        videoAllowList: (current.layout.videoAllowList || []).filter((entry) => entry !== host)
+      }
+    }))
   }
 
   const content = (
@@ -128,7 +205,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       <Card
         as='div'
         padding='p-0'
-        className='relative z-50 w-[min(1040px,92vw)] max-h-[90vh] overflow-y-auto rounded-3xl shadow-card'
+        className='relative z-50 flex h-[80vh] w-[min(1040px,92vw)] flex-col overflow-hidden rounded-3xl shadow-card'
       >
         <div className='flex items-start justify-between border-b border-border px-6 py-4'>
           <div>
@@ -161,7 +238,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
             })}
           </div>
         </div>
-        <div className='px-6 py-5 min-h-[460px]'>
+        <div className='flex-1 overflow-y-auto px-6 py-5 min-h-[460px]'>
           {activeTab === 'general' && (
             <div className='grid gap-6 md:grid-cols-2'>
               <section className='space-y-3 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
@@ -333,14 +410,41 @@ export default function ClientSettingsModal ({ open, onClose }) {
                       }))
                     }
                   />
-                  <span>{t('clientSettings.media.autoPlayGifsLabel', 'GIFs automatisch abspielen')}</span>
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.autoPlayGifsLabel', 'GIFs automatisch abspielen')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.autoPlayGifsHelp',
+                        'Kann Performance und Datenverbrauch erhöhen.'
+                      )}
+                    </p>
+                  </div>
                 </label>
-                <p className='text-xs text-foreground-muted'>
-                  {t(
-                    'clientSettings.media.autoPlayGifsHelp',
-                    'Kann Performance und Datenverbrauch erhöhen.'
-                  )}
-                </p>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.inlineVideo)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          inlineVideo: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.inlineVideoLabel', 'Videos inline abspielen')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.inlineVideoHelp',
+                        'Videos werden erst nach Klick gestartet (kein Autoplay).'
+                      )}
+                    </p>
+                  </div>
+                </label>
               </section>
               <section className='space-y-2 rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-foreground-muted'>
                 <p className='font-semibold text-foreground'>
@@ -503,7 +607,120 @@ export default function ClientSettingsModal ({ open, onClose }) {
             </div>
           )}
 
-          {activeTab !== 'general' && activeTab !== 'layout' && activeTab !== 'services' && (
+          {activeTab === 'video' && (
+            <div className='grid gap-6 md:grid-cols-2'>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.sections.videoSourcesTitle', 'Video-Quellen')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t(
+                      'clientSettings.sections.videoSourcesDescription',
+                      'Lege fest, welche Video-Hosts in Beiträgen als Vorschau oder Inline-Player erscheinen dürfen.'
+                    )}
+                  </p>
+                </div>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.videoAllowListEnabled)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          videoAllowListEnabled: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.videoAllowListEnabledLabel', 'Video-Hosts aktivieren')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.videoAllowListEnabledHelp',
+                        'Wenn deaktiviert, werden externe Videos immer als normale Links angezeigt.'
+                      )}
+                    </p>
+                  </div>
+                </label>
+                <div
+                  className={`space-y-2 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground ${localConfig.layout.videoAllowListEnabled ? '' : 'opacity-60'}`}
+                >
+                  <div className='flex items-center justify-between gap-3'>
+                    <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                      {t('clientSettings.media.videoAllowListLabel', 'Video-Hosts')}
+                    </p>
+                    <span className='text-xs text-foreground-muted'>
+                      {t('clientSettings.media.videoAllowListLimit', 'Max. 10')}
+                    </span>
+                  </div>
+                  <div className='flex flex-wrap gap-2'>
+                    <input
+                      type='text'
+                      value={newVideoHost}
+                      onChange={(event) => setNewVideoHost(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          handleAddVideoHost()
+                        }
+                      }}
+                      placeholder={t('clientSettings.media.videoAllowListPlaceholder', 'z. B. youtube.com')}
+                      className='min-w-[200px] flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      disabled={!localConfig.layout.videoAllowListEnabled}
+                    />
+                    <button
+                      type='button'
+                      onClick={handleAddVideoHost}
+                      className='rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/60'
+                      disabled={
+                        !localConfig.layout.videoAllowListEnabled ||
+                        (localConfig.layout.videoAllowList || []).length >= 10
+                      }
+                    >
+                      {t('clientSettings.media.videoAllowListAdd', 'Hinzufügen')}
+                    </button>
+                  </div>
+                  <div className='max-h-32 space-y-2 overflow-y-auto pr-1'>
+                    {(localConfig.layout.videoAllowList || []).length ? (
+                      (localConfig.layout.videoAllowList || []).map((host) => (
+                        <div
+                          key={host}
+                          className='flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs'
+                        >
+                          <span className='truncate'>{host}</span>
+                          <button
+                            type='button'
+                            onClick={() => handleRemoveVideoHost(host)}
+                            className='inline-flex h-5 w-5 items-center justify-center rounded-full text-foreground-muted hover:text-foreground'
+                            aria-label={t('clientSettings.media.videoAllowListRemove', 'Host entfernen')}
+                            disabled={!localConfig.layout.videoAllowListEnabled}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <span className='text-xs text-foreground-muted'>
+                        {t('clientSettings.media.videoAllowListEmpty', 'Keine Hosts eingetragen.')}
+                      </span>
+                    )}
+                  </div>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.media.videoAllowListHelp',
+                      'Nur diese Hosts dürfen als Video-Vorschau oder Inline-Player erscheinen.'
+                    )}
+                  </p>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab !== 'general' && activeTab !== 'layout' && activeTab !== 'services' && activeTab !== 'video' && (
             <div className='py-16 text-center text-sm text-foreground-muted'>
               {t('clientSettings.tabs.placeholder', 'Dieser Bereich wird demnächst freigeschaltet.')}
             </div>

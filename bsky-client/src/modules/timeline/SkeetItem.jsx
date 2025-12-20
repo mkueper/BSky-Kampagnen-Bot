@@ -48,6 +48,44 @@ import { muteActor as apiMuteActor, blockActor as apiBlockActor } from '../share
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 
 const looksLikeGifUrl = (value) => typeof value === 'string' && /\.gif(?:$|\?)/i.test(value)
+const normalizeExternalHost = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  const trimmed = value.trim().toLowerCase()
+  if (!trimmed) return ''
+  try {
+    const withProtocol = trimmed.includes('://') ? trimmed : `https://${trimmed}`
+    const parsed = new URL(withProtocol)
+    return parsed.hostname.replace(/^www\./, '')
+  } catch {
+    return trimmed.split('/')[0].replace(/^www\./, '')
+  }
+}
+const isAllowedHost = (host, allowList = []) =>
+  allowList.some((entry) => host === entry || host.endsWith(`.${entry}`))
+const extractYoutubeId = (value) => {
+  if (!value || typeof value !== 'string') return ''
+  try {
+    const withProtocol = value.includes('://') ? value : `https://${value}`
+    const parsed = new URL(withProtocol)
+    const host = parsed.hostname.replace(/^www\./, '')
+    if (host === 'youtu.be') {
+      return parsed.pathname.split('/').filter(Boolean)[0] || ''
+    }
+    if (host.endsWith('youtube.com') || host === 'youtube-nocookie.com') {
+      if (parsed.pathname === '/watch') {
+        return parsed.searchParams.get('v') || ''
+      }
+      const parts = parsed.pathname.split('/').filter(Boolean)
+      if (parts[0] === 'shorts' || parts[0] === 'embed') {
+        return parts[1] || ''
+      }
+    }
+  } catch {
+    return ''
+  }
+  return ''
+}
+const buildYoutubeEmbedUrl = (id) => `https://www.youtube-nocookie.com/embed/${id}`
 const DEFAULT_SINGLE_IMAGE_RATIO = 4 / 3
 const DEFAULT_MULTI_IMAGE_RATIO = 1
 
@@ -334,12 +372,22 @@ function buildShareUrl (item) {
 export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false }) {
   const { t, locale } = useTranslation()
   const { session } = useBskyAuth()
+  const { clientConfig } = useClientConfig()
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
   const images = media.images
   const videos = media.videos
   const external = useMemo(() => extractExternalFromEmbed(item), [item])
+  const videoAllowList = useMemo(() => {
+    const raw = Array.isArray(clientConfig?.layout?.videoAllowList)
+      ? clientConfig.layout.videoAllowList
+      : (Array.isArray(clientConfig?.layout?.youtubeAllowList) ? clientConfig.layout.youtubeAllowList : [])
+    return raw
+      .map((entry) => String(entry || '').trim().toLowerCase())
+      .filter(Boolean)
+  }, [clientConfig?.layout?.videoAllowList, clientConfig?.layout?.youtubeAllowList])
+  const videoAllowListEnabled = clientConfig?.layout?.videoAllowListEnabled !== false
   const gifPreview = useMemo(() => {
     if (!external) return null
     const domain = (external.domain || '').toLowerCase()
@@ -360,6 +408,25 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       originalUrl: external.uri
     }
   }, [external, t])
+  const youtubePreview = useMemo(() => {
+    if (!external) return null
+    if (!videoAllowListEnabled) return null
+    const host = normalizeExternalHost(external.uri || external.domain || '')
+    if (!host || !isAllowedHost(host, videoAllowList)) return null
+    const id = extractYoutubeId(external.uri || '')
+    if (!id) return null
+    return {
+      id,
+      title: external.title || '',
+      description: external.description || '',
+      thumb: external.thumb || '',
+      url: external.uri || '',
+      domain: external.domain || host
+    }
+  }, [external, videoAllowList, videoAllowListEnabled])
+  useEffect(() => {
+    setYoutubeInlineOpen(false)
+  }, [youtubePreview?.id])
   const quoted = useMemo(() => extractQuoteFromEmbed(item, t), [item, t])
   const replyCountStat = Number(
     item?.stats?.replyCount ??
@@ -406,8 +473,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     [config]
   )
   const { quoteReposts } = useAppState()
-  const { clientConfig } = useClientConfig()
   const autoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
+  const inlineVideo = (clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true) &&
+    videoAllowListEnabled
   const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LIBRETRANSLATE_BASE_URL) ? import.meta.env.VITE_LIBRETRANSLATE_BASE_URL : ''
   const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED) ? import.meta.env.VITE_TRANSLATION_ENABLED : null
   const translationPreferences = useMemo(
@@ -421,6 +489,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [translationError, setTranslationError] = useState('')
   const [detectingLanguage, setDetectingLanguage] = useState(false)
   const [detectedLanguage, setDetectedLanguage] = useState(null)
+  const [youtubeInlineOpen, setYoutubeInlineOpen] = useState(false)
   const dispatch = useAppDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
@@ -1217,133 +1286,241 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       ) : null}
 
       {external && mediaItems.length === 0 ? (
-        gifPreview && typeof onViewMedia === 'function'
-          ? autoPlayGifs
-            ? (
-              <div className='mt-3 rounded-xl border border-border bg-background-subtle p-3'>
+        youtubePreview ? (
+          inlineVideo ? (
+            youtubeInlineOpen ? (
+              <div className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+                <div className='flex items-center justify-between gap-3'>
+                  <p className='text-sm font-semibold text-foreground'>
+                    {youtubePreview.title || external.title || 'YouTube'}
+                  </p>
+                  <button
+                    type='button'
+                    className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+                    onClick={() => setYoutubeInlineOpen(false)}
+                  >
+                    {t('common.actions.close', 'Schließen')}
+                  </button>
+                </div>
+                <div className='relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-black'>
+                  <iframe
+                    src={buildYoutubeEmbedUrl(youtubePreview.id)}
+                    title={youtubePreview.title || external.title || 'YouTube'}
+                    className='absolute inset-0 h-full w-full'
+                    allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+                    allowFullScreen
+                    loading='lazy'
+                  />
+                </div>
+                {youtubePreview.url ? (
+                  <a
+                    href={youtubePreview.url}
+                    target='_blank'
+                    rel='noopener noreferrer nofollow'
+                    className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                  >
+                    {t('skeet.media.openOriginal', 'Original öffnen')}
+                  </a>
+                ) : null}
+              </div>
+            ) : (
+              <div className='mt-3 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm'>
                 <button
                   type='button'
                   className='flex w-full gap-3 text-left'
-                  onClick={handleExternalMediaPreview}
+                  onClick={() => setYoutubeInlineOpen(true)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
-                      handleExternalMediaPreview(event)
+                      setYoutubeInlineOpen(true)
                     }
                   }}
                 >
                   <div className='relative h-20 w-28 shrink-0'>
                     <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
-                      {t('skeet.media.gifBadge', 'GIF')}
+                      YouTube
                     </span>
-                    <img
-                      src={gifPreview.src}
-                      alt={gifPreview.alt}
-                      className='h-full w-full rounded-lg border border-border object-cover'
-                      loading='lazy'
-                    />
-                  </div>
-                  <div className='min-w-0'>
-                    <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
-                    {external.description ? (
-                      <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
-                    ) : null}
-                    <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
-                    <p className='mt-2 text-xs font-semibold text-primary'>
-                      {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
-                    </p>
-                  </div>
-                </button>
-                {gifPreview.originalUrl ? (
-                  <a
-                    href={gifPreview.originalUrl}
-                    target='_blank'
-                    rel='noopener noreferrer nofollow'
-                    className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    Original öffnen
-                  </a>
-                ) : null}
-              </div>
-              )
-            : (
-              <div
-                className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm focus-within:outline focus-within:outline-2 focus-within:outline-primary/70'
-              >
-                <button
-                  type='button'
-                  className='flex w-full gap-3 text-left'
-                  onClick={handleExternalMediaPreview}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      handleExternalMediaPreview(event)
-                    }
-                  }}
-                >
-                  {gifPreview.thumb ? (
-                    <div className='relative h-20 w-28 shrink-0'>
-                      <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
-                        {t('skeet.media.gifBadge', 'GIF')}
-                      </span>
+                    {youtubePreview.thumb ? (
                       <img
-                        src={gifPreview.thumb}
+                        src={youtubePreview.thumb}
                         alt=''
                         className='h-full w-full rounded-lg border border-border object-cover'
                         loading='lazy'
                       />
-                    </div>
-                  ) : null}
+                    ) : (
+                      <div className='flex h-full w-full items-center justify-center rounded-lg border border-border bg-black/70 text-xs font-semibold text-white'>
+                        YouTube
+                      </div>
+                    )}
+                  </div>
                   <div className='min-w-0'>
-                    <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                    <p className='truncate text-sm font-semibold text-foreground'>{youtubePreview.title || external.title}</p>
                     {external.description ? (
                       <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
                     ) : null}
-                    <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                    <p className='mt-1 text-xs text-foreground-subtle'>{youtubePreview.domain || external.domain}</p>
                     <p className='mt-2 text-xs font-semibold text-primary'>
-                      {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                      {t('skeet.media.youtubeInlineHint', 'Klicken zum Abspielen')}
                     </p>
                   </div>
                 </button>
-                {gifPreview.originalUrl ? (
-                  <a
-                    href={gifPreview.originalUrl}
-                    target='_blank'
-                    rel='noopener noreferrer nofollow'
-                    className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    Original öffnen
-                  </a>
-                ) : null}
               </div>
-              )
-          : (
+            )
+          ) : (
             <a
-              href={external.uri}
+              href={youtubePreview.url || external.uri}
               target='_blank'
               rel='noopener noreferrer nofollow'
               className='mt-3 block rounded-xl border border-border bg-background-subtle hover:bg-background-subtle/80 transition'
               data-component='BskyExternalCard'
             >
               <div className='flex items-start gap-3 p-3'>
-                {external.thumb ? (
+                {youtubePreview.thumb ? (
                   <img
-                    src={external.thumb}
+                    src={youtubePreview.thumb}
                     alt=''
                     className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover'
                     loading='lazy'
                   />
                 ) : null}
                 <div className='min-w-0'>
-                  <p className='truncate text-sm font-semibold text-foreground'>{external.title}</p>
+                  <p className='truncate text-sm font-semibold text-foreground'>{youtubePreview.title || external.title}</p>
                   {external.description ? (
                     <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
                   ) : null}
-                  <p className='mt-1 text-xs text-foreground-subtle'>{external.domain}</p>
+                  <p className='mt-1 text-xs text-foreground-subtle'>{youtubePreview.domain || external.domain}</p>
                 </div>
               </div>
             </a>
-            )
+          )
+        ) : (
+          gifPreview && typeof onViewMedia === 'function'
+            ? autoPlayGifs
+              ? (
+                <div className='mt-3 rounded-xl border border-border bg-background-subtle p-3'>
+                  <button
+                    type='button'
+                    className='flex w-full gap-3 text-left'
+                    onClick={handleExternalMediaPreview}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        handleExternalMediaPreview(event)
+                      }
+                    }}
+                  >
+                    <div className='relative h-20 w-28 shrink-0'>
+                      <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
+                        {t('skeet.media.gifBadge', 'GIF')}
+                      </span>
+                      <img
+                        src={gifPreview.src}
+                        alt={gifPreview.alt}
+                        className='h-full w-full rounded-lg border border-border object-cover'
+                        loading='lazy'
+                      />
+                    </div>
+                    <div className='min-w-0'>
+                      <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                      {external.description ? (
+                        <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                      ) : null}
+                      <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                      <p className='mt-2 text-xs font-semibold text-primary'>
+                        {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                      </p>
+                    </div>
+                  </button>
+                  {gifPreview.originalUrl ? (
+                    <a
+                      href={gifPreview.originalUrl}
+                      target='_blank'
+                      rel='noopener noreferrer nofollow'
+                      className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {t('skeet.media.openOriginal', 'Original öffnen')}
+                    </a>
+                  ) : null}
+                </div>
+                )
+              : (
+                <div
+                  className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm focus-within:outline focus-within:outline-2 focus-within:outline-primary/70'
+                >
+                  <button
+                    type='button'
+                    className='flex w-full gap-3 text-left'
+                    onClick={handleExternalMediaPreview}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        handleExternalMediaPreview(event)
+                      }
+                    }}
+                  >
+                    {gifPreview.thumb ? (
+                      <div className='relative h-20 w-28 shrink-0'>
+                        <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
+                          {t('skeet.media.gifBadge', 'GIF')}
+                        </span>
+                        <img
+                          src={gifPreview.thumb}
+                          alt=''
+                          className='h-full w-full rounded-lg border border-border object-cover'
+                          loading='lazy'
+                        />
+                      </div>
+                    ) : null}
+                    <div className='min-w-0'>
+                      <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                      {external.description ? (
+                        <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                      ) : null}
+                      <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                      <p className='mt-2 text-xs font-semibold text-primary'>
+                        {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                      </p>
+                    </div>
+                  </button>
+                  {gifPreview.originalUrl ? (
+                    <a
+                      href={gifPreview.originalUrl}
+                      target='_blank'
+                      rel='noopener noreferrer nofollow'
+                      className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {t('skeet.media.openOriginal', 'Original öffnen')}
+                    </a>
+                  ) : null}
+                </div>
+                )
+            : (
+              <a
+                href={external.uri}
+                target='_blank'
+                rel='noopener noreferrer nofollow'
+                className='mt-3 block rounded-xl border border-border bg-background-subtle hover:bg-background-subtle/80 transition'
+                data-component='BskyExternalCard'
+              >
+                <div className='flex items-start gap-3 p-3'>
+                  {external.thumb ? (
+                    <img
+                      src={external.thumb}
+                      alt=''
+                      className='h-20 w-28 shrink-0 rounded-lg border border-border object-cover'
+                      loading='lazy'
+                    />
+                  ) : null}
+                  <div className='min-w-0'>
+                    <p className='truncate text-sm font-semibold text-foreground'>{external.title}</p>
+                    {external.description ? (
+                      <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                    ) : null}
+                    <p className='mt-1 text-xs text-foreground-subtle'>{external.domain}</p>
+                  </div>
+                </div>
+              </a>
+              )
+        )
       ) : null}
     </>
   )

@@ -402,7 +402,9 @@ const messages = {
         gifAlt: 'GIF',
         gifAltTitle: 'GIF: {title}',
         gifBadge: 'GIF',
-        gifHint: 'Klicken zum Anzeigen'
+        gifHint: 'Klicken zum Anzeigen',
+        youtubeInlineHint: 'Klicken zum Abspielen',
+        openOriginal: 'Original öffnen'
       },
       actions: {
         reply: 'Antworten',
@@ -693,6 +695,7 @@ const messages = {
       tabs: {
         general: 'Allgemein',
         layout: 'Layout',
+        video: 'Videos',
         services: 'Externe Dienste',
         placeholder: 'Dieser Bereich wird demnächst freigeschaltet.'
       },
@@ -716,7 +719,9 @@ const messages = {
         composerTitle: 'Composer',
         composerDescription: 'Steuert lokale Hilfen beim Antworten und Zitieren.',
         mediaTitle: 'Medien',
-        mediaDescription: 'Steuert, wie externe Medien in Beiträgen dargestellt werden.'
+        mediaDescription: 'Steuert, wie externe Medien in Beiträgen dargestellt werden.',
+        videoSourcesTitle: 'Video-Quellen',
+        videoSourcesDescription: 'Lege fest, welche Video-Hosts als Vorschau oder Inline-Player erscheinen dürfen.'
       },
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
@@ -728,7 +733,18 @@ const messages = {
       },
       media: {
         autoPlayGifsLabel: 'GIFs automatisch abspielen',
-        autoPlayGifsHelp: 'Kann Performance und Datenverbrauch erhöhen.'
+        autoPlayGifsHelp: 'Kann Performance und Datenverbrauch erhöhen.',
+        inlineVideoLabel: 'Videos inline abspielen',
+        inlineVideoHelp: 'Videos werden erst nach Klick gestartet (kein Autoplay).',
+        videoAllowListEnabledLabel: 'Video-Hosts aktivieren',
+        videoAllowListEnabledHelp: 'Wenn deaktiviert, werden externe Videos immer als normale Links angezeigt.',
+        videoAllowListLabel: 'Video-Hosts',
+        videoAllowListLimit: 'Max. 10',
+        videoAllowListPlaceholder: 'z. B. youtube.com',
+        videoAllowListAdd: 'Hinzufügen',
+        videoAllowListRemove: 'Host entfernen',
+        videoAllowListEmpty: 'Keine Hosts eingetragen.',
+        videoAllowListHelp: 'Nur diese Hosts dürfen als Video-Vorschau oder Inline-Player erscheinen.'
       },
       translation: {
         enableLabel: 'Übersetzungshilfe anzeigen',
@@ -874,7 +890,9 @@ const messages = {
         gifAlt: 'GIF',
         gifAltTitle: 'GIF: {title}',
         gifBadge: 'GIF',
-        gifHint: 'Click to view'
+        gifHint: 'Click to view',
+        youtubeInlineHint: 'Click to play',
+        openOriginal: 'Open original'
       },
       actions: {
         reply: 'Reply',
@@ -1320,6 +1338,7 @@ const messages = {
       tabs: {
         general: 'General',
         layout: 'Layout',
+        video: 'Videos',
         services: 'External services',
         placeholder: 'This section will be unlocked soon.'
       },
@@ -1343,7 +1362,9 @@ const messages = {
         composerTitle: 'Composer',
         composerDescription: 'Control how replies and quotes show helpful context.',
         mediaTitle: 'Media',
-        mediaDescription: 'Controls how external media appears in posts.'
+        mediaDescription: 'Controls how external media appears in posts.',
+        videoSourcesTitle: 'Video sources',
+        videoSourcesDescription: 'Choose which video hosts may appear as previews or inline players.'
       },
       tenorToggle: 'Enable Tenor GIFs',
       tenorKeyLabel: 'Tenor API key',
@@ -1355,7 +1376,18 @@ const messages = {
       },
       media: {
         autoPlayGifsLabel: 'Auto-play GIFs',
-        autoPlayGifsHelp: 'May increase performance and data usage.'
+        autoPlayGifsHelp: 'May increase performance and data usage.',
+        inlineVideoLabel: 'Play videos inline',
+        inlineVideoHelp: 'Videos start only after click (no autoplay).',
+        videoAllowListEnabledLabel: 'Enable video hosts',
+        videoAllowListEnabledHelp: 'When disabled, external videos are always rendered as regular links.',
+        videoAllowListLabel: 'Video hosts',
+        videoAllowListLimit: 'Max 10',
+        videoAllowListPlaceholder: 'e.g. youtube.com',
+        videoAllowListAdd: 'Add',
+        videoAllowListRemove: 'Remove host',
+        videoAllowListEmpty: 'No hosts added.',
+        videoAllowListHelp: 'Only these hosts may appear as video previews or inline players.'
       },
       translation: {
         enableLabel: 'Show translation helper',

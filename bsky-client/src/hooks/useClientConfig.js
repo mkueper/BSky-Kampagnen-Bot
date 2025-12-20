@@ -9,7 +9,12 @@ const DEFAULT_CONFIG = {
   unroll: { showDividers: true },
   translation: { enabled: null, baseUrl: '', allowGoogle: true },
   composer: { showReplyPreview: true },
-  layout: { autoPlayGifs: false }
+  layout: {
+    autoPlayGifs: false,
+    inlineVideo: false,
+    videoAllowListEnabled: true,
+    videoAllowList: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'tiktok.com']
+  }
 }
 
 let currentConfig = null
@@ -34,6 +39,9 @@ const readFromStorage = () => {
 }
 
 const normalizeConfig = (input = {}) => {
+  const legacyLayout = input?.layout || {}
+  const legacyInlineVideo = legacyLayout?.inlineYoutube
+  const legacyAllowList = legacyLayout?.youtubeAllowList
   const next = {
     ...DEFAULT_CONFIG,
     ...(input || {}),
@@ -64,6 +72,21 @@ const normalizeConfig = (input = {}) => {
   next.translation.allowGoogle = next.translation.allowGoogle !== false
   next.composer.showReplyPreview = next.composer.showReplyPreview !== false
   next.layout.autoPlayGifs = next.layout.autoPlayGifs === true
+  if (next.layout.inlineVideo === undefined && legacyInlineVideo !== undefined) {
+    next.layout.inlineVideo = legacyInlineVideo
+  }
+  next.layout.inlineVideo = next.layout.inlineVideo === true
+  if (next.layout.videoAllowListEnabled === undefined) {
+    next.layout.videoAllowListEnabled = true
+  }
+  next.layout.videoAllowListEnabled = next.layout.videoAllowListEnabled !== false
+  const rawAllowList = Array.isArray(next.layout.videoAllowList)
+    ? next.layout.videoAllowList
+    : (Array.isArray(legacyAllowList) ? legacyAllowList : DEFAULT_CONFIG.layout.videoAllowList)
+  const normalizedAllowList = rawAllowList
+    .map((entry) => String(entry || '').trim().toLowerCase())
+    .filter(Boolean)
+  next.layout.videoAllowList = Array.from(new Set(normalizedAllowList)).slice(0, 10)
   const normalizedLocale = typeof next.locale === 'string' ? next.locale.trim().toLowerCase() : ''
   next.locale = SUPPORTED_LOCALES.includes(normalizedLocale) ? normalizedLocale : DEFAULT_CONFIG.locale
   return next

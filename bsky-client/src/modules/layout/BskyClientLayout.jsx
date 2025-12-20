@@ -426,7 +426,7 @@ export default function BskyClientLayout ({
           <div className={contentWrapperClassName}>
             <main
               className={mainClassName}
-              aria-hidden={isPaneExclusive}
+              inert={isPaneExclusive ? '' : undefined}
               style={isPaneExclusive ? { display: 'none' } : undefined}
             >
               {children}
