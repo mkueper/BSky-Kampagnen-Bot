@@ -3,7 +3,10 @@ const messages = {
     common: {
       actions: {
         retry: 'Erneut versuchen',
-        viewProfile: 'Profil ansehen'
+        viewProfile: 'Profil ansehen',
+        close: 'Schließen',
+        save: 'Speichern',
+        saving: 'Speichert…'
       },
       status: {
         loading: 'Lade…',
@@ -96,10 +99,10 @@ const messages = {
       },
       timeline: {
         tabs: {
-          discover: 'Entdecken',
+          discover: 'Discover',
           following: 'Following',
-          friendsPopular: 'Beliebt bei Freunden',
-          mutuals: 'Gemeinsame Follows',
+          friendsPopular: 'Popular with Friends',
+          mutuals: 'Mutuals',
           bestOfFollows: 'Best of Follows'
         },
         feedButton: 'Feeds',
@@ -461,6 +464,56 @@ const messages = {
         autoLoading: 'Weitere Mitteilungen werden automatisch geladen…',
         refreshing: 'Aktualisiere…'
       },
+      settings: {
+        title: 'Mitteilungen bearbeiten',
+        subtitle: 'Wähle, welche Mitteilungen im Client oder per Push angezeigt werden.',
+        loading: 'Einstellungen werden geladen…',
+        loadError: 'Einstellungen konnten nicht geladen werden.',
+        saveError: 'Einstellungen konnten nicht gespeichert werden.',
+        actions: {
+          edit: 'Anpassen',
+          close: 'Schließen'
+        },
+        channels: {
+          push: 'Push-Mitteilungen',
+          inApp: 'In-App-Mitteilungen',
+          off: 'Aus'
+        },
+        include: {
+          title: 'Von',
+          all: 'Alle',
+          follows: 'Personen, denen ich folge'
+        },
+        like: 'Gefällt mir',
+        follow: 'Neue Follower',
+        reply: 'Antworten',
+        mention: 'Erwähnungen',
+        quote: 'Zitate',
+        repost: 'Reposts',
+        likeViaRepost: '„Gefällt mir“ für deine Reposts',
+        repostViaRepost: 'Reposts deiner Reposts',
+        activity: 'Aktivität von anderen',
+        misc: 'Alles andere',
+        activityListTitle: 'Abonnierte Accounts',
+        activityEmpty: 'Keine abonnierten Accounts.',
+        activityLoadMore: 'Mehr laden',
+        activityLoadingMore: 'Lädt…',
+        activityLoading: 'Aktivitätsabos werden geladen…',
+        activityLoadError: 'Aktivitätsabos konnten nicht geladen werden.',
+        description: {
+          like: 'Mitteilungen erhalten, wenn Personen deine Posts mit „Gefällt mir“ markieren.',
+          follow: 'Mitteilungen erhalten, wenn dir jemand folgt.',
+          reply: 'Mitteilungen erhalten, wenn jemand auf deine Posts antwortet.',
+          mention: 'Mitteilungen erhalten, wenn dich jemand erwähnt.',
+          quote: 'Mitteilungen erhalten, wenn jemand deine Posts zitiert.',
+          repost: 'Mitteilungen erhalten, wenn jemand deine Posts repostet.',
+          likeViaRepost:
+            'Mitteilungen erhalten, wenn Personen Posts mit „Gefällt mir“ markieren, die du repostet hast.',
+          repostViaRepost: 'Mitteilungen erhalten, wenn jemand Posts repostet, die du repostet hast.',
+          misc: 'Mitteilungen für alles andere, z. B. wenn jemand über eines deiner Startpakete beitritt.',
+          activity: 'Mitteilungen zu Posts und Antworten von ausgewählten Accounts erhalten.'
+        }
+      },
       subject: {
         post: 'Beitrag',
         reply: 'Antwort',
@@ -697,6 +750,15 @@ const messages = {
     },
   },
   en: {
+    common: {
+      actions: {
+        retry: 'Retry',
+        viewProfile: 'View profile',
+        close: 'Close',
+        save: 'Save',
+        saving: 'Saving…'
+      }
+    },
     nav: {
       home: 'Home',
       search: 'Search',
@@ -972,6 +1034,55 @@ const messages = {
         loading: 'Loading…',
         autoLoading: 'More notifications are loading automatically…',
         refreshing: 'Refreshing…'
+      },
+      settings: {
+        title: 'Edit notifications',
+        subtitle: 'Choose which notifications should appear in-app or via push.',
+        loading: 'Loading preferences…',
+        loadError: 'Preferences could not be loaded.',
+        saveError: 'Preferences could not be saved.',
+        actions: {
+          edit: 'Edit',
+          close: 'Close'
+        },
+        channels: {
+          push: 'Push notifications',
+          inApp: 'In-app notifications',
+          off: 'Off'
+        },
+        include: {
+          title: 'From',
+          all: 'All',
+          follows: 'People you follow'
+        },
+        like: 'Likes',
+        follow: 'New followers',
+        reply: 'Replies',
+        mention: 'Mentions',
+        quote: 'Quotes',
+        repost: 'Reposts',
+        likeViaRepost: 'Likes on your reposts',
+        repostViaRepost: 'Reposts of your reposts',
+        activity: 'Activity from others',
+        misc: 'Everything else',
+        activityListTitle: 'Subscribed accounts',
+        activityEmpty: 'No subscribed accounts.',
+        activityLoadMore: 'Load more',
+        activityLoadingMore: 'Loading…',
+        activityLoading: 'Loading activity subscriptions…',
+        activityLoadError: 'Activity subscriptions could not be loaded.',
+        description: {
+          like: 'Get notified when people like your posts.',
+          follow: 'Get notified when someone follows you.',
+          reply: 'Get notified when someone replies to your posts.',
+          mention: 'Get notified when someone mentions you.',
+          quote: 'Get notified when someone quotes your posts.',
+          repost: 'Get notified when someone reposts your posts.',
+          likeViaRepost: 'Get notified when people like posts you reposted.',
+          repostViaRepost: 'Get notified when someone reposts posts you reposted.',
+          misc: 'Notifications for everything else, like when someone joins via your starter packs.',
+          activity: 'Get notifications about posts and replies from selected accounts.'
+        }
       },
       subject: {
         post: 'Post',

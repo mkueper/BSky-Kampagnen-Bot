@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { MagnifyingGlassIcon, PersonIcon, SpeakerOffIcon } from '@radix-ui/react-icons'
 import { InlineMenu, InlineMenuContent, InlineMenuItem, InlineMenuTrigger } from '@bsky-kampagnen-bot/shared-ui'
+import { RichText as RichTextAPI } from '@atproto/api'
 import { useAppDispatch } from '../../context/AppContext'
+import { getActiveBskyAgentClient } from './api/bskyAgentClient.js'
 const MIN_HASHTAG_LENGTH = 2
 
 // Helper to convert byte offsets to character offsets
@@ -150,14 +152,57 @@ function normalizeSegmentsWithHashtags (segments) {
   })
 }
 
-export default function RichText ({ text = '', facets, className = '', hashtagContext = null, disableHashtagMenu = false }) {
+export default function RichText ({
+  text = '',
+  facets,
+  className = '',
+  hashtagContext = null,
+  disableHashtagMenu = false,
+  autoDetectFacets = true
+}) {
   const dispatch = useAppDispatch()
+  const [detectedFacets, setDetectedFacets] = useState(null)
   const stopInteraction = useCallback((event) => {
     event.preventDefault()
     event.stopPropagation()
   }, [])
 
-  const segments = useMemo(() => normalizeSegmentsWithHashtags(parseSegments(text, facets)), [text, facets])
+  const hasProvidedFacets = Array.isArray(facets) && facets.length > 0
+
+  useEffect(() => {
+    if (!autoDetectFacets || hasProvidedFacets || !text) {
+      setDetectedFacets(null)
+      return
+    }
+    const client = getActiveBskyAgentClient()
+    const agent = client?.getAgent?.() || null
+    if (!agent) {
+      setDetectedFacets(null)
+      return
+    }
+    let cancelled = false
+    const resolveFacets = async () => {
+      try {
+        const richText = new RichTextAPI({ text })
+        await richText.detectFacets(agent)
+        if (!cancelled) {
+          setDetectedFacets(Array.isArray(richText.facets) ? richText.facets : null)
+        }
+      } catch {
+        if (!cancelled) setDetectedFacets(null)
+      }
+    }
+    resolveFacets()
+    return () => {
+      cancelled = true
+    }
+  }, [autoDetectFacets, hasProvidedFacets, text])
+
+  const effectiveFacets = hasProvidedFacets ? facets : detectedFacets
+  const segments = useMemo(
+    () => normalizeSegmentsWithHashtags(parseSegments(text, effectiveFacets)),
+    [text, effectiveFacets]
+  )
 
   const openHashtagSearch = useCallback((payload) => {
     const query = typeof payload?.query === 'string' ? payload.query.trim() : ''

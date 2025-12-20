@@ -77,9 +77,7 @@ export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = fal
       type='button'
       onClick={onSelect}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container} ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
+      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container}`}
     >
       {Icon ? <Icon className={`h-4 w-4 ${currentVariant.icon}`} /> : null}
       <span className={variant === 'destructive' ? 'text-destructive' : variant === 'warning' ? 'text-amber-900 dark:text-amber-100' : 'text-foreground'}>{children}</span>

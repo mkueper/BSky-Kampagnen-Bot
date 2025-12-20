@@ -69,7 +69,7 @@ const SIDEBAR_BUTTON_ACTIVE =
 const SIDEBAR_BUTTON_INACTIVE =
   'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg'
 const SIDEBAR_BUTTON_DISABLED =
-  'opacity-50 cursor-not-allowed disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
+  'disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
 
 export default function SidebarNav ({
   active,

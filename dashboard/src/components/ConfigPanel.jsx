@@ -1050,7 +1050,7 @@ export default function ConfigPanel () {
                       setGeneralValues(prev => ({ ...prev, locale: value }))
                     }}
                     disabled={generalLoading || generalSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                   >
                     <option value='de'>Deutsch</option>
                     <option value='en'>English</option>
@@ -1241,7 +1241,7 @@ export default function ConfigPanel () {
                             updateField('scheduleTime', e.target.value)
                           }
                           disabled={loading || saving}
-                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                           placeholder={defaults.scheduleTime}
                         />
                       </div>
@@ -1266,7 +1266,7 @@ export default function ConfigPanel () {
                               updateField('randomOffsetMinutes', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-2 w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-2 w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.randomOffsetMinutes}
                           />
                           <p className='mt-1 text-xs text-foreground-muted'>
@@ -1365,7 +1365,7 @@ export default function ConfigPanel () {
                               updateField('postRetries', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postRetries}
                           />
                         </div>
@@ -1387,7 +1387,7 @@ export default function ConfigPanel () {
                               updateField('postBackoffMs', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postBackoffMs}
                           />
                         </div>
@@ -1409,7 +1409,7 @@ export default function ConfigPanel () {
                               updateField('postBackoffMaxMs', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postBackoffMaxMs}
                           />
                         </div>
@@ -1431,7 +1431,7 @@ export default function ConfigPanel () {
                               updateField('graceWindowMinutes', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.graceWindowMinutes}
                           />
                         </div>
@@ -1566,7 +1566,7 @@ export default function ConfigPanel () {
                       updatePollField('threadActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadActiveMs}
                   />
                 </div>
@@ -1585,7 +1585,7 @@ export default function ConfigPanel () {
                       updatePollField('threadIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadIdleMs}
                   />
                 </div>
@@ -1604,7 +1604,7 @@ export default function ConfigPanel () {
                       updatePollField('threadHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadHiddenMs}
                   />
                 </div>
@@ -1645,7 +1645,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetActiveMs}
                   />
                 </div>
@@ -1661,7 +1661,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetIdleMs}
                   />
                 </div>
@@ -1680,7 +1680,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetHiddenMs}
                   />
                 </div>
@@ -1722,7 +1722,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffStartMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.backoffStartMs}
                   />
                 </div>
@@ -1741,7 +1741,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffMaxMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.backoffMaxMs}
                   />
                 </div>
@@ -1762,7 +1762,7 @@ export default function ConfigPanel () {
                       updatePollField('jitterRatio', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.jitterRatio}
                   />
                 </div>
@@ -1778,7 +1778,7 @@ export default function ConfigPanel () {
                       updatePollField('heartbeatMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.heartbeatMs}
                   />
                 </div>

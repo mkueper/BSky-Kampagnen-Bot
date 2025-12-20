@@ -197,7 +197,7 @@ function ThreadOverview ({
           </h3>
           <button
             type='button'
-            className='text-sm underline disabled:cursor-not-allowed disabled:opacity-60'
+            className='text-sm underline'
             onClick={() =>
               typeof onReload === 'function' ? onReload() : undefined
             }

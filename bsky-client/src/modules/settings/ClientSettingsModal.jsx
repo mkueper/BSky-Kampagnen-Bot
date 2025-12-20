@@ -360,7 +360,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                           }
                         }))
                       }
-                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60'
+                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                       disabled={!localConfig.translation.enabled}
                     />
                     <p className='text-xs text-foreground-muted'>
@@ -443,7 +443,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                           }
                         }))
                       }
-                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60'
+                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                       disabled={!localConfig.gifs.tenorAvailable}
                     />
                     <p className='text-xs text-foreground-muted'>

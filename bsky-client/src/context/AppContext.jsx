@@ -67,7 +67,8 @@ const initialState = {
   },
   chatViewer: { ...defaultChatViewerState },
   chatUnreadCount: 0,
-  clientSettingsOpen: false
+  clientSettingsOpen: false,
+  notificationsSettingsOpen: false
 };
 
 function patchObjectIfMatches (obj, targetUri, patch) {
@@ -427,6 +428,7 @@ function appReducer(state, action) {
   const notifications = notificationsReducer({
     notificationsRefreshTick: state.notificationsRefreshTick,
     notificationsUnread: state.notificationsUnread,
+    notificationsSettingsOpen: state.notificationsSettingsOpen
   }, action);
   
   const feed = feedReducer({

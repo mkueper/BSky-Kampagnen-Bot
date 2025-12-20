@@ -244,7 +244,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
                   type='button'
                   onClick={() => setSize(size + 1)}
                   disabled={isLoadingMore}
-                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:opacity-60' 
+                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
                 >
                   {t('common.actions.retry', 'Erneut versuchen')}
                 </button>

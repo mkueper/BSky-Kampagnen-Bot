@@ -765,7 +765,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
           <button
             type='button'
-            className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
+            className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
             title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
             onClick={openInteractionModal}
             disabled={interactionSettings?.loading}

@@ -723,6 +723,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const handleStartNewChat = useCallback(() => {
     console.info(t('chat.header.newChatPending', 'New chat coming soon.'))
   }, [t])
+  const handleOpenNotificationSettings = useCallback(() => {
+    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
+  }, [dispatch])
 
   const threadActions = threadState.active ? (
     <>
@@ -769,53 +772,17 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     }
     if (section === 'notifications') {
       return (
-        <div className='flex flex-wrap items-center gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-base font-semibold text-foreground'>{t('layout.headers.notifications', 'Mitteilungen')}</p>
-          <div className='flex flex-1 items-center'>
-            <div className='inline-flex items-center'>
-              {['all', 'mentions'].map((tab) => (
-                <button
-                  key={tab}
-                  type='button'
-                  onClick={() => handleNotificationTabSelect(tab)}
-                  className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out ${
-                    notificationTab === tab
-                      ? 'border border-border bg-background-subtle text-foreground shadow-soft'
-                      : 'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
-                  }`}
-                >
-                  <span className='inline-flex items-center gap-2'>
-                    <span>
-                      {tab === 'all'
-                        ? t('layout.notifications.tabAll', 'Alle')
-                        : t('layout.notifications.tabMentions', 'Erwähnungen')}
-                    </span>
-                    {(tab === 'mentions'
-                      ? lists?.['notifs:mentions']?.hasNew
-                      : lists?.['notifs:all']?.hasNew) ? (
-                      <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.notifications.newItems', 'Neue Einträge')} />
-                    ) : null}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className='flex items-center justify-end min-w-[48px]'>
-            {notificationPaneRefreshing ? (
-              <span className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border'>
-                <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
-              </span>
-            ) : (
-              <button
-                type='button'
-                className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
-                title={t('layout.notifications.configure', 'Filter konfigurieren')}
-                aria-label={t('layout.notifications.configure', 'Filter konfigurieren')}
-              >
-                <MixerHorizontalIcon className='h-5 w-5' />
-              </button>
-            )}
-          </div>
+          <button
+            type='button'
+            className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm'
+            title={t('layout.notifications.configure', 'Filter konfigurieren')}
+            aria-label={t('layout.notifications.configure', 'Filter konfigurieren')}
+            onClick={handleOpenNotificationSettings}
+          >
+            <MixerHorizontalIcon className='h-5 w-5' />
+          </button>
         </div>
       )
     }
@@ -849,17 +816,56 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     feedMenuOpen,
     toggleFeedMenu,
     closeFeedMenu,
-    notificationsUnread,
-    notificationTab,
-    handleNotificationTabSelect,
     timelinePaneRefreshing,
-    notificationPaneRefreshing,
-    lists,
     t,
-    handleStartNewChat
+    handleStartNewChat,
+    handleOpenNotificationSettings
   ])
 
-  const topBlock = null
+  const topBlock = section === 'notifications' ? (
+    <div
+      className='flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background-elevated/70 px-3 py-2 shadow-soft'
+      data-component='BskyNotificationsTabs'
+    >
+      <div className='inline-flex items-center'>
+        {['all', 'mentions'].map((tab) => (
+          <button
+            key={tab}
+            type='button'
+            onClick={() => handleNotificationTabSelect(tab)}
+            className={`mr-2 rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out ${
+              notificationTab === tab
+                ? 'border border-border bg-background-subtle text-foreground shadow-soft'
+                : 'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
+            }`}
+          >
+            <span className='inline-flex items-center gap-2'>
+              <span>
+                {tab === 'all'
+                  ? t('layout.notifications.tabAll', 'Alle')
+                  : t('layout.notifications.tabMentions', 'Erwähnungen')}
+              </span>
+              {(tab === 'mentions'
+                ? lists?.['notifs:mentions']?.hasNew
+                : lists?.['notifs:all']?.hasNew) ? (
+                <span className='h-2 w-2 rounded-full bg-primary' aria-label={t('layout.notifications.newItems', 'Neue Einträge')} />
+              ) : null}
+            </span>
+          </button>
+        ))}
+      </div>
+      <span
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border transition-opacity ${
+          notificationPaneRefreshing ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        aria-hidden={!notificationPaneRefreshing}
+      >
+        <span className='h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent' />
+      </span>
+    </div>
+  ) : null
+  const topBlockClassName = section === 'notifications' ? '!pb-3 sm:!pb-4' : ''
+  const scrollContainerClassName = section === 'notifications' ? '!pt-0 sm:!pt-0' : ''
 
   const handleSelectSection = useCallback((id, actor = null) => {
     if (chatViewer?.open) {
@@ -986,6 +992,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
             onOpenComposeThread={openThreadComposer}
             headerContent={<SearchHeader />}
             topBlock={topBlock}
+            topBlockClassName={topBlockClassName}
+            scrollContainerClassName={scrollContainerClassName}
            scrollTopForceVisible={scrollTopForceVisible}
            onScrollTopActivate={handleScrollTopActivate}
            detailPane={detailPane}
@@ -1021,6 +1029,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         onOpenComposeThread={openThreadComposer}
         headerContent={baseHeaderContent}
         topBlock={topBlock}
+        topBlockClassName={topBlockClassName}
+        scrollContainerClassName={scrollContainerClassName}
         scrollTopForceVisible={scrollTopForceVisible}
         onScrollTopActivate={handleScrollTopActivate}
        detailPane={detailPane}

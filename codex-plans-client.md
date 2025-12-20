@@ -34,6 +34,8 @@ Bluesky-Client verhält sich UI/UX-seitig wie das Original (Scroll-Verhalten, Ba
    - Electron-Builds für Windows/Linux paketieren (Test-Signaturen reichen aus), Smoke-Test-Skript ergänzen und Download/Changelog im Repo dokumentieren.
 7. Portale/Modal-Mounts aufräumen:
    - Gemeinsamen Portal-Container definieren oder `portalled={false}` evaluieren, damit vor Releases keine zig leeren `<div>` unter `<body>` entstehen; Aufwand (Refactor aller InlineMenus/Modals) vorher kurz schätzen.
+8. Erwähnungen-Ansicht prüfen:
+   - Darstellung von Antworten auf Antworten in Mitteilungen noch einmal überprüfen, da sie aktuell verwirrend wirkt.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

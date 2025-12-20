@@ -109,7 +109,7 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           </div>
         </div>
         {profile.description ? (
-          <p className='mt-3 text-sm text-foreground whitespace-pre-line'>{profile.description}</p>
+          <p className='mt-3 text-sm text-foreground whitespace-pre-line break-words'>{profile.description}</p>
         ) : null}
         {Array.isArray(profile.labels) && profile.labels.length > 0 ? (
           <div className='mt-3 flex flex-wrap gap-2'>

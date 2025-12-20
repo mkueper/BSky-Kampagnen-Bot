@@ -240,7 +240,7 @@ function BlockEntryMenu ({ entry, isBusy, canCopyLink, onViewProfile, onCopyLink
           type='button'
           aria-label={moreLabel}
           title={moreLabel}
-          className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60'
+          className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm'
           disabled={isBusy}
         >
           <DotsHorizontalIcon className='h-4 w-4' />

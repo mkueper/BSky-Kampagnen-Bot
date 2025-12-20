@@ -19,6 +19,7 @@ import { useInteractionSettingsControls } from '../composer/useInteractionSettin
 import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
 import ClientSettingsModal from '../settings/ClientSettingsModal.jsx'
 import { fetchLinkPreviewMetadata } from '../composer/linkPreviewService.js'
+import NotificationSettingsModal from '../notifications/NotificationSettingsModal.jsx'
 
 const THREAD_MEDIA_MAX_PER_SEGMENT = 4
 const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -49,7 +50,7 @@ function buildThreadReplyContext (root, parent) {
 }
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen, notificationsSettingsOpen, profileViewer } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { clientConfig } = useClientConfig()
@@ -198,6 +199,23 @@ export function Modals() {
     handleDiscardDecision(Boolean(hasContent))
   }, [handleDiscardDecision])
 
+  const handleCloseNotificationSettings = useCallback(() => {
+    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
+  }, [dispatch])
+
+  const [resumeNotificationsSettings, setResumeNotificationsSettings] = useState(false)
+  const handleNotificationProfileOpen = useCallback(() => {
+    setResumeNotificationsSettings(true)
+    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
+  }, [dispatch])
+
+  useEffect(() => {
+    if (!resumeNotificationsSettings) return
+    if (profileViewer?.open) return
+    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
+    setResumeNotificationsSettings(false)
+  }, [dispatch, profileViewer?.open, resumeNotificationsSettings])
+
   const handleThreadCancel = useCallback(() => {
     const hasThreadContent = Boolean((threadSource || '').trim())
     if (!hasThreadContent) {
@@ -253,7 +271,7 @@ export function Modals() {
                   <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
                     <button
                       type='button'
-                      className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
+                      className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
                       title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
                       onClick={openInteractionModal}
                       disabled={interactionSettings?.loading}
@@ -371,6 +389,11 @@ export function Modals() {
       <ClientSettingsModal
         open={Boolean(clientSettingsOpen)}
         onClose={() => dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
+      />
+      <NotificationSettingsModal
+        open={Boolean(notificationsSettingsOpen)}
+        onClose={handleCloseNotificationSettings}
+        onProfileOpen={handleNotificationProfileOpen}
       />
 
     </>

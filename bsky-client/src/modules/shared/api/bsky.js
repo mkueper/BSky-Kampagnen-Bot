@@ -1145,6 +1145,46 @@ async function resolveAgentPreferences (agent) {
   return res?.data || res
 }
 
+async function fetchNotificationPreferencesDirect () {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.getPreferences) {
+    throw new Error('Notification-Preferences API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.getPreferences()
+  return res?.data || res
+}
+
+async function updateNotificationPreferencesDirect (patch = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.putPreferencesV2) {
+    throw new Error('Notification-Preferences API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.putPreferencesV2(patch)
+  return res?.data || res
+}
+
+async function fetchActivitySubscriptionsDirect ({ limit = 50, cursor } = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.listActivitySubscriptions) {
+    throw new Error('Activity-Subscriptions API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.listActivitySubscriptions({ limit, cursor })
+  return res?.data || res
+}
+
+async function updateActivitySubscriptionDirect ({ subject, activitySubscription } = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.putActivitySubscription) {
+    throw new Error('Activity-Subscription API nicht verfügbar.')
+  }
+  const payload = {
+    subject,
+    activitySubscription
+  }
+  const res = await agent.app.bsky.notification.putActivitySubscription(payload)
+  return res?.data || res
+}
+
 function cloneRules (rules = []) {
   return rules.map((rule) => ({ ...rule }))
 }
@@ -1796,6 +1836,22 @@ export async function fetchNotificationPollingSnapshot ({ limit = NOTIFICATION_S
     allTopId: allItems.length > 0 ? getNotificationItemId(allItems[0]) : null,
     mentionsTopId: mentionsItems.length > 0 ? getNotificationItemId(mentionsItems[0]) : null
   }
+}
+
+export async function fetchNotificationPreferences () {
+  return fetchNotificationPreferencesDirect()
+}
+
+export async function updateNotificationPreferences (patch = {}) {
+  return updateNotificationPreferencesDirect(patch)
+}
+
+export async function fetchActivitySubscriptions ({ limit = 50, cursor } = {}) {
+  return fetchActivitySubscriptionsDirect({ limit, cursor })
+}
+
+export async function updateActivitySubscription ({ subject, activitySubscription } = {}) {
+  return updateActivitySubscriptionDirect({ subject, activitySubscription })
 }
 
 export async function fetchThread(uri) {

@@ -1,0 +1,17 @@
+:root {
+  --ui-disabled-opacity: 0.6;
+  --ui-disabled-cursor: not-allowed;
+  --ui-disabled-filter: none;
+}
+
+.ui-disabled,
+:disabled,
+[aria-disabled='true'] {
+  opacity: var(--ui-disabled-opacity);
+  cursor: var(--ui-disabled-cursor);
+  filter: var(--ui-disabled-filter);
+}
+
+.ui-disabled--subtle {
+  opacity: 0.45;
+}
