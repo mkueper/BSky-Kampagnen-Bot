@@ -407,6 +407,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   )
   const { quoteReposts } = useAppState()
   const { clientConfig } = useClientConfig()
+  const autoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
   const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LIBRETRANSLATE_BASE_URL) ? import.meta.env.VITE_LIBRETRANSLATE_BASE_URL : ''
   const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED) ? import.meta.env.VITE_TRANSLATION_ENABLED : null
   const translationPreferences = useMemo(
@@ -1217,57 +1218,105 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
       {external && mediaItems.length === 0 ? (
         gifPreview && typeof onViewMedia === 'function'
-          ? (
-            <div
-              className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm focus-within:outline focus-within:outline-2 focus-within:outline-primary/70' 
-            >
-              <button
-                type='button'
-                className='flex w-full gap-3 text-left'
-                onClick={handleExternalMediaPreview}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    handleExternalMediaPreview(event)
-                  }
-                }}
-              >
-                {gifPreview.thumb ? (
+          ? autoPlayGifs
+            ? (
+              <div className='mt-3 rounded-xl border border-border bg-background-subtle p-3'>
+                <button
+                  type='button'
+                  className='flex w-full gap-3 text-left'
+                  onClick={handleExternalMediaPreview}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      handleExternalMediaPreview(event)
+                    }
+                  }}
+                >
                   <div className='relative h-20 w-28 shrink-0'>
                     <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
                       {t('skeet.media.gifBadge', 'GIF')}
                     </span>
                     <img
-                      src={gifPreview.thumb}
-                      alt=''
+                      src={gifPreview.src}
+                      alt={gifPreview.alt}
                       className='h-full w-full rounded-lg border border-border object-cover'
                       loading='lazy'
                     />
                   </div>
+                  <div className='min-w-0'>
+                    <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                    {external.description ? (
+                      <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                    ) : null}
+                    <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                    <p className='mt-2 text-xs font-semibold text-primary'>
+                      {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                    </p>
+                  </div>
+                </button>
+                {gifPreview.originalUrl ? (
+                  <a
+                    href={gifPreview.originalUrl}
+                    target='_blank'
+                    rel='noopener noreferrer nofollow'
+                    className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Original öffnen
+                  </a>
                 ) : null}
-                <div className='min-w-0'>
-                  <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
-                  {external.description ? (
-                    <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
-                  ) : null}
-                  <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
-                  <p className='mt-2 text-xs font-semibold text-primary'>
-                    {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
-                  </p>
-                </div>
-              </button>
-              {gifPreview.originalUrl ? (
-                <a
-                  href={gifPreview.originalUrl}
-                  target='_blank'
-                  rel='noopener noreferrer nofollow'
-                  className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
-                  onClick={(event) => event.stopPropagation()}
+              </div>
+              )
+            : (
+              <div
+                className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3 transition hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm focus-within:outline focus-within:outline-2 focus-within:outline-primary/70'
+              >
+                <button
+                  type='button'
+                  className='flex w-full gap-3 text-left'
+                  onClick={handleExternalMediaPreview}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      handleExternalMediaPreview(event)
+                    }
+                  }}
                 >
-                  Original öffnen
-                </a>
-              ) : null}
-            </div>
-            )
+                  {gifPreview.thumb ? (
+                    <div className='relative h-20 w-28 shrink-0'>
+                      <span className='absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-semibold text-white'>
+                        {t('skeet.media.gifBadge', 'GIF')}
+                      </span>
+                      <img
+                        src={gifPreview.thumb}
+                        alt=''
+                        className='h-full w-full rounded-lg border border-border object-cover'
+                        loading='lazy'
+                      />
+                    </div>
+                  ) : null}
+                  <div className='min-w-0'>
+                    <p className='truncate text-sm font-semibold text-foreground'>{gifPreview.title || external.title}</p>
+                    {external.description ? (
+                      <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{external.description}</p>
+                    ) : null}
+                    <p className='mt-1 text-xs text-foreground-subtle'>{gifPreview.domain || external.domain}</p>
+                    <p className='mt-2 text-xs font-semibold text-primary'>
+                      {t('skeet.media.gifHint', 'Klicken zum Anzeigen')}
+                    </p>
+                  </div>
+                </button>
+                {gifPreview.originalUrl ? (
+                  <a
+                    href={gifPreview.originalUrl}
+                    target='_blank'
+                    rel='noopener noreferrer nofollow'
+                    className='text-xs text-foreground-muted underline underline-offset-2 hover:text-foreground'
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    Original öffnen
+                  </a>
+                ) : null}
+              </div>
+              )
           : (
             <a
               href={external.uri}

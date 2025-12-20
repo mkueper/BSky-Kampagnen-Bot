@@ -17,6 +17,7 @@ function buildLocalConfig (config = {}) {
   const unroll = config?.unroll || {}
   const translation = config?.translation || {}
   const composer = config?.composer || {}
+  const layout = config?.layout || {}
   return {
     locale: config?.locale || 'de',
     gifs: {
@@ -33,6 +34,9 @@ function buildLocalConfig (config = {}) {
     },
     composer: {
       showReplyPreview: composer.showReplyPreview !== false
+    },
+    layout: {
+      autoPlayGifs: layout.autoPlayGifs === true
     }
   }
 }
@@ -63,6 +67,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedTranslationBase = clientConfig?.translation?.baseUrl || ''
     const savedTranslationAllowGoogle = clientConfig?.translation?.allowGoogle !== false
     const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+    const savedAutoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
     return (
       (localConfig.locale || 'de') !== savedLocale ||
       Boolean(localConfig.gifs.tenorAvailable) !== Boolean(clientConfig?.gifs?.tenorAvailable) ||
@@ -71,7 +76,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
       Boolean(localConfig.translation.enabled) !== savedTranslationEnabled ||
       (localConfig.translation.baseUrl || '') !== savedTranslationBase ||
       Boolean(localConfig.translation.allowGoogle) !== savedTranslationAllowGoogle ||
-      Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview
+      Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview ||
+      Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs
     )
   }, [clientConfig, localConfig])
 
@@ -105,6 +111,9 @@ export default function ClientSettingsModal ({ open, onClose }) {
       },
       composer: {
         showReplyPreview: Boolean(localConfig.composer.showReplyPreview)
+      },
+      layout: {
+        autoPlayGifs: Boolean(localConfig.layout.autoPlayGifs)
       }
     })
     handleClose()
@@ -294,6 +303,42 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   {t(
                     'clientSettings.unroll.showDividersHelp',
                     'Deaktiviere die Trennlinien für eine kompakteste Darstellung.'
+                  )}
+                </p>
+              </section>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.sections.mediaTitle', 'Medien')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t(
+                      'clientSettings.sections.mediaDescription',
+                      'Steuert, wie externe Medien in Beiträgen dargestellt werden.'
+                    )}
+                  </p>
+                </div>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.autoPlayGifs)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          autoPlayGifs: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <span>{t('clientSettings.media.autoPlayGifsLabel', 'GIFs automatisch abspielen')}</span>
+                </label>
+                <p className='text-xs text-foreground-muted'>
+                  {t(
+                    'clientSettings.media.autoPlayGifsHelp',
+                    'Kann Performance und Datenverbrauch erhöhen.'
                   )}
                 </p>
               </section>

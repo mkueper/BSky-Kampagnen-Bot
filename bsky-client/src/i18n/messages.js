@@ -714,7 +714,9 @@ const messages = {
         unrollTitle: 'Unroll',
         unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.',
         composerTitle: 'Composer',
-        composerDescription: 'Steuert lokale Hilfen beim Antworten und Zitieren.'
+        composerDescription: 'Steuert lokale Hilfen beim Antworten und Zitieren.',
+        mediaTitle: 'Medien',
+        mediaDescription: 'Steuert, wie externe Medien in Beiträgen dargestellt werden.'
       },
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
@@ -723,6 +725,10 @@ const messages = {
       composer: {
         showReplyPreviewLabel: 'Antwort-Vorschau anzeigen',
         showReplyPreviewHelp: 'Blendet den Beitrag ein, auf den du antwortest. Deaktiviere die Option für ein kompakteres Composer-Layout.'
+      },
+      media: {
+        autoPlayGifsLabel: 'GIFs automatisch abspielen',
+        autoPlayGifsHelp: 'Kann Performance und Datenverbrauch erhöhen.'
       },
       translation: {
         enableLabel: 'Übersetzungshilfe anzeigen',
@@ -1335,7 +1341,9 @@ const messages = {
         unrollTitle: 'Unroll',
         unrollDescription: 'Control how the unroll dialog renders author threads.',
         composerTitle: 'Composer',
-        composerDescription: 'Control how replies and quotes show helpful context.'
+        composerDescription: 'Control how replies and quotes show helpful context.',
+        mediaTitle: 'Media',
+        mediaDescription: 'Controls how external media appears in posts.'
       },
       tenorToggle: 'Enable Tenor GIFs',
       tenorKeyLabel: 'Tenor API key',
@@ -1344,6 +1352,10 @@ const messages = {
       composer: {
         showReplyPreviewLabel: 'Show reply preview',
         showReplyPreviewHelp: 'Displays the post you are replying to. Disable it for a tighter composer layout.'
+      },
+      media: {
+        autoPlayGifsLabel: 'Auto-play GIFs',
+        autoPlayGifsHelp: 'May increase performance and data usage.'
       },
       translation: {
         enableLabel: 'Show translation helper',

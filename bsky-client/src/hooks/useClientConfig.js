@@ -8,7 +8,8 @@ const DEFAULT_CONFIG = {
   search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true },
   translation: { enabled: null, baseUrl: '', allowGoogle: true },
-  composer: { showReplyPreview: true }
+  composer: { showReplyPreview: true },
+  layout: { autoPlayGifs: false }
 }
 
 let currentConfig = null
@@ -41,7 +42,8 @@ const normalizeConfig = (input = {}) => {
     search: { ...DEFAULT_CONFIG.search, ...(input?.search || {}) },
     unroll: { ...DEFAULT_CONFIG.unroll, ...(input?.unroll || {}) },
     translation: { ...DEFAULT_CONFIG.translation, ...(input?.translation || {}) },
-    composer: { ...DEFAULT_CONFIG.composer, ...(input?.composer || {}) }
+    composer: { ...DEFAULT_CONFIG.composer, ...(input?.composer || {}) },
+    layout: { ...DEFAULT_CONFIG.layout, ...(input?.layout || {}) }
   }
   if (next.search.advancedPrefixes && !Array.isArray(next.search.advancedPrefixes)) {
     next.search.advancedPrefixes = null
@@ -61,6 +63,7 @@ const normalizeConfig = (input = {}) => {
     : ''
   next.translation.allowGoogle = next.translation.allowGoogle !== false
   next.composer.showReplyPreview = next.composer.showReplyPreview !== false
+  next.layout.autoPlayGifs = next.layout.autoPlayGifs === true
   const normalizedLocale = typeof next.locale === 'string' ? next.locale.trim().toLowerCase() : ''
   next.locale = SUPPORTED_LOCALES.includes(normalizedLocale) ? normalizedLocale : DEFAULT_CONFIG.locale
   return next
@@ -99,7 +102,8 @@ export function useClientConfig () {
       search: { ...(base.search || {}), ...(patchObject?.search || {}) },
       unroll: { ...(base.unroll || {}), ...(patchObject?.unroll || {}) },
       translation: { ...(base.translation || {}), ...(patchObject?.translation || {}) },
-      composer: { ...(base.composer || {}), ...(patchObject?.composer || {}) }
+      composer: { ...(base.composer || {}), ...(patchObject?.composer || {}) },
+      layout: { ...(base.layout || {}), ...(patchObject?.layout || {}) }
     }
     updateSnapshot(next)
   }, [])
