@@ -720,6 +720,8 @@ const messages = {
         composerDescription: 'Steuert lokale Hilfen beim Antworten und Zitieren.',
         mediaTitle: 'Medien',
         mediaDescription: 'Steuert, wie externe Medien in Beiträgen dargestellt werden.',
+        timeTitle: 'Zeitangaben',
+        timeDescription: 'Steuert, ob Zeitstempel relativ oder absolut dargestellt werden.',
         videoSourcesTitle: 'Video-Quellen',
         videoSourcesDescription: 'Lege fest, welche Video-Hosts als Vorschau oder Inline-Player erscheinen dürfen.'
       },
@@ -745,6 +747,10 @@ const messages = {
         videoAllowListRemove: 'Host entfernen',
         videoAllowListEmpty: 'Keine Hosts eingetragen.',
         videoAllowListHelp: 'Nur diese Hosts dürfen als Video-Vorschau oder Inline-Player erscheinen.'
+      },
+      time: {
+        absoluteLabel: 'Absolute Zeitangaben anzeigen',
+        absoluteHelp: 'Zeigt z. B. 20.12.2025, 11:35 statt „vor 3 Min.“.'
       },
       translation: {
         enableLabel: 'Übersetzungshilfe anzeigen',
@@ -1363,6 +1369,8 @@ const messages = {
         composerDescription: 'Control how replies and quotes show helpful context.',
         mediaTitle: 'Media',
         mediaDescription: 'Controls how external media appears in posts.',
+        timeTitle: 'Time display',
+        timeDescription: 'Choose whether timestamps appear as relative or absolute values.',
         videoSourcesTitle: 'Video sources',
         videoSourcesDescription: 'Choose which video hosts may appear as previews or inline players.'
       },
@@ -1388,6 +1396,10 @@ const messages = {
         videoAllowListRemove: 'Remove host',
         videoAllowListEmpty: 'No hosts added.',
         videoAllowListHelp: 'Only these hosts may appear as video previews or inline players.'
+      },
+      time: {
+        absoluteLabel: 'Show absolute timestamps',
+        absoluteHelp: 'Shows e.g. Dec 20, 2025, 11:35 instead of “3 min ago”.'
       },
       translation: {
         enableLabel: 'Show translation helper',

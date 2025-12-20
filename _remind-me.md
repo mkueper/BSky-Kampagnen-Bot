@@ -4,3 +4,4 @@
 4. Client-Einstellungen: Modal-Höhe später feinjustieren (fixe Höhe derzeit 80vh).
 5. Terminologie: Bei Gelegenheit „Layout“ ggf. in „Darstellung“ eindeutschen, falls ein guter Anlass entsteht.
 6. Allgemein: Einstellbar ob die Zeitangaben in Beiträgen absolut oder relativ sind.
+7. Prüfen: Sollten Anzeigesprache und Composer unter Layout/Darstellung verwaltet werden oder wird der Tab dann zu allgemein?

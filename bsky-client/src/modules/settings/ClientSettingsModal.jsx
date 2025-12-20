@@ -41,7 +41,8 @@ function buildLocalConfig (config = {}) {
       videoAllowListEnabled: layout.videoAllowListEnabled !== false,
       videoAllowList: Array.isArray(layout.videoAllowList)
         ? layout.videoAllowList
-        : (Array.isArray(layout.youtubeAllowList) ? layout.youtubeAllowList : [])
+        : (Array.isArray(layout.youtubeAllowList) ? layout.youtubeAllowList : []),
+      timeFormat: layout.timeFormat === 'absolute' ? 'absolute' : 'relative'
     }
   }
 }
@@ -78,6 +79,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedAutoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
     const savedInlineVideo = clientConfig?.layout?.inlineVideo === true
     const savedVideoAllowListEnabled = clientConfig?.layout?.videoAllowListEnabled !== false
+    const savedTimeFormat = clientConfig?.layout?.timeFormat === 'absolute' ? 'absolute' : 'relative'
     const savedVideoAllowList = Array.isArray(clientConfig?.layout?.videoAllowList)
       ? clientConfig.layout.videoAllowList
       : []
@@ -101,6 +103,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs ||
       Boolean(localConfig.layout.inlineVideo) !== savedInlineVideo ||
       Boolean(localConfig.layout.videoAllowListEnabled) !== savedVideoAllowListEnabled ||
+      (localConfig.layout.timeFormat || 'relative') !== savedTimeFormat ||
       JSON.stringify(normalizedLocalAllowList) !== JSON.stringify(normalizedSavedAllowList)
     )
   }, [clientConfig, localConfig])
@@ -142,7 +145,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
         videoAllowListEnabled: Boolean(localConfig.layout.videoAllowListEnabled),
         videoAllowList: Array.isArray(localConfig.layout.videoAllowList)
           ? localConfig.layout.videoAllowList
-          : []
+          : [],
+        timeFormat: localConfig.layout.timeFormat === 'absolute' ? 'absolute' : 'relative'
       }
     })
     handleClose()
@@ -382,6 +386,44 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     'Deaktiviere die Trennlinien für eine kompakteste Darstellung.'
                   )}
                 </p>
+              </section>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.sections.timeTitle', 'Zeitangaben')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t(
+                      'clientSettings.sections.timeDescription',
+                      'Steuert, ob Zeitstempel relativ oder absolut dargestellt werden.'
+                    )}
+                  </p>
+                </div>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={localConfig.layout.timeFormat === 'absolute'}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          timeFormat: event.target.checked ? 'absolute' : 'relative'
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.time.absoluteLabel', 'Absolute Zeitangaben anzeigen')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.time.absoluteHelp',
+                        'Zeigt z. B. 20.12.2025, 11:35 statt „vor 3 Min.“.'
+                      )}
+                    </p>
+                  </div>
+                </label>
               </section>
               <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
                 <div>

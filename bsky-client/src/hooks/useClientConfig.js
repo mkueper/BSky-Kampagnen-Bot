@@ -13,7 +13,8 @@ const DEFAULT_CONFIG = {
     autoPlayGifs: false,
     inlineVideo: false,
     videoAllowListEnabled: true,
-    videoAllowList: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'tiktok.com']
+    videoAllowList: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'tiktok.com'],
+    timeFormat: 'relative'
   }
 }
 
@@ -80,6 +81,9 @@ const normalizeConfig = (input = {}) => {
     next.layout.videoAllowListEnabled = true
   }
   next.layout.videoAllowListEnabled = next.layout.videoAllowListEnabled !== false
+  if (next.layout.timeFormat !== 'absolute' && next.layout.timeFormat !== 'relative') {
+    next.layout.timeFormat = DEFAULT_CONFIG.layout.timeFormat
+  }
   const rawAllowList = Array.isArray(next.layout.videoAllowList)
     ? next.layout.videoAllowList
     : (Array.isArray(legacyAllowList) ? legacyAllowList : DEFAULT_CONFIG.layout.videoAllowList)

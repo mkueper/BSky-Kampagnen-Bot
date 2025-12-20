@@ -139,6 +139,32 @@ const normalizeTranslateEndpoint = (rawUrl) => {
   }
 }
 
+const RELATIVE_TIME_UNITS = [
+  { unit: 'year', seconds: 31536000 },
+  { unit: 'month', seconds: 2592000 },
+  { unit: 'week', seconds: 604800 },
+  { unit: 'day', seconds: 86400 },
+  { unit: 'hour', seconds: 3600 },
+  { unit: 'minute', seconds: 60 },
+  { unit: 'second', seconds: 1 }
+]
+
+const formatRelativeTime = (value, locale) => {
+  const parsed = new Date(value)
+  const timestamp = parsed.getTime()
+  if (!Number.isFinite(timestamp)) return ''
+  const deltaSeconds = Math.round((timestamp - Date.now()) / 1000)
+  const absoluteSeconds = Math.abs(deltaSeconds)
+  const formatter = new Intl.RelativeTimeFormat(locale || 'de-DE', { numeric: 'auto' })
+  for (const entry of RELATIVE_TIME_UNITS) {
+    if (absoluteSeconds >= entry.seconds || entry.unit === 'second') {
+      const amount = Math.round(deltaSeconds / entry.seconds)
+      return formatter.format(amount, entry.unit)
+    }
+  }
+  return ''
+}
+
 const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
   const translationConfig = clientConfig?.translation || {}
   const baseFromConfig = typeof translationConfig.baseUrl === 'string' ? translationConfig.baseUrl.trim() : ''
@@ -476,6 +502,14 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const autoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
   const inlineVideo = (clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true) &&
     videoAllowListEnabled
+  const timeFormat = clientConfig?.layout?.timeFormat === 'absolute' ? 'absolute' : 'relative'
+  const timeLabel = useMemo(() => {
+    if (!createdAt) return ''
+    if (timeFormat === 'absolute') {
+      return new Date(createdAt).toLocaleString(locale || 'de-DE')
+    }
+    return formatRelativeTime(createdAt, locale || 'de-DE')
+  }, [createdAt, locale, timeFormat])
   const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_LIBRETRANSLATE_BASE_URL) ? import.meta.env.VITE_LIBRETRANSLATE_BASE_URL : ''
   const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED) ? import.meta.env.VITE_TRANSLATION_ENABLED : null
   const translationPreferences = useMemo(
@@ -1077,7 +1111,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         <div className='ml-auto flex items-center gap-1'>
           {createdAt ? (
             <time className='whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
-              {new Date(createdAt).toLocaleString(locale || 'de-DE')}
+              {timeLabel}
             </time>
           ) : null}
         </div>

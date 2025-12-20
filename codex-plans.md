@@ -4,33 +4,39 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-17.12.2025
+20.12.2025
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
 - Scheduler & Backend laufen nach den jüngsten Parallelitäts-/Logging-Updates stabil; alle Tests sind grün und Deployment-Skripte unverändert nutzbar.
 - `bsky-client` deckt Auth, Timelines/Notifications, Composer und Scroll-UX weiterhin vollständig ohne Backend-Fallbacks ab; Multi-Account, Badges und Mitteilungen bleiben auf Bluesky-Parität.
+- Client-Einstellungen: Video-Tab mit Allowlist, Aktivierungs-Schalter und fixierter Modal-Höhe; Medien-Hinweise sitzen jetzt direkt in den Options-Karten.
+- Video-Vorschauen wurden generalisiert (YouTube → Video-Hosts inkl. TikTok-Default); Zeitstempel können zwischen relativ/absolut umgeschaltet werden (Default: relativ).
 - Client-Einstellungen schließen nicht mehr durch Overlay-Klicks, Lokalisierungen/Lizenztexte wurden korrigiert und die Repo-Version ist nach Release auf `1.1.3-dev` hochgezogen; Docker-Bundle, Demo-Skripte sowie Dokumentation entsprechen weiterhin dem Stand nach den letzten Scheduler-/Auth-Anpassungen.
 - Suche im Client bietet jetzt Keyboard-freundliche Präfix-Hints mit eigenem Clear-Button; Hover-only-Interaktionen wurden entfernt, damit Prefixe konsistent eingefügt werden.
 - Link-Vorschauen sind sowohl im Einzel-Composer als auch im Thread-Composer angebunden; ein lokaler Proxy (`npm run dev:preview-proxy`) inklusive Dockerfile deckt den Standalone-Fall ab, und die i18n-Labels sind vereinheitlicht.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung. Der Client verfügt jetzt über einen getesteten Link-Preview-Flow (inkl. dev-Proxy). Als nächstes fokussieren wir Standalone-Flag/Config-Split, Portal-/Modal-Aufräumarbeiten (gemeinsamer Container, `portalled`-Strategie), ThreadComposer-Refactor sowie Beta-Builds/Dokumentation und die Integration des Preview-Fetchers in Electron/Container-Umgebungen.
+Backend ist „feature complete“ für Kampagnen-Tool + Client-Anbindung. Der Client verfügt jetzt über einen getesteten Link-Preview-Flow (inkl. dev-Proxy) sowie erweiterte Video-Einstellungen. Als nächstes prüfen wir das Bluesky-Verhalten bei deaktivierter Video-Allowlist, justieren die Modal-Höhe nach, und klären Terminologie/Tab-Zuordnung (Layout vs. Darstellung, Sprache/Composer).
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Beta-Builds vorbereiten:
+1. Video-Allowlist Verhalten abgleichen:
+   - In bsky.app prüfen, was bei deaktivierten Video-Hosts angezeigt wird, und das Verhalten im Client angleichen.
+2. Client-Einstellungen feinjustieren:
+   - Modal-Höhe optisch feinabstimmen; prüfen, ob „Layout“ künftig „Darstellung“ heißt und ob Sprache/Composer dort hingehören.
+3. Beta-Builds vorbereiten:
    - Windows-/Linux-Electron-Builds paketieren, Smoke-Tests dokumentieren und Download/Release-Notizen (inkl. bekannter Limitierungen) aufsetzen.
-2. Standalone-Flag + Konfiguration:
+4. Standalone-Flag + Konfiguration:
    - `VITE_CLIENT_MODE` + `.env.sample` aufsplitten, damit Backend-Proxy vs. Standalone-Betrieb klar konfigurierbar bleibt (inkl. README-Abschnitt „Frontends starten“).
-3. Link-Vorschau & Profil-Links im Client-Composer:
+5. Link-Vorschau & Profil-Links im Client-Composer:
    - Electron-Preload und Docker-Variante des Dev-Proxys anbinden, damit Standalone-/Desktop-Builds ohne Extra-Konfiguration funktionieren; Handles zu klickbaren Profil-Triggern machen.
-4. ThreadComposer/Shared Utils:
+6. ThreadComposer/Shared Utils:
    - Bild/GIF-Handling und ThreadComposer so aufteilen, dass Dashboard & Client dieselben Helpers aus `shared-logic` nutzen (kein doppelter Code mehr im Client).
-5. Dashboard UX/Doku:
+7. Dashboard UX/Doku:
    - Thread-Planer Doku (Scroll/Power-Navigation), History-Screenshots und Seed-Skript (`npm run seed:demo`) nachziehen; Cron-UI-Text + README ergänzen.
-6. Terminologie angleichen:
+8. Terminologie angleichen:
    - „Skeet“ → „Post“ in Dashboard, Client, shared-ui inkl. lokalisierter Strings; Checkliste in `docs/terminology` notieren.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
