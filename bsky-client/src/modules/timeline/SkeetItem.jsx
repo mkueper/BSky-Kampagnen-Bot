@@ -87,7 +87,10 @@ const extractYoutubeId = (value) => {
   }
   return ''
 }
-const buildYoutubeEmbedUrl = (id) => `https://www.youtube-nocookie.com/embed/${id}`
+const buildYoutubeEmbedUrl = (id, { autoplay = false } = {}) => {
+  const base = `https://www.youtube-nocookie.com/embed/${id}`
+  return autoplay ? `${base}?autoplay=1` : base
+}
 const DEFAULT_SINGLE_IMAGE_RATIO = 4 / 3
 const DEFAULT_MULTI_IMAGE_RATIO = 1
 
@@ -556,6 +559,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [detectingLanguage, setDetectingLanguage] = useState(false)
   const [detectedLanguage, setDetectedLanguage] = useState(null)
   const [youtubeInlineOpen, setYoutubeInlineOpen] = useState(false)
+  const youtubeInlineRef = useRef(null)
   const dispatch = useAppDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
@@ -625,6 +629,22 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       }
     }
   }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
+
+  useEffect(() => {
+    if (!youtubeInlineOpen) return
+    const node = youtubeInlineRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          setYoutubeInlineOpen(false)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [youtubeInlineOpen])
 
   const handleUndoQuote = useCallback(async () => {
     if (!item?.uri || !quotePostUri || quoteBusy) return
@@ -1489,7 +1509,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         youtubePreview ? (
           inlineVideo ? (
             youtubeInlineOpen ? (
-              <div className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+              <div ref={youtubeInlineRef} className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
                 <div className='flex items-center justify-between gap-3'>
                   <p className='text-sm font-semibold text-foreground'>
                     {youtubePreview.title || external.title || 'YouTube'}
@@ -1504,7 +1524,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 </div>
                 <div className='relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-black'>
                   <iframe
-                    src={buildYoutubeEmbedUrl(youtubePreview.id)}
+                    src={buildYoutubeEmbedUrl(youtubePreview.id, { autoplay: true })}
                     title={youtubePreview.title || external.title || 'YouTube'}
                     className='absolute inset-0 h-full w-full'
                     allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
