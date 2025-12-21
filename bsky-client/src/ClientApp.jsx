@@ -982,77 +982,74 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const navInteractionsLocked = detailPaneActive && !chatPaneActive
 
   const isSearchSection = section === 'search'
-  if (isSearchSection) {
-    return (
-      <>
-        <SearchProvider>
-          <BskyClientLayout
-            activeSection={section}
-            notificationsUnread={notificationsUnread}
-            chatUnread={chatUnreadCount}
-            onSelectSection={handleSelectSection}
-            onOpenCompose={openComposer}
-            onOpenComposeThread={openThreadComposer}
-            headerContent={<SearchHeader />}
-            topBlock={topBlock}
-            topBlockClassName={topBlockClassName}
-            scrollContainerClassName={scrollContainerClassName}
-           scrollTopForceVisible={scrollTopForceVisible}
-           onScrollTopActivate={handleScrollTopActivate}
-           detailPane={detailPane}
-           detailPaneActive={detailPaneActive}
-           navInteractionsLocked={navInteractionsLocked}
-            accountProfiles={accountProfiles}
-            onSwitchAccount={handleSwitchAccount}
-            onAddAccount={handleAddAccount}
-            onLogout={handleLogout}
-            logoutPending={logoutPending}
-            onOpenClientSettings={handleOpenClientSettings}
-          >
-            <div className='space-y-6'>
-              <Suspense fallback={<SectionFallback label='Suche' />}>
-                <SearchViewLazy />
-              </Suspense>
-            </div>
-          </BskyClientLayout>
-        </SearchProvider>
-        <Modals />
-      </>
-    )
-  }
+  const layoutContent = isSearchSection ? (
+    <BskyClientLayout
+      activeSection={section}
+      notificationsUnread={notificationsUnread}
+      chatUnread={chatUnreadCount}
+      onSelectSection={handleSelectSection}
+      onOpenCompose={openComposer}
+      onOpenComposeThread={openThreadComposer}
+      headerContent={<SearchHeader />}
+      topBlock={topBlock}
+      topBlockClassName={topBlockClassName}
+      scrollContainerClassName={scrollContainerClassName}
+      scrollTopForceVisible={scrollTopForceVisible}
+      onScrollTopActivate={handleScrollTopActivate}
+      detailPane={detailPane}
+      detailPaneActive={detailPaneActive}
+      navInteractionsLocked={navInteractionsLocked}
+      accountProfiles={accountProfiles}
+      onSwitchAccount={handleSwitchAccount}
+      onAddAccount={handleAddAccount}
+      onLogout={handleLogout}
+      logoutPending={logoutPending}
+      onOpenClientSettings={handleOpenClientSettings}
+    >
+      <div className='space-y-6'>
+        <Suspense fallback={<SectionFallback label='Suche' />}>
+          <SearchViewLazy />
+        </Suspense>
+      </div>
+    </BskyClientLayout>
+  ) : (
+    <BskyClientLayout
+      activeSection={section}
+      notificationsUnread={notificationsUnread}
+      chatUnread={chatUnreadCount}
+      onSelectSection={handleSelectSection}
+      onOpenCompose={openComposer}
+      onOpenComposeThread={openThreadComposer}
+      headerContent={baseHeaderContent}
+      topBlock={topBlock}
+      topBlockClassName={topBlockClassName}
+      scrollContainerClassName={scrollContainerClassName}
+      scrollTopForceVisible={scrollTopForceVisible}
+      onScrollTopActivate={handleScrollTopActivate}
+      detailPane={detailPane}
+      detailPaneActive={detailPaneActive}
+      navInteractionsLocked={navInteractionsLocked}
+      accountProfiles={accountProfiles}
+      onSwitchAccount={handleSwitchAccount}
+      onAddAccount={handleAddAccount}
+      onLogout={handleLogout}
+      logoutPending={logoutPending}
+      onOpenClientSettings={handleOpenClientSettings}
+    >
+      <MainContent
+        notificationTab={notificationTab}
+        notificationListKey={notificationListKey}
+        timelineListKey={timelineKeyRef.current}
+        timelineLanguageFilter={timelineLanguageFilter}
+      />
+    </BskyClientLayout>
+  )
 
   return (
     <>
-      <BskyClientLayout
-        activeSection={section}
-        notificationsUnread={notificationsUnread}
-        chatUnread={chatUnreadCount}
-        onSelectSection={handleSelectSection}
-        onOpenCompose={openComposer}
-        onOpenComposeThread={openThreadComposer}
-        headerContent={baseHeaderContent}
-        topBlock={topBlock}
-        topBlockClassName={topBlockClassName}
-        scrollContainerClassName={scrollContainerClassName}
-        scrollTopForceVisible={scrollTopForceVisible}
-        onScrollTopActivate={handleScrollTopActivate}
-       detailPane={detailPane}
-       detailPaneActive={detailPaneActive}
-       navInteractionsLocked={navInteractionsLocked}
-        accountProfiles={accountProfiles}
-        onSwitchAccount={handleSwitchAccount}
-        onAddAccount={handleAddAccount}
-        onLogout={handleLogout}
-        logoutPending={logoutPending}
-        onOpenClientSettings={handleOpenClientSettings}
-      >
-        <MainContent
-          notificationTab={notificationTab}
-          notificationListKey={notificationListKey}
-          timelineListKey={timelineKeyRef.current}
-          timelineLanguageFilter={timelineLanguageFilter}
-        />
-      </BskyClientLayout>
+      <SearchProvider>
+        {layoutContent}
+      </SearchProvider>
       <Modals />
     </>
   )
