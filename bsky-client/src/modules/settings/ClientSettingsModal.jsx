@@ -12,6 +12,14 @@ const LANGUAGE_OPTIONS = [
   { value: 'en', labelKey: 'clientSettings.language.options.en', fallback: 'English' }
 ]
 
+const TRANSLATION_FALLBACK_OPTIONS = [
+  { value: 'google', labelKey: 'clientSettings.translation.fallback.google', fallback: 'Google Translate' },
+  { value: 'deepl', labelKey: 'clientSettings.translation.fallback.deepl', fallback: 'DeepL' },
+  { value: 'bing', labelKey: 'clientSettings.translation.fallback.bing', fallback: 'Microsoft Translator' },
+  { value: 'yandex', labelKey: 'clientSettings.translation.fallback.yandex', fallback: 'Yandex Translate' },
+  { value: 'none', labelKey: 'clientSettings.translation.fallback.none', fallback: 'Kein Fallback' }
+]
+
 function buildLocalConfig (config = {}) {
   const gifs = config?.gifs || {}
   const unroll = config?.unroll || {}
@@ -30,7 +38,8 @@ function buildLocalConfig (config = {}) {
     translation: {
       enabled: translation.enabled === true,
       baseUrl: translation.baseUrl || '',
-      allowGoogle: translation.allowGoogle !== false
+      fallbackService: translation.fallbackService ||
+        (translation.allowGoogle === false ? 'none' : 'google')
     },
     composer: {
       showReplyPreview: composer.showReplyPreview !== false
@@ -74,7 +83,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedShowDividers = clientConfig?.unroll?.showDividers !== false
     const savedTranslationEnabled = clientConfig?.translation?.enabled === true
     const savedTranslationBase = clientConfig?.translation?.baseUrl || ''
-    const savedTranslationAllowGoogle = clientConfig?.translation?.allowGoogle !== false
+    const savedTranslationFallback = clientConfig?.translation?.fallbackService ||
+      (clientConfig?.translation?.allowGoogle === false ? 'none' : 'google')
     const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
     const savedAutoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
     const savedInlineVideo = clientConfig?.layout?.inlineVideo === true
@@ -98,7 +108,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       Boolean(localConfig.unroll.showDividers) !== savedShowDividers ||
       Boolean(localConfig.translation.enabled) !== savedTranslationEnabled ||
       (localConfig.translation.baseUrl || '') !== savedTranslationBase ||
-      Boolean(localConfig.translation.allowGoogle) !== savedTranslationAllowGoogle ||
+      (localConfig.translation.fallbackService || 'google') !== savedTranslationFallback ||
       Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview ||
       Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs ||
       Boolean(localConfig.layout.inlineVideo) !== savedInlineVideo ||
@@ -112,6 +122,11 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const current = LANGUAGE_OPTIONS.find(opt => opt.value === (localConfig.locale || 'de')) || LANGUAGE_OPTIONS[0]
     return t(current.labelKey, current.fallback)
   }, [localConfig.locale, t])
+  const selectedFallbackLabel = useMemo(() => {
+    const fallbackValue = localConfig.translation.fallbackService || 'google'
+    const current = TRANSLATION_FALLBACK_OPTIONS.find(opt => opt.value === fallbackValue) || TRANSLATION_FALLBACK_OPTIONS[0]
+    return t(current.labelKey, current.fallback)
+  }, [localConfig.translation.fallbackService, t])
 
   if (!open) return null
 
@@ -134,7 +149,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
       translation: {
         enabled: Boolean(localConfig.translation.enabled),
         baseUrl: localConfig.translation.baseUrl?.trim() || '',
-        allowGoogle: Boolean(localConfig.translation.allowGoogle)
+        fallbackService: localConfig.translation.fallbackService || 'google',
+        allowGoogle: (localConfig.translation.fallbackService || 'google') === 'google'
       },
       composer: {
         showReplyPreview: Boolean(localConfig.composer.showReplyPreview)
@@ -561,30 +577,64 @@ export default function ClientSettingsModal ({ open, onClose }) {
                       )}
                     </p>
                   </div>
-                  <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
-                    <input
-                      type='checkbox'
-                      className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
-                      checked={Boolean(localConfig.translation.allowGoogle)}
-                      onChange={(event) =>
+                  <div className='space-y-2'>
+                    <label className='block text-sm font-medium text-foreground'>
+                      {t('clientSettings.translation.fallbackLabel', 'Web-Übersetzer als Fallback')}
+                    </label>
+                    <Select.Root
+                      value={localConfig.translation.fallbackService || 'google'}
+                      onValueChange={(value) =>
                         setLocalConfig((current) => ({
                           ...current,
                           translation: {
                             ...current.translation,
-                            allowGoogle: event.target.checked
+                            fallbackService: value
                           }
                         }))
                       }
                       disabled={!localConfig.translation.enabled}
-                    />
-                    <span>{t('clientSettings.translation.allowGoogleLabel', 'Google-Übersetzung als Fallback verwenden')}</span>
-                  </label>
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'clientSettings.translation.allowGoogleHelp',
-                      'Wenn kein Server eingetragen ist, öffnet der Button Google Translate in einem neuen Tab.'
-                    )}
-                  </p>
+                    >
+                    <Select.Trigger className='flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm font-semibold text-foreground shadow-soft transition hover:border-primary/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' aria-label={t('clientSettings.translation.fallbackLabel', 'Web-Übersetzer als Fallback')}>
+                      <div className='flex w-full items-center justify-between'>
+                        <Select.Value aria-label={selectedFallbackLabel}>
+                          {selectedFallbackLabel}
+                        </Select.Value>
+                        <span className='inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-foreground-muted'>
+                          {t('clientSettings.translation.fallbackChange', 'Ändern')}
+                          <ChevronDownIcon className='h-4 w-4' />
+                        </span>
+                      </div>
+                    </Select.Trigger>
+                  <Select.Portal>
+                        <Select.Content
+                          align='start'
+                          sideOffset={6}
+                          className='z-[300] overflow-hidden rounded-2xl border border-border bg-background-elevated text-sm text-foreground shadow-2xl focus-visible:outline-none'
+                        >
+                          <Select.Viewport className='space-y-1 p-2'>
+                            {TRANSLATION_FALLBACK_OPTIONS.map((option) => (
+                              <Select.Item
+                                key={option.value}
+                                value={option.value}
+                                className='flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 font-medium outline-none transition data-[highlighted]:bg-background-subtle/80 data-[state=checked]:bg-primary/10'
+                              >
+                                <Select.ItemText>{t(option.labelKey, option.fallback)}</Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <CheckIcon className='h-4 w-4 text-primary' />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            ))}
+                          </Select.Viewport>
+                        </Select.Content>
+                      </Select.Portal>
+                    </Select.Root>
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'clientSettings.translation.fallbackHelp',
+                        'Wenn der Server nicht erreichbar ist, wird der ausgewählte Dienst in einem neuen Tab geöffnet.'
+                      )}
+                    </p>
+                  </div>
                 </div>
               </section>
               <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>

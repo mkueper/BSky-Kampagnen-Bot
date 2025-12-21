@@ -7,7 +7,7 @@ const DEFAULT_CONFIG = {
   gifs: { tenorAvailable: false, tenorApiKey: '' },
   search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true },
-  translation: { enabled: null, baseUrl: '', allowGoogle: true },
+  translation: { enabled: null, baseUrl: '', allowGoogle: true, fallbackService: 'google' },
   composer: { showReplyPreview: true },
   layout: {
     autoPlayGifs: false,
@@ -71,6 +71,15 @@ const normalizeConfig = (input = {}) => {
     ? next.translation.baseUrl.trim()
     : ''
   next.translation.allowGoogle = next.translation.allowGoogle !== false
+  const rawFallback = typeof next.translation.fallbackService === 'string'
+    ? next.translation.fallbackService.trim().toLowerCase()
+    : ''
+  const fallbackOptions = new Set(['google', 'deepl', 'bing', 'yandex', 'none'])
+  if (fallbackOptions.has(rawFallback)) {
+    next.translation.fallbackService = rawFallback
+  } else {
+    next.translation.fallbackService = next.translation.allowGoogle ? 'google' : 'none'
+  }
   next.composer.showReplyPreview = next.composer.showReplyPreview !== false
   next.layout.autoPlayGifs = next.layout.autoPlayGifs === true
   if (next.layout.inlineVideo === undefined && legacyInlineVideo !== undefined) {

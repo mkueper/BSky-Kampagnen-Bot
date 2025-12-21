@@ -395,6 +395,19 @@ const messages = {
         repost: '{actor} hat repostet',
         like: '{actor} gefällt das'
       },
+      moderation: {
+        loading: 'Moderation wird geladen…',
+        filteredTitle: 'Ausgeblendeter Beitrag',
+        filteredBody: 'Dieser Beitrag ist durch deine Moderationseinstellungen ausgeblendet.',
+        warningTitle: 'Inhalt ausgeblendet',
+        warningBody: 'Dieser Beitrag wurde wegen deiner Moderationseinstellungen ausgeblendet.',
+        warningLabel: 'Label: {label}',
+        show: 'Anzeigen',
+        hide: 'Ausblenden',
+        multiLabel: '{count} Kennzeichnungen',
+        noticeLabel: 'Label: {label}',
+        noticeBody: 'Hinweis aus Moderationseinstellungen.'
+      },
       media: {
         imageOpen: 'Bild vergrößert anzeigen',
         videoOpen: 'Video öffnen',
@@ -713,7 +726,7 @@ const messages = {
         gifsTitle: 'GIF-Integration',
         gifsDescription: 'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.',
         translationTitle: 'Übersetzungshilfe',
-        translationDescription: 'Konfiguriere LibreTranslate oder den Google-Fallback für Übersetzungen.',
+        translationDescription: 'Konfiguriere LibreTranslate und wähle einen Web-Fallback für Übersetzungen.',
         unrollTitle: 'Unroll',
         unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.',
         composerTitle: 'Composer',
@@ -757,8 +770,16 @@ const messages = {
         baseUrlLabel: 'LibreTranslate-Server',
         baseUrlPlaceholder: 'z. B. http://localhost:5000',
         baseUrlHelp: 'Nur lokale oder private Endpunkte werden akzeptiert. Der Pfad /translate wird automatisch ergänzt.',
-        allowGoogleLabel: 'Google-Übersetzung als Fallback verwenden',
-        allowGoogleHelp: 'Ohne Server öffnet der Button Google Translate in einem neuen Tab.'
+        fallbackLabel: 'Web-Übersetzer als Fallback',
+        fallbackHelp: 'Wenn der Server nicht erreichbar ist, wird der ausgewählte Dienst in einem neuen Tab geöffnet.',
+        fallbackChange: 'Ändern',
+        fallback: {
+          google: 'Google Translate',
+          deepl: 'DeepL',
+          bing: 'Microsoft Translator',
+          yandex: 'Yandex Translate',
+          none: 'Kein Fallback'
+        }
       },
       unroll: {
         showDividersLabel: 'Trennlinien zwischen Posts anzeigen',
@@ -888,6 +909,19 @@ const messages = {
         unknownActor: 'Someone',
         repost: '{actor} reposted this',
         like: '{actor} liked this'
+      },
+      moderation: {
+        loading: 'Loading moderation…',
+        filteredTitle: 'Hidden post',
+        filteredBody: 'This post is hidden by your moderation settings.',
+        warningTitle: 'Content hidden',
+        warningBody: 'This post was hidden by your moderation settings.',
+        warningLabel: 'Label: {label}',
+        show: 'Show',
+        hide: 'Hide',
+        multiLabel: '{count} labels',
+        noticeLabel: 'Label: {label}',
+        noticeBody: 'Moderation notice.'
       },
       media: {
         imageOpen: 'View image in full size',
@@ -1362,7 +1396,7 @@ const messages = {
         gifsTitle: 'GIF integration',
         gifsDescription: 'Enable Tenor to search and insert GIFs right from the composer.',
         translationTitle: 'Translation helper',
-        translationDescription: 'Configure LibreTranslate or fall back to Google Translate.',
+        translationDescription: 'Configure LibreTranslate and choose a web fallback for translations.',
         unrollTitle: 'Unroll',
         unrollDescription: 'Control how the unroll dialog renders author threads.',
         composerTitle: 'Composer',
@@ -1406,8 +1440,16 @@ const messages = {
         baseUrlLabel: 'LibreTranslate server',
         baseUrlPlaceholder: 'e.g. http://localhost:5000',
         baseUrlHelp: 'Only local/private hosts are allowed. The /translate suffix is appended automatically.',
-        allowGoogleLabel: 'Use Google Translate as fallback',
-        allowGoogleHelp: 'If no server is configured, the button opens Google Translate in a new tab.'
+        fallbackLabel: 'Web translator fallback',
+        fallbackHelp: 'If the server is unavailable, the selected service opens in a new tab.',
+        fallbackChange: 'Change',
+        fallback: {
+          google: 'Google Translate',
+          deepl: 'DeepL',
+          bing: 'Microsoft Translator',
+          yandex: 'Yandex Translate',
+          none: 'No fallback'
+        }
       },
       unroll: {
         showDividersLabel: 'Show dividers between posts',

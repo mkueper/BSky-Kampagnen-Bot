@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { moderatePost } from '@atproto/api'
 import {
   ChatBubbleIcon,
   HeartIcon,
@@ -44,6 +45,7 @@ import {
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
+import { useModerationPreferences } from '../../hooks/useModerationPreferences.js'
 import { muteActor as apiMuteActor, blockActor as apiBlockActor } from '../shared/api/bsky'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 
@@ -139,6 +141,25 @@ const normalizeTranslateEndpoint = (rawUrl) => {
   }
 }
 
+const buildFallbackTranslateUrl = (service, language, content) => {
+  const target = encodeURIComponent(content || '')
+  if (!target) return ''
+  const lang = language || 'en'
+  if (service === 'deepl') {
+    return `https://www.deepl.com/translator#auto/${lang}/${target}`
+  }
+  if (service === 'bing') {
+    return `https://www.bing.com/translator?from=auto&to=${lang}&text=${target}`
+  }
+  if (service === 'yandex') {
+    return `https://translate.yandex.com/?source_lang=auto&target_lang=${lang}&text=${target}`
+  }
+  if (service === 'google') {
+    return `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+  }
+  return ''
+}
+
 const RELATIVE_TIME_UNITS = [
   { unit: 'year', seconds: 31536000 },
   { unit: 'month', seconds: 2592000 },
@@ -170,6 +191,14 @@ const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
   const baseFromConfig = typeof translationConfig.baseUrl === 'string' ? translationConfig.baseUrl.trim() : ''
   const baseFromEnv = typeof envBaseUrl === 'string' ? envBaseUrl.trim() : ''
   const allowGoogle = translationConfig.allowGoogle !== false
+  const fallbackRaw = typeof translationConfig.fallbackService === 'string'
+    ? translationConfig.fallbackService.trim().toLowerCase()
+    : ''
+  const fallbackOptions = new Set(['google', 'deepl', 'bing', 'yandex', 'none'])
+  const fallbackService = fallbackOptions.has(fallbackRaw)
+    ? fallbackRaw
+    : (allowGoogle ? 'google' : 'none')
+  const allowFallback = fallbackService !== 'none'
   const explicitEnabled = typeof translationConfig.enabled === 'boolean' ? translationConfig.enabled : null
   const envEnabled = parseBoolean(envEnabledRaw, null)
   let featureEnabled = true
@@ -183,12 +212,12 @@ const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
     featureEnabled = false
   }
   if (!featureEnabled) {
-    return { enabled: false, endpoint: null, allowGoogle: false }
+    return { enabled: false, endpoint: null, allowFallback: false, fallbackService: 'none' }
   }
-  const shouldFallbackToDefault = !(baseFromConfig || baseFromEnv) && !allowGoogle
+  const shouldFallbackToDefault = !(baseFromConfig || baseFromEnv) && !allowFallback
   const rawEndpoint = baseFromConfig || baseFromEnv || (shouldFallbackToDefault ? DEFAULT_TRANSLATE_BASE : '')
   const endpoint = normalizeTranslateEndpoint(rawEndpoint)
-  return { enabled: true, endpoint, allowGoogle }
+  return { enabled: true, endpoint, allowFallback, fallbackService }
 }
 
 function extractMediaFromEmbed (item) {
@@ -399,6 +428,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const { t, locale } = useTranslation()
   const { session } = useBskyAuth()
   const { clientConfig } = useClientConfig()
+  const { prefs: moderationPrefs, labelDefs, loading: moderationLoading } = useModerationPreferences({
+    enabled: Boolean(session?.did)
+  })
   const { author = {}, text = '', createdAt, stats = {} } = item || {}
   const media = useMemo(() => extractMediaFromEmbed(item), [item])
   const mediaItems = media.media
@@ -680,6 +712,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [blockingAccount, setBlockingAccount] = useState(false)
   const [menuActionError, setMenuActionError] = useState('')
   const menuRef = useRef(null)
+  const [moderationRevealed, setModerationRevealed] = useState(false)
 
 
   useEffect(() => {
@@ -717,9 +750,60 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   }, [locale])
   const translationEndpoint = translationPreferences.endpoint
   const translationEnabled = translationPreferences.enabled !== false
-  const allowGoogleFallback = translationPreferences.allowGoogle !== false
+  const fallbackService = translationPreferences.fallbackService || 'none'
+  const allowFallback = translationPreferences.allowFallback === true
   const canInlineTranslate = Boolean(translationEndpoint)
-  const translateUnavailable = !canInlineTranslate && !allowGoogleFallback
+  const translateUnavailable = !canInlineTranslate && !allowFallback
+  const moderationDecision = useMemo(() => {
+    if (!moderationPrefs || !labelDefs || !item?.raw) return null
+    const postView = item?.raw?.post || item?.raw?.item || item?.raw?.record || null
+    if (!postView) return null
+    try {
+      return moderatePost(postView, {
+        userDid: session?.did || null,
+        prefs: moderationPrefs,
+        labelDefs
+      })
+    } catch {
+      return null
+    }
+  }, [item?.raw, labelDefs, moderationPrefs, session?.did])
+  const moderationListUi = useMemo(() => {
+    if (!moderationDecision) return null
+    return moderationDecision.ui('contentList')
+  }, [moderationDecision])
+  const moderationMediaUi = useMemo(() => {
+    if (!moderationDecision) return null
+    return moderationDecision.ui('contentMedia')
+  }, [moderationDecision])
+  const moderationBlocked = Boolean(moderationListUi?.filter)
+  const moderationAlerts = moderationListUi?.alerts || []
+  const moderationInforms = moderationListUi?.informs || []
+  const moderationListBlurs = moderationListUi?.blurs || []
+  const moderationMediaBlurs = moderationMediaUi?.blurs || []
+  const moderationNoOverride = Boolean(moderationListUi?.noOverride || moderationMediaUi?.noOverride)
+  const moderationHasWarning = moderationAlerts.length > 0 ||
+    moderationInforms.length > 0 ||
+    moderationListBlurs.length > 0 ||
+    moderationMediaBlurs.length > 0
+  const moderationNeedsBlur = moderationListBlurs.length > 0
+  const moderationMediaNeedsBlur = moderationMediaBlurs.length > 0
+  const moderationHasBlur = moderationNeedsBlur || moderationMediaNeedsBlur
+  const moderationSummary = useMemo(() => {
+    const causes = [...moderationAlerts, ...moderationInforms, ...moderationListBlurs, ...moderationMediaBlurs]
+    const labels = causes
+      .map((cause) => cause?.label?.val || cause?.label?.identifier || '')
+      .filter(Boolean)
+    if (!labels.length) return ''
+    const unique = Array.from(new Set(labels))
+    if (unique.length === 1) {
+      return unique[0]
+    }
+    return t('skeet.moderation.multiLabel', '{count} Kennzeichnungen', { count: unique.length })
+  }, [moderationAlerts, moderationInforms, moderationListBlurs, moderationMediaBlurs, t])
+  useEffect(() => {
+    setModerationRevealed(false)
+  }, [item?.uri, moderationSummary])
   const detectEndpoint = useMemo(() => {
     if (!translationEndpoint) return null
     return translationEndpoint.replace(/\/translate$/i, '/detect')
@@ -798,19 +882,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   }, [])
 
   const openExternalTranslate = useCallback(() => {
-    if (!allowGoogleFallback) {
+    if (!allowFallback) {
       showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
       return
     }
-    const target = encodeURIComponent(text || '')
-    if (!target) {
+    const url = buildFallbackTranslateUrl(fallbackService, targetLanguage || 'en', text || '')
+    if (!url) {
       showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
       return
     }
-    const lang = targetLanguage || 'en'
-    const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
     window.open(url, '_blank', 'noopener,noreferrer')
-  }, [allowGoogleFallback, showPlaceholder, t, targetLanguage, text])
+  }, [allowFallback, fallbackService, showPlaceholder, t, targetLanguage, text])
 
   const handleInlineTranslate = useCallback(async () => {
     if (!translationEnabled || !canInlineTranslate) {
@@ -856,12 +938,18 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       setFeedbackMessage(t('skeet.translation.success', 'Übersetzung eingefügt.'))
     } catch (error) {
       if (error?.name === 'AbortError') return
+      if (allowFallback) {
+        openExternalTranslate()
+        return
+      }
       setTranslationError(error?.message || t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
     } finally {
       setTranslating(false)
     }
   }, [
+    allowFallback,
     canInlineTranslate,
+    openExternalTranslate,
     t,
     targetLanguage,
     text,
@@ -879,13 +967,13 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       handleInlineTranslate()
       return
     }
-    if (allowGoogleFallback) {
+    if (allowFallback) {
       openExternalTranslate()
       return
     }
     showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
   }, [
-    allowGoogleFallback,
+    allowFallback,
     canInlineTranslate,
     handleInlineTranslate,
     openExternalTranslate,
@@ -1078,77 +1166,136 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     })
   }
 
-  const body = (
-    <>
-      {contextLabel ? (
-        <p className='mb-2 text-xs font-semibold text-foreground-muted'>{contextLabel}</p>
-      ) : null}
-      <header className='flex items-center gap-3'>
-        <button type='button' onClick={handleProfileClick} className='inline-flex rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'>
-          <ProfilePreviewTrigger actor={actorIdentifier} fallback={author}>
-            {author.avatar ? (
-              <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
-            ) : (
-              <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
-            )}
-          </ProfilePreviewTrigger>
-        </button>
-        <div className='min-w-0 flex-1'>
-          <ActorProfileLink
-            actor={actorIdentifier}
-            handle={author?.handle || ''}
-            anchor={item?.uri || null}
-            className='inline-flex max-w-full flex-col min-w-0 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-          >
-            <span className='inline-flex flex-col text-left'>
-              <span className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</span>
-              {author.handle ? (
-                <span className='truncate text-sm text-foreground-muted'>@{author.handle}</span>
-              ) : null}
-            </span>
-          </ActorProfileLink>
-        </div>
-        <div className='ml-auto flex items-center gap-1'>
-          {createdAt ? (
-            <time className='whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
-              {timeLabel}
-            </time>
-          ) : null}
-        </div>
-      </header>
-      <div className='mt-3 text-sm text-foreground'>
-        <RichText
-          text={text}
-          facets={item?.raw?.post?.record?.facets}
-          className='whitespace-pre-wrap break-words'
-          hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
-          disableHashtagMenu={disableHashtagMenu}
-        />
-      </div>
-      {translationResult ? (
-        <div className='mt-3 rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
-          <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
-            <span>{t('skeet.translation.title', 'Übersetzung')}</span>
-            <button
-              type='button'
-              className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-              onClick={handleClearTranslation}
-            >
-              <Cross2Icon className='h-3 w-3' />
-              {t('skeet.translation.close', 'Schließen')}
-            </button>
-          </div>
-          <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
-          <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
-            {translationResult.detected
-              ? t('skeet.translation.detected', 'Erkannt: {language}', { language: translationResult.detected.toUpperCase() })
-              : null}
-            <span className='ml-2'>{t('skeet.translation.via', 'Automatisch übersetzt via LibreTranslate')}</span>
+  const moderationHasToggle = moderationHasBlur && !moderationBlocked && !moderationNoOverride
+  const moderationHeader = moderationBlocked ? (
+    <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
+      <p className='font-semibold text-foreground'>{t('skeet.moderation.filteredTitle', 'Ausgeblendeter Beitrag')}</p>
+      <p className='mt-1 text-xs text-foreground-muted'>
+        {t('skeet.moderation.filteredBody', 'Dieser Beitrag ist durch deine Moderationseinstellungen ausgeblendet.')}
+      </p>
+    </div>
+  ) : moderationHasBlur && moderationHasWarning ? (
+    <button
+      type='button'
+      className='w-full rounded-2xl border border-border bg-background-subtle px-3 py-3 text-left text-sm text-foreground hover:bg-background'
+      onClick={moderationHasToggle ? (() => setModerationRevealed((current) => !current)) : undefined}
+      aria-expanded={moderationHasToggle ? moderationRevealed : undefined}
+    >
+      <div className='flex items-start justify-between gap-3'>
+        <div>
+          <p className='font-semibold text-foreground'>{t('skeet.moderation.warningTitle', 'Inhalt ausgeblendet')}</p>
+          <p className='mt-1 text-xs text-foreground-muted'>
+            {moderationSummary
+              ? t('skeet.moderation.warningLabel', 'Label: {label}', { label: moderationSummary })
+              : t('skeet.moderation.warningBody', 'Dieser Beitrag wurde wegen deiner Moderationseinstellungen ausgeblendet.')}
           </p>
         </div>
-      ) : null}
+        {moderationHasToggle ? (
+          <span className='text-xs font-semibold text-foreground'>
+            {moderationRevealed
+              ? t('skeet.moderation.hide', 'Ausblenden')
+              : t('skeet.moderation.show', 'Anzeigen')}
+          </span>
+        ) : null}
+      </div>
+    </button>
+  ) : moderationHasWarning ? (
+    <div className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-xs text-foreground-muted'>
+      {moderationSummary
+        ? t('skeet.moderation.noticeLabel', 'Label: {label}', { label: moderationSummary })
+        : t('skeet.moderation.noticeBody', 'Hinweis aus Moderationseinstellungen.')}
+    </div>
+  ) : null
 
-      {quoted ? (
+  const moderationCoverAll = moderationNeedsBlur && !moderationBlocked && !moderationRevealed
+  const moderationCoverMedia = moderationMediaNeedsBlur && !moderationBlocked && !moderationRevealed && !moderationCoverAll
+  const moderationMutedOverlay = moderationCoverAll
+    ? (
+      <div className='pointer-events-none absolute inset-0 rounded-2xl bg-background/50 backdrop-blur-md' />
+    )
+    : null
+  const moderationMediaOverlay = moderationCoverMedia
+    ? <div className='pointer-events-none absolute inset-0 rounded-xl bg-background' />
+    : null
+  const moderationHideMedia = moderationCoverMedia
+
+  const body = (
+    <>
+      {!moderationBlocked ? (
+        <div className='relative'>
+          <div className={moderationCoverAll ? 'pointer-events-none select-none' : ''}>
+            {contextLabel ? (
+              <p className='mb-2 text-xs font-semibold text-foreground-muted'>{contextLabel}</p>
+            ) : null}
+            <header className='flex items-center gap-3'>
+            <button type='button' onClick={handleProfileClick} className='inline-flex rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'>
+              <ProfilePreviewTrigger actor={actorIdentifier} fallback={author}>
+                {author.avatar ? (
+                  <img src={author.avatar} alt='' className='h-10 w-10 shrink-0 rounded-full border border-border object-cover' />
+                ) : (
+                  <div className='h-10 w-10 shrink-0 rounded-full border border-border bg-background-subtle' />
+                )}
+              </ProfilePreviewTrigger>
+            </button>
+            <div className='min-w-0 flex-1'>
+              <ActorProfileLink
+                actor={actorIdentifier}
+                handle={author?.handle || ''}
+                anchor={item?.uri || null}
+                className='inline-flex max-w-full flex-col min-w-0 rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              >
+                <span className='inline-flex flex-col text-left'>
+                  <span className='truncate font-semibold text-foreground'>{author.displayName || author.handle}</span>
+                  {author.handle ? (
+                    <span className='truncate text-sm text-foreground-muted'>@{author.handle}</span>
+                  ) : null}
+                </span>
+              </ActorProfileLink>
+            </div>
+            <div className='ml-auto flex items-center gap-1'>
+              {createdAt ? (
+                <time className='whitespace-nowrap text-xs text-foreground-muted' dateTime={createdAt}>
+                  {timeLabel}
+                </time>
+              ) : null}
+            </div>
+          </header>
+            <div className='mt-3 text-sm text-foreground'>
+              <RichText
+                text={text}
+                facets={item?.raw?.post?.record?.facets}
+                className='whitespace-pre-wrap break-words'
+                hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+                disableHashtagMenu={disableHashtagMenu}
+              />
+            </div>
+            {moderationHeader ? (
+              <div className='mt-3'>{moderationHeader}</div>
+            ) : null}
+            {translationResult ? (
+            <div className='mt-3 rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
+              <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
+                <span>{t('skeet.translation.title', 'Übersetzung')}</span>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                  onClick={handleClearTranslation}
+                >
+                  <Cross2Icon className='h-3 w-3' />
+                  {t('skeet.translation.close', 'Schließen')}
+                </button>
+              </div>
+              <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
+              <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
+                {translationResult.detected
+                  ? t('skeet.translation.detected', 'Erkannt: {language}', { language: translationResult.detected.toUpperCase() })
+                  : null}
+                <span className='ml-2'>{t('skeet.translation.via', 'Automatisch übersetzt via LibreTranslate')}</span>
+              </p>
+            </div>
+          ) : null}
+
+          {quoted && !moderationBlocked ? (
         <div
           className={`mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${
             quoteClickable
@@ -1206,17 +1353,23 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             </div>
           )}
         </div>
-      ) : null}
+          ) : null}
 
-      {images.length > 0 ? (
+          {images.length > 0 && !moderationBlocked && !moderationCoverMedia ? (
         <div className='mt-3' data-component='BskySkeetImages'>
           {images.length === 1 ? (
             <div
-              role='button'
-              tabIndex={0}
-              className='group block cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
-              onClick={(event) => handleMediaPreview(event, images[0].mediaIndex ?? 0)}
-              onKeyDown={(event) => handleMediaKeyDown(event, images[0].mediaIndex ?? 0)}
+              role={moderationCoverAll || moderationCoverMedia ? undefined : 'button'}
+              tabIndex={moderationCoverAll || moderationCoverMedia ? undefined : 0}
+              className={`group block rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60 ${
+                moderationCoverAll || moderationCoverMedia ? 'cursor-default' : 'cursor-zoom-in'
+              }`}
+              onClick={moderationCoverAll || moderationCoverMedia
+                ? undefined
+                : (event) => handleMediaPreview(event, images[0].mediaIndex ?? 0)}
+              onKeyDown={moderationCoverAll || moderationCoverMedia
+                ? undefined
+                : (event) => handleMediaKeyDown(event, images[0].mediaIndex ?? 0)}
               aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
             >
               <div
@@ -1226,9 +1379,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 <img
                   src={images[0].src}
                   alt={images[0].alt || ''}
-                  className='h-full w-full object-contain'
+                  className={`h-full w-full object-contain${moderationHideMedia ? ' opacity-0' : ''}`}
                   loading='lazy'
                 />
+                {moderationMediaOverlay}
               </div>
             </div>
           ) : (
@@ -1238,11 +1392,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               {images.map((im, idx) => (
                 <div
                   key={idx}
-                  role='button'
-                  tabIndex={0}
-                  className='cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
-                  onClick={(event) => handleMediaPreview(event, im.mediaIndex ?? idx)}
-                  onKeyDown={(event) => handleMediaKeyDown(event, im.mediaIndex ?? idx)}
+                  role={moderationCoverAll || moderationCoverMedia ? undefined : 'button'}
+                  tabIndex={moderationCoverAll || moderationCoverMedia ? undefined : 0}
+                  className={`rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60 ${
+                    moderationCoverAll || moderationCoverMedia ? 'cursor-default' : 'cursor-zoom-in'
+                  }`}
+                  onClick={moderationCoverAll || moderationCoverMedia
+                    ? undefined
+                    : (event) => handleMediaPreview(event, im.mediaIndex ?? idx)}
+                  onKeyDown={moderationCoverAll || moderationCoverMedia
+                    ? undefined
+                    : (event) => handleMediaKeyDown(event, im.mediaIndex ?? idx)}
                   aria-label={t('skeet.media.imageOpen', 'Bild vergrößert anzeigen')}
                 >
                   <div
@@ -1252,18 +1412,19 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     <img
                       src={im.src}
                       alt={im.alt || ''}
-                      className='h-full w-full object-contain'
+                      className={`h-full w-full object-contain${moderationHideMedia ? ' opacity-0' : ''}`}
                       loading='lazy'
                     />
+                    {moderationMediaOverlay}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      ) : null}
+          ) : null}
 
-      {videos.length > 0 ? (
+          {videos.length > 0 && !moderationBlocked ? (
         <div className='mt-3 space-y-2' data-component='BskySkeetVideos'>
           {videos.map((video) => {
             const singleMediaMax = config?.singleMax ?? 360
@@ -1282,12 +1443,16 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                 key={video.mediaIndex ?? video.src}
                 type='button'
                 className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-                onClick={(event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    handleMediaPreview(event, video.mediaIndex ?? 0)
-                  }
-                }}
+                onClick={moderationCoverAll || moderationCoverMedia
+                  ? undefined
+                  : (event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
+                onKeyDown={moderationCoverAll || moderationCoverMedia
+                  ? undefined
+                  : (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        handleMediaPreview(event, video.mediaIndex ?? 0)
+                      }
+                    }}
                 title={t('skeet.media.videoOpen', 'Video öffnen')}
                 aria-label={t('skeet.media.videoOpen', 'Video öffnen')}
               >
@@ -1299,7 +1464,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     <img
                       src={video.poster}
                       alt={video.alt || ''}
-                      className='h-full w-full object-contain opacity-80'
+                      className={`h-full w-full object-contain opacity-80${moderationHideMedia ? ' opacity-0' : ''}`}
                       loading='lazy'
                     />
                   ) : (
@@ -1312,14 +1477,15 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       <TriangleRightIcon className='h-6 w-6 translate-x-[1px]' />
                     </span>
                   </span>
+                  {moderationMediaOverlay}
                 </div>
               </button>
             )
           })}
         </div>
-      ) : null}
+          ) : null}
 
-      {external && mediaItems.length === 0 ? (
+          {external && mediaItems.length === 0 && !moderationBlocked ? (
         youtubePreview ? (
           inlineVideo ? (
             youtubeInlineOpen ? (
@@ -1555,6 +1721,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               </a>
               )
         )
+          ) : null}
+          </div>
+          {moderationMutedOverlay}
+        </div>
       ) : null}
     </>
   )
@@ -1576,7 +1746,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
           {body}
         </div>
       ) : body}
-      {showActions ? (
+      {showActions && !moderationBlocked ? (
         <>
           <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
             <button
@@ -1758,6 +1928,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             <p className='mt-2 text-xs text-red-600'>{menuActionError}</p>
           ) : null}
         </>
+      ) : null}
+      {moderationLoading ? (
+        <p className='mt-2 text-xs text-foreground-muted'>{t('skeet.moderation.loading', 'Moderation wird geladen…')}</p>
       ) : null}
       <ConfirmDialog
         open={confirmDialog.open}
