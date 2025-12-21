@@ -1,0 +1,9 @@
+.notification-toggle-button {
+  background: hsl(var(--foreground) / 0.08);
+  justify-content: center;
+  min-width: 7.5rem;
+}
+
+.notification-toggle-button:hover {
+  background: hsl(var(--foreground) / 0.16);
+}

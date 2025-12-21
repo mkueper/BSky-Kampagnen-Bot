@@ -2,27 +2,25 @@
 21.12.2025
 
 2. Status (aktueller Stand, keine To-Dos)
-Client-Settings sind erweitert: Video-Tab mit Allowlist/Toggle, fixe Modal-Höhe (80vh), Medien-Hinweise direkt in den Options-Karten. Zeitstempel können jetzt zwischen relativ/absolut umgeschaltet werden (Default: relativ). Tests liefen grün (bekannte Warn-Logs wie zuvor).
+Mitteilungen zeigen jetzt gruppierte Interaktoren mit Avatar-Stack, ausklappbarer Liste (Profil-Preview/Link) und stabiler Zeilen-Layouts; der Toggle ist als größerer Button umgesetzt, optisch im hellen Theme sichtbar und ohne Breiten-Sprung. Content-Label-Warnblöcke sind auf offizielle Bluesky-Labels gefiltert. Tests liefen grün (bekannte Warn-Logs wie zuvor).
 
 3. Startpunkt (kurze Einleitung für die nächste Session)
-Als Nächstes prüfen wir das Verhalten von bsky.app bei deaktivierten Video-Hosts und gleichen es im Client ab. Außerdem klären wir die Terminologie/Tab-Zuordnung (Layout vs. Darstellung) und justieren die Modal-Höhe optisch nach.
+Als Nächstes beobachten wir die drei offenen Punkte aus `_remind-me.md` (Video-Hosts-Verhalten, Modal-Höhe, offizielle Content-Labels) und prüfen, ob Anpassungen notwendig werden.
 
 4. Nächste Schritte (konkrete, umsetzbare To-Dos)
-- bsky.app Verhalten bei deaktivierter Video-Allowlist prüfen und dokumentieren.
-- Entscheidung zu „Layout“ vs. „Darstellung“ sowie Zuordnung von Sprache/Composer im Settings-Modal treffen.
-- Modal-Höhe im Client-Settings-Dialog feinjustieren (visuelle Wirkung prüfen).
-- Dashboard: Posts und Threads per Suchbegriffen (z. B. Hashtags) filterbar machen.
+- Beobachten: bsky.app Verhalten bei deaktivierter Video-Allowlist prüfen und dokumentieren.
+- Beobachten: Modal-Höhe im Client-Settings-Dialog (aktuell 65vh) visuell im Auge behalten.
+- Beobachten: nur offizielle Bluesky-Labels in Content-Warnblöcken anzeigen (Fremdlabels dürfen nicht auftauchen).
 
 5. ToDos nach Priorität, sofern bekannt durchnummerieren, sonst anhängen
-1) Video-Allowlist-Verhalten mit bsky.app abgleichen und im Client anpassen.
-2) Terminologie/Layout-Tab klären (inkl. Sprache/Composer-Zuordnung).
-3) Modal-Höhe im Client-Settings-Dialog feinjustieren.
-4) Dashboard-Filter für Posts/Threads nach Suchbegriffen (z. B. Hashtags) definieren und umsetzen.
+1) Beobachten: Video-Allowlist-Verhalten mit bsky.app abgleichen und ggf. anpassen.
+2) Beobachten: Modal-Höhe im Client-Settings-Dialog visuell prüfen.
+3) Beobachten: Content-Warnblöcke bleiben auf offizielle Bluesky-Labels beschränkt.
 
 6. Abschluss-Check (prüfbare Kriterien, optional)
-- Zeitstempel-Umschaltung zeigt korrekt relativ/absolut in SkeetCards.
+- Content-Warnblöcke erscheinen nur für offizielle Bluesky-Labels.
+- Mitteilungen zeigen Interaktoren wie im Vorbild (Avatar-Stack, Toggle, Liste) ohne Layout-Sprünge.
 - Video-Hosts-Verhalten entspricht bsky.app, wenn Allowlist deaktiviert ist.
-- Client-Settings-Modal bleibt beim Tab-Wechsel optisch stabil (ohne Springen).
 
 7. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
 - Sollen Client-Einstellungen später serverseitig persistiert werden (Preferences), oder bleibt alles lokal?

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
+import { ChatBubbleIcon, ChevronDownIcon, ChevronUpIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
 import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger, ActorProfileLink } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
@@ -388,6 +388,15 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
   const profileActor = author?.did || author?.handle || ''
+  const resolvedActors = useMemo(() => {
+    if (Array.isArray(item?.actors) && item.actors.length) return item.actors
+    if (author?.did || author?.handle || author?.displayName || author?.avatar) return [author]
+    return []
+  }, [author, item?.actors])
+  const maxActors = 5
+  const visibleActors = resolvedActors.slice(0, maxActors)
+  const overflowCount = Math.max(0, resolvedActors.length - maxActors)
+  const canExpandActors = overflowCount > 0
 
   const replyMedia = useMemo(() => {
     if (!isReply) return null
@@ -420,6 +429,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const [quoteBusy, setQuoteBusy] = useState(false)
   const [quoteMessage, setQuoteMessage] = useState('')
   const [quoteMessageIsError, setQuoteMessageIsError] = useState(false)
+  const [actorsExpanded, setActorsExpanded] = useState(false)
 
   const markAsRead = useCallback(() => {
     if (!isRead && typeof onMarkRead === 'function') {
@@ -536,6 +546,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     onSelectSubject(buildThreadTarget(finalTarget))
   }, [onSelectSubject, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
+  useEffect(() => {
+    setActorsExpanded(false)
+  }, [item?.listEntryId])
+
   const authorDisplayName = author.displayName || author.handle || ''
   const fallbackAuthorLabel = t('notifications.card.authorUnknown', 'Unbekannt')
   const authorLabel = authorDisplayName || author?.handle || fallbackAuthorLabel
@@ -554,20 +568,6 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     openProfileViewer()
   }, [openProfileViewer])
 
-  const avatarVisual = author.avatar ? (
-    <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
-  ) : (
-    <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
-  )
-
-  const avatarWithPreview = profileActor
-    ? (
-      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
-        {avatarVisual}
-      </ProfilePreviewTrigger>
-      )
-    : avatarVisual
-
   const renderAuthorLabel = useCallback((variant = 'button') => {
     const textClass = `block truncate font-semibold ${variant === 'button' ? '' : 'text-foreground'}`
     const content = (
@@ -584,6 +584,158 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     }
     return content
   }, [author, authorLabel, profileActor])
+
+  const toggleActorsExpanded = useCallback(() => {
+    if (!canExpandActors) return
+    setActorsExpanded((prev) => !prev)
+  }, [canExpandActors])
+
+  const renderActorAvatar = useCallback((actor, index) => {
+    const actorHandle = actor?.handle || ''
+    const actorId = actor?.did || actorHandle
+    const actorLabel = actor?.displayName || actorHandle || fallbackAuthorLabel
+    const avatarVisual = actor?.avatar
+      ? <img src={actor.avatar} alt='' className='h-8 w-8 rounded-full object-cover' />
+      : <div className='h-8 w-8 rounded-full bg-background-subtle' />
+    const wrapperClass = index === 0 ? '' : '-ml-2'
+    if (!actorId) {
+      return (
+        <span key={`actor-${index}`} className={`${wrapperClass} inline-flex h-8 w-8 items-center justify-center rounded-full border border-border`}>
+          {avatarVisual}
+        </span>
+      )
+    }
+    return (
+      <span key={`${actorId}-${index}`} className={wrapperClass}>
+        <ActorProfileLink
+          actor={actorId}
+          handle={actorHandle}
+          label={actorLabel}
+          onOpen={markAsRead}
+          className='inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background transition hover:ring-2 hover:ring-primary/40'
+        >
+          {avatarVisual}
+        </ActorProfileLink>
+      </span>
+    )
+  }, [fallbackAuthorLabel, markAsRead])
+
+  const avatarVisual = author.avatar ? (
+    <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
+  ) : (
+    <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
+  )
+
+  const avatarWithPreview = profileActor
+    ? (
+      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
+        {avatarVisual}
+      </ProfilePreviewTrigger>
+      )
+    : avatarVisual
+
+  const actorStack = resolvedActors.length > 1 ? (
+    <div className='flex items-center gap-2'>
+      <div className='flex items-center'>{visibleActors.map(renderActorAvatar)}</div>
+      {canExpandActors ? (
+        <Button
+          type='button'
+          variant='ghost'
+          size='pill'
+          onClick={toggleActorsExpanded}
+          aria-label={actorsExpanded
+            ? t('notifications.actors.collapse', 'Ausblenden')
+            : t('notifications.actors.expandLabel', '{count} weitere anzeigen', { count: overflowCount })}
+          className='notification-toggle-button h-8 px-3 text-xs font-semibold text-foreground-muted hover:text-foreground'
+        >
+          <span>{actorsExpanded ? t('notifications.actors.collapse', 'Ausblenden') : `+${overflowCount}`}</span>
+          {actorsExpanded ? <ChevronUpIcon className='h-4 w-4' /> : <ChevronDownIcon className='h-4 w-4' />}
+        </Button>
+      ) : null}
+    </div>
+  ) : null
+
+  const showActorList = canExpandActors && actorsExpanded
+  const useActorStackLayout = Boolean(actorStack)
+
+  const contentBody = (
+    <>
+      {authorFallbackHint ? (
+        <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
+      ) : null}
+      {reasonDescription ? (
+        <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
+      ) : null}
+      {showActorList ? (
+        <div className='space-y-1.5 rounded-2xl border border-border bg-background-subtle p-2'>
+          {resolvedActors.map((actor, index) => {
+            const actorHandle = actor?.handle || ''
+            const actorId = actor?.did || actorHandle
+            const actorLabel = actor?.displayName || actorHandle || fallbackAuthorLabel
+            const actorAvatar = actor?.avatar
+              ? <img src={actor.avatar} alt='' className='h-9 w-9 rounded-full border border-border object-cover' />
+              : <div className='h-9 w-9 rounded-full border border-border bg-background' />
+            if (!actorId) {
+              return (
+                <div key={`actor-row-${index}`} className='flex items-center gap-3 px-2 py-1'>
+                  {actorAvatar}
+                  <span className='text-sm font-semibold text-foreground'>{actorLabel}</span>
+                </div>
+              )
+            }
+            return (
+              <ActorProfileLink
+                key={`${actorId}-${index}`}
+                actor={actorId}
+                handle={actorHandle}
+                label={actorLabel}
+                onOpen={markAsRead}
+                className='flex w-full items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-background'
+              >
+                {actorAvatar}
+                <span className='min-w-0'>
+                  <span className='block truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
+                  {actorHandle ? (
+                    <span className='block truncate text-xs text-foreground-muted'>@{actorHandle}</span>
+                  ) : null}
+                </span>
+              </ActorProfileLink>
+            )
+          })}
+        </div>
+      ) : null}
+      {recordText ? (
+        <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+          <RichText
+            text={recordText}
+            className='whitespace-pre-wrap break-words'
+            hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+          />
+        </p>
+      ) : null}
+      {isReply && replyMedia?.media?.length > 0 ? (
+        <div className='rounded-2xl border border-border bg-background-subtle p-2'>
+          <ReplyMediaPreview
+            media={replyMedia.media}
+            onViewMedia={onViewMedia}
+          />
+        </div>
+      ) : null}
+      {!isReply && subject ? (
+        <NotificationSubjectPreview
+          subject={subject}
+          reason={reason}
+          threadTarget={resolvedThreadTarget}
+          onSelect={canOpenSubject ? handleSelectSubject : undefined}
+          onSelectQuoted={handleSelectSubject}
+          onViewMedia={onViewMedia}
+        />
+      ) : null}
+      {timestamp ? (
+        <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
+      ) : null}
+    </>
+  )
 
   return (
     <Card
@@ -611,21 +763,15 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       tabIndex={canOpenItem ? 0 : undefined}
       aria-label={canOpenItem ? t('notifications.card.openThread', 'Thread öffnen') : undefined}
     >
-      <div className='flex items-start gap-3'>
-        {canOpenProfileViewer ? (
-          <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
-            {avatarWithPreview}
-          </button>
-        ) : (
-          avatarWithPreview
-        )}
-        <div className='min-w-0 flex-1 space-y-2'>
+      {useActorStackLayout ? (
+        <div className='space-y-2'>
           <div className='flex flex-wrap items-center gap-2 min-w-0'>
+            {actorStack}
             {canOpenProfileViewer ? (
               <button
                 type='button'
                 onClick={handleProfileClick}
-                className='truncate text-left font-semibold text-foreground transition hover:text-primary'
+                className='truncate text-left font-semibold leading-none text-foreground transition hover:text-primary'
                 title={authorLabel}
               >
                 {renderAuthorLabel('button')}
@@ -637,44 +783,39 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               {reasonLabel}
             </span>
           </div>
-          {authorFallbackHint ? (
-            <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
-          ) : null}
-          {reasonDescription ? (
-            <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
-          ) : null}
-          {recordText ? (
-            <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
-              <RichText
-                text={recordText}
-                className='whitespace-pre-wrap break-words'
-                hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
-              />
-            </p>
-          ) : null}
-          {isReply && replyMedia?.media?.length > 0 ? (
-            <div className='rounded-2xl border border-border bg-background-subtle p-2'>
-              <ReplyMediaPreview
-                media={replyMedia.media}
-                onViewMedia={onViewMedia}
-              />
-            </div>
-          ) : null}
-          {!isReply && subject ? (
-            <NotificationSubjectPreview
-              subject={subject}
-              reason={reason}
-              threadTarget={resolvedThreadTarget}
-              onSelect={canOpenSubject ? handleSelectSubject : undefined}
-              onSelectQuoted={handleSelectSubject}
-              onViewMedia={onViewMedia}
-            />
-          ) : null}
-          {timestamp ? (
-            <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
-          ) : null}
+          {contentBody}
         </div>
-      </div>
+      ) : (
+        <div className='flex items-start gap-3'>
+          {canOpenProfileViewer ? (
+            <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+              {avatarWithPreview}
+            </button>
+          ) : (
+            avatarWithPreview
+          )}
+          <div className='min-w-0 flex-1 space-y-2'>
+            <div className='flex flex-wrap items-center gap-2 min-w-0'>
+              {canOpenProfileViewer ? (
+                <button
+                  type='button'
+                  onClick={handleProfileClick}
+                  className='truncate text-left font-semibold text-foreground transition hover:text-primary'
+                  title={authorLabel}
+                >
+                  {renderAuthorLabel('button')}
+                </button>
+              ) : (
+                renderAuthorLabel('static')
+              )}
+              <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted ml-auto'>
+                {reasonLabel}
+              </span>
+            </div>
+            {contentBody}
+          </div>
+        </div>
+      )}
       {isReply ? (
         <>
           <footer className='mt-3 flex flex-wrap items-center gap-4 text-sm text-foreground-muted'>
