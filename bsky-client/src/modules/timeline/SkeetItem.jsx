@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { moderatePost } from '@atproto/api'
+import { LABELS, moderatePost } from '@atproto/api'
 import {
   ChatBubbleIcon,
   HeartIcon,
@@ -796,11 +796,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     if (!moderationDecision) return null
     return moderationDecision.ui('contentMedia')
   }, [moderationDecision])
-  const moderationBlocked = Boolean(moderationListUi?.filter)
-  const moderationAlerts = moderationListUi?.alerts || []
-  const moderationInforms = moderationListUi?.informs || []
-  const moderationListBlurs = moderationListUi?.blurs || []
-  const moderationMediaBlurs = moderationMediaUi?.blurs || []
+  const isOfficialModerationLabel = useCallback((cause) => {
+    const label = cause?.label?.val || cause?.label?.identifier || ''
+    if (!label) return true
+    return Object.prototype.hasOwnProperty.call(LABELS, label)
+  }, [])
+  const moderationAlerts = (moderationListUi?.alerts || []).filter(isOfficialModerationLabel)
+  const moderationInforms = (moderationListUi?.informs || []).filter(isOfficialModerationLabel)
+  const moderationListBlurs = (moderationListUi?.blurs || []).filter(isOfficialModerationLabel)
+  const moderationMediaBlurs = (moderationMediaUi?.blurs || []).filter(isOfficialModerationLabel)
+  const moderationFilters = (moderationListUi?.filters || []).filter(isOfficialModerationLabel)
+  const moderationBlocked = moderationFilters.length > 0
   const moderationNoOverride = Boolean(moderationListUi?.noOverride || moderationMediaUi?.noOverride)
   const moderationHasWarning = moderationAlerts.length > 0 ||
     moderationInforms.length > 0 ||
@@ -814,8 +820,12 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     const labels = causes
       .map((cause) => cause?.label?.val || cause?.label?.identifier || '')
       .filter(Boolean)
-    if (!labels.length) return ''
-    const unique = Array.from(new Set(labels))
+    const filtered = labels.filter((label) => {
+      if (!label) return false
+      return Object.prototype.hasOwnProperty.call(LABELS, label)
+    })
+    if (!filtered.length) return ''
+    const unique = Array.from(new Set(filtered))
     if (unique.length === 1) {
       return unique[0]
     }

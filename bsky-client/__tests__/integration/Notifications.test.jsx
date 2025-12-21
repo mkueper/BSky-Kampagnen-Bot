@@ -111,6 +111,7 @@ vi.mock('../../src/modules/shared', () => {
 
   return {
     Button: ({ children, ...props }) => <button {...props}>{children}</button>,
+    ActorProfileLink: ({ children, onOpen, ...props }) => <button {...props}>{children}</button>,
     Card,
     ProfilePreviewTrigger: ({ children }) => <>{children}</>,
     RichText: ({ text, className = '' }) => <span className={className}>{text}</span>,
@@ -283,6 +284,46 @@ describe('Notifications', () => {
     // })
     // expect(screen.getByText('Alpha Text')).toBeVisible()
     // expect(screen.getByText('Bravo Text')).toBeVisible()
+  })
+
+  it('zeigt die Interaktor-Liste bei gruppierten Mitteilungen', async () => {
+    const user = userEvent.setup()
+    const actors = Array.from({ length: 6 }, (_, index) => ({
+      displayName: `Person ${index + 1}`,
+      handle: `person-${index + 1}`,
+      did: `did:person-${index + 1}`,
+      avatar: `https://example.com/avatar-${index + 1}.png`
+    }))
+    const item = {
+      ...createNotification({ id: 'multi-1', text: 'Multi Text' }),
+      actors,
+      additionalCount: actors.length - 1
+    }
+
+    await act(async () => {
+      customAppState.current = {
+        lists: {
+          'notifs:all': {
+            key: 'notifs:all',
+            kind: 'notifications',
+            items: [item],
+            cursor: null,
+            loaded: true,
+            isLoadingMore: false,
+            data: { type: 'notifications', filter: 'all' }
+          }
+        },
+        notificationsUnread: 0
+      }
+      renderWithProviders(<Notifications activeTab='all' listKey='notifs:all' />)
+    })
+
+    const toggle = await screen.findByRole('button', { name: /1 weitere anzeigen/i })
+    expect(toggle).toBeInTheDocument()
+    await user.click(toggle)
+
+    expect(screen.getByText('Person 6')).toBeInTheDocument()
+    expect(screen.getByText('@person-6')).toBeInTheDocument()
   })
 
   it('lädt Erwähnungen und füllt den Puffer auf, wenn der Mentions-Tab aktiv ist', async () => {

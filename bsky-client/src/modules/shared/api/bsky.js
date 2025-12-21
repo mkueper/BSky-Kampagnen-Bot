@@ -949,6 +949,22 @@ async function fetchBookmarksDirect ({ cursor, limit } = {}) {
   }
 }
 
+function normalizeNotificationActor (entry) {
+  if (!entry || typeof entry !== 'object') return null
+  const author = entry.author || {}
+  const handle = author.handle || ''
+  const did = author.did || ''
+  const displayName = author.displayName || handle || ''
+  const avatar = author.avatar || null
+  if (!handle && !did && !displayName && !avatar) return null
+  return { handle, did, displayName, avatar }
+}
+
+function getNotificationActorKey (actor) {
+  if (!actor || typeof actor !== 'object') return ''
+  return actor.did || actor.handle || actor.displayName || ''
+}
+
 function aggregateNotificationEntries (notifications = []) {
   const grouped = []
   const groupMap = new Map()
@@ -958,19 +974,36 @@ function aggregateNotificationEntries (notifications = []) {
     const subjectUri = entry.reasonSubject || entry?.record?.subject?.uri || null
     const canGroup = subjectUri && GROUPABLE_NOTIFICATION_REASONS.has(reason)
     const key = canGroup ? `${reason}__${subjectUri}` : null
+    const actor = normalizeNotificationActor(entry)
     if (key && groupMap.has(key)) {
       const bucket = groupMap.get(key)
       bucket.additionalCount += 1
+      if (actor) {
+        const actorKey = getNotificationActorKey(actor)
+        if (!bucket.actorIds) bucket.actorIds = new Set()
+        if (!actorKey || !bucket.actorIds.has(actorKey)) {
+          if (actorKey) bucket.actorIds.add(actorKey)
+          bucket.actors.push(actor)
+        }
+      }
       continue
     }
-    const bucket = { entry, additionalCount: 0 }
+    const bucket = {
+      entry,
+      additionalCount: 0,
+      actors: actor ? [actor] : []
+    }
+    if (actor) {
+      const actorKey = getNotificationActorKey(actor)
+      if (actorKey) bucket.actorIds = new Set([actorKey])
+    }
     grouped.push(bucket)
     if (key) groupMap.set(key, bucket)
   }
   return grouped
 }
 
-function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) {
+function mapNotificationEntry (entry, subjectMap, { additionalCount = 0, actors = null } = {}) {
   if (!entry) return null
   const author = entry.author || {}
   const record = entry.record || {}
@@ -987,6 +1020,10 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
       }
     }
   }
+  const entryActor = normalizeNotificationActor(entry)
+  const normalizedActors = Array.isArray(actors) && actors.length
+    ? actors
+    : (entryActor ? [entryActor] : [])
   const baseEntry = {
     uri: entry.uri || null,
     cid: entry.cid || null,
@@ -1010,6 +1047,7 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
     },
     subject,
     raw: entry,
+    actors: normalizedActors,
     additionalCount
   }
   const baseIdentifier = entry.uri || entry.cid || entry.groupKey || `${entry.reason || 'notification'}:${reasonSubject || ''}`
@@ -1396,7 +1434,7 @@ async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {
   ])
   const aggregated = aggregateNotificationEntries(notifications)
   const items = aggregated
-    .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
+    .map(({ entry, additionalCount, actors }) => mapNotificationEntry(entry, subjectMap, { additionalCount, actors }))
     .filter(Boolean)
 
   for (const item of items) {
@@ -1825,7 +1863,7 @@ export async function fetchNotificationPollingSnapshot ({ limit = NOTIFICATION_S
   const toAggregatedItems = (notifications = []) => {
     const aggregated = aggregateNotificationEntries(notifications)
     return aggregated
-      .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
+      .map(({ entry, additionalCount, actors }) => mapNotificationEntry(entry, subjectMap, { additionalCount, actors }))
       .filter(Boolean)
   }
 

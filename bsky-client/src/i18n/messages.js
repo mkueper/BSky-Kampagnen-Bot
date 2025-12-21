@@ -546,6 +546,10 @@ const messages = {
           quoteUndoError: 'Zitat konnte nicht zurückgezogen werden.'
         }
       },
+      actors: {
+        collapse: 'Ausblenden',
+        expandLabel: '{count} weitere anzeigen'
+      },
       preview: {
         profileFallback: 'Profil',
         videoOpen: 'Video öffnen',
@@ -1164,6 +1168,10 @@ const messages = {
           quoteUndoSuccess: 'Quote removed.',
           quoteUndoError: 'Quote could not be removed.'
         }
+      },
+      actors: {
+        collapse: 'Hide',
+        expandLabel: 'Show {count} more'
       },
       preview: {
         profileFallback: 'Profile',
