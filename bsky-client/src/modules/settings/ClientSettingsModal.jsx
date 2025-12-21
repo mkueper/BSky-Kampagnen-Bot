@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { createPortal } from 'react-dom'
-import { Card, Button } from '../shared'
+import { Card, Button, getPortalRoot } from '../shared'
 import { CheckIcon, ChevronDownIcon } from '@radix-ui/react-icons'
 import * as Select from '@radix-ui/react-select'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
@@ -68,6 +68,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
   const [localConfig, setLocalConfig] = useState(() => buildLocalConfig(clientConfig))
   const [activeTab, setActiveTab] = useState(CLIENT_SETTING_TABS[0].id)
   const [newVideoHost, setNewVideoHost] = useState('')
+  const portalRoot = useMemo(() => getPortalRoot(), [])
 
   useEffect(() => {
     if (open) {
@@ -294,7 +295,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                         </span>
                       </div>
                     </Select.Trigger>
-                    <Select.Portal>
+                    <Select.Portal container={portalRoot || undefined}>
                       <Select.Content
                         align='start'
                         sideOffset={6}
@@ -499,7 +500,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                         </span>
                       </div>
                     </Select.Trigger>
-                  <Select.Portal>
+                  <Select.Portal container={portalRoot || undefined}>
                         <Select.Content
                           align='start'
                           sideOffset={6}
@@ -788,7 +789,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
   )
 
   if (typeof document === 'undefined') return content
-  return createPortal(content, document.body)
+  return createPortal(content, portalRoot || document.body)
 }
 
 ClientSettingsModal.propTypes = {

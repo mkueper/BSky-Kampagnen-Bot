@@ -321,3 +321,4 @@ function Example() {
 
 ### Modals (klassisch)
 - Composer, Medien-Dialoge, Bestätigungen – reine Dialoge, keine Pane-Inhalte.
+- Portals nutzen den gemeinsamen Root `#bsky-portal-root` statt pro Komponente eigene `<div>` im `<body>` anzulegen.

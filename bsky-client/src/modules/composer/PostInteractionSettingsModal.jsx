@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import PropTypes from 'prop-types'
-import { Button, Card } from '../shared'
+import { Button, Card, getPortalRoot } from '../shared'
 
 function ToggleButton ({ active, children, onClick }) {
   return (
@@ -70,6 +70,7 @@ export default function PostInteractionSettingsModal ({
 }) {
   const [listOpen, setListOpen] = useState(false)
   const isLimited = draft.replyMode === 'limited'
+  const portalRoot = useMemo(() => getPortalRoot(), [])
 
   useEffect(() => {
     if (!open) {
@@ -245,7 +246,8 @@ export default function PostInteractionSettingsModal ({
     </div>
   )
 
-  return createPortal(content, document.body)
+  if (typeof document === 'undefined') return content
+  return createPortal(content, portalRoot || document.body)
 }
 
 PostInteractionSettingsModal.propTypes = {

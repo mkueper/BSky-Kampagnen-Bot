@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Card, getPortalRoot } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
 import { useAppState } from '../../context/AppContext.jsx'
 
@@ -20,21 +20,6 @@ function formatNumber (value) {
 function getDocument () {
   if (typeof globalThis !== 'undefined' && globalThis.document) return globalThis.document
   return null
-}
-
-function usePortalContainer () {
-  const [container, setContainer] = useState(null)
-  useEffect(() => {
-    const doc = getDocument()
-    if (!doc) return
-    const el = doc.createElement('div')
-    doc.body.appendChild(el)
-    setContainer(el)
-    return () => {
-      doc.body.removeChild(el)
-    }
-  }, [])
-  return container
 }
 
 function ProfileCardSkeleton () {
@@ -153,7 +138,7 @@ export function ProfilePreviewTrigger ({
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const portalContainer = usePortalContainer()
+  const portalContainer = useMemo(() => getPortalRoot(), [])
   const { profileViewer } = useAppState()
   const [supportsHover, setSupportsHover] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true

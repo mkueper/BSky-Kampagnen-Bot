@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
 import * as Popover from '@radix-ui/react-popover'
 import { forwardRef } from 'react'
+import { getPortalRoot } from '../utils/portal.js'
 
 export function InlineMenuTrigger ({ asChild = true, children, ...rest }) {
   return (
@@ -21,6 +22,7 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
   sideOffset = 8,
   withArrow = false,
   portalled = true,
+  portalContainer = null,
   className = '',
   children,
   style,
@@ -42,7 +44,10 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
       ) : null}
     </Popover.Content>
   )
-  return portalled ? <Popover.Portal>{content}</Popover.Portal> : content
+  const resolvedContainer = portalContainer || getPortalRoot()
+  return portalled
+    ? <Popover.Portal container={resolvedContainer || undefined}>{content}</Popover.Portal>
+    : content
 })
 
 InlineMenuContent.propTypes = {
@@ -51,6 +56,7 @@ InlineMenuContent.propTypes = {
   sideOffset: PropTypes.number,
   withArrow: PropTypes.bool,
   portalled: PropTypes.bool,
+  portalContainer: PropTypes.instanceOf(Element),
   className: PropTypes.string,
   children: PropTypes.node,
   style: PropTypes.object

@@ -7,6 +7,7 @@ export {
   InlineMenuTrigger,
   InlineMenuContent,
   InlineMenuItem,
+  getPortalRoot,
   SegmentMediaGrid,
   useConfirmDialog
 } from '@bsky-kampagnen-bot/shared-ui';

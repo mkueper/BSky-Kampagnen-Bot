@@ -17,6 +17,7 @@ export { ToastProvider } from './components/ToastProvider.jsx'
 export { useToast } from './hooks/useToast.js'
 export { useConfirmDialog } from './hooks/useConfirmDialog.js'
 export { useThemeMode } from './hooks/useThemeMode'
+export { getPortalRoot } from './utils/portal.js'
 export { THEMES, THEME_CONFIG, DEFAULT_THEME } from './theme/config.js'
 export { ThemeProvider, useTheme } from './theme/ThemeProvider.jsx'
 export {
