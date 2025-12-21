@@ -706,9 +706,8 @@ const messages = {
     },
     clientSettings: {
       tabs: {
-        general: 'Allgemein',
-        layout: 'Layout',
-        video: 'Videos',
+        layout: 'Darstellung',
+        video: 'Medien',
         services: 'Externe Dienste',
         placeholder: 'Dieser Bereich wird demnächst freigeschaltet.'
       },
@@ -727,6 +726,8 @@ const messages = {
         gifsDescription: 'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.',
         translationTitle: 'Übersetzungshilfe',
         translationDescription: 'Konfiguriere LibreTranslate und wähle einen Web-Fallback für Übersetzungen.',
+        postsTitle: 'Beiträge',
+        postsDescription: 'Steuert die Darstellung von Antworten, Threads und Zeitangaben.',
         unrollTitle: 'Unroll',
         unrollDescription: 'Passe an, wie der Unroll-Dialog Threads darstellt.',
         composerTitle: 'Composer',
@@ -1376,9 +1377,8 @@ const messages = {
     },
     clientSettings: {
       tabs: {
-        general: 'General',
-        layout: 'Layout',
-        video: 'Videos',
+        layout: 'Appearance',
+        video: 'Media',
         services: 'External services',
         placeholder: 'This section will be unlocked soon.'
       },
@@ -1397,6 +1397,8 @@ const messages = {
         gifsDescription: 'Enable Tenor to search and insert GIFs right from the composer.',
         translationTitle: 'Translation helper',
         translationDescription: 'Configure LibreTranslate and choose a web fallback for translations.',
+        postsTitle: 'Posts',
+        postsDescription: 'Controls reply context, thread display, and timestamp formatting.',
         unrollTitle: 'Unroll',
         unrollDescription: 'Control how the unroll dialog renders author threads.',
         composerTitle: 'Composer',

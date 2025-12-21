@@ -57,9 +57,8 @@ function buildLocalConfig (config = {}) {
 }
 
 const CLIENT_SETTING_TABS = [
-  { id: 'general', labelKey: 'clientSettings.tabs.general', fallback: 'Allgemein' },
-  { id: 'layout', labelKey: 'clientSettings.tabs.layout', fallback: 'Layout' },
-  { id: 'video', labelKey: 'clientSettings.tabs.video', fallback: 'Videos' },
+  { id: 'layout', labelKey: 'clientSettings.tabs.layout', fallback: 'Darstellung' },
+  { id: 'video', labelKey: 'clientSettings.tabs.video', fallback: 'Medien' },
   { id: 'services', labelKey: 'clientSettings.tabs.services', fallback: 'Externe Dienste' }
 ]
 
@@ -225,7 +224,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       <Card
         as='div'
         padding='p-0'
-        className='relative z-50 flex h-[80vh] w-[min(1040px,92vw)] flex-col overflow-hidden rounded-3xl shadow-card'
+        className='relative z-50 flex h-[65vh] w-[min(80vh,92vw)] flex-col overflow-hidden rounded-3xl shadow-card'
       >
         <div className='flex items-start justify-between border-b border-border px-6 py-4'>
           <div>
@@ -259,14 +258,14 @@ export default function ClientSettingsModal ({ open, onClose }) {
           </div>
         </div>
         <div className='flex-1 overflow-y-auto px-6 py-5 min-h-[460px]'>
-          {activeTab === 'general' && (
+          {activeTab === 'layout' && (
             <div className='grid gap-6 md:grid-cols-2'>
               <section className='space-y-3 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
                 <div>
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
                     {t('clientSettings.general.languageTitle', 'Sprache')}
                   </p>
-                  <p className='text-sm text-foreground-muted'>
+                  <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.general.languageBody',
                       'Steuert die Sprache für Navigation, Buttons und Meldungen. Die Auswahl wird lokal gespeichert.'
@@ -329,12 +328,12 @@ export default function ClientSettingsModal ({ open, onClose }) {
               <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
                 <div>
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-                    {t('clientSettings.sections.composerTitle', 'Composer')}
+                    {t('clientSettings.sections.postsTitle', 'Beiträge')}
                   </p>
-                  <p className='text-sm text-foreground-muted'>
+                  <p className='text-xs text-foreground-muted'>
                     {t(
-                      'clientSettings.sections.composerDescription',
-                      'Steuert lokale Hilfen beim Antworten und Zitieren.'
+                      'clientSettings.sections.postsDescription',
+                      'Steuert die Darstellung von Antworten, Threads und Zeitangaben.'
                     )}
                   </p>
                 </div>
@@ -361,24 +360,6 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     'Blendet den Beitrag ein, auf den du antwortest. Deaktiviere die Option für ein kompakteres Composer-Layout.'
                   )}
                 </p>
-              </section>
-            </div>
-          )}
-
-          {activeTab === 'layout' && (
-            <div className='grid gap-6 md:grid-cols-2'>
-              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
-                <div>
-                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-                    {t('clientSettings.sections.unrollTitle', 'Unroll')}
-                  </p>
-                  <p className='text-sm text-foreground-muted'>
-                    {t(
-                      'clientSettings.sections.unrollDescription',
-                      'Passe an, wie der Unroll-Dialog Threads darstellt.'
-                    )}
-                  </p>
-                </div>
                 <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
                   <input
                     type='checkbox'
@@ -402,19 +383,6 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     'Deaktiviere die Trennlinien für eine kompakteste Darstellung.'
                   )}
                 </p>
-              </section>
-              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
-                <div>
-                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-                    {t('clientSettings.sections.timeTitle', 'Zeitangaben')}
-                  </p>
-                  <p className='text-sm text-foreground-muted'>
-                    {t(
-                      'clientSettings.sections.timeDescription',
-                      'Steuert, ob Zeitstempel relativ oder absolut dargestellt werden.'
-                    )}
-                  </p>
-                </div>
                 <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
                   <input
                     type='checkbox'
@@ -441,80 +409,6 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   </div>
                 </label>
               </section>
-              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
-                <div>
-                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
-                    {t('clientSettings.sections.mediaTitle', 'Medien')}
-                  </p>
-                  <p className='text-sm text-foreground-muted'>
-                    {t(
-                      'clientSettings.sections.mediaDescription',
-                      'Steuert, wie externe Medien in Beiträgen dargestellt werden.'
-                    )}
-                  </p>
-                </div>
-                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
-                  <input
-                    type='checkbox'
-                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
-                    checked={Boolean(localConfig.layout.autoPlayGifs)}
-                    onChange={(event) =>
-                      setLocalConfig((current) => ({
-                        ...current,
-                        layout: {
-                          ...current.layout,
-                          autoPlayGifs: event.target.checked
-                        }
-                      }))
-                    }
-                  />
-                  <div className='space-y-1'>
-                    <span>{t('clientSettings.media.autoPlayGifsLabel', 'GIFs automatisch abspielen')}</span>
-                    <p className='text-xs font-normal text-foreground-muted'>
-                      {t(
-                        'clientSettings.media.autoPlayGifsHelp',
-                        'Kann Performance und Datenverbrauch erhöhen.'
-                      )}
-                    </p>
-                  </div>
-                </label>
-                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
-                  <input
-                    type='checkbox'
-                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
-                    checked={Boolean(localConfig.layout.inlineVideo)}
-                    onChange={(event) =>
-                      setLocalConfig((current) => ({
-                        ...current,
-                        layout: {
-                          ...current.layout,
-                          inlineVideo: event.target.checked
-                        }
-                      }))
-                    }
-                  />
-                  <div className='space-y-1'>
-                    <span>{t('clientSettings.media.inlineVideoLabel', 'Videos inline abspielen')}</span>
-                    <p className='text-xs font-normal text-foreground-muted'>
-                      {t(
-                        'clientSettings.media.inlineVideoHelp',
-                        'Videos werden erst nach Klick gestartet (kein Autoplay).'
-                      )}
-                    </p>
-                  </div>
-                </label>
-              </section>
-              <section className='space-y-2 rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-foreground-muted'>
-                <p className='font-semibold text-foreground'>
-                  {t('clientSettings.layout.futureHeading', 'Weitere Layout-Optionen')}
-                </p>
-                <p>
-                  {t(
-                    'clientSettings.layout.futureBody',
-                    'Hier folgen bald Optionen für Abstände, Schriftgrößen oder alternative Timelines.'
-                  )}
-                </p>
-              </section>
             </div>
           )}
 
@@ -525,7 +419,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
                     {t('clientSettings.sections.translationTitle', 'Übersetzungshilfe')}
                   </p>
-                  <p className='text-sm text-foreground-muted'>
+                  <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.sections.translationDescription',
                       'Steuert lokale Übersetzungen über LibreTranslate oder den Google-Fallback.'
@@ -642,7 +536,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
                     {t('clientSettings.sections.gifsTitle', 'GIF-Integration')}
                   </p>
-                  <p className='text-sm text-foreground-muted'>
+                  <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.sections.gifsDescription',
                       'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.'
@@ -706,7 +600,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
                     {t('clientSettings.sections.videoSourcesTitle', 'Video-Quellen')}
                   </p>
-                  <p className='text-sm text-foreground-muted'>
+                  <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.sections.videoSourcesDescription',
                       'Lege fest, welche Video-Hosts in Beiträgen als Vorschau oder Inline-Player erscheinen dürfen.'
@@ -809,10 +703,73 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   </p>
                 </div>
               </section>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.sections.mediaTitle', 'Medien')}
+                  </p>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.sections.mediaDescription',
+                      'Steuert, wie externe Medien in Beiträgen dargestellt werden.'
+                    )}
+                  </p>
+                </div>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.autoPlayGifs)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          autoPlayGifs: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.autoPlayGifsLabel', 'GIFs automatisch abspielen')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.autoPlayGifsHelp',
+                        'Kann Performance und Datenverbrauch erhöhen.'
+                      )}
+                    </p>
+                  </div>
+                </label>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.inlineVideo)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          inlineVideo: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.inlineVideoLabel', 'Videos inline abspielen')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.inlineVideoHelp',
+                        'Videos werden erst nach Klick gestartet (kein Autoplay).'
+                      )}
+                    </p>
+                  </div>
+                </label>
+              </section>
             </div>
           )}
 
-          {activeTab !== 'general' && activeTab !== 'layout' && activeTab !== 'services' && activeTab !== 'video' && (
+          {activeTab !== 'layout' && activeTab !== 'services' && activeTab !== 'video' && (
             <div className='py-16 text-center text-sm text-foreground-muted'>
               {t('clientSettings.tabs.placeholder', 'Dieser Bereich wird demnächst freigeschaltet.')}
             </div>
