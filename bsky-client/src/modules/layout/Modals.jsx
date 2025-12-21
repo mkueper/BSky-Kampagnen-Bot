@@ -203,18 +203,9 @@ export function Modals() {
     dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
   }, [dispatch])
 
-  const [resumeNotificationsSettings, setResumeNotificationsSettings] = useState(false)
   const handleNotificationProfileOpen = useCallback(() => {
-    setResumeNotificationsSettings(true)
-    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
-  }, [dispatch])
-
-  useEffect(() => {
-    if (!resumeNotificationsSettings) return
-    if (profileViewer?.open) return
-    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
-    setResumeNotificationsSettings(false)
-  }, [dispatch, profileViewer?.open, resumeNotificationsSettings])
+    // Modal bleibt offen; ProfileViewer kommt darüber.
+  }, [])
 
   const handleThreadCancel = useCallback(() => {
     const hasThreadContent = Boolean((threadSource || '').trim())
