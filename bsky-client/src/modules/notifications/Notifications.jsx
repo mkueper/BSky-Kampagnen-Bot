@@ -647,9 +647,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           aria-label={actorsExpanded
             ? t('notifications.actors.collapse', 'Ausblenden')
             : t('notifications.actors.expandLabel', '{count} weitere anzeigen', { count: overflowCount })}
-          className='notification-toggle-button h-8 px-3 text-xs font-semibold text-foreground-muted hover:text-foreground'
+          className='notification-toggle-button h-8 px-2 text-xs font-semibold text-foreground-muted hover:text-foreground'
         >
-          <span>{actorsExpanded ? t('notifications.actors.collapse', 'Ausblenden') : `+${overflowCount}`}</span>
+          {!actorsExpanded ? <span>{`+${overflowCount}`}</span> : null}
           {actorsExpanded ? <ChevronUpIcon className='h-4 w-4' /> : <ChevronDownIcon className='h-4 w-4' />}
         </Button>
       ) : null}
@@ -694,10 +694,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 className='flex w-full items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-background'
               >
                 {actorAvatar}
-                <span className='min-w-0'>
-                  <span className='block truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
+                <span className='flex min-w-0 items-center gap-2'>
+                  <span className='truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
                   {actorHandle ? (
-                    <span className='block truncate text-xs text-foreground-muted'>@{actorHandle}</span>
+                    <span className='truncate text-sm font-semibold text-foreground-muted'>@{actorHandle}</span>
                   ) : null}
                 </span>
               </ActorProfileLink>
