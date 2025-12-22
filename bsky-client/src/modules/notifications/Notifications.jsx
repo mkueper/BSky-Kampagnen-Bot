@@ -538,10 +538,14 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [isReply, record])
 
   const canOpenProfileViewer = Boolean(profileActor)
-  const actionUri = item?.uri || record?.uri || item?.raw?.post?.uri || item?.reasonSubject || null
-  const actionCid = item?.cid || record?.cid || item?.raw?.post?.cid || null
-  const actionAuthor = item?.raw?.post?.author || record?.author || author || {}
+  const engagementSource = (reason === 'like' || reason === 'repost')
+    ? (subject || item)
+    : item
+  const actionUri = engagementSource?.uri || engagementSource?.record?.uri || engagementSource?.raw?.post?.uri || item?.reasonSubject || null
+  const actionCid = engagementSource?.cid || engagementSource?.record?.cid || engagementSource?.raw?.post?.cid || null
+  const actionAuthor = engagementSource?.raw?.post?.author || engagementSource?.author || author || {}
   const actorDid = actionAuthor?.did || ''
+  const engagementViewer = engagementSource?.raw?.post?.viewer || engagementSource?.viewer || engagementSource?.record?.viewer || item?.raw?.post?.viewer || item?.viewer || record?.viewer || item?.raw?.post?.record?.viewer || {}
 
   const {
     likeCount,
@@ -559,9 +563,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   } = useBskyEngagement({
     uri: actionUri,
     cid: actionCid,
-    initialLikes: item?.record?.stats?.likeCount || item?.stats?.likeCount || record?.stats?.likeCount || item?.raw?.post?.record?.stats?.likeCount || item?.raw?.post?.stats?.likeCount,
-    initialReposts: item?.record?.stats?.repostCount || item?.stats?.repostCount || record?.stats?.repostCount || item?.raw?.post?.record?.stats?.repostCount || item?.raw?.post?.stats?.repostCount,
-    viewer: item?.raw?.post?.viewer || item?.viewer || record?.viewer || item?.raw?.post?.record?.viewer,
+    initialLikes: engagementSource?.record?.stats?.likeCount || engagementSource?.stats?.likeCount || engagementSource?.raw?.post?.record?.stats?.likeCount || engagementSource?.raw?.post?.stats?.likeCount,
+    initialReposts: engagementSource?.record?.stats?.repostCount || engagementSource?.stats?.repostCount || engagementSource?.raw?.post?.record?.stats?.repostCount || engagementSource?.raw?.post?.stats?.repostCount,
+    viewer: engagementViewer,
   })
 
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
