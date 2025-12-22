@@ -6,3 +6,5 @@
    1. Idee:
       - An der jetzigen Position nur ein Hinweis über X erfolgreiche und y nicht erfolgreiche Posts
       - einen Button, der die Historie als Ziehamonika (6 Posts, dann scrollen) anzeigt
+6. Das Abspielen von hochgeladenen Videos inline erlauben, wie bei externen Videowuellen auch.
+   1. Video-Quellen umbenennen in "Externe Video-Quellen"?

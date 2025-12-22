@@ -1826,6 +1826,10 @@ function CredentialsSection () {
   const toast = useToast()
   const { t } = useTranslation()
   const [infoOpen, setInfoOpen] = useState(false)
+  const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
+  const SESSION_TTL_MIN_HOURS = 6
+  const SESSION_TTL_MAX_HOURS = 168
+  const SESSION_TTL_DEFAULT_HOURS = 12
   const [values, setValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
@@ -1846,6 +1850,14 @@ function CredentialsSection () {
     bsky: false,
     masto: false,
     tenor: false
+  })
+  const [sessionTtlInput, setSessionTtlInput] = useState(() => {
+    if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
+    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
+    const parsed = Number(stored)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    return String(clamped)
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1916,6 +1928,22 @@ function CredentialsSection () {
   }, [toast])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+  const onSessionTtlChange = (event) => {
+    const nextValue = event.target.value
+    if (nextValue === '' || /^\d+$/.test(nextValue)) {
+      setSessionTtlInput(nextValue)
+    }
+  }
+
+  const normalizeSessionTtl = () => {
+    const parsed = Number(sessionTtlInput)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    setSessionTtlInput(String(clamped))
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SESSION_TTL_STORAGE_KEY, String(clamped))
+    }
+  }
 
   const hasCredentialChanges = useMemo(() => {
     return Object.keys(values).some(
@@ -2173,31 +2201,58 @@ function CredentialsSection () {
                   />
                 </label>
               </div>
-              <label className='space-y-1 md:w-1/2'>
-              <span className='text-sm font-medium'>
-                {t(
-                  'config.credentials.bluesky.appPasswordLabel',
-                  'App Password'
-                )}
-              </span>
-              <input
-                type='password'
-                className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                  blink.blueskyAppPassword
-                    ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                    : 'border-border'
-                }`}
-                placeholder={hasSecret.bsky ? '••••••••' : ''}
-                value={values.blueskyAppPassword}
-                  onChange={onChange('blueskyAppPassword')}
-                />
-                <p className='text-xs text-foreground-muted'>
-                  {t(
-                    'config.credentials.bluesky.appPasswordHint',
-                    'Leer lassen, um das bestehende Passwort zu behalten.'
-                  )}
-                </p>
-              </label>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.appPasswordLabel',
+                      'App Password'
+                    )}
+                  </span>
+                  <input
+                    type='password'
+                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                      blink.blueskyAppPassword
+                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                        : 'border-border'
+                    }`}
+                    placeholder={hasSecret.bsky ? '••••••••' : ''}
+                    value={values.blueskyAppPassword}
+                    onChange={onChange('blueskyAppPassword')}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.appPasswordHint',
+                      'Leer lassen, um das bestehende Passwort zu behalten.'
+                    )}
+                  </p>
+                </label>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.sessionTtlLabel',
+                      'Session-Dauer (Stunden)'
+                    )}
+                  </span>
+                  <input
+                    type='number'
+                    min={SESSION_TTL_MIN_HOURS}
+                    max={SESSION_TTL_MAX_HOURS}
+                    step='1'
+                    inputMode='numeric'
+                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    value={sessionTtlInput}
+                    onChange={onSessionTtlChange}
+                    onBlur={normalizeSessionTtl}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.sessionTtlHint',
+                      'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
+                    )}
+                  </p>
+                </label>
+              </div>
             </div>
           </section>
           <section className='space-y-4'>

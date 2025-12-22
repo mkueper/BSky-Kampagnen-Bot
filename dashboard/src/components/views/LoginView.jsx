@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
+const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
+const SESSION_TTL_MIN_HOURS = 6
+const SESSION_TTL_MAX_HOURS = 168
+
+const readSessionTtlHours = () => {
+  if (typeof window === 'undefined') return null
+  const raw = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
+  const parsed = Number(raw)
+  if (!Number.isFinite(parsed)) return null
+  const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(parsed)))
+  return clamped
+}
+
 export default function LoginView ({ session, sessionError, refreshSession }) {
   const { t } = useTranslation()
   const [username, setUsername] = useState('')
@@ -59,10 +72,16 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
     setSubmitting(true)
     setLoginError(null)
     try {
+      const sessionTtlHours = readSessionTtlHours()
+      const payload = {
+        username,
+        password,
+        ...(sessionTtlHours ? { sessionTtlHours } : {})
+      }
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify(payload)
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {

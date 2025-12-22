@@ -10,6 +10,16 @@ const { createLogger } = require('@utils/logging');
 
 const log = createLogger('auth.controller');
 
+const SESSION_TTL_MIN_HOURS = 6;
+const SESSION_TTL_MAX_HOURS = 168;
+
+function resolveSessionTtlSeconds(requestedHours, fallbackSeconds) {
+  const parsed = Number(requestedHours);
+  if (!Number.isFinite(parsed)) return fallbackSeconds;
+  const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(parsed)));
+  return clamped * 60 * 60;
+}
+
 function session(req, res) {
   const status = getStatus();
   if (!status.configured) {
@@ -55,10 +65,11 @@ function login(req, res) {
     });
   }
 
-  const token = issueSession(username);
-  persistSession(res, token);
+  const ttlSeconds = resolveSessionTtlSeconds(req?.body?.sessionTtlHours, status.ttlSeconds);
+  const token = issueSession(username, ttlSeconds);
+  persistSession(res, token, ttlSeconds);
   log.info('Dashboard-Login erfolgreich', { username });
-  return res.json({ ok: true, expiresInSeconds: status.ttlSeconds });
+  return res.json({ ok: true, expiresInSeconds: ttlSeconds });
 }
 
 function logout(req, res) {

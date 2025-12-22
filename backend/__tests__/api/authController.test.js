@@ -237,8 +237,8 @@ describe('authController.login', () => {
     authController.login(req, res)
 
     expect(statusCode).toBe(200)
-    expect(issueSpy).toHaveBeenCalledWith('admin')
-    expect(persistSpy).toHaveBeenCalled()
+    expect(issueSpy).toHaveBeenCalledWith('admin', 1234)
+    expect(persistSpy).toHaveBeenCalledWith(res, 'token123', 1234)
     expect(payload?.ok).toBe(true)
     expect(payload?.expiresInSeconds).toBe(1234)
   })

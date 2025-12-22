@@ -9,10 +9,6 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
     enabled: shouldRender
   })
 
-  if (!shouldRender) {
-    return null
-  }
-
   const historyItems = Array.isArray(data) ? data : []
   const { successCount, failedCount } = useMemo(() => {
     return historyItems.reduce(
@@ -24,6 +20,10 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
       { successCount: 0, failedCount: 0 }
     )
   }, [historyItems])
+
+  if (!shouldRender) {
+    return null
+  }
 
   const summaryLabel = isLoading
     ? 'Lade...'

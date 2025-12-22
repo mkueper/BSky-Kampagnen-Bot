@@ -880,7 +880,10 @@ const messages = {
           identifierLabel: 'Identifier (Handle/E-Mail)',
           appPasswordLabel: 'App Password',
           appPasswordHint:
-            'Leer lassen, um das bestehende Passwort zu behalten.'
+            'Leer lassen, um das bestehende Passwort zu behalten.',
+          sessionTtlLabel: 'Session-Dauer (Stunden)',
+          sessionTtlHint:
+            'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
         },
         mastodon: {
           heading: 'Mastodon',
@@ -1715,7 +1718,10 @@ const messages = {
           identifierLabel: 'Identifier (handle/email)',
           appPasswordLabel: 'App password',
           appPasswordHint:
-            'Leave empty to keep existing password.'
+            'Leave empty to keep existing password.',
+          sessionTtlLabel: 'Session duration (hours)',
+          sessionTtlHint:
+            'Applies only on this device (6 to 168 hours).'
         },
         mastodon: {
           heading: 'Mastodon',

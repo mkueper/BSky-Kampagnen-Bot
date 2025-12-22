@@ -50,7 +50,7 @@ function validateCredentials(username, password) {
   return verifyPassword(password, authConfig.passwordHash);
 }
 
-function issueSession(username) {
+function issueSession(username, ttlSeconds = authConfig.ttlSeconds) {
   if (!isConfigured()) {
     throw new Error('Auth service is not configured');
   }
@@ -61,15 +61,15 @@ function issueSession(username) {
     },
     authConfig.tokenSecret,
     {
-      expiresIn: authConfig.ttlSeconds,
+      expiresIn: ttlSeconds,
     }
   );
 }
 
-function persistSession(res, token) {
+function persistSession(res, token, ttlSeconds = authConfig.ttlSeconds) {
   res.cookie(authConfig.cookieName, token, {
     ...cookieOptions,
-    maxAge: authConfig.ttlSeconds * 1000,
+    maxAge: ttlSeconds * 1000,
   });
 }
 
