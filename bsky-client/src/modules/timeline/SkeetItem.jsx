@@ -1375,7 +1375,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
           {quoted && !moderationBlocked ? (
         <div
-          className={`mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${
+          className={`mt-3 rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground opacity-70 ${
             quoteClickable
               ? 'cursor-pointer transition hover:bg-background-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
               : ''

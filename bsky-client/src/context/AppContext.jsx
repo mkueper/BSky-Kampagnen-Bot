@@ -1,5 +1,5 @@
 import React from 'react'
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useLayoutEffect, useCallback } from 'react';
 import { AuthContext } from '../modules/auth/AuthContext.jsx'
 import { applyEngagementPatch } from '@bsky-kampagnen-bot/shared-logic'
 import {
@@ -36,6 +36,9 @@ const QUOTE_REPOST_STORAGE_KEY = 'bsky.quoteReposts'
 
 const AppStateContext = createContext();
 const AppDispatchContext = createContext();
+let renderPhaseActive = false
+const RENDER_DISPATCH_LOG_KEY = 'bsky-debug:dispatch-during-render'
+const MAX_RENDER_DISPATCH_LOGS = 50
 
 const defaultChatViewerState = {
   open: false,
@@ -468,6 +471,52 @@ function appReducer(state, action) {
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const auth = useContext(AuthContext)
+  const isDev = Boolean(import.meta?.env?.DEV)
+
+  renderPhaseActive = true
+  useLayoutEffect(() => {
+    renderPhaseActive = false
+  })
+
+  const storeRenderDispatchLog = useCallback((payload) => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage.getItem(RENDER_DISPATCH_LOG_KEY)
+      const existing = raw ? JSON.parse(raw) : []
+      const nextLogs = Array.isArray(existing) ? existing : []
+      nextLogs.push(payload)
+      if (nextLogs.length > MAX_RENDER_DISPATCH_LOGS) {
+        nextLogs.splice(0, nextLogs.length - MAX_RENDER_DISPATCH_LOGS)
+      }
+      window.localStorage.setItem(RENDER_DISPATCH_LOG_KEY, JSON.stringify(nextLogs))
+    } catch (error) {
+      console.warn('[AppProvider] Render-dispatch log could not be stored.', error)
+    }
+  }, [])
+
+  const guardedDispatch = useCallback((action) => {
+    if (isDev && renderPhaseActive) {
+      const timestamp = new Date().toISOString()
+      const stack = new Error('Dispatch during render').stack || ''
+      storeRenderDispatchLog({
+        timestamp,
+        action,
+        stack
+      })
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        try {
+          window.dispatchEvent(new CustomEvent('bsky:debug:dispatch-during-render', {
+            detail: { timestamp }
+          }))
+        } catch {
+          /* ignore event errors */
+        }
+      }
+      console.warn('[AppProvider] Dispatch during render detected.', action)
+      console.trace()
+    }
+    return dispatch(action)
+  }, [dispatch, isDev, storeRenderDispatchLog])
 
   useEffect(() => {
     try {
@@ -492,7 +541,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppStateContext.Provider value={state}>
-      <AppDispatchContext.Provider value={dispatch}>
+      <AppDispatchContext.Provider value={guardedDispatch}>
         {children}
       </AppDispatchContext.Provider>
     </AppStateContext.Provider>
