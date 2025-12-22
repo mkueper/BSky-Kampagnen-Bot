@@ -971,7 +971,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const profilePane = profileViewer?.open ? <ProfileViewerPane /> : null
   const hashtagPane = hashtagSearch?.open ? <HashtagSearchPane /> : null
   const chatPane = chatViewer?.open ? <ChatConversationPane /> : null
-  const detailPane = threadPane || profilePane || hashtagPane || chatPane
+  const detailPane = profilePane || threadPane || hashtagPane || chatPane
   const chatPaneActive = Boolean(chatPane)
   const detailPaneActive = Boolean(
     (threadState.active && threadPane) ||
