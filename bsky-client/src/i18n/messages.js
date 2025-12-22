@@ -740,8 +740,8 @@ const messages = {
         mediaDescription: 'Steuert, wie externe Medien in Beiträgen dargestellt werden.',
         timeTitle: 'Zeitangaben',
         timeDescription: 'Steuert, ob Zeitstempel relativ oder absolut dargestellt werden.',
-        videoSourcesTitle: 'Video-Quellen',
-        videoSourcesDescription: 'Lege fest, welche Video-Hosts als Vorschau oder Inline-Player erscheinen dürfen.'
+        videoSourcesTitle: 'Externe Video-Quellen',
+        videoSourcesDescription: 'Lege fest, welche externen Video-Hosts als Vorschau oder Inline-Player erscheinen dürfen.'
       },
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
@@ -756,15 +756,15 @@ const messages = {
         autoPlayGifsHelp: 'Kann Performance und Datenverbrauch erhöhen.',
         inlineVideoLabel: 'Videos inline abspielen',
         inlineVideoHelp: 'Videos werden erst nach Klick gestartet (kein Autoplay).',
-        videoAllowListEnabledLabel: 'Video-Hosts aktivieren',
+        videoAllowListEnabledLabel: 'Externe Video-Hosts aktivieren',
         videoAllowListEnabledHelp: 'Wenn deaktiviert, werden externe Videos immer als normale Links angezeigt.',
-        videoAllowListLabel: 'Video-Hosts',
+        videoAllowListLabel: 'Externe Video-Hosts',
         videoAllowListLimit: 'Max. 10',
         videoAllowListPlaceholder: 'z. B. youtube.com',
         videoAllowListAdd: 'Hinzufügen',
         videoAllowListRemove: 'Host entfernen',
         videoAllowListEmpty: 'Keine Hosts eingetragen.',
-        videoAllowListHelp: 'Nur diese Hosts dürfen als Video-Vorschau oder Inline-Player erscheinen.'
+        videoAllowListHelp: 'Nur diese externen Hosts dürfen als Video-Vorschau oder Inline-Player erscheinen.'
       },
       time: {
         absoluteLabel: 'Absolute Zeitangaben anzeigen',
@@ -1415,8 +1415,8 @@ const messages = {
         mediaDescription: 'Controls how external media appears in posts.',
         timeTitle: 'Time display',
         timeDescription: 'Choose whether timestamps appear as relative or absolute values.',
-        videoSourcesTitle: 'Video sources',
-        videoSourcesDescription: 'Choose which video hosts may appear as previews or inline players.'
+        videoSourcesTitle: 'External video sources',
+        videoSourcesDescription: 'Choose which external video hosts may appear as previews or inline players.'
       },
       tenorToggle: 'Enable Tenor GIFs',
       tenorKeyLabel: 'Tenor API key',
@@ -1431,15 +1431,15 @@ const messages = {
         autoPlayGifsHelp: 'May increase performance and data usage.',
         inlineVideoLabel: 'Play videos inline',
         inlineVideoHelp: 'Videos start only after click (no autoplay).',
-        videoAllowListEnabledLabel: 'Enable video hosts',
+        videoAllowListEnabledLabel: 'Enable external video hosts',
         videoAllowListEnabledHelp: 'When disabled, external videos are always rendered as regular links.',
-        videoAllowListLabel: 'Video hosts',
+        videoAllowListLabel: 'External video hosts',
         videoAllowListLimit: 'Max 10',
         videoAllowListPlaceholder: 'e.g. youtube.com',
         videoAllowListAdd: 'Add',
         videoAllowListRemove: 'Remove host',
         videoAllowListEmpty: 'No hosts added.',
-        videoAllowListHelp: 'Only these hosts may appear as video previews or inline players.'
+        videoAllowListHelp: 'Only these external hosts may appear as video previews or inline players.'
       },
       time: {
         absoluteLabel: 'Show absolute timestamps',

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { ChatBubbleIcon, ChevronDownIcon, ChevronUpIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger, ActorProfileLink } from '../shared'
+import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger, ActorProfileLink, InlineVideoPlayer } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -9,6 +9,7 @@ import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
@@ -352,7 +353,7 @@ function buildReplyTarget (notification) {
   }
 }
 
-export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
+export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
   const dispatch = useAppDispatch()
   const { quoteReposts } = useAppState()
   const { t, locale } = useTranslation()
@@ -718,6 +719,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           <ReplyMediaPreview
             media={replyMedia.media}
             onViewMedia={onViewMedia}
+            inlineVideoEnabled={inlineVideoEnabled}
           />
         </div>
       ) : null}
@@ -729,6 +731,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           onSelect={canOpenSubject ? handleSelectSubject : undefined}
           onSelectQuoted={handleSelectSubject}
           onViewMedia={onViewMedia}
+          inlineVideoEnabled={inlineVideoEnabled}
         />
       ) : null}
       {timestamp ? (
@@ -883,7 +886,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   )
 })
 
-function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia, inlineVideoEnabled = false }) {
   const dispatch = useAppDispatch()
   const { t, locale } = useTranslation()
   const { config } = useCardConfig()
@@ -909,6 +912,27 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   const quotedStatusMessage = quoted?.status
     ? t(`notifications.preview.quoted.status.${quoted.status}`, quoted?.statusMessage || '')
     : (quoted?.statusMessage || '')
+  const [inlineVideoOpen, setInlineVideoOpen] = useState(false)
+  const inlineVideoRef = useRef(null)
+
+  useEffect(() => {
+    setInlineVideoOpen(false)
+  }, [preview?.video?.src])
+  useEffect(() => {
+    if (!inlineVideoOpen) return
+    const node = inlineVideoRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          setInlineVideoOpen(false)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [inlineVideoOpen])
 
   const handleSelectSubject = useCallback((event) => {
     if (!canOpenSubject) return
@@ -1061,12 +1085,53 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             minHeight: singleMax,
             backgroundColor: 'var(--background-subtle, #000)'
           }
+          if (inlineVideoEnabled && inlineVideoOpen) {
+            return (
+              <div ref={inlineVideoRef} className='space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+                <div className='flex items-center justify-between gap-3'>
+                  <p className='text-sm font-semibold text-foreground'>{videoBadgeLabel}</p>
+                  <button
+                    type='button'
+                    className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+                    onClick={() => setInlineVideoOpen(false)}
+                  >
+                    {t('common.actions.close', 'Schließen')}
+                  </button>
+                </div>
+                <div
+                  className='relative w-full overflow-hidden rounded-lg border border-border bg-black'
+                  style={{ aspectRatio: ratio }}
+                >
+                  <InlineVideoPlayer
+                    src={preview.video.src}
+                    poster={preview.video.poster}
+                    autoPlay
+                    className='absolute inset-0 h-full w-full'
+                  />
+                </div>
+              </div>
+            )
+          }
           return (
             <button
               type='button'
-              onClick={(event) => handlePreviewMediaClick(event, preview.videoIndex ?? 0)}
+              onClick={(event) => {
+                if (inlineVideoEnabled) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setInlineVideoOpen(true)
+                  return
+                }
+                handlePreviewMediaClick(event, preview.videoIndex ?? 0)
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
+                  if (inlineVideoEnabled) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setInlineVideoOpen(true)
+                    return
+                  }
                   handlePreviewMediaClick(event, preview.videoIndex ?? 0)
                 }
               }}
@@ -1173,9 +1238,11 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-function ReplyMediaPreview ({ media = [], onViewMedia }) {
+function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = false }) {
   const { config } = useCardConfig()
   const { t } = useTranslation()
+  const [inlineVideoOpen, setInlineVideoOpen] = useState(false)
+  const inlineVideoRef = useRef(null)
   const handleMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
     if (!Array.isArray(media) || media.length === 0) return
@@ -1189,6 +1256,25 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
 
   const firstImage = media.find(m => m.type === 'image')
   const firstVideo = media.find(m => m.type === 'video')
+
+  useEffect(() => {
+    setInlineVideoOpen(false)
+  }, [firstVideo?.src])
+  useEffect(() => {
+    if (!inlineVideoOpen) return
+    const node = inlineVideoRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          setInlineVideoOpen(false)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [inlineVideoOpen])
 
   if (firstImage) {
     const imageIndex = media.indexOf(firstImage)
@@ -1226,12 +1312,53 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
     const ratio = parseAspectRatioValue(firstVideo.aspectRatio) || (16 / 9)
     const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
     const videoBadgeLabel = t('notifications.preview.videoLabel', 'Video')
+    if (inlineVideoEnabled && inlineVideoOpen) {
+      return (
+        <div ref={inlineVideoRef} className='space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+          <div className='flex items-center justify-between gap-3'>
+            <p className='text-sm font-semibold text-foreground'>{videoBadgeLabel}</p>
+            <button
+              type='button'
+              className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+              onClick={() => setInlineVideoOpen(false)}
+            >
+              {t('common.actions.close', 'Schließen')}
+            </button>
+          </div>
+          <div
+            className='relative w-full overflow-hidden rounded-lg border border-border bg-black'
+            style={{ aspectRatio: ratio }}
+          >
+            <InlineVideoPlayer
+              src={firstVideo.src}
+              poster={firstVideo.poster}
+              autoPlay
+              className='absolute inset-0 h-full w-full'
+            />
+          </div>
+        </div>
+      )
+    }
     return (
       <button
         type='button'
-        onClick={(event) => handleMediaClick(event, videoIndex)}
+        onClick={(event) => {
+          if (inlineVideoEnabled) {
+            event.preventDefault()
+            event.stopPropagation()
+            setInlineVideoOpen(true)
+            return
+          }
+          handleMediaClick(event, videoIndex)
+        }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
+            if (inlineVideoEnabled) {
+              event.preventDefault()
+              event.stopPropagation()
+              setInlineVideoOpen(true)
+              return
+            }
             handleMediaClick(event, videoIndex)
           }
         }}
@@ -1274,12 +1401,14 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
 
 export default function Notifications ({ activeTab = 'all', listKey = 'notifs:all' }) {
   const { t } = useTranslation()
+  const { clientConfig } = useClientConfig()
   const { lists, notificationsUnread } = useAppState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
   const { mutate } = useSWRConfig()
+  const inlineVideoEnabled = clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true
 
   const list = listKey ? lists?.[listKey] : null
   const listRef = useRef(list)
@@ -1510,6 +1639,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
             onQuote={onQuote}
             onMarkRead={handleMarkRead}
             onViewMedia={onViewMedia}
+            inlineVideoEnabled={inlineVideoEnabled}
           />
         )}
       />

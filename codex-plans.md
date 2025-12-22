@@ -11,11 +11,13 @@ Als Nächstes beobachten wir die drei offenen Punkte aus `_remind-me.md` (Video-
 - Beobachten: bsky.app Verhalten bei deaktivierter Video-Allowlist prüfen und dokumentieren.
 - Beobachten: Modal-Höhe im Client-Settings-Dialog (aktuell 65vh) visuell im Auge behalten.
 - Beobachten: nur offizielle Bluesky-Labels in Content-Warnblöcken anzeigen (Fremdlabels dürfen nicht auftauchen).
+- Beobachten: Inline-Videos stoppen zuverlässig, wenn sie aus dem Viewport verschwinden oder verdeckt werden.
 
 5. ToDos nach Priorität, sofern bekannt durchnummerieren, sonst anhängen
 1) Beobachten: Video-Allowlist-Verhalten mit bsky.app abgleichen und ggf. anpassen.
 2) Beobachten: Modal-Höhe im Client-Settings-Dialog visuell prüfen.
 3) Beobachten: Content-Warnblöcke bleiben auf offizielle Bluesky-Labels beschränkt.
+4) Beobachten: Inline-Videos stoppen beim Wegscrollen bzw. Verlassen des Viewports.
 
 6. Abschluss-Check (prüfbare Kriterien, optional)
 - Content-Warnblöcke erscheinen nur für offizielle Bluesky-Labels.

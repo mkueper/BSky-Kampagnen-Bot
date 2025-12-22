@@ -42,6 +42,7 @@ import {
   ConfirmDialog,
   useConfirmDialog
 } from '../shared'
+import InlineVideoPlayer from '../shared/InlineVideoPlayer.jsx'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
@@ -488,6 +489,22 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   useEffect(() => {
     setYoutubeInlineOpen(false)
   }, [youtubePreview?.id])
+  const handleOpenInlineVideo = useCallback((key) => {
+    setInlineVideoOpen((current) => {
+      if (current.has(key)) return current
+      const next = new Set(current)
+      next.add(key)
+      return next
+    })
+  }, [])
+  const handleCloseInlineVideo = useCallback((key) => {
+    setInlineVideoOpen((current) => {
+      if (!current.has(key)) return current
+      const next = new Set(current)
+      next.delete(key)
+      return next
+    })
+  }, [])
   const quoted = useMemo(() => extractQuoteFromEmbed(item, t), [item, t])
   const replyCountStat = Number(
     item?.stats?.replyCount ??
@@ -535,8 +552,9 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   )
   const { quoteReposts } = useAppState()
   const autoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
-  const inlineVideo = (clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true) &&
-    videoAllowListEnabled
+  const inlineVideoEnabled = clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true
+  const inlineVideoUploads = inlineVideoEnabled
+  const inlineVideoExternal = inlineVideoEnabled && videoAllowListEnabled
   const timeFormat = clientConfig?.layout?.timeFormat === 'absolute' ? 'absolute' : 'relative'
   const timeLabel = useMemo(() => {
     if (!createdAt) return ''
@@ -558,8 +576,38 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
   const [translationError, setTranslationError] = useState('')
   const [detectingLanguage, setDetectingLanguage] = useState(false)
   const [detectedLanguage, setDetectedLanguage] = useState(null)
+  const [inlineVideoOpen, setInlineVideoOpen] = useState(() => new Set())
+  const inlineVideoRefs = useRef(new Map())
   const [youtubeInlineOpen, setYoutubeInlineOpen] = useState(false)
   const youtubeInlineRef = useRef(null)
+  useEffect(() => {
+    setInlineVideoOpen(new Set())
+    inlineVideoRefs.current = new Map()
+  }, [item?.uri])
+  useEffect(() => {
+    if (!inlineVideoOpen.size) return
+    const observers = []
+    inlineVideoOpen.forEach((key) => {
+      const node = inlineVideoRefs.current.get(key)
+      if (!node || typeof IntersectionObserver === 'undefined') return
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries[0]?.isIntersecting) {
+            setInlineVideoOpen((current) => {
+              if (!current.has(key)) return current
+              const next = new Set(current)
+              next.delete(key)
+              return next
+            })
+          }
+        },
+        { threshold: 0.2 }
+      )
+      observer.observe(node)
+      observers.push(observer)
+    })
+    return () => observers.forEach((observer) => observer.disconnect())
+  }, [inlineVideoOpen])
   const dispatch = useAppDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
@@ -1456,7 +1504,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
           {videos.length > 0 && !moderationBlocked ? (
         <div className='mt-3 space-y-2' data-component='BskySkeetVideos'>
-          {videos.map((video) => {
+          {videos.map((video, index) => {
             const singleMediaMax = config?.singleMax ?? 360
             const previewStyle = getImageContainerStyle(
               { aspectRatio: parseAspectRatioValue(video.aspectRatio), type: 'video' },
@@ -1468,21 +1516,75 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               maxHeight: singleMediaMax,
               backgroundColor: 'var(--background-subtle, #000)'
             }
+            const inlineKey = String(video.mediaIndex ?? video.src ?? index)
+            const inlineOpen = inlineVideoOpen.has(inlineKey)
+            const canInline = inlineVideoUploads && !moderationCoverAll && !moderationCoverMedia
+            const handleInlineOpen = (event) => {
+              if (!canInline) return
+              event?.preventDefault()
+              event?.stopPropagation()
+              handleOpenInlineVideo(inlineKey)
+            }
+            const handleMediaClick = (event) => {
+              if (moderationCoverAll || moderationCoverMedia) return
+              if (canInline) {
+                handleInlineOpen(event)
+                return
+              }
+              handleMediaPreview(event, video.mediaIndex ?? 0)
+            }
+            const handleMediaKeyDown = (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                handleMediaClick(event)
+              }
+            }
+            if (canInline && inlineOpen) {
+              const setInlineRef = (node) => {
+                if (node) {
+                  inlineVideoRefs.current.set(inlineKey, node)
+                } else {
+                  inlineVideoRefs.current.delete(inlineKey)
+                }
+              }
+              return (
+                <div
+                  key={video.mediaIndex ?? video.src}
+                  ref={setInlineRef}
+                  className='space-y-2 rounded-xl border border-border bg-background-subtle p-3'
+                >
+                  <div className='flex items-center justify-between gap-3'>
+                    <p className='text-sm font-semibold text-foreground'>
+                      {t('skeet.media.videoLabel', 'Video')}
+                    </p>
+                    <button
+                      type='button'
+                      className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+                      onClick={() => handleCloseInlineVideo(inlineKey)}
+                    >
+                      {t('common.actions.close', 'Schließen')}
+                    </button>
+                  </div>
+                  <div
+                    className='relative w-full overflow-hidden rounded-lg border border-border bg-black'
+                    style={{ aspectRatio: parseAspectRatioValue(video.aspectRatio) || (16 / 9) }}
+                  >
+                    <InlineVideoPlayer
+                      src={video.src}
+                      poster={video.poster}
+                      autoPlay
+                      className='absolute inset-0 h-full w-full'
+                    />
+                  </div>
+                </div>
+              )
+            }
             return (
               <button
                 key={video.mediaIndex ?? video.src}
                 type='button'
                 className='relative block w-full overflow-hidden rounded-xl border border-border bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-                onClick={moderationCoverAll || moderationCoverMedia
-                  ? undefined
-                  : (event) => handleMediaPreview(event, video.mediaIndex ?? 0)}
-                onKeyDown={moderationCoverAll || moderationCoverMedia
-                  ? undefined
-                  : (event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        handleMediaPreview(event, video.mediaIndex ?? 0)
-                      }
-                    }}
+                onClick={moderationCoverAll || moderationCoverMedia ? undefined : handleMediaClick}
+                onKeyDown={moderationCoverAll || moderationCoverMedia ? undefined : handleMediaKeyDown}
                 title={t('skeet.media.videoOpen', 'Video öffnen')}
                 aria-label={t('skeet.media.videoOpen', 'Video öffnen')}
               >
@@ -1517,7 +1619,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
 
           {external && mediaItems.length === 0 && !moderationBlocked ? (
         youtubePreview ? (
-          inlineVideo ? (
+          inlineVideoExternal ? (
             youtubeInlineOpen ? (
               <div ref={youtubeInlineRef} className='mt-3 space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
                 <div className='flex items-center justify-between gap-3'>
