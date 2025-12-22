@@ -20,7 +20,7 @@ function resolveSessionTtlSeconds(requestedHours, fallbackSeconds) {
   return clamped * 60 * 60;
 }
 
-function session(req, res) {
+async function session(req, res) {
   const status = getStatus();
   if (!status.configured) {
     return res.json({ authenticated: false, configured: false });
@@ -35,7 +35,7 @@ function session(req, res) {
     authenticated: true,
     configured: true,
     user: { username: payload.username },
-    expiresAt: payload.exp ? payload.exp * 1000 : null,
+    expiresAt: payload.exp ? payload.exp * 1000 : null
   });
 }
 

@@ -1,7 +1,49 @@
 import React from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { ChatBubbleIcon, ChevronDownIcon, ChevronUpIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost, ProfilePreviewTrigger, ActorProfileLink, InlineVideoPlayer } from '../shared'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, memo } from 'react'
+import {
+  ChatBubbleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  HeartFilledIcon,
+  HeartIcon,
+  TriangleRightIcon,
+  Share2Icon,
+  DotsHorizontalIcon,
+  Link2Icon,
+  CopyIcon,
+  CodeIcon,
+  GlobeIcon,
+  Cross2Icon,
+  ExclamationTriangleIcon,
+  FaceIcon,
+  SpeakerOffIcon,
+  SpeakerModerateIcon,
+  MixerVerticalIcon,
+  EyeClosedIcon,
+  ScissorsIcon,
+  BookmarkIcon,
+  BookmarkFilledIcon,
+  PinLeftIcon,
+  TrashIcon,
+  GearIcon
+} from '@radix-ui/react-icons'
+import {
+  Button,
+  Card,
+  useBskyEngagement,
+  RichText,
+  RepostMenuButton,
+  deletePost,
+  ProfilePreviewTrigger,
+  ActorProfileLink,
+  InlineVideoPlayer,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem,
+  ConfirmDialog,
+  useConfirmDialog
+} from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
@@ -11,6 +53,8 @@ import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { AuthContext } from '../auth/AuthContext.jsx'
+import { muteActor as apiMuteActor, blockActor as apiBlockActor } from '../shared/api/bsky'
 import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
 import { useSWRConfig } from 'swr'
@@ -19,6 +63,100 @@ import { NOTIFICATION_UNREAD_SWR_KEY } from '../../hooks/useNotificationPolling.
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
+const DEFAULT_TRANSLATE_BASE = 'http://localhost:5000'
+
+const parseBoolean = (value, fallback = null) => {
+  if (value === true || value === 'true') return true
+  if (value === false || value === 'false') return false
+  return fallback
+}
+
+const normalizeTranslateEndpoint = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return ''
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return ''
+  const withProtocol = trimmed.includes('://') ? trimmed : `https://${trimmed}`
+  try {
+    const parsed = new URL(withProtocol)
+    if (parsed.pathname.endsWith('/')) {
+      parsed.pathname = parsed.pathname.slice(0, -1)
+    }
+    if (!parsed.pathname.endsWith('/translate')) {
+      parsed.pathname = `${parsed.pathname}/translate`
+    }
+    return parsed.toString()
+  } catch {
+    return ''
+  }
+}
+
+const buildFallbackTranslateUrl = (service, language, content) => {
+  const lang = language || 'en'
+  const target = encodeURIComponent(String(content || '').trim())
+  if (!target) return ''
+  if (service === 'deepl') {
+    return `https://www.deepl.com/translator#auto/${lang}/${target}`
+  }
+  if (service === 'bing') {
+    return `https://www.bing.com/translator?from=auto&to=${lang}&text=${target}`
+  }
+  if (service === 'yandex') {
+    return `https://translate.yandex.com/?lang=auto-${lang}&text=${target}`
+  }
+  if (service === 'google') {
+    return `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+  }
+  return ''
+}
+
+const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
+  const translationConfig = clientConfig?.translation || {}
+  const baseFromConfig = typeof translationConfig.baseUrl === 'string' ? translationConfig.baseUrl.trim() : ''
+  const baseFromEnv = typeof envBaseUrl === 'string' ? envBaseUrl.trim() : ''
+  const allowGoogle = translationConfig.allowGoogle !== false
+  const fallbackRaw = typeof translationConfig.fallbackService === 'string'
+    ? translationConfig.fallbackService.trim().toLowerCase()
+    : ''
+  const fallbackOptions = new Set(['google', 'deepl', 'bing', 'yandex', 'none'])
+  const fallbackService = fallbackOptions.has(fallbackRaw)
+    ? fallbackRaw
+    : (allowGoogle ? 'google' : 'none')
+  const allowFallback = fallbackService !== 'none'
+  const explicitEnabled = typeof translationConfig.enabled === 'boolean' ? translationConfig.enabled : null
+  const envEnabled = parseBoolean(envEnabledRaw, null)
+  let featureEnabled = true
+  if (envEnabled !== null) {
+    featureEnabled = envEnabled
+  } else if (explicitEnabled !== null) {
+    featureEnabled = explicitEnabled
+  } else if (baseFromConfig || baseFromEnv) {
+    featureEnabled = true
+  } else {
+    featureEnabled = false
+  }
+  if (!featureEnabled) {
+    return { enabled: false, endpoint: null, allowFallback: false, fallbackService: 'none' }
+  }
+  const shouldFallbackToDefault = !(baseFromConfig || baseFromEnv) && !allowFallback
+  const rawEndpoint = baseFromConfig || baseFromEnv || (shouldFallbackToDefault ? DEFAULT_TRANSLATE_BASE : '')
+  const endpoint = normalizeTranslateEndpoint(rawEndpoint)
+  return { enabled: true, endpoint, allowFallback, fallbackService }
+}
+
+function buildShareUrl (item) {
+  try {
+    const uri = item?.uri || ''
+    const author = item?.author || {}
+    const handle = author?.handle || author?.did || ''
+    if (!uri || !handle) return uri
+    const parts = uri.split('/')
+    const rkey = parts[parts.length - 1]
+    if (!rkey) return uri
+    return `https://bsky.app/profile/${handle}/post/${rkey}`
+  } catch {
+    return item?.uri || ''
+  }
+}
 
 
 
@@ -327,36 +465,14 @@ function extractQuotedPost (subject) {
   }
 }
 
-function buildReplyTarget (notification) {
-  try {
-    if (!notification) return null
-    const record = { ...(notification?.raw?.post?.record || notification?.record || {}) }
-    const author = notification?.author || notification?.raw?.post?.author || {}
-    const uri = notification?.uri || record?.uri || notification?.reasonSubject || null
-    const cid = notification?.cid || record?.cid || null
-    if (!uri || !cid) return null
-    const post = {
-      uri,
-      cid,
-      record,
-      author,
-      viewer: notification?.record?.viewer || notification?.raw?.post?.viewer || {}
-    }
-    return {
-      uri,
-      cid,
-      author,
-      raw: { post }
-    }
-  } catch {
-    return null
-  }
-}
-
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
   const dispatch = useAppDispatch()
   const { quoteReposts } = useAppState()
   const { t, locale } = useTranslation()
+  const authContext = useContext(AuthContext)
+  const session = authContext?.session || null
+  const { clientConfig } = useClientConfig()
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const cardRef = useRef(null)
   const {
     author = {},
@@ -388,6 +504,23 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const timestamp = indexedAt ? new Date(indexedAt).toLocaleString(locale || 'de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
+  const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_BASE_URL)
+    ? import.meta.env.VITE_TRANSLATION_BASE_URL
+    : ''
+  const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED)
+    ? import.meta.env.VITE_TRANSLATION_ENABLED
+    : null
+  const translationPreferences = useMemo(
+    () => resolveTranslationConfig(clientConfig, envTranslateBaseUrl, envTranslateEnabled),
+    [clientConfig, envTranslateBaseUrl, envTranslateEnabled]
+  )
+  const translationAbortRef = useRef(null)
+  const detectAbortRef = useRef(null)
+  const [translationResult, setTranslationResult] = useState(null)
+  const [translationError, setTranslationError] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [detectedLanguage, setDetectedLanguage] = useState(null)
+  const [detectingLanguage, setDetectingLanguage] = useState(false)
   const profileActor = author?.did || author?.handle || ''
   const resolvedActors = useMemo(() => {
     if (Array.isArray(item?.actors) && item.actors.length) return item.actors
@@ -397,7 +530,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const maxActors = 5
   const visibleActors = resolvedActors.slice(0, maxActors)
   const overflowCount = Math.max(0, resolvedActors.length - maxActors)
-  const canExpandActors = overflowCount > 0
+  const canExpandActors = resolvedActors.length > 1
 
   const replyMedia = useMemo(() => {
     if (!isReply) return null
@@ -405,32 +538,55 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [isReply, record])
 
   const canOpenProfileViewer = Boolean(profileActor)
+  const actionUri = item?.uri || record?.uri || item?.raw?.post?.uri || item?.reasonSubject || null
+  const actionCid = item?.cid || record?.cid || item?.raw?.post?.cid || null
+  const actionAuthor = item?.raw?.post?.author || record?.author || author || {}
+  const actorDid = actionAuthor?.did || ''
 
   const {
     likeCount,
     repostCount,
     hasLiked,
     hasReposted,
+    isBookmarked,
     busy,
+    bookmarking,
     error: actionError,
     toggleLike,
     toggleRepost,
+    toggleBookmark,
     clearError,
   } = useBskyEngagement({
-    uri: item?.uri,
-    cid: item?.cid || record?.cid,
-    initialLikes: record?.stats?.likeCount,
-    initialReposts: record?.stats?.repostCount,
-    viewer: record?.viewer || item?.viewer,
+    uri: actionUri,
+    cid: actionCid,
+    initialLikes: item?.record?.stats?.likeCount || item?.stats?.likeCount || record?.stats?.likeCount || item?.raw?.post?.record?.stats?.likeCount || item?.raw?.post?.stats?.likeCount,
+    initialReposts: item?.record?.stats?.repostCount || item?.stats?.repostCount || record?.stats?.repostCount || item?.raw?.post?.record?.stats?.repostCount || item?.raw?.post?.stats?.repostCount,
+    viewer: item?.raw?.post?.viewer || item?.viewer || record?.viewer || item?.raw?.post?.record?.viewer,
   })
 
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
-  const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
+  const bookmarkStyle = isBookmarked ? { color: '#f97316' } : undefined
+  const quotePostUri = actionUri ? (quoteReposts?.[actionUri] || null) : null
   const [quoteBusy, setQuoteBusy] = useState(false)
   const [quoteMessage, setQuoteMessage] = useState('')
   const [quoteMessageIsError, setQuoteMessageIsError] = useState(false)
   const [actorsExpanded, setActorsExpanded] = useState(false)
+  const replyCountStat = Number(
+    item?.stats?.replyCount ??
+    item?.record?.stats?.replyCount ??
+    item?.raw?.post?.replyCount ??
+    record?.stats?.replyCount ??
+    item?.replyCount ??
+    0
+  )
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const [mutingAccount, setMutingAccount] = useState(false)
+  const [blockingAccount, setBlockingAccount] = useState(false)
+  const [menuActionError, setMenuActionError] = useState('')
+  const [deletingPost, setDeletingPost] = useState(false)
 
   const markAsRead = useCallback(() => {
     if (!isRead && typeof onMarkRead === 'function') {
@@ -469,30 +625,418 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     }
   }, [isRead, markAsRead])
 
+  const shareUrl = useMemo(
+    () => buildShareUrl({ uri: actionUri || '', author: actionAuthor }),
+    [actionAuthor, actionUri]
+  )
+
+  useEffect(() => {
+    return () => {
+      translationAbortRef.current?.abort?.()
+    }
+  }, [])
+  useEffect(() => {
+    return () => {
+      detectAbortRef.current?.abort?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [recordText, item?.uri])
+
+  const targetLanguage = useMemo(() => {
+    const base = (locale || navigator?.language || 'en').split('-')[0] || 'en'
+    return base.toLowerCase()
+  }, [locale])
+  const translationEndpoint = translationPreferences.endpoint
+  const translationEnabled = translationPreferences.enabled !== false
+  const fallbackService = translationPreferences.fallbackService || 'none'
+  const allowFallback = translationPreferences.allowFallback === true
+  const canInlineTranslate = Boolean(translationEndpoint)
+  const translateUnavailable = !canInlineTranslate && !allowFallback
+  const detectEndpoint = useMemo(() => {
+    if (!translationEndpoint) return null
+    return translationEndpoint.replace(/\/translate$/i, '/detect')
+  }, [translationEndpoint])
+  const sameLanguageDetected = detectedLanguage && detectedLanguage === targetLanguage
+  const translateButtonDisabled = translateUnavailable ||
+    !recordText ||
+    !recordText.trim() ||
+    (canInlineTranslate && translating) ||
+    (sameLanguageDetected && !detectingLanguage)
+
+  useEffect(() => {
+    detectAbortRef.current?.abort?.()
+    if (!translationEnabled || !canInlineTranslate || !detectEndpoint || !recordText?.trim()) {
+      setDetectingLanguage(false)
+      setDetectedLanguage(null)
+      return
+    }
+    const controller = new AbortController()
+    detectAbortRef.current = controller
+    setDetectingLanguage(true)
+    const payload = JSON.stringify({ q: recordText })
+    fetch(detectEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: payload,
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Detect failed')
+        const data = await response.json()
+        const entry = Array.isArray(data)
+          ? data[0]
+          : Array.isArray(data?.detections) ? data.detections[0] : null
+        const lang = typeof entry?.language === 'string'
+          ? entry.language
+          : (typeof entry?.languageCode === 'string' ? entry.languageCode : null)
+        setDetectedLanguage(lang ? lang.toLowerCase() : null)
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return
+        setDetectedLanguage(null)
+      })
+      .finally(() => {
+        setDetectingLanguage(false)
+      })
+  }, [canInlineTranslate, detectEndpoint, recordText, translationEnabled])
+
+  const copyToClipboard = async (value, successMessage = t('skeet.actions.copySuccess', 'Kopiert')) => {
+    if (!value) return
+    const fallback = () => window.prompt(t('skeet.actions.copyPrompt', 'Zum Kopieren'), value)
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+        setFeedbackMessage(successMessage)
+        window.setTimeout(() => setFeedbackMessage(''), 2400)
+      } else {
+        fallback()
+      }
+    } catch {
+      fallback()
+    }
+  }
+
+  const showPlaceholder = useCallback((label) => {
+    setFeedbackMessage(t('skeet.actions.placeholder', '{label} ist noch nicht verfügbar.', { label }))
+    window.setTimeout(() => setFeedbackMessage(''), 2400)
+  }, [t])
+
+  const showMenuError = useCallback((message) => {
+    setMenuActionError(message)
+    window.setTimeout(() => setMenuActionError(''), 3200)
+  }, [])
+
+  const openExternalTranslate = useCallback(() => {
+    if (!allowFallback) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    const url = buildFallbackTranslateUrl(fallbackService, targetLanguage || 'en', recordText || '')
+    if (!url) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [allowFallback, fallbackService, showPlaceholder, t, targetLanguage, recordText])
+
+  const handleInlineTranslate = useCallback(async () => {
+    if (!translationEnabled || !canInlineTranslate) {
+      return
+    }
+    if (!recordText || !recordText.trim()) {
+      setTranslationError(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      return
+    }
+    if (translating) return
+    translationAbortRef.current?.abort?.()
+    const controller = new AbortController()
+    translationAbortRef.current = controller
+    setTranslating(true)
+    setTranslationError('')
+    try {
+      const response = await fetch(translationEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          q: recordText,
+          source: 'auto',
+          target: targetLanguage || 'en',
+          format: 'text'
+        }),
+        signal: controller.signal
+      })
+      if (!response.ok) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      }
+      const payload = await response.json()
+      const translated = (payload?.translatedText || payload?.translation || '').trim()
+      if (!translated) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      }
+      setTranslationResult({
+        text: translated,
+        detected: payload?.detectedLanguage?.language || payload?.detectedLanguage || null
+      })
+      setFeedbackMessage(t('skeet.translation.success', 'Übersetzung eingefügt.'))
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      if (allowFallback) {
+        openExternalTranslate()
+        return
+      }
+      setTranslationError(error?.message || t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+    } finally {
+      setTranslating(false)
+    }
+  }, [
+    allowFallback,
+    canInlineTranslate,
+    openExternalTranslate,
+    t,
+    targetLanguage,
+    recordText,
+    translationEnabled,
+    translationEndpoint,
+    translating
+  ])
+
+  const handleTranslateAction = useCallback(() => {
+    if (!translationEnabled) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    if (canInlineTranslate) {
+      handleInlineTranslate()
+      return
+    }
+    if (allowFallback) {
+      openExternalTranslate()
+      return
+    }
+    showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+  }, [
+    allowFallback,
+    canInlineTranslate,
+    handleInlineTranslate,
+    openExternalTranslate,
+    showPlaceholder,
+    t,
+    translationEnabled
+  ])
+
+  const handleClearTranslation = useCallback(() => {
+    translationAbortRef.current?.abort?.()
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [])
+
+  const handleMuteAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.muteAccount', 'Account stummschalten'))
+      return
+    }
+    if (mutingAccount) return
+    setMenuActionError('')
+    setMutingAccount(true)
+    try {
+      await apiMuteActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.muteAccountSuccess', 'Account wurde stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteAccountError', 'Account konnte nicht stummgeschaltet werden.'))
+    } finally {
+      setMutingAccount(false)
+    }
+  }, [actorDid, mutingAccount, showMenuError, showPlaceholder, t])
+
+  const handleBlockAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.blockAccount', 'Account blockieren'))
+      return
+    }
+    if (blockingAccount) return
+    setMenuActionError('')
+    setBlockingAccount(true)
+    try {
+      await apiBlockActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.blockAccountSuccess', 'Account wurde blockiert.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.blockAccountError', 'Account konnte nicht blockiert werden.'))
+    } finally {
+      setBlockingAccount(false)
+    }
+  }, [actorDid, blockingAccount, showMenuError, showPlaceholder, t])
+
+  const isOwnPost = Boolean(session?.did && actorDid && session.did === actorDid)
+
+  const handleDeleteOwnPost = useCallback(async () => {
+    if (!actionUri || deletingPost) return
+    openConfirm({
+      title: t('skeet.actions.confirmDeleteTitle', 'Post löschen?'),
+      description: t('skeet.actions.confirmDeleteDescription', 'Dieser Schritt ist endgültig. Der Post wird dauerhaft entfernt.'),
+      confirmLabel: t('skeet.actions.deletePost', 'Post löschen'),
+      cancelLabel: t('compose.cancel', 'Abbrechen'),
+      variant: 'destructive',
+      onConfirm: async () => {
+        setMenuActionError('')
+        setDeletingPost(true)
+        try {
+          await deletePost({ uri: actionUri })
+          dispatch({ type: 'REMOVE_POST', payload: actionUri })
+          setFeedbackMessage(t('skeet.actions.deletePostSuccess', 'Post gelöscht.'))
+          window.setTimeout(() => setFeedbackMessage(''), 2400)
+        } catch (error) {
+          showMenuError(error?.message || t('skeet.actions.deletePostError', 'Post konnte nicht gelöscht werden.'))
+        } finally {
+          setDeletingPost(false)
+        }
+      }
+    })
+  }, [actionUri, deletePost, deletingPost, dispatch, openConfirm, showMenuError, t])
+
+  const menuActions = useMemo(() => {
+    const base = [
+      {
+        key: 'copy-text',
+        label: t('skeet.actions.copyText', 'Post-Text kopieren'),
+        icon: CopyIcon,
+        action: () => copyToClipboard(String(recordText || ''), t('skeet.actions.copyTextSuccess', 'Text kopiert'))
+      }
+    ]
+
+    if (isOwnPost) {
+      return [
+        ...base,
+        {
+          key: 'pin-post',
+          label: t('skeet.actions.pinPost', 'An dein Profil anheften'),
+          icon: PinLeftIcon,
+          action: () => showPlaceholder(t('skeet.actions.pinPost', 'Post anheften')),
+          disabled: true
+        },
+        {
+          key: 'edit-interactions',
+          label: t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten'),
+          icon: GearIcon,
+          action: () => showPlaceholder(t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten')),
+          disabled: true
+        },
+        {
+          key: 'delete-post',
+          label: t('skeet.actions.deletePost', 'Post löschen'),
+          icon: TrashIcon,
+          action: handleDeleteOwnPost,
+          disabled: deletingPost,
+          variant: 'destructive'
+        }
+      ]
+    }
+
+    return [
+      ...base,
+      {
+        key: 'show-more',
+        label: t('skeet.actions.showMore', 'Mehr davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'show-less',
+        label: t('skeet.actions.showLess', 'Weniger davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'mute-thread',
+        label: t('skeet.actions.muteThread', 'Thread stummschalten'),
+        icon: SpeakerOffIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'mute-words',
+        label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
+        icon: MixerVerticalIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'hide-post',
+        label: t('skeet.actions.hidePost', 'Post für mich ausblenden'),
+        icon: EyeClosedIcon,
+        action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')),
+        disabled: true
+      },
+      {
+        key: 'mute-account',
+        label: t('skeet.actions.muteAccount', 'Account stummschalten'),
+        icon: SpeakerModerateIcon,
+        action: handleMuteAccount,
+        disabled: mutingAccount
+      },
+      {
+        key: 'block-account',
+        label: t('skeet.actions.blockAccount', 'Account blockieren'),
+        icon: ScissorsIcon,
+        action: handleBlockAccount,
+        disabled: blockingAccount,
+        variant: 'destructive'
+      },
+      {
+        key: 'report-post',
+        label: t('skeet.actions.reportPost', 'Post melden'),
+        icon: ExclamationTriangleIcon,
+        action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')),
+        disabled: true
+      }
+    ]
+  }, [blockingAccount, copyToClipboard, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleMuteAccount, isOwnPost, mutingAccount, recordText, showPlaceholder, t])
+
   const handleToggleLike = useCallback(async () => {
     clearError()
     const result = await toggleLike()
-    if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+    if (result && actionUri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
     }
-  }, [clearError, dispatch, item?.uri, toggleLike])
+  }, [actionUri, clearError, dispatch, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
-    if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+    if (result && actionUri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
     }
-  }, [clearError, dispatch, item?.uri, toggleRepost])
+  }, [actionUri, clearError, dispatch, toggleRepost])
+
+  const handleToggleBookmark = useCallback(async () => {
+    clearError()
+    const result = await toggleBookmark()
+    if (result && actionUri) {
+      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { bookmarked: result.bookmarked } } })
+    }
+  }, [actionUri, clearError, dispatch, toggleBookmark])
 
   const handleUndoQuote = useCallback(async () => {
-    if (!item?.uri || !quotePostUri || quoteBusy) return
+    if (!actionUri || !quotePostUri || quoteBusy) return
     setQuoteBusy(true)
     setQuoteMessage('')
     setQuoteMessageIsError(false)
     try {
       await deletePost({ uri: quotePostUri })
-      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
+      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: actionUri })
       setQuoteMessage(t('notifications.card.actions.quoteUndoSuccess', 'Zitat zurückgezogen.'))
     } catch (error) {
       setQuoteMessage(error?.message || t('notifications.card.actions.quoteUndoError', 'Zitat konnte nicht zurückgezogen werden.'))
@@ -504,7 +1048,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         setQuoteMessageIsError(false)
       }, 2400)
     }
-  }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
+  }, [actionUri, deletePost, dispatch, quoteBusy, quotePostUri, t])
 
   const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
 
@@ -532,6 +1076,16 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [threadTarget])
   const canOpenItem = Boolean(resolvedThreadTarget && typeof onSelectItem === 'function')
   const canOpenSubject = Boolean(resolvedThreadTarget && subject && typeof onSelectSubject === 'function')
+  const actionTarget = useMemo(() => {
+    const baseTarget = (reason === 'like' || reason === 'repost')
+      ? (subject || item)
+      : (item || subject)
+    if (!baseTarget) return null
+    const built = buildThreadTarget(baseTarget)
+    if (!built?.uri || !isPostUri(built.uri)) return null
+    return built
+  }, [buildThreadTarget, item, reason, subject])
+  const showFooter = Boolean(actionTarget)
 
   const handleSelectItem = useCallback((target) => {
     if (!resolvedThreadTarget || typeof onSelectItem !== 'function') return
@@ -635,29 +1189,32 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       )
     : avatarVisual
 
-  const actorStack = resolvedActors.length > 1 ? (
+  const actorStack = (
     <div className='flex items-center gap-2'>
       <div className='flex items-center'>{visibleActors.map(renderActorAvatar)}</div>
-      {canExpandActors ? (
-        <Button
-          type='button'
-          variant='ghost'
-          size='pill'
-          onClick={toggleActorsExpanded}
-          aria-label={actorsExpanded
-            ? t('notifications.actors.collapse', 'Ausblenden')
-            : t('notifications.actors.expandLabel', '{count} weitere anzeigen', { count: overflowCount })}
-          className='notification-toggle-button h-8 px-2 text-xs font-semibold text-foreground-muted hover:text-foreground'
-        >
-          {!actorsExpanded ? <span>{`+${overflowCount}`}</span> : null}
-          {actorsExpanded ? <ChevronUpIcon className='h-4 w-4' /> : <ChevronDownIcon className='h-4 w-4' />}
-        </Button>
-      ) : null}
+      <Button
+        type='button'
+        variant='ghost'
+        size='pill'
+        onClick={toggleActorsExpanded}
+        aria-label={actorsExpanded
+          ? t('notifications.actors.collapse', 'Ausblenden')
+          : (overflowCount > 0
+              ? t('notifications.actors.expandLabel', '{count} weitere anzeigen', { count: overflowCount })
+              : t('notifications.actors.expand', 'Weitere anzeigen'))}
+        className={`notification-toggle-button h-8 px-2 text-xs font-semibold ${
+          canExpandActors ? 'text-foreground-muted hover:text-foreground' : 'cursor-not-allowed text-foreground-muted/60'
+        }`}
+        disabled={!canExpandActors}
+      >
+        {!actorsExpanded && overflowCount > 0 ? <span>{`+${overflowCount}`}</span> : null}
+        {actorsExpanded ? <ChevronUpIcon className='h-4 w-4' /> : <ChevronDownIcon className='h-4 w-4' />}
+      </Button>
     </div>
-  ) : null
+  )
 
   const showActorList = canExpandActors && actorsExpanded
-  const useActorStackLayout = Boolean(actorStack)
+  const useActorStackLayout = true
 
   const contentBody = (
     <>
@@ -713,6 +1270,28 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
             hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
           />
         </p>
+      ) : null}
+      {translationResult ? (
+        <div className='rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
+          <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
+            <span>{t('skeet.translation.title', 'Übersetzung')}</span>
+            <button
+              type='button'
+              className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              onClick={handleClearTranslation}
+            >
+              <Cross2Icon className='h-3 w-3' />
+              {t('skeet.translation.close', 'Schließen')}
+            </button>
+          </div>
+          <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
+          <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
+            {translationResult.detected
+              ? t('skeet.translation.detected', 'Erkannt: {language}', { language: translationResult.detected.toUpperCase() })
+              : null}
+            <span className='ml-2'>{t('skeet.translation.via', 'Automatisch übersetzt via LibreTranslate')}</span>
+          </p>
+        </div>
       ) : null}
       {isReply && replyMedia?.media?.length > 0 ? (
         <div className='rounded-2xl border border-border bg-background-subtle p-2'>
@@ -819,25 +1398,22 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           </div>
         </div>
       )}
-      {isReply ? (
+      {showFooter ? (
         <>
-          <footer className='mt-3 flex flex-wrap items-center gap-4 text-sm text-foreground-muted'>
+          <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
             <button
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
               title={t('notifications.card.actions.reply', 'Antworten')}
               onClick={() => {
-                if (typeof onReply === 'function') {
-                  const target = buildReplyTarget(item)
-                  if (target) {
-                    clearError()
-                    onReply(target)
-                  }
+                if (typeof onReply === 'function' && actionTarget) {
+                  clearError()
+                  onReply(actionTarget)
                 }
               }}
             >
               <ChatBubbleIcon className='h-5 w-5' />
-              <span className='tabular-nums'>{record?.stats?.replyCount ?? 0}</span>
+              <span className='tabular-nums'>{replyCountStat}</span>
             </button>
             <RepostMenuButton
               count={repostCount}
@@ -852,9 +1428,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 handleToggleRepost()
               }}
               onUnquote={quotePostUri ? handleUndoQuote : undefined}
-              onQuote={onQuote ? (() => {
+              onQuote={onQuote && actionTarget ? (() => {
                 clearError()
-                onQuote(item)
+                onQuote(actionTarget)
               }) : undefined}
             />
             <button
@@ -873,15 +1449,151 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               )}
               <span className='tabular-nums'>{likeCount}</span>
             </button>
+            <div className='relative ml-auto flex items-center gap-1'>
+              <button
+                type='button'
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
+                style={bookmarkStyle}
+                title={isBookmarked ? t('skeet.actions.bookmarkRemove', 'Gespeichert') : t('skeet.actions.bookmarkAdd', 'Merken')}
+                aria-pressed={isBookmarked}
+                disabled={bookmarking}
+                onClick={handleToggleBookmark}
+              >
+                {isBookmarked ? (
+                  <BookmarkFilledIcon className='h-4 w-4' />
+                ) : (
+                  <BookmarkIcon className='h-4 w-4' />
+                )}
+              </button>
+              <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                    title={t('skeet.actions.share', 'Teilen')}
+                    aria-label={t('skeet.actions.shareAria', 'Beitrag teilen')}
+                  >
+                    <Share2Icon className='h-4 w-4' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent side='bottom' align='end' sideOffset={10}>
+                  <div className='py-1'>
+                    <InlineMenuItem
+                      icon={CopyIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        copyToClipboard(shareUrl, t('skeet.share.linkCopied', 'Link zum Post kopiert'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.copyLink', 'Link zum Post kopieren')}
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={Link2Icon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.directMessageAction', 'Per Direktnachricht senden')}
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={CodeIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        showPlaceholder(t('skeet.share.embed', 'Embed'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.embedAction', 'Post einbetten')}
+                    </InlineMenuItem>
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+              {translationEnabled ? (
+                <button
+                  type='button'
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
+                  title={translating && canInlineTranslate ? t('skeet.actions.translating', 'Übersetze…') : t('skeet.actions.translate', 'Übersetzen')}
+                  aria-label={t('skeet.actions.translate', 'Übersetzen')}
+                  onClick={handleTranslateAction}
+                  disabled={translateButtonDisabled}
+                >
+                  {translating && canInlineTranslate ? (
+                    <span className='h-4 w-4 animate-spin rounded-full border-2 border-border border-t-transparent' aria-hidden='true' />
+                  ) : (
+                    <GlobeIcon className='h-4 w-4' />
+                  )}
+                </button>
+              ) : null}
+              <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                    aria-label={t('skeet.actions.moreOptions', 'Mehr Optionen')}
+                  >
+                    <DotsHorizontalIcon className='h-5 w-5' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
+                  <div className='py-1 text-sm'>
+                    {menuActions.map((entry) => {
+                      const Icon = entry.icon
+                      return (
+                        <InlineMenuItem
+                          key={entry.key || entry.label}
+                          icon={Icon}
+                          disabled={entry.disabled}
+                          variant={entry.variant || 'default'}
+                          onSelect={(event) => {
+                            event?.preventDefault?.()
+                            if (entry.disabled) return
+                            try {
+                              entry.action()
+                            } catch {
+                              /* ignore menu action errors */
+                            }
+                            setOptionsOpen(false)
+                          }}
+                        >
+                          {entry.label}
+                        </InlineMenuItem>
+                      )
+                    })}
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+            </div>
           </footer>
+          {feedbackMessage ? (
+            <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
+          ) : null}
+          {translationError ? (
+            <p className='mt-2 text-xs text-red-600'>{translationError}</p>
+          ) : null}
           {actionError ? (
             <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+          ) : null}
+          {menuActionError ? (
+            <p className='mt-2 text-xs text-red-600'>{menuActionError}</p>
           ) : null}
           {quoteMessage ? (
             <p className={`mt-2 text-xs ${quoteMessageIsError ? 'text-red-600' : 'text-foreground-muted'}`}>{quoteMessage}</p>
           ) : null}
         </>
       ) : null}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel={confirmDialog.cancelLabel}
+        variant={confirmDialog.variant || 'primary'}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </Card>
   )
 })
@@ -1252,15 +1964,16 @@ function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = fals
     onViewMedia(media, safeIndex)
   }, [onViewMedia, media])
 
-  if (!media || media.length === 0) return null
-
-  const firstImage = media.find(m => m.type === 'image')
-  const firstVideo = media.find(m => m.type === 'video')
+  const hasMedia = Array.isArray(media) && media.length > 0
+  const firstImage = hasMedia ? media.find(m => m.type === 'image') : null
+  const firstVideo = hasMedia ? media.find(m => m.type === 'video') : null
 
   useEffect(() => {
+    if (!hasMedia) return
     setInlineVideoOpen(false)
-  }, [firstVideo?.src])
+  }, [firstVideo?.src, hasMedia])
   useEffect(() => {
+    if (!hasMedia) return
     if (!inlineVideoOpen) return
     const node = inlineVideoRef.current
     if (!node || typeof IntersectionObserver === 'undefined') return
@@ -1274,7 +1987,9 @@ function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = fals
     )
     observer.observe(node)
     return () => observer.disconnect()
-  }, [inlineVideoOpen])
+  }, [hasMedia, inlineVideoOpen])
+
+  if (!hasMedia) return null
 
   if (firstImage) {
     const imageIndex = media.indexOf(firstImage)

@@ -9,7 +9,15 @@ const messages = {
       'threads-overview': 'Aktivität',
       'threads-plan': 'Thread planen',
       config: 'Konfiguration',
-      about: 'Über Kampagnen‑Tool'
+      about: 'Über Kampagnen‑Tool',
+      clientLauncher: 'Client öffnen',
+      blueskyClient: 'Bluesky Client',
+      mastodonClient: 'Mastodon Client',
+      clientLauncherSuccessTitle: 'Client geöffnet',
+      clientLauncherSuccessDescription: 'Der Client-Link wurde geöffnet.',
+      clientLauncherErrorTitle: 'Client konnte nicht geöffnet werden',
+      clientLauncherErrorDescription: 'Bitte Konfiguration prüfen.',
+      clientLauncherPopupBlocked: 'Bitte Popups erlauben.'
     },
     about: {
       introTitle: 'Was das {project} macht',
@@ -881,6 +889,11 @@ const messages = {
           appPasswordLabel: 'App Password',
           appPasswordHint:
             'Leer lassen, um das bestehende Passwort zu behalten.',
+          clientAppLabel: 'Client-URL',
+          clientAppPlaceholder:
+            'https://client.example oder http://192.168.1.20:5173',
+          clientAppHint:
+            'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.',
           sessionTtlLabel: 'Session-Dauer (Stunden)',
           sessionTtlHint:
             'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
@@ -890,7 +903,12 @@ const messages = {
           apiUrlLabel: 'API URL',
           accessTokenLabel: 'Access Token',
           accessTokenHint:
-            'Leer lassen, um das bestehende Token zu behalten.'
+            'Leer lassen, um das bestehende Token zu behalten.',
+          clientAppLabel: 'Client-URL',
+          clientAppPlaceholder:
+            'https://client.example oder http://192.168.1.20:5173',
+          clientAppHint:
+            'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
         },
         tenor: {
           heading: 'Externe API-Keys',
@@ -898,6 +916,9 @@ const messages = {
           apiKeyHint:
             'Leer lassen, um den bestehenden Key zu behalten.'
         },
+        clientUrlClear: 'URL entfernen',
+        clientUrlInvalid: 'Bitte eine gültige URL angeben.',
+        clientUrlInvalidProtocol: 'Nur https:// erlaubt (http:// nur für localhost/private IPs).',
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen'
       },
@@ -939,7 +960,15 @@ const messages = {
       'threads-overview': 'Activity',
       'threads-plan': 'Schedule thread',
       config: 'Configuration',
-      about: 'About Campaign Tool'
+      about: 'About Campaign Tool',
+      clientLauncher: 'Open client',
+      blueskyClient: 'Bluesky client',
+      mastodonClient: 'Mastodon client',
+      clientLauncherSuccessTitle: 'Client opened',
+      clientLauncherSuccessDescription: 'The client link was opened.',
+      clientLauncherErrorTitle: 'Client could not be opened',
+      clientLauncherErrorDescription: 'Please check the configuration.',
+      clientLauncherPopupBlocked: 'Please allow popups.'
     },
     header: {
       caption: {
@@ -1719,6 +1748,11 @@ const messages = {
           appPasswordLabel: 'App password',
           appPasswordHint:
             'Leave empty to keep existing password.',
+          clientAppLabel: 'Client URL',
+          clientAppPlaceholder:
+            'https://client.example or http://192.168.1.20:5173',
+          clientAppHint:
+            'Opens as a link in the dashboard. http:// only for localhost/private IPs.',
           sessionTtlLabel: 'Session duration (hours)',
           sessionTtlHint:
             'Applies only on this device (6 to 168 hours).'
@@ -1728,7 +1762,12 @@ const messages = {
           apiUrlLabel: 'API URL',
           accessTokenLabel: 'Access token',
           accessTokenHint:
-            'Leave empty to keep existing token.'
+            'Leave empty to keep existing token.',
+          clientAppLabel: 'Client URL',
+          clientAppPlaceholder:
+            'https://client.example or http://192.168.1.20:5173',
+          clientAppHint:
+            'Opens as a link in the dashboard. http:// only for localhost/private IPs.'
         },
         tenor: {
           heading: 'External API keys',
@@ -1736,6 +1775,9 @@ const messages = {
           apiKeyHint:
             'Leave empty to keep existing key.'
         },
+        clientUrlClear: 'Remove URL',
+        clientUrlInvalid: 'Please enter a valid URL.',
+        clientUrlInvalidProtocol: 'Only https:// allowed (http:// only for localhost/private IPs).',
         saveBusy: 'Applying…',
         saveLabel: 'Apply'
       },

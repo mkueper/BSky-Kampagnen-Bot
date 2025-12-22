@@ -8,3 +8,10 @@
       - einen Button, der die Historie als Ziehamonika (6 Posts, dann scrollen) anzeigt
 6. [Erledigt] Das Abspielen von hochgeladenen Videos inline erlauben, wie bei externen Videowuellen auch.
    1. Video-Quellen umbenennen in "Externe Video-Quellen"?
+7. [ToDo] Mitteilungen: 
+   - kompletter Footer (Reply/Repost/Quote/Like usw.) soll bei allen Einträgen verfügbar sein, auch bei Antworten; Like-Logik wie in der Timeline behandeln.
+   - Der zitierte Beitrag soll sich von der Antwort abheben, aber so, dass die Antwort der Blickfang ist. Eventuell sogar den zitierten Beitrag im Antwortbereich, unterhalb der Antwort anzeigen.
+   - Eine Antwort auf einen Beitrag/Antwort sollte auch den kompletten Footer mit denselben Funktionen erhalten
+8. Im Chat sollen folgende Aktionsmöglichkeiten vorhanden sein:
+   - Aufrufen des Profils, dass in einer Nachricht gezeigt wird.
+   - 

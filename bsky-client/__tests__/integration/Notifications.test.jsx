@@ -77,11 +77,14 @@ vi.mock('../../src/modules/shared', () => {
     repostCount: 0,
     hasLiked: false,
     hasReposted: false,
+    isBookmarked: false,
+    bookmarking: false,
     busy: false,
     refreshing: false,
     error: '',
     toggleLike: () => {},
     toggleRepost: () => {},
+    toggleBookmark: () => {},
     refresh: () => {},
     clearError: () => {}
   })
@@ -116,7 +119,19 @@ vi.mock('../../src/modules/shared', () => {
     ProfilePreviewTrigger: ({ children }) => <>{children}</>,
     RichText: ({ text, className = '' }) => <span className={className}>{text}</span>,
     RepostMenuButton,
+    InlineMenu: ({ children }) => <div>{children}</div>,
+    InlineMenuTrigger: ({ children }) => <div>{children}</div>,
+    InlineMenuContent: ({ children }) => <div>{children}</div>,
+    InlineMenuItem: ({ children, onSelect, ...props }) => (
+      <button type='button' onClick={onSelect} {...props}>{children}</button>
+    ),
     deletePost: vi.fn(async () => ({ success: true })),
+    ConfirmDialog: () => null,
+    useConfirmDialog: () => ({
+      dialog: { open: false },
+      openConfirm: () => {},
+      closeConfirm: () => {}
+    }),
     useBskyEngagement: () => ({
       ...buildEngagement(),
       ...(engagementOverrides.current || {})

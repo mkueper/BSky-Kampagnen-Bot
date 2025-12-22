@@ -52,4 +52,38 @@ describe('credentialsController', () => {
     expect(text).toMatch(/BLUESKY_IDENTIFIER=user@example/)
     expect(text).toMatch(/MASTODON_API_URL=https:\/\/mastodon\.social/)
   })
+
+  it('rejects public http URLs for client links', async () => {
+    const req = { body: { blueskyClientApp: 'http://example.com' } }
+    let payload = null
+    let statusCode = 200
+    const res = {
+      json: (o) => { payload = o },
+      status: (code) => {
+        statusCode = code
+        return { json: (o) => { payload = o } }
+      }
+    }
+    await creds.updateCredentials(req, res)
+    expect(statusCode).toBe(400)
+    expect(payload?.error).toMatch(/https:\/\//)
+  })
+
+  it('accepts private http URLs for client links', async () => {
+    const req = { body: { blueskyClientApp: 'http://192.168.1.20:5173' } }
+    let payload = null
+    let statusCode = 200
+    const res = {
+      json: (o) => { payload = o },
+      status: (code) => {
+        statusCode = code
+        return { json: (o) => { payload = o } }
+      }
+    }
+    await creds.updateCredentials(req, res)
+    expect(statusCode).toBe(200)
+    expect(payload?.ok).toBe(true)
+    const text = fs.readFileSync(ENV_FILE, 'utf8')
+    expect(text).toMatch(/BLUESKY_CLIENT_APP=http:\/\/192\.168\.1\.20:5173/)
+  })
 })

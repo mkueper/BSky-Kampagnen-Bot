@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
+import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
@@ -1834,16 +1835,20 @@ function CredentialsSection () {
     blueskyServerUrl: '',
     blueskyIdentifier: '',
     blueskyAppPassword: '',
+    blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
+    mastodonClientApp: '',
     tenorApiKey: ''
   })
   const [initialValues, setInitialValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
     blueskyAppPassword: '',
+    blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
+    mastodonClientApp: '',
     tenorApiKey: ''
   })
   const [hasSecret, setHasSecret] = useState({
@@ -1862,6 +1867,7 @@ function CredentialsSection () {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [blink, setBlink] = useState({})
+  const [clientUrlErrors, setClientUrlErrors] = useState({})
 
   const triggerBlink = (keys = []) => {
     const obj = {}
@@ -1870,6 +1876,34 @@ function CredentialsSection () {
     })
     setBlink(obj)
     setTimeout(() => setBlink({}), 900)
+  }
+
+  const isPrivateHostname = (hostname) => {
+    if (!hostname) return false
+    const host = hostname.toLowerCase()
+    if (host === 'localhost') return true
+    const v4 = host.split('.').map(part => Number(part))
+    if (v4.length !== 4 || v4.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false
+    if (v4[0] === 10) return true
+    if (v4[0] === 172 && v4[1] >= 16 && v4[1] <= 31) return true
+    if (v4[0] === 192 && v4[1] === 168) return true
+    return false
+  }
+
+  const validateClientUrl = (value) => {
+    const raw = (value ?? '').toString().trim()
+    if (!raw) return ''
+    try {
+      const parsed = new URL(raw)
+      if (parsed.protocol === 'https:') return ''
+      if (parsed.protocol === 'http:' && isPrivateHostname(parsed.hostname)) return ''
+      return t(
+        'config.credentials.clientUrlInvalidProtocol',
+        'Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+      )
+    } catch {
+      return t('config.credentials.clientUrlInvalid', 'Bitte eine gültige URL angeben.')
+    }
   }
 
   useEffect(() => {
@@ -1894,8 +1928,10 @@ function CredentialsSection () {
             blueskyServerUrl: data?.bluesky?.serverUrl || '',
             blueskyIdentifier: data?.bluesky?.identifier || '',
             blueskyAppPassword: '',
+            blueskyClientApp: data?.bluesky?.clientApp || '',
             mastodonApiUrl: data?.mastodon?.apiUrl || '',
             mastodonAccessToken: '',
+            mastodonClientApp: data?.mastodon?.clientApp || '',
             tenorApiKey: ''
           }
           setValues(nextValues)
@@ -1928,6 +1964,14 @@ function CredentialsSection () {
   }, [toast])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+  const onClientUrlBlur = key => () => {
+    const message = validateClientUrl(values[key])
+    setClientUrlErrors(current => ({ ...current, [key]: message }))
+  }
+  const clearClientUrl = key => () => {
+    setValues(current => ({ ...current, [key]: '' }))
+    setClientUrlErrors(current => ({ ...current, [key]: '' }))
+  }
   const onSessionTtlChange = (event) => {
     const nextValue = event.target.value
     if (nextValue === '' || /^\d+$/.test(nextValue)) {
@@ -1968,11 +2012,19 @@ function CredentialsSection () {
     if (!next.blueskyIdentifier) missing.push('blueskyIdentifier')
     if (!hasSecret.bsky && !next.blueskyAppPassword)
       missing.push('blueskyAppPassword')
+    const blueskyUrlError = validateClientUrl(next.blueskyClientApp)
+    const mastodonUrlError = validateClientUrl(next.mastodonClientApp)
+    if (blueskyUrlError) missing.push('blueskyClientApp')
+    if (mastodonUrlError) missing.push('mastodonClientApp')
     if (missing.length) {
       triggerBlink(missing)
+      setClientUrlErrors({
+        blueskyClientApp: blueskyUrlError,
+        mastodonClientApp: mastodonUrlError
+      })
       toast.error({
         title: 'Eingaben fehlen',
-        description: 'Bitte Bluesky‑Identifier und App‑Passwort ausfüllen.'
+        description: 'Bitte markierte Felder prüfen.'
       })
       return
     }
@@ -2026,6 +2078,7 @@ function CredentialsSection () {
       )
       try {
         window.dispatchEvent(new Event('client-config:refresh'))
+        window.dispatchEvent(new Event('client-apps:refresh'))
         // Hintergrund-Refresh mit Cache-Bust, falls Browser cached
         await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
       } catch {
@@ -2253,6 +2306,57 @@ function CredentialsSection () {
                   </p>
                 </label>
               </div>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1 md:col-span-2'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.clientAppLabel',
+                      'Client-App'
+                    )}
+                  </span>
+                  <div className='relative'>
+                    <input
+                      type='url'
+                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        blink.blueskyClientApp
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : clientUrlErrors.blueskyClientApp
+                            ? 'border-destructive'
+                            : 'border-border'
+                      }`}
+                      placeholder={t(
+                        'config.credentials.bluesky.clientAppPlaceholder',
+                        'https://client.example oder http://192.168.1.20:5173'
+                      )}
+                      value={values.blueskyClientApp}
+                      onChange={onChange('blueskyClientApp')}
+                      onBlur={onClientUrlBlur('blueskyClientApp')}
+                    />
+                    {values.blueskyClientApp ? (
+                      <button
+                        type='button'
+                        onClick={clearClientUrl('blueskyClientApp')}
+                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                      >
+                        <Cross2Icon className='h-4 w-4' />
+                      </button>
+                    ) : null}
+                  </div>
+                  {clientUrlErrors.blueskyClientApp ? (
+                    <p className='text-xs text-destructive'>
+                      {clientUrlErrors.blueskyClientApp}
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.clientAppHint',
+                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
+                    )}
+                  </p>
+                </label>
+              </div>
             </div>
           </section>
           <section className='space-y-4'>
@@ -2291,6 +2395,57 @@ function CredentialsSection () {
                     {t(
                       'config.credentials.mastodon.accessTokenHint',
                       'Leer lassen, um das bestehende Token zu behalten.'
+                    )}
+                  </p>
+                </label>
+              </div>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1 md:col-span-2'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.mastodon.clientAppLabel',
+                      'Client-App'
+                    )}
+                  </span>
+                  <div className='relative'>
+                    <input
+                      type='url'
+                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        blink.mastodonClientApp
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : clientUrlErrors.mastodonClientApp
+                            ? 'border-destructive'
+                            : 'border-border'
+                      }`}
+                      placeholder={t(
+                        'config.credentials.mastodon.clientAppPlaceholder',
+                        'https://client.example oder http://192.168.1.20:5173'
+                      )}
+                      value={values.mastodonClientApp}
+                      onChange={onChange('mastodonClientApp')}
+                      onBlur={onClientUrlBlur('mastodonClientApp')}
+                    />
+                    {values.mastodonClientApp ? (
+                      <button
+                        type='button'
+                        onClick={clearClientUrl('mastodonClientApp')}
+                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                      >
+                        <Cross2Icon className='h-4 w-4' />
+                      </button>
+                    ) : null}
+                  </div>
+                  {clientUrlErrors.mastodonClientApp ? (
+                    <p className='text-xs text-destructive'>
+                      {clientUrlErrors.mastodonClientApp}
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.mastodon.clientAppHint',
+                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
                     )}
                   </p>
                 </label>

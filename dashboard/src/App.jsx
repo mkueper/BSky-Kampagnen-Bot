@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, lazy } from 'react'
 import {
   DownloadIcon,
+  ExternalLinkIcon,
   GearIcon,
   LayersIcon,
   Pencil2Icon,
@@ -46,7 +47,7 @@ const PLATFORM_LABELS = {
 
 // Seitenstruktur für die linke Navigation. Hier steht, welche Tabs angezeigt
 // werden und unter welchen IDs sie später adressiert werden.
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { id: 'overview', label: 'Übersicht', icon: ViewHorizontalIcon },
   {
     id: 'skeets',
@@ -72,7 +73,7 @@ const NAV_ITEMS = [
 
 const VALID_VIEWS = (() => {
   const ids = new Set()
-  for (const item of NAV_ITEMS) {
+  for (const item of BASE_NAV_ITEMS) {
     ids.add(item.id)
     if (Array.isArray(item.children)) {
       item.children.forEach(child => ids.add(child.id))
@@ -176,6 +177,7 @@ function DashboardApp ({ onLogout }) {
   const toast = useToast()
   const [logoutPending, setLogoutPending] = useState(false)
   const [importExportInfoOpen, setImportExportInfoOpen] = useState(false)
+  const [clientUrls, setClientUrls] = useState({ bluesky: '', mastodon: '' })
   const skeetViewsEnabled =
     activeView === 'overview' ||
     activeView === 'skeets' ||
@@ -186,6 +188,48 @@ function DashboardApp ({ onLogout }) {
     activeView === 'threads-overview'
   const refreshSkeetsNowRef = useRef(async () => {})
   const refreshThreadsNowRef = useRef(async () => {})
+  const refreshClientUrls = useCallback(async () => {
+    try {
+      const res = await fetch('/api/config/credentials', { credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json().catch(() => ({}))
+      setClientUrls({
+        bluesky: data?.bluesky?.clientApp || '',
+        mastodon: data?.mastodon?.clientApp || ''
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshClientUrls()
+  }, [refreshClientUrls])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handler = () => refreshClientUrls()
+    window.addEventListener('client-apps:refresh', handler)
+    return () => window.removeEventListener('client-apps:refresh', handler)
+  }, [refreshClientUrls])
+
+  const handleOpenClientUrl = useCallback((url) => {
+    const safe = (url ?? '').toString().trim()
+    if (!safe) {
+      toast.error({
+        title: t('nav.clientLauncherErrorTitle', 'Client konnte nicht geöffnet werden'),
+        description: t('nav.clientLauncherErrorDescription', 'Bitte Konfiguration prüfen.')
+      })
+      return
+    }
+    const opened = window.open(safe, '_blank', 'noopener')
+    if (!opened) {
+      toast.error({
+        title: t('nav.clientLauncherErrorTitle', 'Client konnte nicht geöffnet werden'),
+        description: t('nav.clientLauncherPopupBlocked', 'Bitte Popups erlauben.')
+      })
+    }
+  }, [toast, t])
   // Locale aus Client-Config auf den i18n-Context spiegeln (persistente Auswahl)
   useEffect(() => {
     const cfgLocale = clientConfigPreset?.locale
@@ -211,6 +255,66 @@ function DashboardApp ({ onLogout }) {
       /* ignore */
     }
   }, [threadViewsEnabled])
+
+  const navItems = useMemo(() => {
+    const localizedBase = BASE_NAV_ITEMS.map(item => {
+      const baseLabel = item.label
+      const translatedLabel = t(`nav.${item.id}`, baseLabel)
+      const children = Array.isArray(item.children)
+        ? item.children.map(child => ({
+            ...child,
+            label: t(`nav.${child.id}`, child.label)
+          }))
+        : undefined
+      return {
+        ...item,
+        label: translatedLabel,
+        children
+      }
+    })
+
+    const blueskyUrl = String(clientUrls?.bluesky || '').trim()
+    const mastodonUrl = String(clientUrls?.mastodon || '').trim()
+    const hasBluesky = Boolean(blueskyUrl)
+    const hasMastodon = Boolean(mastodonUrl)
+    const hasAny = hasBluesky || hasMastodon
+    if (!hasAny) return localizedBase
+    const bothAvailable = hasBluesky && hasMastodon
+    const clientLabel = bothAvailable
+      ? t('nav.clientLauncher', 'Client öffnen')
+      : hasBluesky
+        ? t('nav.blueskyClient', 'Bluesky Client')
+        : t('nav.mastodonClient', 'Mastodon Client')
+    const clientItem = {
+      id: 'client-launcher',
+      label: clientLabel,
+      icon: ExternalLinkIcon,
+      actionOnly: true,
+      onSelect: !bothAvailable
+        ? () => handleOpenClientUrl(hasBluesky ? blueskyUrl : mastodonUrl)
+        : null,
+      menuItems: bothAvailable
+        ? [
+          {
+            id: 'client-launcher-bluesky',
+            label: t('nav.blueskyClient', 'Bluesky Client'),
+            onSelect: () => handleOpenClientUrl(blueskyUrl)
+          },
+          {
+            id: 'client-launcher-mastodon',
+            label: t('nav.mastodonClient', 'Mastodon Client'),
+            onSelect: () => handleOpenClientUrl(mastodonUrl)
+          }
+        ]
+        : null
+    }
+
+    const items = [...localizedBase]
+    const configIndex = items.findIndex(item => item.id === 'config')
+    const insertAt = configIndex >= 0 ? configIndex + 1 : items.length
+    items.splice(insertAt, 0, clientItem)
+    return items
+  }, [clientUrls, handleOpenClientUrl, t])
 
   // Live-Updates via SSE: nach Publish/Re-Status sofort aktualisieren
   // Wichtig: Vor useSkeets/useThreads aufrufen, damit sseConnected verfügbar ist.
@@ -624,31 +728,13 @@ function DashboardApp ({ onLogout }) {
       setLogoutPending(false)
     }
   }, [onLogout, toast])
-  const localizedNavItems = useMemo(() => {
-    return NAV_ITEMS.map(item => {
-      const baseLabel = item.label
-      const translatedLabel = t(`nav.${item.id}`, baseLabel)
-      const children = Array.isArray(item.children)
-        ? item.children.map(child => ({
-            ...child,
-            label: t(`nav.${child.id}`, child.label)
-          }))
-        : undefined
-      return {
-        ...item,
-        label: translatedLabel,
-        children
-      }
-    })
-  }, [t])
-
   const headerCaption = HEADER_CAPTIONS[activeView]
     ? t(`header.caption.${activeView}`, HEADER_CAPTIONS[activeView])
     : ''
   const headerTitle =
     HEADER_TITLES[activeView]
       ? t(`header.title.${activeView}`, HEADER_TITLES[activeView])
-      : NAV_ITEMS.find(item => item.id === activeView)?.label ??
+      : BASE_NAV_ITEMS.find(item => item.id === activeView)?.label ??
         ''
 
   const isThreadContext = activeView.startsWith('threads')
@@ -769,7 +855,7 @@ function DashboardApp ({ onLogout }) {
           icon: GearIcon
         }
       ]
-    : localizedNavItems
+    : navItems
 
   if (gatedNeedsCreds) {
     content = (
@@ -1161,7 +1247,7 @@ function App () {
   }
 
   return (
-    <DashboardApp session={session?.user} onLogout={handleLogout} />
+    <DashboardApp onLogout={handleLogout} />
   )
 }
 

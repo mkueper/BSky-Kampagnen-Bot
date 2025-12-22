@@ -43,17 +43,44 @@ function sanitizeValue (v) {
   return (v ?? '').toString().trim()
 }
 
+function isPrivateHostname (hostname) {
+  if (!hostname) return false
+  const host = hostname.toLowerCase()
+  if (host === 'localhost') return true
+  const parts = host.split('.').map(part => Number(part))
+  if (parts.length !== 4 || parts.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false
+  if (parts[0] === 10) return true
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true
+  if (parts[0] === 192 && parts[1] === 168) return true
+  return false
+}
+
+function validateClientUrl (value) {
+  const raw = sanitizeValue(value)
+  if (!raw) return ''
+  try {
+    const parsed = new URL(raw)
+    if (parsed.protocol === 'https:') return ''
+    if (parsed.protocol === 'http:' && isPrivateHostname(parsed.hostname)) return ''
+    return 'CLIENT_URL_PROTOCOL'
+  } catch {
+    return 'CLIENT_URL_INVALID'
+  }
+}
+
 async function getCredentials (req, res) {
   try {
     res.json({
       bluesky: {
         serverUrl: process.env.BLUESKY_SERVER_URL || 'https://bsky.social',
         identifier: process.env.BLUESKY_IDENTIFIER || '',
-        hasAppPassword: Boolean(process.env.BLUESKY_APP_PASSWORD)
+        hasAppPassword: Boolean(process.env.BLUESKY_APP_PASSWORD),
+        clientApp: process.env.BLUESKY_CLIENT_APP || ''
       },
       mastodon: {
         apiUrl: process.env.MASTODON_API_URL || 'https://mastodon.social',
-        hasAccessToken: Boolean(process.env.MASTODON_ACCESS_TOKEN)
+        hasAccessToken: Boolean(process.env.MASTODON_ACCESS_TOKEN),
+        clientApp: process.env.MASTODON_CLIENT_APP || ''
       },
       tenor: {
         // Nur Zustand exponieren, Key selbst bleibt verborgen
@@ -70,6 +97,24 @@ async function updateCredentials (req, res) {
     const payload = req.body || {}
     const envPath = resolveEnvPath()
     const map = loadEnvFileMap(envPath)
+    const blueskyUrlError = Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')
+      ? validateClientUrl(payload.blueskyClientApp)
+      : ''
+    if (blueskyUrlError) {
+      const message = blueskyUrlError === 'CLIENT_URL_PROTOCOL'
+        ? 'Bluesky-Client-URL: Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+        : 'Bluesky-Client-URL ist ungültig.'
+      return res.status(400).json({ error: message, code: blueskyUrlError })
+    }
+    const mastodonUrlError = Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')
+      ? validateClientUrl(payload.mastodonClientApp)
+      : ''
+    if (mastodonUrlError) {
+      const message = mastodonUrlError === 'CLIENT_URL_PROTOCOL'
+        ? 'Mastodon-Client-URL: Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+        : 'Mastodon-Client-URL ist ungültig.'
+      return res.status(400).json({ error: message, code: mastodonUrlError })
+    }
 
     const entries = {
       BLUESKY_SERVER_URL: sanitizeValue(payload.blueskyServerUrl),
@@ -78,7 +123,9 @@ async function updateCredentials (req, res) {
       BLUESKY_APP_PASSWORD: sanitizeValue(payload.blueskyAppPassword),
       MASTODON_API_URL: sanitizeValue(payload.mastodonApiUrl),
       MASTODON_ACCESS_TOKEN: sanitizeValue(payload.mastodonAccessToken),
-      TENOR_API_KEY: sanitizeValue(payload.tenorApiKey)
+      TENOR_API_KEY: sanitizeValue(payload.tenorApiKey),
+      BLUESKY_CLIENT_APP: sanitizeValue(payload.blueskyClientApp),
+      MASTODON_CLIENT_APP: sanitizeValue(payload.mastodonClientApp)
     }
 
     // Set/merge values; secrets nur wenn nicht leer übergeben
@@ -88,6 +135,14 @@ async function updateCredentials (req, res) {
     if (entries.BLUESKY_APP_PASSWORD) map.set('BLUESKY_APP_PASSWORD', entries.BLUESKY_APP_PASSWORD)
     if (entries.MASTODON_ACCESS_TOKEN) map.set('MASTODON_ACCESS_TOKEN', entries.MASTODON_ACCESS_TOKEN)
     if (entries.TENOR_API_KEY) map.set('TENOR_API_KEY', entries.TENOR_API_KEY)
+    if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')) {
+      if (entries.BLUESKY_CLIENT_APP) map.set('BLUESKY_CLIENT_APP', entries.BLUESKY_CLIENT_APP)
+      else map.delete('BLUESKY_CLIENT_APP')
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) {
+      if (entries.MASTODON_CLIENT_APP) map.set('MASTODON_CLIENT_APP', entries.MASTODON_CLIENT_APP)
+      else map.delete('MASTODON_CLIENT_APP')
+    }
 
     writeEnvFileMap(envPath, map)
 
@@ -98,6 +153,10 @@ async function updateCredentials (req, res) {
     if (map.has('MASTODON_API_URL')) process.env.MASTODON_API_URL = map.get('MASTODON_API_URL')
     if (map.has('MASTODON_ACCESS_TOKEN')) process.env.MASTODON_ACCESS_TOKEN = map.get('MASTODON_ACCESS_TOKEN')
     if (map.has('TENOR_API_KEY')) process.env.TENOR_API_KEY = map.get('TENOR_API_KEY')
+    if (map.has('BLUESKY_CLIENT_APP')) process.env.BLUESKY_CLIENT_APP = map.get('BLUESKY_CLIENT_APP')
+    else if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')) delete process.env.BLUESKY_CLIENT_APP
+    if (map.has('MASTODON_CLIENT_APP')) process.env.MASTODON_CLIENT_APP = map.get('MASTODON_CLIENT_APP')
+    else if (Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) delete process.env.MASTODON_CLIENT_APP
 
     res.json({ ok: true })
   } catch (error) {

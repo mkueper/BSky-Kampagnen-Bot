@@ -4,7 +4,13 @@ import {
   ChevronDownIcon,
   ChevronRightIcon
 } from '@radix-ui/react-icons'
-import { ScrollTopButton } from '@bsky-kampagnen-bot/shared-ui'
+import {
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem,
+  ScrollTopButton
+} from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 /**
  * High-level layout wrapper for the dashboard application.
@@ -34,6 +40,7 @@ function AppLayout ({
   const [menuOpen, setMenuOpen] = useState(false)
   // Desktop: collapsed main navigation state (default visible)
   const [navCollapsed, setNavCollapsed] = useState(false)
+  const [navMenus, setNavMenus] = useState({})
 
   const activeNavItemLabel = useMemo(() => {
     for (const item of navItems) {
@@ -149,23 +156,71 @@ function AppLayout ({
                   const isChildActive = hasChildren
                     ? children.some(child => child.id === activeView)
                     : false
-                  const isActive = id === activeView || isChildActive
+                  const isActive = item.actionOnly ? false : (id === activeView || isChildActive)
+                  const hasMenu = Array.isArray(item.menuItems) && item.menuItems.length > 0
 
                   if (!hasChildren) {
-                    return (
+                    const buttonClasses = `flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-soft'
+                        : 'text-foreground-muted hover:bg-background-subtle'
+                    }`
+                    const button = (
                       <button
-                        key={id}
                         type='button'
-                        onClick={() => handleSelectView(id)}
-                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-soft'
-                            : 'text-foreground-muted hover:bg-background-subtle'
-                        }`}
+                        onClick={() => {
+                          if (hasMenu) return
+                          if (item.actionOnly) item.onSelect?.()
+                          else handleSelectView(id)
+                        }}
+                        disabled={item.disabled}
+                        className={buttonClasses}
                       >
                         {Icon ? <Icon className='h-5 w-5' /> : null}
                         <span>{label}</span>
                       </button>
+                    )
+                    if (!hasMenu) {
+                      return (
+                        <div key={id}>
+                          {button}
+                        </div>
+                      )
+                    }
+                    const isMenuOpen = Boolean(navMenus[id])
+                    return (
+                      <InlineMenu
+                        key={id}
+                        open={isMenuOpen}
+                        onOpenChange={openState => {
+                          setNavMenus(current => ({ ...current, [id]: openState }))
+                        }}
+                      >
+                        <InlineMenuTrigger>
+                          {button}
+                        </InlineMenuTrigger>
+                        <InlineMenuContent
+                          align='start'
+                          side='right'
+                          sideOffset={12}
+                          className='p-2'
+                        >
+                          <div className='flex flex-col gap-1'>
+                            {item.menuItems.map(entry => (
+                              <InlineMenuItem
+                                key={entry.id}
+                                onSelect={() => {
+                                  entry.onSelect?.()
+                                  setNavMenus(current => ({ ...current, [id]: false }))
+                                }}
+                                disabled={entry.disabled}
+                              >
+                                {entry.label}
+                              </InlineMenuItem>
+                            ))}
+                          </div>
+                        </InlineMenuContent>
+                      </InlineMenu>
                     )
                   }
 
