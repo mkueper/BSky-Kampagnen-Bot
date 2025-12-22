@@ -34,6 +34,18 @@ function classifyLink (urlString) {
   }
 }
 
+function resolveBskyProfileActor (urlString) {
+  try {
+    const url = new URL(urlString)
+    if (url.hostname !== 'bsky.app') return null
+    if (!url.pathname.startsWith('/profile/')) return null
+    const actor = url.pathname.replace('/profile/', '').split('/')[0] || ''
+    return actor || null
+  } catch {
+    return null
+  }
+}
+
 function parseSegments (text, facets) {
   if (!facets || facets.length === 0) {
     return [{ text, isLink: false, isMention: false }]
@@ -225,6 +237,14 @@ export default function RichText ({
     dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: did })
   }
 
+  const handleLinkClick = (event, href) => {
+    const actor = resolveBskyProfileActor(href)
+    if (!actor) return
+    event.preventDefault()
+    event.stopPropagation()
+    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor })
+  }
+
   return (
     <span className={className}>
       {segments.map((segment, index) => {
@@ -237,13 +257,20 @@ export default function RichText ({
         }
         if (segment.isLink) {
           const { target, rel } = classifyLink(segment.href)
+          const profileActor = resolveBskyProfileActor(segment.href)
           return (
             <a
               key={index}
               href={segment.href}
               target={target}
               rel={rel}
-              onClick={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                if (profileActor) {
+                  handleLinkClick(event, segment.href)
+                  return
+                }
+                event.stopPropagation()
+              }}
               className='text-primary underline decoration-primary/40 hover:decoration-primary'
             >
               {segment.text}

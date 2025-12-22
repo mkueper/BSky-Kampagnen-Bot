@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
-import { Button, fetchChatConversation, fetchChatMessages, sendChatMessage, updateChatReadState, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem } from '../shared'
+import { Button, fetchChatConversation, fetchChatMessages, sendChatMessage, updateChatReadState, addChatReaction, removeChatReaction, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem, RichText } from '../shared'
 import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { buildConversationHandles, buildConversationTitle, getInitials } from './chatUtils.js'
-import { DotsHorizontalIcon, PersonIcon, SpeakerModerateIcon, SlashIcon, ExclamationTriangleIcon, ExitIcon } from '@radix-ui/react-icons'
+import { ClipboardCopyIcon, DotsHorizontalIcon, ExitIcon, ExclamationTriangleIcon, FaceIcon, GlobeIcon, PersonIcon, SpeakerModerateIcon, SlashIcon, TrashIcon } from '@radix-ui/react-icons'
+import { EmojiPicker } from '@kampagnen-bot/media-pickers'
 
 const PAGE_SIZE = 40
 
@@ -266,6 +267,21 @@ export default function ChatConversationPane ({ registerLayoutHeader, renderHead
                 viewerDid={viewerDid}
                 formatter={formatter}
                 t={t}
+                convoId={convoId}
+                onReactionUpdate={(nextMessage) => {
+                  if (!nextMessage?.id) return
+                  mutateMessages((current) => {
+                    if (!Array.isArray(current)) return current
+                    return current.map((page) => {
+                      if (!page?.messages?.length) return page
+                      const updated = page.messages.map((entry) => {
+                        if (!entry || entry.id !== nextMessage.id) return entry
+                        return { ...entry, ...nextMessage }
+                      })
+                      return { ...page, messages: updated }
+                    })
+                  }, { revalidate: false })
+                }}
               />
             ))}
           </div>
@@ -300,7 +316,10 @@ export default function ChatConversationPane ({ registerLayoutHeader, renderHead
   )
 }
 
-function ChatMessageBubble ({ message, membersByDid, viewerDid, formatter, t }) {
+function ChatMessageBubble ({ message, membersByDid, viewerDid, formatter, t, convoId, onReactionUpdate }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
+  const emojiButtonRef = useRef(null)
   const isDeleted = message?.type === 'deleted'
   const isSelf = viewerDid && message?.senderDid && message.senderDid === viewerDid
   const sender = message?.senderDid ? membersByDid.get(message.senderDid) : null
@@ -318,22 +337,141 @@ function ChatMessageBubble ({ message, membersByDid, viewerDid, formatter, t }) 
   } else {
     body = t('chat.list.preview.noText', 'Kein Text')
   }
+  const emojiLabel = t('chat.message.actions.emoji', 'Emoji senden')
+  const menuLabel = t('chat.message.actions.more', 'Weitere Aktionen')
+  const actionVisibility = menuOpen
+    ? 'opacity-100 pointer-events-auto'
+    : 'opacity-100 pointer-events-auto sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto'
+  const reactions = Array.isArray(message?.reactions) ? message.reactions : []
+  const reactionsByValue = useMemo(() => {
+    return reactions.reduce((map, reaction) => {
+      const value = reaction?.value || ''
+      if (!value) return map
+      const entry = map.get(value) || { value, count: 0, senders: [] }
+      entry.count += 1
+      if (reaction?.sender?.did) entry.senders.push(reaction.sender.did)
+      map.set(value, entry)
+      return map
+    }, new Map())
+  }, [reactions])
+  const groupedReactions = useMemo(() => Array.from(reactionsByValue.values()), [reactionsByValue])
+  const viewerReaction = useMemo(() => {
+    if (!viewerDid) return null
+    const match = reactions.find((reaction) => reaction?.sender?.did === viewerDid)
+    return match?.value || null
+  }, [reactions, viewerDid])
+  const handlePlaceholder = (label) => {
+    console.info(`[ChatConversation] ${label}`)
+  }
+  const handleEmojiPick = async (emoji) => {
+    const value = emoji?.native || emoji?.shortcodes || emoji?.id
+    if (!value || !convoId || !message?.id) return
+    setEmojiPickerOpen(false)
+    try {
+      if (viewerReaction && viewerReaction !== value) {
+        const removed = await removeChatReaction({ convoId, messageId: message.id, value: viewerReaction })
+        if (removed?.message) onReactionUpdate?.(removed.message)
+      }
+      if (viewerReaction === value) {
+        const removed = await removeChatReaction({ convoId, messageId: message.id, value })
+        if (removed?.message) onReactionUpdate?.(removed.message)
+        return
+      }
+      const added = await addChatReaction({ convoId, messageId: message.id, value })
+      if (added?.message) onReactionUpdate?.(added.message)
+    } catch (error) {
+      console.warn('[ChatConversation] reaction failed', error)
+    }
+  }
 
   return (
     <div className={`flex w-full ${isSelf ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl border px-3 py-2 text-sm shadow-sm ${
-          isSelf
-            ? 'border-primary/40 bg-primary text-primary-foreground'
-            : 'border-border bg-background text-foreground'
-        }`}
-      >
-        <div className='mb-1 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-wide opacity-80'>
-          <span>{senderLabel}</span>
-          {timestamp ? <time>{timestamp}</time> : null}
+      <div className='group flex max-w-[85%] items-start gap-2'>
+        <div
+          className={`relative rounded-2xl border px-3 py-2 text-sm shadow-sm ${
+            groupedReactions.length ? 'pb-5' : ''
+          } ${
+            isSelf
+              ? 'border-primary/40 bg-primary text-primary-foreground'
+              : 'border-border bg-background text-foreground'
+          }`}
+        >
+          <div className='mb-1 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-wide opacity-80'>
+            <span>{senderLabel}</span>
+            {timestamp ? <time>{timestamp}</time> : null}
+          </div>
+          <RichText text={body} facets={message?.facets || undefined} className='whitespace-pre-wrap break-words text-sm' />
+          {groupedReactions.length ? (
+            <div className={`absolute -bottom-3 ${isSelf ? 'right-2' : 'left-2'}`}>
+              <div className='flex flex-wrap gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs shadow-sm'>
+                {groupedReactions.map((reaction) => {
+                  const active = viewerReaction === reaction.value
+                  return (
+                    <button
+                      key={reaction.value}
+                      type='button'
+                      onClick={() => handleEmojiPick({ native: reaction.value })}
+                      className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 transition ${
+                        active ? 'bg-primary/10 text-primary' : 'text-foreground'
+                      }`}
+                      title={reaction.value}
+                    >
+                      <span>{reaction.value}</span>
+                      <span className='text-[11px] font-semibold'>{reaction.count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
-        <p className='whitespace-pre-wrap break-words text-sm'>{body}</p>
+        <div className={`flex items-center gap-1 pt-1 transition-opacity ${actionVisibility}`}>
+          <button
+            type='button'
+            aria-label={emojiLabel}
+            title={emojiLabel}
+            onClick={() => setEmojiPickerOpen((current) => !current)}
+            aria-expanded={emojiPickerOpen}
+            ref={emojiButtonRef}
+            className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-background-subtle'
+          >
+            <FaceIcon className='h-4 w-4' />
+          </button>
+          <InlineMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <InlineMenuTrigger>
+              <button
+                type='button'
+                aria-label={menuLabel}
+                title={menuLabel}
+                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:bg-background-subtle'
+              >
+                <DotsHorizontalIcon className='h-4 w-4' />
+              </button>
+            </InlineMenuTrigger>
+            <InlineMenuContent align='end' side='bottom' sideOffset={8} className='w-60 space-y-1'>
+              <InlineMenuItem icon={GlobeIcon} onSelect={() => handlePlaceholder('Nachricht übersetzen')}>
+                {t('chat.message.actions.translate', 'Übersetzen')}
+              </InlineMenuItem>
+              <InlineMenuItem icon={ClipboardCopyIcon} onSelect={() => handlePlaceholder('Nachricht kopieren')}>
+                {t('chat.message.actions.copyText', 'Nachrichtentext kopieren')}
+              </InlineMenuItem>
+              <div className='my-1 border-t border-border/60' />
+              <InlineMenuItem icon={TrashIcon} onSelect={() => handlePlaceholder('Nachricht löschen')}>
+                {t('chat.message.actions.deleteForMe', 'Für mich löschen')}
+              </InlineMenuItem>
+              <InlineMenuItem icon={ExclamationTriangleIcon} onSelect={() => handlePlaceholder('Nachricht melden')}>
+                {t('chat.message.actions.report', 'Melden')}
+              </InlineMenuItem>
+            </InlineMenuContent>
+          </InlineMenu>
+        </div>
       </div>
+      <EmojiPicker
+        open={emojiPickerOpen}
+        onClose={() => setEmojiPickerOpen(false)}
+        anchorRef={emojiButtonRef}
+        onPick={handleEmojiPick}
+      />
     </div>
   )
 }

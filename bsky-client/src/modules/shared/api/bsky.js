@@ -903,6 +903,56 @@ async function updateChatReadStateDirect ({ convoId, messageId } = {}) {
   }
 }
 
+async function addChatReactionDirect ({ convoId, messageId, value } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  if (!messageId) {
+    throw new Error('messageId ist erforderlich.')
+  }
+  const reaction = typeof value === 'string' ? value.trim() : ''
+  if (!reaction) {
+    throw new Error('Reaktion darf nicht leer sein.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  const payload = { convoId, messageId, value: reaction }
+  try {
+    const data = await executeChatRequest(
+      convoApi?.addReaction ? () => convoApi.addReaction(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' }) : null,
+      { nsid: 'chat.bsky.convo.addReaction', httpMethod: 'POST', body: payload }
+    )
+    return { message: mapChatMessageView(data?.message) }
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+}
+
+async function removeChatReactionDirect ({ convoId, messageId, value } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  if (!messageId) {
+    throw new Error('messageId ist erforderlich.')
+  }
+  const reaction = typeof value === 'string' ? value.trim() : ''
+  if (!reaction) {
+    throw new Error('Reaktion darf nicht leer sein.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  const payload = { convoId, messageId, value: reaction }
+  try {
+    const data = await executeChatRequest(
+      convoApi?.removeReaction ? () => convoApi.removeReaction(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' }) : null,
+      { nsid: 'chat.bsky.convo.removeReaction', httpMethod: 'POST', body: payload }
+    )
+    return { message: mapChatMessageView(data?.message) }
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+}
+
 async function fetchChatUnreadSnapshotDirect () {
   const agent = assertActiveAgent()
   const convoApi = agent.chat?.bsky?.convo
@@ -1920,6 +1970,14 @@ export async function sendChatMessage ({ convoId, text }) {
 
 export async function updateChatReadState ({ convoId, messageId } = {}) {
   return updateChatReadStateDirect({ convoId, messageId })
+}
+
+export async function addChatReaction ({ convoId, messageId, value } = {}) {
+  return addChatReactionDirect({ convoId, messageId, value })
+}
+
+export async function removeChatReaction ({ convoId, messageId, value } = {}) {
+  return removeChatReactionDirect({ convoId, messageId, value })
 }
 
 export async function fetchChatLogs ({ cursor } = {}) {

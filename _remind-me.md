@@ -13,5 +13,6 @@
    - Der zitierte Beitrag soll sich von der Antwort abheben, aber so, dass die Antwort der Blickfang ist. Eventuell sogar den zitierten Beitrag im Antwortbereich, unterhalb der Antwort anzeigen.
    - Eine Antwort auf einen Beitrag/Antwort sollte auch den kompletten Footer mit denselben Funktionen erhalten
 8. Im Chat sollen folgende Aktionsmöglichkeiten vorhanden sein:
-   - Aufrufen des Profils, dass in einer Nachricht gezeigt wird.
-   - 
+   - Links und Handles sollen klickbar sein., so dass das Aufrufen eines Profils, dass in einer Nachricht gezeigt wird aufgerufen werden kann
+9. [Beobachten] Manchmal passiert noch ein ungewollter Refresh.
+  
