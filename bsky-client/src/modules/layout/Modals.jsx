@@ -50,7 +50,7 @@ function buildThreadReplyContext (root, parent) {
 }
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen, notificationsSettingsOpen, profileViewer } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen, notificationsSettingsOpen } = useAppState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();
   const { clientConfig } = useClientConfig()

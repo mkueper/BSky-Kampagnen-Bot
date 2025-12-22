@@ -7,7 +7,7 @@
  */
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import SkeetHistoryPanel from '../../src/components/skeets/SkeetHistoryPanel.jsx'
 import { useSkeetHistory } from '../../src/hooks/useSkeetHistory.js'
 
@@ -39,6 +39,7 @@ describe('SkeetHistoryPanel', () => {
       isError: false
     })
     render(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
+    fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(screen.getByText(/Lade Sendehistorie/i)).toBeInTheDocument()
   })
 
@@ -49,6 +50,7 @@ describe('SkeetHistoryPanel', () => {
       isError: true
     })
     render(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
+    fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(
       screen.getByText(/Sendehistorie konnte nicht geladen werden/i)
     ).toBeInTheDocument()
@@ -70,6 +72,7 @@ describe('SkeetHistoryPanel', () => {
       isError: false
     })
     const { container } = render(<SkeetHistoryPanel skeetId={1} repeat='weekly' />)
+    fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(container.querySelectorAll('.skeet-history-item')).toHaveLength(entries.length)
     expect(screen.getByText('Erfolgreich')).toBeInTheDocument()
     expect(screen.getByText('Fehlgeschlagen')).toBeInTheDocument()

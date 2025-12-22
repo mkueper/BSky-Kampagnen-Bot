@@ -37,6 +37,39 @@ describe('splitThread / sentence splitting', () => {
     })
   })
 
+  it('prefers punctuation only within the split window', () => {
+    const limit = 60
+    const nearLimit = 'A'.repeat(limit - 10) + '.'
+    const farPunctuation = 'B'.repeat(limit - 40) + '.' + 'C'.repeat(50)
+    const withNearPunct = splitThread({ text: nearLimit, limit })
+    const withFarPunct = splitThread({ text: farPunctuation, limit })
+
+    expect(withNearPunct.previewSegments[0].raw.endsWith('.')).toBe(true)
+    expect(withNearPunct.previewSegments[0].characterCount).toBeLessThanOrEqual(limit)
+    expect(withFarPunct.previewSegments[0].raw.endsWith('.')).toBe(false)
+    expect(withFarPunct.previewSegments[0].characterCount).toBeLessThanOrEqual(limit)
+  })
+
+  it('splits hard when no whitespace exists at all', () => {
+    const limit = 50
+    const text = 'A'.repeat(140)
+    const result = splitThread({ text, limit })
+    expect(result.totalSegments).toBeGreaterThan(1)
+    result.previewSegments.forEach((segment) => {
+      expect(segment.characterCount).toBeLessThanOrEqual(limit)
+    })
+  })
+
+  it('splits long url-like tokens without exceeding limits', () => {
+    const limit = 60
+    const token = 'https://example.com/' + 'a'.repeat(120)
+    const result = splitThread({ text: token, limit })
+    expect(result.totalSegments).toBeGreaterThan(1)
+    result.previewSegments.forEach((segment) => {
+      expect(segment.characterCount).toBeLessThanOrEqual(limit)
+    })
+  })
+
   it('counts shortened link lengths when evaluating segment limits', () => {
     const url = 'https://example.com/this/is/a/very/long/path/that/exceeds/the/default/limit'
     const text = `Intro ${url}`

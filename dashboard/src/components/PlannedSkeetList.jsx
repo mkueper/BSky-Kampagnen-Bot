@@ -98,7 +98,7 @@ function PlannedSkeetList({
                   </div>
                 ) : null}
                 {showHistoryPanel ? (
-                  <div className="mt-4 w-full">
+                  <div className="mt-4 w-full skeet-history-container">
                     <SkeetHistoryPanel skeetId={skeet.id} repeat={skeet.repeat} />
                   </div>
                 ) : null}

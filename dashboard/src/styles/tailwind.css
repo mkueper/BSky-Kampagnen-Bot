@@ -97,6 +97,10 @@
     @apply mt-4 flex w-full flex-col items-start gap-4 text-left
       lg:mt-0 lg:w-56 lg:flex-shrink-0 pl-5
   }
+
+  .skeet-history-container {
+    @apply border-t border-border-muted pt-4;
+  }
   
   .skeet-history {
     @apply pt-1;
@@ -106,12 +110,32 @@
     @apply text-[11px] uppercase tracking-[0.3em] text-foreground-subtle;
   }
 
+  .skeet-history-toggle {
+    @apply flex w-full items-center justify-between gap-3 text-left;
+  }
+
+  .skeet-history-toggle-action {
+    @apply text-[11px] uppercase tracking-[0.3em] text-foreground-subtle;
+  }
+
+  .skeet-history-summary {
+    @apply mt-1 text-xs text-foreground-muted;
+  }
+
+  .skeet-history-body {
+    @apply mt-3;
+  }
+
   .skeet-history-empty {
     @apply mt-2 text-xs text-foreground-muted;
   }
 
+  .skeet-history-error-text {
+    @apply mt-2 text-xs text-destructive;
+  }
+
   .skeet-history-list {
-    @apply mt-3 flex flex-col gap-3 max-h-64 overflow-y-auto pr-1;
+    @apply mt-3 flex flex-col gap-3 max-h-56 overflow-y-auto pr-1 scrollbar-preview;
   }
 
   .skeet-history-item {
