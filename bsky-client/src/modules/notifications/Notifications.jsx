@@ -1216,6 +1216,24 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const showActorList = canExpandActors && actorsExpanded
   const useActorStackLayout = true
 
+  const subjectPreview = !isReply && subject ? (
+    <NotificationSubjectPreview
+      subject={subject}
+      reason={reason}
+      threadTarget={resolvedThreadTarget}
+      onSelect={canOpenSubject ? handleSelectSubject : undefined}
+      onSelectQuoted={handleSelectSubject}
+      onViewMedia={onViewMedia}
+      inlineVideoEnabled={inlineVideoEnabled}
+      muted
+    />
+  ) : null
+  const quotePreview = reason === 'quote' && subjectPreview ? (
+    <div className='mt-3 ml-3 opacity-70'>
+      {subjectPreview}
+    </div>
+  ) : null
+
   const contentBody = (
     <>
       {authorFallbackHint ? (
@@ -1263,13 +1281,14 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         </div>
       ) : null}
       {recordText ? (
-        <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+        <div className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
           <RichText
             text={recordText}
             className='whitespace-pre-wrap break-words'
             hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
           />
-        </p>
+          {quotePreview}
+        </div>
       ) : null}
       {translationResult ? (
         <div className='rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
@@ -1302,17 +1321,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
           />
         </div>
       ) : null}
-      {!isReply && subject ? (
-        <NotificationSubjectPreview
-          subject={subject}
-          reason={reason}
-          threadTarget={resolvedThreadTarget}
-          onSelect={canOpenSubject ? handleSelectSubject : undefined}
-          onSelectQuoted={handleSelectSubject}
-          onViewMedia={onViewMedia}
-          inlineVideoEnabled={inlineVideoEnabled}
-        />
-      ) : null}
+      {!isReply && subject && reason !== 'quote' ? subjectPreview : null}
       {timestamp ? (
         <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
       ) : null}
@@ -1598,7 +1607,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   )
 })
 
-function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia, inlineVideoEnabled = false }) {
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia, inlineVideoEnabled = false, muted = false }) {
   const dispatch = useAppDispatch()
   const { t, locale } = useTranslation()
   const { config } = useCardConfig()
@@ -1716,9 +1725,12 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     return content
   }, [author, profileActor, subjectAuthorLabel])
 
+  const textClass = muted ? 'text-foreground-muted' : 'text-foreground'
+  const subtleTextClass = muted ? 'text-foreground-muted/80' : 'text-foreground-muted'
+
   return (
     <div
-      className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2 ${
+      className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm ${textClass} space-y-2 ${
         canOpenSubject ? 'cursor-pointer transition hover:bg-background-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' : ''
       }`}
       role={canOpenSubject ? 'button' : undefined}
@@ -1741,18 +1753,18 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             <button
               type='button'
               onClick={openSubjectAuthor}
-              className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
+              className={`block w-full truncate text-left font-semibold ${textClass} transition hover:text-primary`}
             >
               {renderSubjectAuthorLabel('button')}
             </button>
           ) : (
             renderSubjectAuthorLabel('static')
           )}
-          {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
+          {timestamp ? <p className={`text-xs ${subtleTextClass}`}>{timestamp}</p> : null}
         </div>
       </div>
       {subject?.text ? (
-        <div className='text-sm text-foreground'>
+        <div className={`text-sm ${textClass}`}>
           <RichText
             text={subject.text}
             className='whitespace-pre-wrap break-words'
