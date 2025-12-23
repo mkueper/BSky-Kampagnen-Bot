@@ -47,6 +47,7 @@ function buildLocalConfig (config = {}) {
     layout: {
       autoPlayGifs: layout.autoPlayGifs === true,
       inlineVideo: layout.inlineVideo === true || layout.inlineYoutube === true,
+      requireAltText: layout.requireAltText === true,
       videoAllowListEnabled: layout.videoAllowListEnabled !== false,
       videoAllowList: Array.isArray(layout.videoAllowList)
         ? layout.videoAllowList
@@ -88,6 +89,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const savedShowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
     const savedAutoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
     const savedInlineVideo = clientConfig?.layout?.inlineVideo === true
+    const savedRequireAltText = clientConfig?.layout?.requireAltText === true
     const savedVideoAllowListEnabled = clientConfig?.layout?.videoAllowListEnabled !== false
     const savedTimeFormat = clientConfig?.layout?.timeFormat === 'absolute' ? 'absolute' : 'relative'
     const savedVideoAllowList = Array.isArray(clientConfig?.layout?.videoAllowList)
@@ -112,6 +114,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       Boolean(localConfig.composer.showReplyPreview) !== savedShowReplyPreview ||
       Boolean(localConfig.layout.autoPlayGifs) !== savedAutoPlayGifs ||
       Boolean(localConfig.layout.inlineVideo) !== savedInlineVideo ||
+      Boolean(localConfig.layout.requireAltText) !== savedRequireAltText ||
       Boolean(localConfig.layout.videoAllowListEnabled) !== savedVideoAllowListEnabled ||
       (localConfig.layout.timeFormat || 'relative') !== savedTimeFormat ||
       JSON.stringify(normalizedLocalAllowList) !== JSON.stringify(normalizedSavedAllowList)
@@ -158,6 +161,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       layout: {
         autoPlayGifs: Boolean(localConfig.layout.autoPlayGifs),
         inlineVideo: Boolean(localConfig.layout.inlineVideo),
+        requireAltText: Boolean(localConfig.layout.requireAltText),
         videoAllowListEnabled: Boolean(localConfig.layout.videoAllowListEnabled),
         videoAllowList: Array.isArray(localConfig.layout.videoAllowList)
           ? localConfig.layout.videoAllowList
@@ -611,7 +615,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                 <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    className='h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-primary'
                     checked={Boolean(localConfig.layout.videoAllowListEnabled)}
                     onChange={(event) =>
                       setLocalConfig((current) => ({
@@ -719,7 +723,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                 <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    className='h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-primary'
                     checked={Boolean(localConfig.layout.autoPlayGifs)}
                     onChange={(event) =>
                       setLocalConfig((current) => ({
@@ -744,7 +748,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                 <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 rounded border-border text-primary focus:ring-primary'
+                    className='h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-primary'
                     checked={Boolean(localConfig.layout.inlineVideo)}
                     onChange={(event) =>
                       setLocalConfig((current) => ({
@@ -762,6 +766,31 @@ export default function ClientSettingsModal ({ open, onClose }) {
                       {t(
                         'clientSettings.media.inlineVideoHelp',
                         'Videos werden erst nach Klick gestartet (kein Autoplay).'
+                      )}
+                    </p>
+                  </div>
+                </label>
+                <label className='flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary/60'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-primary'
+                    checked={Boolean(localConfig.layout.requireAltText)}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        layout: {
+                          ...current.layout,
+                          requireAltText: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  <div className='space-y-1'>
+                    <span>{t('clientSettings.media.requireAltTextLabel', 'ALT-Text verpflichtend')}</span>
+                    <p className='text-xs font-normal text-foreground-muted'>
+                      {t(
+                        'clientSettings.media.requireAltTextHelp',
+                        'Wenn aktiv, kann der Composer nur senden, wenn alle Medien einen ALT-Text haben.'
                       )}
                     </p>
                   </div>

@@ -60,6 +60,7 @@ const defaultLabels = {
   gifLoadFailed: 'GIF could not be loaded.',
   altAddTitle: 'Add alt text',
   altEditTitle: 'Edit alt text',
+  altRequired: 'Add alt text for all media.',
   threadLimitWarning: (limit) => `Maximum ${limit} posts per thread.`,
 }
 
@@ -784,6 +785,13 @@ export default function ThreadComposer({
   )
 
   const exceedsThreadLimit = totalSegments > MAX_THREAD_SEGMENTS
+  const missingAltText =
+    mediaRequireAltText &&
+    Object.values(pendingMedia).some(
+      (list) =>
+        Array.isArray(list) &&
+        list.some((entry) => !String(entry?.altText || '').trim()),
+    )
 
   const submitDisabled =
     (!value?.trim() && !hasPending) ||
@@ -791,9 +799,11 @@ export default function ThreadComposer({
       (segment) => segment.isEmpty && !getPendingCount(segment.id),
     ) ||
     disabled ||
-    exceedsThreadLimit
+    exceedsThreadLimit ||
+    missingAltText
 
   const effectiveSubmitLabel = submitLabel || mergedLabels.submitLabel
+  const altRequiredMessage = missingAltText ? mergedLabels.altRequired : ''
 
   const mediaGridLabels = useMemo(
     () => ({
@@ -1046,6 +1056,9 @@ export default function ThreadComposer({
           {mediaMessage ? (
             <p className='mt-2 text-xs text-destructive'>{mediaMessage}</p>
           ) : null}
+          {altRequiredMessage ? (
+            <p className='mt-2 text-xs text-destructive'>{altRequiredMessage}</p>
+          ) : null}
         </section>
       </div>
 
@@ -1161,6 +1174,7 @@ ThreadComposer.propTypes = {
     gifLoadFailed: PropTypes.string,
     altAddTitle: PropTypes.string,
     altEditTitle: PropTypes.string,
+    altRequired: PropTypes.string,
     threadLimitWarning: PropTypes.func,
     previewUnavailable: PropTypes.string,
     previewLoading: PropTypes.string,

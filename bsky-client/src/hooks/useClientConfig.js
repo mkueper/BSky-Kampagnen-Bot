@@ -12,6 +12,7 @@ const DEFAULT_CONFIG = {
   layout: {
     autoPlayGifs: false,
     inlineVideo: false,
+    requireAltText: false,
     videoAllowListEnabled: true,
     videoAllowList: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'tiktok.com'],
     timeFormat: 'relative'
@@ -86,6 +87,7 @@ const normalizeConfig = (input = {}) => {
     next.layout.inlineVideo = legacyInlineVideo
   }
   next.layout.inlineVideo = next.layout.inlineVideo === true
+  next.layout.requireAltText = next.layout.requireAltText === true
   if (next.layout.videoAllowListEnabled === undefined) {
     next.layout.videoAllowListEnabled = true
   }

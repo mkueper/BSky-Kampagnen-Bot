@@ -699,6 +699,9 @@ const messages = {
         quoteRemove: 'Zitat entfernen',
         authorMissing: 'Autorinformationen wurden nicht mitgeliefert.'
       },
+      media: {
+        altRequired: 'Bitte ALT-Text für alle Medien hinzufügen.'
+      },
       preview: {
         placeholder: 'Dein Text erscheint hier.',
         emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.',
@@ -756,6 +759,8 @@ const messages = {
         autoPlayGifsHelp: 'Kann Performance und Datenverbrauch erhöhen.',
         inlineVideoLabel: 'Videos inline abspielen',
         inlineVideoHelp: 'Videos werden erst nach Klick gestartet (kein Autoplay).',
+        requireAltTextLabel: 'ALT-Text verpflichtend',
+        requireAltTextHelp: 'Wenn aktiv, kann der Composer nur senden, wenn alle Medien einen ALT-Text haben.',
         videoAllowListEnabledLabel: 'Externe Video-Hosts aktivieren',
         videoAllowListEnabledHelp: 'Wenn deaktiviert, werden externe Videos immer als normale Links angezeigt.',
         videoAllowListLabel: 'Externe Video-Hosts',
@@ -1374,6 +1379,9 @@ const messages = {
         quoteRemove: 'Remove quote',
         authorMissing: 'Author information is missing.'
       },
+      media: {
+        altRequired: 'Please add ALT text for all media.'
+      },
       preview: {
         placeholder: 'Your text will appear here.',
         emptyHint: 'Add text, media or a link to see the preview.',
@@ -1431,6 +1439,8 @@ const messages = {
         autoPlayGifsHelp: 'May increase performance and data usage.',
         inlineVideoLabel: 'Play videos inline',
         inlineVideoHelp: 'Videos start only after click (no autoplay).',
+        requireAltTextLabel: 'Require ALT text',
+        requireAltTextHelp: 'When enabled, the composer can only send if all media have ALT text.',
         videoAllowListEnabledLabel: 'Enable external video hosts',
         videoAllowListEnabledHelp: 'When disabled, external videos are always rendered as regular links.',
         videoAllowListLabel: 'External video hosts',

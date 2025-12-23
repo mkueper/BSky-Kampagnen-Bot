@@ -19,3 +19,5 @@
 11. Einstellungen/Composer 
     - Alt-Text muss vorhanden sein als Konfigurationspunkt unter Client-Einstellungen/Medien/Medien
     - Bei aktivierter Option muss der "Senden" Button in den Composern deaktiviert sein, so lange nicht alle Medien einen ALT-text haben.
+12. Den Hinweistext "Übersetzung eingefügt" können wir uns eigentlich sparen, weil wir ihn beim Schließen wieder wegnehmen sollten.
+13. Den Schließen Button innerhalb einer Übersetzung sollten wir entfernen und bei erneuuten Klick auf das Übersetzen Icon schließen-

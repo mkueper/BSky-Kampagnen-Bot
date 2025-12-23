@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
 
+## Kurz erklärt: Was ist das Kampagnen-Tool?
+
+Kurzüberblick: [docs/KurzErklaert.md](docs/KurzErklaert.md)
+
 > Hinweis: Dieses Projekt unterstützt verantwortungsvolle, faktenbasierte Kampagnenkommunikation.  
 > Die ethischen Leitlinien findest du in [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md).
 

@@ -110,6 +110,7 @@ export function Modals() {
   }, [clientConfig?.gifs?.tenorApiKey])
 
   const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+  const requireAltText = clientConfig?.layout?.requireAltText === true
   const replyInfo = useMemo(() => buildReplyInfo(replyTarget), [replyTarget])
   const initialReplyContext = useMemo(() => buildReplyContext(replyTarget), [replyTarget])
   const threadPreviewLabels = useMemo(() => ({
@@ -117,7 +118,8 @@ export function Modals() {
     previewLoading: t('compose.preview.loading', 'Lade Vorschau…'),
     previewError: t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.'),
     previewTimeout: t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.'),
-    previewDismissTitle: t('compose.preview.dismiss', 'Link-Vorschau entfernen')
+    previewDismissTitle: t('compose.preview.dismiss', 'Link-Vorschau entfernen'),
+    altRequired: t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.')
   }), [t])
 
   const effectiveComposeMode = useMemo(() => {
@@ -253,7 +255,7 @@ export function Modals() {
                 mediaMaxPerSegment={THREAD_MEDIA_MAX_PER_SEGMENT}
                 mediaMaxBytes={THREAD_MEDIA_MAX_BYTES}
                 mediaAllowedMimes={THREAD_ALLOWED_MIMES}
-                mediaRequireAltText={false}
+                mediaRequireAltText={requireAltText}
                 gifPickerEnabled={tenorAvailable}
                 gifPickerFetcher={tenorFetcher}
                 gifPickerMaxBytes={THREAD_GIF_MAX_BYTES}

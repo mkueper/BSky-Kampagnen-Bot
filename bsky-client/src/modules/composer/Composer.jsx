@@ -56,6 +56,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
   const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+  const requireAltText = clientConfig?.layout?.requireAltText === true
   const dispatch = useAppDispatch()
   const {
     interactionSettings,
@@ -518,6 +519,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       setMessage('Bitte Text eingeben oder ein Zitat verwenden.')
       return
     }
+    if (missingAltText) {
+      setMessage(t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.'))
+      return
+    }
     const externalPayload = buildExternalPayload()
     if (sending) return
     setSending(true)
@@ -555,6 +560,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const hasContent = text.trim().length > 0 || pendingMedia.length > 0
   const characterCount = calculateBlueskyPostLength(text)
   const exceedsCharLimit = characterCount > POST_CHAR_LIMIT
+  const missingAltText = requireAltText && pendingMedia.some((entry) => !String(entry?.altText || '').trim())
+  const altTextMissingHint = missingAltText
+    ? t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.')
+    : ''
 
   const handleCancelComposer = useCallback(() => {
     if (typeof onCancel === 'function') {
@@ -783,6 +792,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               {t('compose.interactions.retry', 'Erneut versuchen')}
             </button>
           ) : null}
+          {altTextMissingHint ? (
+            <span className='text-xs text-destructive'>{altTextMissingHint}</span>
+          ) : null}
           {message ? (
             <span className='text-xs text-muted-foreground'>{message}</span>
           ) : null}
@@ -804,7 +816,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               {t('compose.cancel', 'Abbrechen')}
             </Button>
           ) : null}
-          <Button type='submit' variant='primary' disabled={sending}>
+          <Button type='submit' variant='primary' disabled={sending || missingAltText}>
             {sending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
           </Button>
         </div>
@@ -812,6 +824,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       <MediaDialog
         open={mediaDialogOpen}
         title='Bild hinzufügen'
+        requireAltText={requireAltText}
         onClose={() => setMediaDialogOpen(false)}
         onConfirm={(file, altText) => {
           setMediaDialogOpen(false)
@@ -824,6 +837,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text bearbeiten'}
         previewSrc={altDialog.previewSrc}
         initialAlt={altDialog.initialAlt}
+        requireAltText={requireAltText}
         onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}
         onClose={closeAltDialog}
       />
