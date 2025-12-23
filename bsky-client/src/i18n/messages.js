@@ -467,8 +467,7 @@ const messages = {
         detected: 'Erkannt: {language}',
         via: 'Automatisch übersetzt via LibreTranslate',
         close: 'Schließen',
-        error: 'Übersetzung konnte nicht abgerufen werden.',
-        success: 'Übersetzung eingefügt.'
+        error: 'Übersetzung konnte nicht abgerufen werden.'
       }
     },
     notifications: {
@@ -992,8 +991,7 @@ const messages = {
         detected: 'Detected: {language}',
         via: 'Automatically translated via LibreTranslate',
         close: 'Close',
-        error: 'Translation could not be fetched.',
-        success: 'Translation ready.'
+        error: 'Translation could not be fetched.'
       }
     },
     settingsPage: {

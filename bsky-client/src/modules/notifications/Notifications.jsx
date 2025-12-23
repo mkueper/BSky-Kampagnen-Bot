@@ -13,7 +13,6 @@ import {
   CopyIcon,
   CodeIcon,
   GlobeIcon,
-  Cross2Icon,
   ExclamationTriangleIcon,
   FaceIcon,
   SpeakerOffIcon,
@@ -639,11 +638,11 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     return translationEndpoint.replace(/\/translate$/i, '/detect')
   }, [translationEndpoint])
   const sameLanguageDetected = detectedLanguage && detectedLanguage === targetLanguage
-  const translateButtonDisabled = translateUnavailable ||
+  const translateButtonDisabled = !translationResult && (translateUnavailable ||
     !recordText ||
     !recordText.trim() ||
     (canInlineTranslate && translating) ||
-    (sameLanguageDetected && !detectingLanguage)
+    (sameLanguageDetected && !detectingLanguage))
 
   useEffect(() => {
     detectAbortRef.current?.abort?.()
@@ -765,7 +764,6 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         text: translated,
         detected: payload?.detectedLanguage?.language || payload?.detectedLanguage || null
       })
-      setFeedbackMessage(t('skeet.translation.success', 'Übersetzung eingefügt.'))
     } catch (error) {
       if (error?.name === 'AbortError') return
       if (allowFallback) {
@@ -1274,14 +1272,6 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         <div className='rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
           <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
             <span>{t('skeet.translation.title', 'Übersetzung')}</span>
-            <button
-              type='button'
-              className='inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-              onClick={handleClearTranslation}
-            >
-              <Cross2Icon className='h-3 w-3' />
-              {t('skeet.translation.close', 'Schließen')}
-            </button>
           </div>
           <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
           <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
@@ -1518,15 +1508,25 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 <button
                   type='button'
                   className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
-                  title={translating && canInlineTranslate ? t('skeet.actions.translating', 'Übersetze…') : t('skeet.actions.translate', 'Übersetzen')}
-                  aria-label={t('skeet.actions.translate', 'Übersetzen')}
+                  title={
+                    translationResult
+                      ? t('skeet.translation.close', 'Schließen')
+                      : (translating && canInlineTranslate
+                        ? t('skeet.actions.translating', 'Übersetze…')
+                        : t('skeet.actions.translate', 'Übersetzen'))
+                  }
+                  aria-label={translationResult ? t('skeet.translation.close', 'Schließen') : t('skeet.actions.translate', 'Übersetzen')}
                   onClick={(event) => {
                     handleActiveRead()
+                    if (translationResult) {
+                      handleClearTranslation()
+                      return
+                    }
                     handleTranslateAction(event)
                   }}
                   disabled={translateButtonDisabled}
                 >
-                  {translating && canInlineTranslate ? (
+                  {translating && canInlineTranslate && !translationResult ? (
                     <span className='h-4 w-4 animate-spin rounded-full border-2 border-border border-t-transparent' aria-hidden='true' />
                   ) : (
                     <GlobeIcon className='h-4 w-4' />

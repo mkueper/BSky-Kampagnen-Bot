@@ -16,8 +16,8 @@
    - Links und Handles sollen klickbar sein., so dass das Aufrufen eines Profils, dass in einer Nachricht gezeigt wird aufgerufen werden kann
 9. [Beobachten] Manchmal passiert noch ein ungewollter Refresh.
 10. [Beobachten] Nach dem Öffnen eines Beitrags springen wir nicht (manchmal) zur ursprünglichen Position zurück.
-11. Einstellungen/Composer 
+11. [Erledigt] Einstellungen/Composer 
     - Alt-Text muss vorhanden sein als Konfigurationspunkt unter Client-Einstellungen/Medien/Medien
     - Bei aktivierter Option muss der "Senden" Button in den Composern deaktiviert sein, so lange nicht alle Medien einen ALT-text haben.
-12. Den Hinweistext "Übersetzung eingefügt" können wir uns eigentlich sparen, weil wir ihn beim Schließen wieder wegnehmen sollten.
-13. Den Schließen Button innerhalb einer Übersetzung sollten wir entfernen und bei erneuuten Klick auf das Übersetzen Icon schließen-
+12. [Erledigt] Den Hinweistext "Übersetzung eingefügt" können wir uns eigentlich sparen, weil wir ihn beim Schließen wieder wegnehmen sollten.
+13. [Erledigt] Den Schließen Button innerhalb einer Übersetzung sollten wir entfernen und bei erneuuten Klick auf das Übersetzen Icon schließen-
