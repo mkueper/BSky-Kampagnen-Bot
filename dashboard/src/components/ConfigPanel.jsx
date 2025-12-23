@@ -1004,6 +1004,12 @@ export default function ConfigPanel () {
               {t('config.tabs.credentials', 'Zugangsdaten')}
             </Tabs.Trigger>
             <Tabs.Trigger
+              value='external-services'
+              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
+            >
+              {t('config.tabs.externalServices', 'Externe Dienste')}
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value='scheduler'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
@@ -1818,6 +1824,9 @@ export default function ConfigPanel () {
         <Tabs.Content value='credentials' className='outline-none'>
           <CredentialsSection />
         </Tabs.Content>
+        <Tabs.Content value='external-services' className='outline-none'>
+          <ExternalServicesSection />
+        </Tabs.Content>
       </Tabs.Root>
     </div>
   )
@@ -1838,8 +1847,7 @@ function CredentialsSection () {
     blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
-    mastodonClientApp: '',
-    tenorApiKey: ''
+    mastodonClientApp: ''
   })
   const [initialValues, setInitialValues] = useState({
     blueskyServerUrl: '',
@@ -1848,13 +1856,11 @@ function CredentialsSection () {
     blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
-    mastodonClientApp: '',
-    tenorApiKey: ''
+    mastodonClientApp: ''
   })
   const [hasSecret, setHasSecret] = useState({
     bsky: false,
-    masto: false,
-    tenor: false
+    masto: false
   })
   const [sessionTtlInput, setSessionTtlInput] = useState(() => {
     if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
@@ -1931,15 +1937,13 @@ function CredentialsSection () {
             blueskyClientApp: data?.bluesky?.clientApp || '',
             mastodonApiUrl: data?.mastodon?.apiUrl || '',
             mastodonAccessToken: '',
-            mastodonClientApp: data?.mastodon?.clientApp || '',
-            tenorApiKey: ''
+            mastodonClientApp: data?.mastodon?.clientApp || ''
           }
           setValues(nextValues)
           setInitialValues(nextValues)
           setHasSecret({
             bsky: Boolean(data?.bluesky?.hasAppPassword),
-            masto: Boolean(data?.mastodon?.hasAccessToken),
-            tenor: Boolean(data?.tenor?.hasApiKey)
+            masto: Boolean(data?.mastodon?.hasAccessToken)
           })
         }
       } catch (error) {
@@ -2034,7 +2038,6 @@ function CredentialsSection () {
       const payload = { ...next }
       if (!payload.blueskyAppPassword) delete payload.blueskyAppPassword
       if (!payload.mastodonAccessToken) delete payload.mastodonAccessToken
-      if (!payload.tenorApiKey) delete payload.tenorApiKey
       const res = await fetch('/api/config/credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -2053,12 +2056,10 @@ function CredentialsSection () {
       await res.json().catch(() => ({}))
       if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
       if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
-      if (values.tenorApiKey) setHasSecret(s => ({ ...s, tenor: true }))
       setValues(v => ({
         ...v,
         blueskyAppPassword: '',
-        mastodonAccessToken: '',
-        tenorApiKey: ''
+        mastodonAccessToken: ''
       }))
       toast.success({
         title: t('config.credentials.saveSuccessTitle', 'Gespeichert'),
@@ -2135,10 +2136,6 @@ function CredentialsSection () {
               )}
             </p>
             <p>
-              {t(
-                'config.credentials.infoTenor',
-                'Optional kann ein Tenor‑API‑Key hinterlegt werden, um die GIF‑Suche im Dashboard zu aktivieren. Ohne Key bleibt die GIF‑Suche deaktiviert, das Planen von Posts ist davon unabhängig.'
-              )}{' '}
               {t(
                 'config.credentials.infoSecurity',
                 'Zugangsdaten werden serverseitig gespeichert. Felder für Passwörter und Tokens können leer gelassen werden, um vorhandene Werte beizubehalten.'
@@ -2452,6 +2449,193 @@ function CredentialsSection () {
               </div>
             </div>
           </section>
+          <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
+            <div className='flex flex-wrap gap-3'>
+              <Button
+                type='button'
+                variant='secondary'
+                onClick={handleCancel}
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {t('common.actions.cancel', 'Abbrechen')}
+              </Button>
+              <Button
+                type='submit'
+                variant='primary'
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {saving
+                  ? t('config.credentials.saveBusy', 'Übernehmen…')
+                  : t('config.credentials.saveLabel', 'Übernehmen')}
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+      </Card>
+    </>
+  )
+}
+
+function ExternalServicesSection () {
+  const toast = useToast()
+  const { t } = useTranslation()
+  const [values, setValues] = useState({
+    tenorApiKey: ''
+  })
+  const [initialValues, setInitialValues] = useState({
+    tenorApiKey: ''
+  })
+  const [hasSecret, setHasSecret] = useState({
+    tenor: false
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let ignore = false
+    async function loadServices () {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/config/credentials')
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(
+            data.error ||
+              t(
+                'config.credentials.loadErrorFallback',
+                'Fehler beim Laden der Zugangsdaten.'
+              )
+          )
+        }
+        const data = await res.json()
+        if (!ignore) {
+          const nextValues = { tenorApiKey: '' }
+          setValues(nextValues)
+          setInitialValues(nextValues)
+          setHasSecret({ tenor: Boolean(data?.tenor?.hasApiKey) })
+        }
+      } catch (error) {
+        console.error('Externe Dienste laden fehlgeschlagen:', error)
+        toast.error({
+          title: t('config.externalServices.toastTitle', 'Externe Dienste'),
+          description:
+            error.message ||
+            t(
+              'config.credentials.loadErrorDescription',
+              'Die Zugangsdaten konnten nicht geladen werden.'
+            )
+        })
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    loadServices()
+    return () => {
+      ignore = true
+    }
+  }, [toast])
+
+  const hasChanges = useMemo(() => {
+    return Object.keys(values).some(
+      key => String(values[key] ?? '') !== String(initialValues[key] ?? '')
+    )
+  }, [values, initialValues])
+
+  const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+
+  const handleCancel = () => {
+    setValues(initialValues)
+  }
+
+  const handleSave = async e => {
+    e.preventDefault()
+
+    if (!hasChanges) return
+
+    setSaving(true)
+    try {
+      const payload = { ...values }
+      if (!payload.tenorApiKey) delete payload.tenorApiKey
+      const res = await fetch('/api/config/credentials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(
+          data.error ||
+            t(
+              'config.credentials.saveErrorFallback',
+              'Fehler beim Speichern der Zugangsdaten.'
+            )
+        )
+      }
+      await res.json().catch(() => ({}))
+      if (values.tenorApiKey) setHasSecret({ tenor: true })
+      setValues(v => ({
+        ...v,
+        tenorApiKey: ''
+      }))
+      setInitialValues({ tenorApiKey: '' })
+      toast.success({
+        title: t(
+          'config.externalServices.saveSuccessTitle',
+          'Externe Dienste gespeichert'
+        ),
+        description: t(
+          'config.externalServices.saveSuccessDescription',
+          'API-Keys wurden aktualisiert.'
+        )
+      })
+      try {
+        window.dispatchEvent(new Event('client-config:refresh'))
+        window.dispatchEvent(new Event('client-apps:refresh'))
+        await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
+      } catch {
+        /* ignore */
+      }
+    } catch (error) {
+      console.error('Externe Dienste speichern fehlgeschlagen:', error)
+      toast.error({
+        title: t(
+          'config.externalServices.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
+        description:
+          error.message ||
+          t(
+            'config.externalServices.saveErrorDescription',
+            'Externe Dienste konnten nicht gespeichert werden.'
+          )
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card padding='p-6 lg:p-10'>
+      <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
+        <div>
+          <h3 className='text-2xl font-semibold'>
+            {t('config.externalServices.heading', 'Externe Dienste')}
+          </h3>
+          <p className='text-sm text-foreground-muted'>
+            {t(
+              'config.externalServices.subtitle',
+              'API-Keys und Zugangsdaten für optionale Integrationen.'
+            )}
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <p className='text-sm text-foreground-muted'>
+          {t('config.credentials.loading', 'Lade …')}
+        </p>
+      ) : (
+        <form onSubmit={handleSave} className='space-y-6'>
           <section className='space-y-4'>
             <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
               <h4 className='text-lg font-semibold'>
@@ -2485,14 +2669,14 @@ function CredentialsSection () {
                 type='button'
                 variant='secondary'
                 onClick={handleCancel}
-                disabled={loading || saving || !hasCredentialChanges}
+                disabled={loading || saving || !hasChanges}
               >
                 {t('common.actions.cancel', 'Abbrechen')}
               </Button>
               <Button
                 type='submit'
                 variant='primary'
-                disabled={loading || saving || !hasCredentialChanges}
+                disabled={loading || saving || !hasChanges}
               >
                 {saving
                   ? t('config.credentials.saveBusy', 'Übernehmen…')
@@ -2502,7 +2686,6 @@ function CredentialsSection () {
           </div>
         </form>
       )}
-      </Card>
-    </>
+    </Card>
   )
 }

@@ -922,12 +922,22 @@ const messages = {
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen'
       },
+      externalServices: {
+        heading: 'Externe Dienste',
+        subtitle: 'API-Keys und Zugangsdaten für optionale Integrationen.',
+        toastTitle: 'Externe Dienste',
+        saveSuccessTitle: 'Externe Dienste gespeichert',
+        saveSuccessDescription: 'API-Keys wurden aktualisiert.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription: 'Externe Dienste konnten nicht gespeichert werden.'
+      },
       tabs: {
         ariaLabel: 'Konfig-Themen',
         general: 'Allgemein',
         scheduler: 'Scheduler & Retry',
         polling: 'Dashboard-Polling',
-        credentials: 'Zugangsdaten'
+        credentials: 'Zugangsdaten',
+        externalServices: 'Externe Dienste'
       }
     },
     layout: {
@@ -1781,12 +1791,22 @@ const messages = {
         saveBusy: 'Applying…',
         saveLabel: 'Apply'
       },
+      externalServices: {
+        heading: 'External services',
+        subtitle: 'API keys and credentials for optional integrations.',
+        toastTitle: 'External services',
+        saveSuccessTitle: 'External services saved',
+        saveSuccessDescription: 'API keys were updated.',
+        saveErrorTitle: 'Save failed',
+        saveErrorDescription: 'External services could not be saved.'
+      },
       tabs: {
         ariaLabel: 'Configuration topics',
         general: 'General',
         scheduler: 'Scheduler & retry',
         polling: 'Dashboard polling',
-        credentials: 'Credentials'
+        credentials: 'Credentials',
+        externalServices: 'External services'
       }
     },
     about: {

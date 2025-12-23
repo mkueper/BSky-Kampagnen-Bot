@@ -24,10 +24,7 @@ PROJECT_CONTENT=(
   "packages/shared-logic"
   "packages/media-pickers"
 )
-
-if [[ -f .env.sample ]]; then
-  PROJECT_CONTENT+=(".env.sample")
-fi
+CLIENT_ENV_SAMPLE="bsky-client/.env.sample"
 
 mkdir -p "${BUNDLES_DIR}"
 rm -rf "${WORK_DIR}"
@@ -62,8 +59,8 @@ elif [[ -f .npmrc ]]; then
   cp .npmrc "${APP_DIR}/.npmrc"
 fi
 
-if [[ -f .env.sample ]]; then
-  cp .env.sample "${WORK_DIR}/.env.sample"
+if [[ -f "${CLIENT_ENV_SAMPLE}" ]]; then
+  cp "${CLIENT_ENV_SAMPLE}" "${WORK_DIR}/.env.sample"
 fi
 
 cat <<'INSTRUCTIONS' > "${WORK_DIR}/BUNDLE_USAGE.txt"
