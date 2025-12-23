@@ -598,35 +598,9 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     }
   }, [isRead, onMarkRead, item])
 
-  useEffect(() => {
-    if (isRead) return undefined
-    const target = cardRef.current
-    if (!target) return undefined
-
-    if (typeof IntersectionObserver !== 'function') {
-      markAsRead()
-      return undefined
-    }
-
-    const root = typeof document !== 'undefined'
-      ? document.getElementById('bsky-scroll-container')
-      : null
-
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (!entry) return
-      if (entry.isIntersecting) {
-        markAsRead()
-        observer.disconnect()
-      }
-    }, {
-      root,
-      threshold: 0.35
-    })
-    observer.observe(target)
-    return () => {
-      observer.disconnect()
-    }
+  const handleActiveRead = useCallback(() => {
+    if (isRead) return
+    markAsRead()
   }, [isRead, markAsRead])
 
   const shareUrl = useMemo(
@@ -1089,7 +1063,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     if (!built?.uri || !isPostUri(built.uri)) return null
     return built
   }, [buildThreadTarget, item, reason, subject])
-  const showFooter = Boolean(actionTarget)
+  const showFooter = Boolean(actionTarget && reason !== 'like')
 
   const handleSelectItem = useCallback((target) => {
     if (!resolvedThreadTarget || typeof onSelectItem !== 'function') return
@@ -1113,7 +1087,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const fallbackAuthorLabel = t('notifications.card.authorUnknown', 'Unbekannt')
   const authorLabel = authorDisplayName || author?.handle || fallbackAuthorLabel
   const authorFallbackHint = authorDisplayName ? '' : t('notifications.card.authorMissing', 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.')
-  const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
+  const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)] dark:bg-primary/15 dark:border-primary/80 dark:shadow-[0_10px_35px_-20px_rgba(56,189,248,0.65)]'
 
   const openProfileViewer = useCallback(() => {
     if (!canOpenProfileViewer) return
@@ -1272,12 +1246,14 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 onOpen={markAsRead}
                 className='flex w-full items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-background'
               >
-                {actorAvatar}
-                <span className='flex min-w-0 items-center gap-2'>
-                  <span className='truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
-                  {actorHandle ? (
-                    <span className='truncate text-sm font-semibold text-foreground-muted'>@{actorHandle}</span>
-                  ) : null}
+                <span className='inline-flex min-w-0 items-center gap-3'>
+                  {actorAvatar}
+                  <span className='inline-flex min-w-0 items-center gap-2'>
+                    <span className='min-w-0 truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
+                    {actorHandle ? (
+                      <span className='shrink-0 text-sm font-semibold text-foreground-muted'>@{actorHandle}</span>
+                    ) : null}
+                  </span>
                 </span>
               </ActorProfileLink>
             )
@@ -1420,6 +1396,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               title={t('notifications.card.actions.reply', 'Antworten')}
               onClick={() => {
                 if (typeof onReply === 'function' && actionTarget) {
+                  handleActiveRead()
                   clearError()
                   onReply(actionTarget)
                 }
@@ -1435,13 +1412,16 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               busy={busy || quoteBusy}
               style={repostStyle}
               onRepost={() => {
+                handleActiveRead()
                 handleToggleRepost()
               }}
               onUnrepost={() => {
+                handleActiveRead()
                 handleToggleRepost()
               }}
               onUnquote={quotePostUri ? handleUndoQuote : undefined}
               onQuote={onQuote && actionTarget ? (() => {
+                handleActiveRead()
                 clearError()
                 onQuote(actionTarget)
               }) : undefined}
@@ -1453,7 +1433,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               title={t('notifications.card.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
-              onClick={handleToggleLike}
+              onClick={() => {
+                handleActiveRead()
+                handleToggleLike()
+              }}
             >
               {hasLiked ? (
                 <HeartFilledIcon className='h-5 w-5' />
@@ -1470,7 +1453,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                 title={isBookmarked ? t('skeet.actions.bookmarkRemove', 'Gespeichert') : t('skeet.actions.bookmarkAdd', 'Merken')}
                 aria-pressed={isBookmarked}
                 disabled={bookmarking}
-                onClick={handleToggleBookmark}
+                onClick={() => {
+                  handleActiveRead()
+                  handleToggleBookmark()
+                }}
               >
                 {isBookmarked ? (
                   <BookmarkFilledIcon className='h-4 w-4' />
@@ -1485,6 +1471,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
                     title={t('skeet.actions.share', 'Teilen')}
                     aria-label={t('skeet.actions.shareAria', 'Beitrag teilen')}
+                    onClick={handleActiveRead}
                   >
                     <Share2Icon className='h-4 w-4' />
                   </button>
@@ -1495,6 +1482,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                       icon={CopyIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleActiveRead()
                         copyToClipboard(shareUrl, t('skeet.share.linkCopied', 'Link zum Post kopiert'))
                         setShareMenuOpen(false)
                       }}
@@ -1505,6 +1493,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                       icon={Link2Icon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleActiveRead()
                         showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
                         setShareMenuOpen(false)
                       }}
@@ -1515,6 +1504,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                       icon={CodeIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleActiveRead()
                         showPlaceholder(t('skeet.share.embed', 'Embed'))
                         setShareMenuOpen(false)
                       }}
@@ -1530,7 +1520,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                   className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
                   title={translating && canInlineTranslate ? t('skeet.actions.translating', 'Übersetze…') : t('skeet.actions.translate', 'Übersetzen')}
                   aria-label={t('skeet.actions.translate', 'Übersetzen')}
-                  onClick={handleTranslateAction}
+                  onClick={(event) => {
+                    handleActiveRead()
+                    handleTranslateAction(event)
+                  }}
                   disabled={translateButtonDisabled}
                 >
                   {translating && canInlineTranslate ? (
@@ -1546,6 +1539,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                     type='button'
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
                     aria-label={t('skeet.actions.moreOptions', 'Mehr Optionen')}
+                    onClick={handleActiveRead}
                   >
                     <DotsHorizontalIcon className='h-5 w-5' />
                   </button>
@@ -1563,6 +1557,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                           onSelect={(event) => {
                             event?.preventDefault?.()
                             if (entry.disabled) return
+                            handleActiveRead()
                             try {
                               entry.action()
                             } catch {

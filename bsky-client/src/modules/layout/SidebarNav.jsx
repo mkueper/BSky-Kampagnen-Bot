@@ -362,12 +362,8 @@ export default function SidebarNav ({
             )
           })}
 
-          <div className='pt-2'>
-            <hr className='border-t border-border' />
-          </div>
-
           {showThemeToggle ? (
-            <div className='pt-2'>
+            <div className='pb-2'>
               {showFullLabels ? (
                 <ThemeToggle
                   {...resolvedThemeToggle}
@@ -396,8 +392,11 @@ export default function SidebarNav ({
               )}
             </div>
           ) : null}
+          <div className='pt-2'>
+            <hr className='border-t border-border' />
+          </div>
           {typeof onComposeThread === 'function' ? (
-            <div className='pt-2'>
+            <div className='pt-3'>
               <button
                 type='button'
                 onClick={interactionsLocked ? undefined : onComposeThread}
@@ -423,7 +422,7 @@ export default function SidebarNav ({
               </button>
             </div>
           ) : null}
-          <div className='pt-2'>
+          <div className='pt-3'>
             <button
               type='button'
               onClick={interactionsLocked ? undefined : onCompose}

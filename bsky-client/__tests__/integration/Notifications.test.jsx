@@ -423,7 +423,7 @@ describe('NotificationCard interactions', () => {
     expect(selected?.uri).toBe(item.subject?.raw?.post?.uri ?? item.uri)
   })
 
-  it('markiert ungelesene Einträge automatisch beim Sichtbarwerden', () => {
+  it('markiert ungelesene Einträge nicht automatisch beim Sichtbarwerden', () => {
     const item = { ...createNotification({ id: 'auto-1' }), isRead: false }
     const handleMarkRead = vi.fn()
     const originalObserver = global.IntersectionObserver
@@ -443,9 +443,8 @@ describe('NotificationCard interactions', () => {
 
     try {
       renderWithProviders(<NotificationCard item={item} onMarkRead={handleMarkRead} />)
-      expect(observers).toHaveLength(1)
-      act(() => observers[0].callback([{ isIntersecting: true }]))
-      expect(handleMarkRead).toHaveBeenCalledWith(item)
+      expect(observers).toHaveLength(0)
+      expect(handleMarkRead).not.toHaveBeenCalled()
     } finally {
       global.IntersectionObserver = originalObserver
     }

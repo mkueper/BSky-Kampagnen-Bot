@@ -51,6 +51,7 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
 
   const [error, setError] = useState(null)
   const items = useMemo(() => (Array.isArray(list?.items) ? list.items : []), [list?.items])
+  const unreadIdSet = useMemo(() => new Set(Array.isArray(list?.unreadIds) ? list.unreadIds : []), [list?.unreadIds])
   const normalizedLanguageFilter = typeof languageFilter === 'string' ? languageFilter.trim().toLowerCase() : ''
   const filteredItems = useMemo(() => {
     if (!normalizedLanguageFilter) return items
@@ -208,6 +209,17 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     })
   }, [dispatch, list, listKey])
 
+  const handleMarkRead = useCallback((targetItem) => {
+    if (!list?.key) return
+    const targetId = getListItemId(targetItem)
+    if (!targetId) return
+    if (!unreadIdSet.has(targetId)) return
+    dispatch({
+      type: 'LIST_CLEAR_UNREAD',
+      payload: { key: list.key, ids: [targetId] }
+    })
+  }, [dispatch, list?.key, unreadIdSet])
+
   if (showLanguageSearch) {
     if (languageSearchState.loading) {
       return (
@@ -274,17 +286,23 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
         virtualizationThreshold={100}
         overscan={4}
         getItemId={getListItemId}
-        renderItem={(it) => (
-          <SkeetItem
-            item={it}
-            variant={variant}
-            onReply={onReply}
-            onQuote={onQuote}
-            onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
-            onViewMedia={onViewMedia}
-            onEngagementChange={showLanguageSearch ? undefined : handleEngagementChange}
-          />
-        )}
+        renderItem={(it) => {
+          const itemId = getListItemId(it)
+          const isUnread = itemId ? unreadIdSet.has(itemId) : false
+          return (
+            <SkeetItem
+              item={it}
+              variant={variant}
+              isUnread={isUnread}
+              onMarkRead={handleMarkRead}
+              onReply={onReply}
+              onQuote={onQuote}
+              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
+              onViewMedia={onViewMedia}
+              onEngagementChange={showLanguageSearch ? undefined : handleEngagementChange}
+            />
+          )
+        }}
       />
       {!showLanguageSearch && isLoadingMore ? (
         <div className='py-3 text-center text-xs text-foreground-muted'>

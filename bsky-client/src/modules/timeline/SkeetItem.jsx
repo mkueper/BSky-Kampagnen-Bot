@@ -428,7 +428,7 @@ function buildShareUrl (item) {
   }
 }
 
-export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false }) {
+export default function SkeetItem({ item, variant = 'card', onReply, onQuote, onViewMedia, onSelect, onEngagementChange, showActions = true, disableHashtagMenu = false, isUnread = false, onMarkRead }) {
   const { t, locale } = useTranslation()
   const { session } = useBskyAuth()
   const { clientConfig } = useClientConfig()
@@ -710,10 +710,17 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     }
   }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
   const Wrapper = variant === 'card' ? Card : 'div'
-  const wrapperClassName = variant === 'card' ? 'relative' : 'relative px-1'
+  const unreadClassName = isUnread
+    ? 'border-primary/70 bg-primary/5 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.45)] dark:bg-primary/15 dark:border-primary/80 dark:shadow-[0_10px_35px_-20px_rgba(56,189,248,0.6)]'
+    : ''
+  const wrapperClassName = variant === 'card' ? `relative ${unreadClassName}` : `relative px-1 ${unreadClassName}`
   const wrapperProps = variant === 'card'
     ? { as: 'article', padding: 'p-3 sm:p-5' }
     : {}
+  const handleMarkRead = useCallback(() => {
+    if (!isUnread || typeof onMarkRead !== 'function') return
+    onMarkRead(item)
+  }, [isUnread, onMarkRead, item])
   const handleSelect = (event) => {
     if (typeof onSelect !== 'function') return
     if (event) {
@@ -721,6 +728,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
       if (target?.closest?.('button, a, input, textarea')) return
       event.preventDefault()
     }
+    handleMarkRead()
     onSelect(item)
   }
 
@@ -1887,6 +1895,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               title={t('skeet.actions.reply', 'Antworten')}
               onClick={() => {
                 if (typeof onReply === 'function') {
+                  handleMarkRead()
                   clearError()
                   onReply(item)
                 }
@@ -1902,13 +1911,16 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               busy={busy || quoteBusy}
               style={repostStyle}
               onRepost={() => {
+                handleMarkRead()
                 handleToggleRepost()
               }}
               onUnrepost={() => {
+                handleMarkRead()
                 handleToggleRepost()
               }}
               onUnquote={quotePostUri ? handleUndoQuote : undefined}
               onQuote={onQuote ? (() => {
+                handleMarkRead()
                 clearError()
                 onQuote(item)
               }) : undefined}
@@ -1920,7 +1932,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
               title={t('skeet.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
-              onClick={handleToggleLike}
+              onClick={() => {
+                handleMarkRead()
+                handleToggleLike()
+              }}
             >
               {hasLiked ? (
                 <HeartFilledIcon className='h-5 w-5 md:h-6 md:w-6' />
@@ -1937,7 +1952,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
             title={isBookmarked ? t('skeet.actions.bookmarkRemove', 'Gespeichert') : t('skeet.actions.bookmarkAdd', 'Merken')}
                 aria-pressed={isBookmarked}
                 disabled={bookmarking}
-                onClick={handleToggleBookmark}
+                onClick={() => {
+                  handleMarkRead()
+                  handleToggleBookmark()
+                }}
               >
                 {isBookmarked ? (
                   <BookmarkFilledIcon className='h-4 w-4' />
@@ -1952,6 +1970,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
                     title={t('skeet.actions.share', 'Teilen')}
                     aria-label={t('skeet.actions.shareAria', 'Beitrag teilen')}
+                    onClick={handleMarkRead}
                   >
                     <Share2Icon className='h-4 w-4' />
                   </button>
@@ -1962,6 +1981,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       icon={CopyIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleMarkRead()
                         copyToClipboard(shareUrl, t('skeet.share.linkCopied', 'Link zum Post kopiert'))
                         setShareMenuOpen(false)
                       }}
@@ -1972,6 +1992,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       icon={Link2Icon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleMarkRead()
                         showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
                         setShareMenuOpen(false)
                       }}
@@ -1982,6 +2003,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       icon={CodeIcon}
                       onSelect={(event) => {
                         event?.preventDefault?.()
+                        handleMarkRead()
                         showPlaceholder(t('skeet.share.embed', 'Embed'))
                         setShareMenuOpen(false)
                       }}
@@ -1997,7 +2019,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                   className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
                   title={translating && canInlineTranslate ? t('skeet.actions.translating', 'Übersetze…') : t('skeet.actions.translate', 'Übersetzen')}
                   aria-label={t('skeet.actions.translate', 'Übersetzen')}
-                  onClick={handleTranslateAction}
+                  onClick={(event) => {
+                    handleMarkRead()
+                    handleTranslateAction(event)
+                  }}
                   disabled={translateButtonDisabled}
                 >
                   {translating && canInlineTranslate ? (
@@ -2013,6 +2038,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                     type='button'
                     className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
                     aria-label={t('skeet.actions.moreOptions', 'Mehr Optionen')}
+                    onClick={handleMarkRead}
                   >
                     <DotsHorizontalIcon className='h-5 w-5' />
                   </button>
@@ -2030,6 +2056,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                           onSelect={(event) => {
                             event?.preventDefault?.()
                             if (entry.disabled) return
+                            handleMarkRead()
                             try {
                               entry.action()
                             } catch {

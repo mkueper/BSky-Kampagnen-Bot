@@ -16,16 +16,6 @@
    - Links und Handles sollen klickbar sein., so dass das Aufrufen eines Profils, dass in einer Nachricht gezeigt wird aufgerufen werden kann
 9. [Beobachten] Manchmal passiert noch ein ungewollter Refresh.
 10. [Beobachten] Nach dem Öffnen eines Beitrags springen wir nicht (manchmal) zur ursprünglichen Position zurück.
-11. Fehlermeldung analysieren:
-   Warning: Cannot update a component (`AppProvider`) while rendering a different component (`AuthenticatedClientApp`). To locate the bad setState() call inside `AuthenticatedClientApp`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render Error Component Stack
-    at AuthenticatedClientApp (ClientApp.jsx:130:36)
-    at BskyClientApp (ClientApp.jsx:100:42)
-    at AppProvider (AppContext.jsx:468:31)
-    at AuthProvider (AuthContext.jsx:178:33)
-    at I18nProvider (I18nProvider.jsx:21:33)
-    at ToastProvider (ToastProvider.jsx:45:34)
-    at ThemeProvider (ThemeProvider.jsx:12:34)
-    at BskyClientRoot (<anonymous>)
-12. Einstellungen/Composer 
+11. Einstellungen/Composer 
     - Alt-Text muss vorhanden sein als Konfigurationspunkt unter Client-Einstellungen/Medien/Medien
     - Bei aktivierter Option muss der "Senden" Button in den Composern deaktiviert sein, so lange nicht alle Medien einen ALT-text haben.

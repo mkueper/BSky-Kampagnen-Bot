@@ -69,6 +69,33 @@ function appendUnique(existingItems = [], nextItems = []) {
   return result
 }
 
+function resolveUnreadIds({
+  previousUnreadIds = [],
+  nextItems = [],
+  previousTopId = null,
+  clearUnreadOnRefresh = false
+} = {}) {
+  const preservedUnreadIds = clearUnreadOnRefresh ? [] : previousUnreadIds
+  const nextIds = nextItems.map((item) => getItemId(item)).filter(Boolean)
+  if (!nextIds.length) return []
+  const nextIdSet = new Set(nextIds)
+  const unreadSet = new Set()
+  preservedUnreadIds.forEach((id) => {
+    if (nextIdSet.has(id)) {
+      unreadSet.add(id)
+    }
+  })
+  if (previousTopId) {
+    for (const item of nextItems) {
+      const id = getItemId(item)
+      if (!id) continue
+      if (id === previousTopId) break
+      unreadSet.add(id)
+    }
+  }
+  return Array.from(unreadSet)
+}
+
 async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_TIMELINE_PAGE_SIZE } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
@@ -99,15 +126,27 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for refresh')
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
+  const shouldMarkSeen = descriptor.kind === 'notifications'
+    ? (list?.markSeen === true)
+    : undefined
+  const previousUnreadIds = Array.isArray(list?.unreadIds) ? list.unreadIds : []
+  const previousTopId = list?.topId || null
+  const clearUnreadOnRefresh = Boolean(list?.clearUnreadOnRefresh)
   dispatch({
     type: 'LIST_SET_REFRESHING',
     payload: { key: list.key, value: true, meta }
   })
   try {
     const page = descriptor.kind === 'notifications'
-      ? await fetchNotificationsPage(list, { limit: effectiveLimit })
+      ? await fetchNotificationsPage(list, { limit: effectiveLimit, markSeen: shouldMarkSeen })
       : await fetchTimelinePage(list, { limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
+    const unreadIds = resolveUnreadIds({
+      previousUnreadIds,
+      nextItems,
+      previousTopId,
+      clearUnreadOnRefresh
+    })
     dispatch({
       type: 'LIST_LOADED',
       payload: {
@@ -115,7 +154,8 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
         items: nextItems,
         cursor: page.cursor || null,
         topId: nextItems[0] ? getItemId(nextItems[0]) : null,
-        meta: meta ? { ...meta, data: meta.data || list.data } : { data: list.data }
+        meta: meta ? { ...meta, data: meta.data || list.data } : { data: list.data },
+        unreadIds
       }
     })
     return { ...page, items: nextItems }

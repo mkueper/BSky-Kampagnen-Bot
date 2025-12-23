@@ -483,7 +483,12 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
     const preservedAnchorEntry = shouldPreserveVisible ? captureVisibleAnchor() : null
     try {
       const page = await runListRefresh({
-        list: { ...(listState || {}), ...meta },
+        list: {
+          ...(listState || {}),
+          ...meta,
+          clearUnreadOnRefresh: Boolean(options.clearUnreadOnRefresh),
+          ...(isNotification ? { markSeen: Boolean(options.clearUnreadOnRefresh) } : {})
+        },
         dispatch,
         meta
       })
@@ -661,7 +666,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       if (listHasNew) {
         clearSavedScrollPosition('home', nextKey)
       }
-      refreshListByKey(nextKey, { scrollAfter: true })
+      refreshListByKey(nextKey, { scrollAfter: true, clearUnreadOnRefresh: true })
       return
     }
     timelineKeyRef.current = nextKey
@@ -701,7 +706,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
         const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
         skipScrollRestoreRef.current = true
         clearSavedScrollPosition('notifications', key)
-        refreshListByKey(key, { scrollAfter: true })
+        refreshListByKey(key, { scrollAfter: true, clearUnreadOnRefresh: true })
         return prev
       }
       const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
@@ -893,7 +898,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       if (section === 'notifications') {
         skipScrollRestoreRef.current = true
         clearSavedScrollPosition('notifications', notificationListKey)
-        refreshListByKey(notificationListKey, { scrollAfter: true })
+        refreshListByKey(notificationListKey, { scrollAfter: true, clearUnreadOnRefresh: true })
       } else {
         const canRestoreNotifications = canRestoreListState(notificationList)
         if (!canRestoreNotifications) {
@@ -935,7 +940,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
       dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
       skipScrollRestoreRef.current = true
       clearSavedScrollPosition('home', timelineKeyRef.current)
-      refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
+      refreshListByKey(timelineKeyRef.current, { scrollAfter: true, clearUnreadOnRefresh: true })
       return
     }
     if (id === 'profile') {
