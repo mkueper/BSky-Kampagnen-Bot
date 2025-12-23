@@ -37,7 +37,8 @@ Schnelle Referenz zu allen wichtigen CLI-Befehlen. Die Skripte befinden sich in 
 | `npm run build:all` | Fasst Backend, Bsky-Client, Dashboard, Shared-UI & Media-Pickers zusammen und zeigt am Ende eine Erfolgsübersicht. |
 | `npm run build:electron` / `build:electron:win` | Electron-Build (Linux/Windows). |
 | `npm run pack:electron` | Electron im Pack-Modus (dir). |
-| `npm run docker:build` / `docker:bundle` | Docker Compose Build & Bundle-Skript. |
+| `npm run docker:build` / `docker:bundle` | Docker Compose Build & Bundle-Skript (Backend/Dashboard). |
+| `npm run docker:bundle:bsky-client` | Docker-Bundle für den Bluesky-Client (Zip für Docker Compose). |
 
 ## Install & Infrastruktur
 
@@ -63,7 +64,8 @@ Schnelle Referenz zu allen wichtigen CLI-Befehlen. Die Skripte befinden sich in 
 | Script | Beschreibung |
 | --- | --- |
 | `npm run smoke:bsky` / `smoke:masto` | Testpost an Bluesky bzw. Mastodon. |
-| `npm run docker:bundle` | Bündelt Docker-Artefakte (Script). |
+| `npm run docker:bundle` | Bündelt Docker-Artefakte (Backend/Dashboard). |
+| `npm run docker:bundle:bsky-client` | Bündelt Docker-Artefakte für den Bluesky-Client. |
 | `npm run changelog:add` / `:note` / `:release` / `:lint` | Hilfs-CLI zur Pflege von `changelog-unreleased.md`. |
 | `npm run tools:set-masto-segment` | Utility, um Segment-Daten für Mastodon zu setzen. |
 

@@ -67,6 +67,7 @@
     "smoke:masto": "tsx scripts/smokeMastodonPost.ts",
     "docker:build": "docker compose build",
     "docker:bundle": "bash scripts/docker-bundle.sh",
+    "docker:bundle:bsky-client": "bash scripts/docker-bundle-bsky-client.sh",
     "changelog:add": "node scripts/changelog-add.js",
     "changelog:note": "node scripts/changelog-note.js",
     "changelog:release": "node scripts/changelog-release.js",
