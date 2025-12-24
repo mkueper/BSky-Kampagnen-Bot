@@ -36,6 +36,9 @@ Bluesky-Client verhält sich UI/UX-seitig wie das Original (Scroll-Verhalten, Ba
    - Gemeinsamen Portal-Container definieren oder `portalled={false}` evaluieren, damit vor Releases keine zig leeren `<div>` unter `<body>` entstehen; Aufwand (Refactor aller InlineMenus/Modals) vorher kurz schätzen.
 8. Erwähnungen-Ansicht prüfen:
    - Darstellung von Antworten auf Antworten in Mitteilungen noch einmal überprüfen, da sie aktuell verwirrend wirkt.
+9. Review-Doku & Section-Tests:
+   - Tabelle der Context-Kopplungen in `docs/code-review-bsky-client.md` aktuell halten, sobald Provider- oder Action-Splits erfolgen.
+   - Vitest-/`react-test-renderer`-Szenarien für `SectionRenderer`/`ClientServiceOrchestrator` prüfen, damit Polling und Section-Routing sauber getrennt bleiben und nicht ungewollt feuern.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 

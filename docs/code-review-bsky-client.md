@@ -38,3 +38,13 @@ Empfehlung 4 und 5 sind damit größtenteils umgesetzt; der nächste Fokus liegt
 - **UI-Service-Logik auslagern** – `AuthenticatedClientApp` orchestriert Routing, Polling und UI-Flags (`bsky-client/src/ClientApp.jsx:150-260`) und feuert `useListPolling`, `useNotificationPolling` sowie `useChatPolling` direkt aus der Hauptkomponente, was die Trennung von UI- und Service-Layer aufhebt. Schrittweise sollten Polling-/Routing-Registrierungen in dedizierte Komponenten verschoben werden (z. B. ein `TimelineSection`-Component, das selbst `useListPolling` aufruft) und Modals/Thread-Composer nach Context oder `lazy`-Schnittstellen auslagern. Tests könnten hier mit Vitest sicherstellen, dass `AuthenticatedClientApp` nur dann überhaupt Render-Pfade für `TimelineSection` oder `ChatSection` aufbaut, wenn `section` und `authStatus` passen, ohne dass die Polling-Hooks im Headless-Modus feuern.
 
 Ein konkreter Ordnungsbeitrag in der Dokumentation wäre eine Tabelle, die die aktuellen Context-Kopplungen (z. B. welche Aktion welchen Provider betrifft) aufzeigt; sie würde als Leitfaden dienen, wenn wir die noch offenen Recommendations (Provider-Split, UI-Service-Trennung) umsetzen.
+
+| Beispiel-Action / Hook            | Betroffener Provider | Warum                                   |
+|----------------------------------|----------------------|------------------------------------------|
+| `LIST_LOADED`, `LIST_SET_REFRESHING` | TimelineProvider     | `lists`, `activeListKey` wohnen hier     |
+| `SET_FEED_PICKER_STATE`           | TimelineProvider     | Feed-Picker glänzt mit Timeline-Logik   |
+| `SET_COMPOSE_OPEN`                | ComposerProvider     | Composer-Status ist exklusiv dort        |
+| `SET_THREAD_STATE`, `PATCH_POST_ENGAGEMENT` | ThreadProvider | Thread/Unroll-Logic bleibt isoliert        |
+| `SET_NOTIFICATIONS_UNREAD`       | UIProvider           | Notification-Badges / Flags im UI-Kontext |
+| `OPEN_CHAT_VIEWER`                | UIProvider           | UI-Abhängige Flags, auch wenn Listen sich ändern |
+| `SET_SECTION`                     | AppProvider (global) | `section` bleibt die einzige globale Info |
