@@ -26,6 +26,8 @@ Kurzes Review der Client-Applikation, um schnelle Hebel für Stabilität, Wartba
 - `AuthenticatedClientApp` gibt `useChatPolling` jetzt explizit ein Guard-Flag `shouldRunChatPolling` mit, das nur dann `fetchChatUnreadSnapshot`/`fetchChatLogs` startet, wenn `useBskyAuth().status === 'authenticated'` (siehe `bsky-client/src/ClientApp.jsx`). So entstehen keine unauthentifizierten 404-Abfragen mehr.
 - `ClientServiceOrchestrator` kapselt jetzt `useListPolling`, `useNotificationPolling` und `useChatPolling` in einer eigenen Komponente, während `SectionRenderer` die einzelnen Section-Render-Pfade (Timeline, Notifications, Chat usw.) übernimmt und die zugehörigen Suspense-Fallbacks verwaltet (`bsky-client/src/modules/service/ClientServiceOrchestrator.jsx`, `bsky-client/src/modules/sections/SectionRenderer.jsx`). Damit ist Recommendation 3 (Service-/UI-Orchestrierung) merklich weiter entkoppelt.
 
+- `useNotificationPolling` unterscheidet nun zwischen Badge-Updates (`fetchUnreadNotificationsCount`) und detailliertem Snapshot-Polling (`fetchNotificationPollingSnapshot`), sodass Badge-Zähler weiterhin laufen, wenn die Notifications-Sektion nicht aktiv ist, die Detaildaten aber nur bei Sichtbarkeit aktualisiert werden (`bsky-client/src/hooks/useNotificationPolling.js`). Das sorgt für konstante Badges, ohne unnötige Listen-Reloads.
+
 Empfehlung 4 und 5 sind damit größtenteils umgesetzt; der nächste Fokus liegt auf Punkt 2 und 3 der Recommendations (zielgerichtete Provider-Splits und UI-Service-Trennung), um den Rest der Applogik weiter zu entkoppeln.
 
 ## Weiteres Vorgehen

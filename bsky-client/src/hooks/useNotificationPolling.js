@@ -33,8 +33,6 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
   const listsRef = useRef(lists)
   const debugEnabledRef = useRef(false)
   const lastLogRef = useRef({ unreadCount: null, allTopId: null, mentionsTopId: null })
-  const enabled = Boolean(active || keepBadgeFresh)
-
   useEffect(() => {
     listsRef.current = lists
   }, [lists])
@@ -43,9 +41,11 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
     debugEnabledRef.current = isNotificationsDebugEnabled()
   }, [])
 
+  const unreadEnabled = Boolean(active || keepBadgeFresh)
+  const snapshotEnabled = Boolean(active)
   const { data: unreadData } = useSWR(NOTIFICATION_UNREAD_SWR_KEY, fetchUnreadNotificationsCount, {
     refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
-    enabled,
+    enabled: unreadEnabled,
     onError: (error) => {
       if (!debugEnabledRef.current) return
       console.warn('[notifications][unread] failed', error)
@@ -54,7 +54,7 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
 
   const { data: snapshotData } = useSWR(NOTIFICATION_POLL_SWR_KEY, fetchNotificationPollingSnapshot, {
     refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
-    enabled,
+    enabled: snapshotEnabled,
     onError: (error) => {
       if (!debugEnabledRef.current) return
       console.warn('[notifications][poll] failed', error)
@@ -62,14 +62,14 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
   })
 
   useEffect(() => {
-    if (!enabled) return
+    if (!unreadEnabled) return
     if (typeof unreadData?.unreadCount === 'number') {
       dispatch({
         type: 'SET_NOTIFICATIONS_UNREAD',
         payload: Math.max(0, unreadData.unreadCount)
       })
     }
-  }, [dispatch, unreadData, enabled])
+  }, [dispatch, unreadData, unreadEnabled])
 
   useEffect(() => {
     if (!active) return undefined
