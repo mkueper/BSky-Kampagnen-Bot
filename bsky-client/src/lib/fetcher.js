@@ -23,3 +23,5 @@ export const fetcher = (url, ...args) => {
   }
   return defaultFetcher(url, ...args)
 }
+
+export { defaultFetcher }

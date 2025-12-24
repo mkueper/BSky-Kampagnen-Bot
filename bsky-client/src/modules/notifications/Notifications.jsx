@@ -45,7 +45,8 @@ import {
 } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useAppDispatch } from '../../context/AppContext'
+import { useTimelineState } from '../../context/TimelineContext.jsx'
 import { useUIState } from '../../context/UIContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
@@ -2129,7 +2130,7 @@ function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = fals
 export default function Notifications ({ activeTab = 'all', listKey = 'notifs:all' }) {
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
-  const { lists } = useAppState()
+  const { lists } = useTimelineState()
   const { notificationsUnread } = useUIState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()

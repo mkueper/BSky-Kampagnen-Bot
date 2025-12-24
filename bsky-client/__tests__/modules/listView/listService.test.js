@@ -110,4 +110,49 @@ describe('listService', () => {
     })
     expect(topId).toBe('entry-1')
   })
+
+  it('runListRefresh markiert Notifications als gelesen, wenn markSeen true ist', async () => {
+    fetchNotifications.mockResolvedValue({
+      items: [{ listEntryId: 'notif-1' }],
+      cursor: 'notifs-cursor'
+    })
+
+    const dispatch = vi.fn()
+    const list = {
+      key: 'notifs:all',
+      kind: 'notifications',
+      data: { filter: 'all' },
+      markSeen: true,
+      unreadIds: ['old-unread'],
+      topId: 'top'
+    }
+
+    await runListRefresh({ list, dispatch })
+
+    expect(fetchNotifications).toHaveBeenCalledWith({
+      cursor: undefined,
+      limit: 40,
+      filter: 'all',
+      markSeen: true
+    })
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'LIST_SET_REFRESHING',
+      payload: { key: 'notifs:all', value: true, meta: undefined }
+    })
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'LIST_LOADED',
+      payload: expect.objectContaining({
+        key: 'notifs:all',
+        cursor: 'notifs-cursor',
+        items: [{ listEntryId: 'notif-1' }],
+        topId: 'notif-1'
+      })
+    })
+  })
+
+  it('fetchServerTopId liefert null bei leeren Items', async () => {
+    fetchNotifications.mockResolvedValue({ items: [] })
+    const topId = await fetchServerTopId({ key: 'notifications', kind: 'notifications' }, 5)
+    expect(topId).toBeNull()
+  })
 })

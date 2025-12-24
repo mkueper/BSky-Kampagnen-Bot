@@ -8,8 +8,8 @@ import {
   useReducer
 } from 'react'
 import { AuthContext } from '../modules/auth/AuthContext.jsx'
-import { TimelineProvider, useTimelineState, useTimelineDispatch } from './TimelineContext.jsx'
-import { ComposerProvider, useComposerState, useComposerDispatch } from './ComposerContext.jsx'
+import { TimelineProvider, useTimelineDispatch } from './TimelineContext.jsx'
+import { ComposerProvider, useComposerDispatch } from './ComposerContext.jsx'
 import { ThreadProvider, useThreadDispatch } from './ThreadContext.jsx'
 import { UIProvider, useUIDispatch } from './UIContext.jsx'
 
@@ -38,9 +38,7 @@ function AppProviderContent ({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
   const auth = useContext(AuthContext)
   const isDev = Boolean(import.meta?.env?.DEV)
-  const timelineState = useTimelineState()
   const timelineDispatch = useTimelineDispatch()
-  const composerState = useComposerState()
   const composerDispatch = useComposerDispatch()
   const threadDispatch = useThreadDispatch()
   const uiDispatch = useUIDispatch()
@@ -115,10 +113,8 @@ function AppProviderContent ({ children }) {
     }
   }, [auth?.status, auth?.profile, guardedDispatch])
 
-  const mergedState = { ...state, ...timelineState, ...composerState }
-
   return (
-    <AppStateContext.Provider value={mergedState}>
+    <AppStateContext.Provider value={state}>
       <AppDispatchContext.Provider value={guardedDispatch}>
         {children}
       </AppDispatchContext.Provider>

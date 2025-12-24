@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useAppDispatch } from '../../context/AppContext'
+import { useTimelineState } from '../../context/TimelineContext.jsx'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
@@ -41,7 +42,7 @@ function extractItemLanguages (item) {
 }
 
 export default function Timeline ({ listKey = 'discover', renderMode, isActive = true, languageFilter = '' }) {
-  const { lists } = useAppState()
+  const { lists } = useTimelineState()
   const dispatch = useAppDispatch()
   const list = listKey ? lists?.[listKey] : null
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()

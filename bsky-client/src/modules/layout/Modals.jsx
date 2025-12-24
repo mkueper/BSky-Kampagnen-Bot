@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAppState, useAppDispatch } from '../../context/AppContext';
+import { useAppDispatch } from '../../context/AppContext';
+import { useComposerState } from '../../context/ComposerContext.jsx';
 import { useUIState } from '../../context/UIContext.jsx';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
@@ -51,7 +52,7 @@ function buildThreadReplyContext (root, parent) {
 }
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useComposerState();
   const { clientSettingsOpen, notificationsSettingsOpen } = useUIState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const dispatch = useAppDispatch();

@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense, useLayoutEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
+import { useTimelineState } from './context/TimelineContext.jsx'
 import { useThread } from './hooks/useThread'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
@@ -133,11 +134,11 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
 }
 
 function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) {
+  const { section } = useAppState()
   const {
-    section,
     activeListKey,
     lists
-  } = useAppState()
+  } = useTimelineState()
   const {
     notificationsUnread,
     chatUnreadCount,

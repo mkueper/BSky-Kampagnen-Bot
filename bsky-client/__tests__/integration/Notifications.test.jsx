@@ -52,17 +52,48 @@ vi.mock('../../src/context/AppContext', async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
-    useAppState: () => {
-      const realState = original.useAppState()
-      return customAppState.current
-        ? { ...realState, ...customAppState.current }
-        : realState
-    },
     useAppDispatch: () => (
       dispatchMode.useReal
         ? original.useAppDispatch()
         : mockDispatch
     )
+  }
+})
+vi.mock('../../src/context/TimelineContext.jsx', async importOriginal => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useTimelineState: () => {
+      const realState = original.useTimelineState()
+      const listOverrides = customAppState.current?.lists
+      if (!listOverrides || !Object.keys(listOverrides).length) {
+        return realState
+      }
+      return {
+        ...realState,
+        lists: {
+          ...realState.lists,
+          ...listOverrides
+        }
+      }
+    }
+  }
+})
+vi.mock('../../src/context/UIContext.jsx', async importOriginal => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useUIState: () => {
+      const realState = original.useUIState()
+      const notificationsUnread = customAppState.current?.notificationsUnread
+      if (typeof notificationsUnread !== 'number') {
+        return realState
+      }
+      return {
+        ...realState,
+        notificationsUnread
+      }
+    }
   }
 })
 vi.mock('../../src/context/CardConfigContext.jsx', () => ({
