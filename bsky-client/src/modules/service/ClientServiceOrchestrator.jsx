@@ -9,13 +9,14 @@ function TimelineService ({ active }) {
 }
 
 function NotificationService ({ active }) {
-  useNotificationPolling(active)
+  useNotificationPolling({ active, keepBadgeFresh: true })
   return null
 }
 
 function ChatService ({ active, shouldRunChatPolling }) {
   const dispatch = useAppDispatch()
-  useChatPolling(dispatch, Boolean(active && shouldRunChatPolling))
+  const enabled = Boolean(shouldRunChatPolling)
+  useChatPolling(dispatch, enabled, { badgeOnly: enabled && !active })
   return null
 }
 

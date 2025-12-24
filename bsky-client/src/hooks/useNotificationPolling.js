@@ -27,12 +27,13 @@ function isNotificationsDebugEnabled () {
   }
 }
 
-export function useNotificationPolling (enabled = true) {
+export function useNotificationPolling ({ active = false, keepBadgeFresh = false } = {}) {
   const { lists } = useTimelineState()
   const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
   const debugEnabledRef = useRef(false)
   const lastLogRef = useRef({ unreadCount: null, allTopId: null, mentionsTopId: null })
+  const enabled = Boolean(active || keepBadgeFresh)
 
   useEffect(() => {
     listsRef.current = lists
@@ -71,7 +72,7 @@ export function useNotificationPolling (enabled = true) {
   }, [dispatch, unreadData, enabled])
 
   useEffect(() => {
-    if (!enabled) return undefined
+    if (!active) return undefined
     const currentLists = listsRef.current || {}
     const allList = currentLists['notifs:all']
     const mentionsList = currentLists['notifs:mentions']
@@ -134,5 +135,5 @@ export function useNotificationPolling (enabled = true) {
     if (shouldMarkMentionsHasNew) {
       dispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:mentions' })
     }
-  }, [dispatch, snapshotData, unreadData, enabled])
+  }, [dispatch, snapshotData, unreadData, active])
 }

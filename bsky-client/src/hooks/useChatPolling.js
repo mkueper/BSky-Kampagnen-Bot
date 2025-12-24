@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 import { fetchChatLogs, fetchChatUnreadSnapshot } from '../modules/shared'
 import { BLUESKY_CHAT_LOG_POLL_MS } from '../config/blueskyIntervals.js'
 
-export function useChatPolling (dispatch, enabled = true) {
+export function useChatPolling (dispatch, enabled = true, options = {}) {
   const cursorRef = useRef(null)
   const disabledRef = useRef(false)
+  const badgeOnly = Boolean(options?.badgeOnly)
 
   useEffect(() => {
     if (!enabled) {
@@ -37,7 +38,7 @@ export function useChatPolling (dispatch, enabled = true) {
     }
 
     const pollLogs = async () => {
-      if (cancelled || disabledRef.current) return
+      if (cancelled || disabledRef.current || badgeOnly) return
       try {
         const { logs, cursor, disabled } = await fetchChatLogs({ cursor: cursorRef.current })
         if (cancelled) return
@@ -60,10 +61,16 @@ export function useChatPolling (dispatch, enabled = true) {
       }
     }
 
-    const start = async () => {
+    const pollLoop = async () => {
+      if (cancelled) return
       await applyUnreadSnapshot()
+      if (cancelled) return
       await pollLogs()
-      pollHandle = setInterval(pollLogs, BLUESKY_CHAT_LOG_POLL_MS)
+    }
+
+    const start = async () => {
+      await pollLoop()
+      pollHandle = setInterval(pollLoop, BLUESKY_CHAT_LOG_POLL_MS)
     }
 
     start()
@@ -72,5 +79,5 @@ export function useChatPolling (dispatch, enabled = true) {
       cancelled = true
       if (pollHandle) clearInterval(pollHandle)
     }
-  }, [dispatch, enabled])
+  }, [dispatch, enabled, badgeOnly])
 }
