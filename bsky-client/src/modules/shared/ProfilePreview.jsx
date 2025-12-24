@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card, getPortalRoot } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
-import { useAppState } from '../../context/AppContext.jsx'
+import { useUIState } from '../../context/UIContext.jsx'
 
 const profileCache = new Map()
 const numberFormatter = new Intl.NumberFormat('de-DE')
@@ -139,7 +139,7 @@ export function ProfilePreviewTrigger ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const portalContainer = useMemo(() => getPortalRoot(), [])
-  const { profileViewer } = useAppState()
+  const { profileViewer } = useUIState()
   const [supportsHover, setSupportsHover] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
     return window.matchMedia('(hover: hover) and (pointer: fine)').matches

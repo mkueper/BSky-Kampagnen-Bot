@@ -25,7 +25,8 @@ import {
   GearIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
+import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useUIState } from '../../context/UIContext.jsx'
 import {
   useBskyEngagement,
   deletePost,
@@ -549,7 +550,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     },
     [config]
   )
-  const { quoteReposts } = useAppState()
+  const { quoteReposts } = useUIState()
   const autoPlayGifs = clientConfig?.layout?.autoPlayGifs === true
   const inlineVideoEnabled = clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true
   const inlineVideoUploads = inlineVideoEnabled

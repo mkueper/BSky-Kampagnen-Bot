@@ -10,16 +10,16 @@ import { renderHook, act } from '@testing-library/react'
  * - Interaktion mit OPEN_PROFILE_VIEWER (Hashtag-Suche wird geschlossen)
  *
  * Kontext:
- * Teil des globalen App-State (AppContext.jsx). Stellt sicher, dass
+ * Teil des UI-State (UIContext.jsx). Stellt sicher, dass
  * die Hashtag-Suche konsistent über Actions gesteuert wird.
  */
-import { AppProvider, useAppState, useAppDispatch } from '../../src/context/AppContext.jsx'
+import { UIProvider, useUIState, useUIDispatch } from '../../src/context/UIContext.jsx'
 
-const wrapper = ({ children }) => <AppProvider>{children}</AppProvider>
+const wrapper = ({ children }) => <UIProvider>{children}</UIProvider>
 
 function useStateAndDispatch () {
-  const state = useAppState()
-  const dispatch = useAppDispatch()
+  const state = useUIState()
+  const dispatch = useUIDispatch()
   return { state, dispatch }
 }
 

@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
-import { useAppState, useAppDispatch } from '../context/AppContext';
+import { useAppDispatch } from '../context/AppContext';
+import { useUIState } from '../context/UIContext.jsx';
 
 export function useMediaLightbox() {
-  const { mediaLightbox } = useAppState();
+  const { mediaLightbox } = useUIState();
   const dispatch = useAppDispatch();
 
   const openMediaPreview = useCallback((items = [], startIndex = 0) => {

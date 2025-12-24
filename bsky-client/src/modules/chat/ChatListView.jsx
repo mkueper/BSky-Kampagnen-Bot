@@ -4,7 +4,8 @@ import { Card, Button, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineM
 import { DotsHorizontalIcon, PersonIcon, SpeakerModerateIcon, SlashIcon, ExclamationTriangleIcon, ExitIcon } from '@radix-ui/react-icons'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
-import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
+import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useUIState } from '../../context/UIContext.jsx'
 import { buildConversationTitle, buildConversationHandles, buildConversationPreview, getInitials } from './chatUtils.js'
 
 const PAGE_SIZE = 30
@@ -12,7 +13,7 @@ const PAGE_SIZE = 30
 export default function ChatListView () {
   const { t } = useTranslation()
   const { session } = useBskyAuth()
-  const { chatViewer } = useAppState()
+  const { chatViewer } = useUIState()
   const dispatch = useAppDispatch()
   const viewerDid = session?.did || null
   const [reloadTick, setReloadTick] = useState(0)

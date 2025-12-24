@@ -7,6 +7,10 @@ vi.mock('../../../src/context/AppContext', () => ({
   useAppState: () => ({ profileActor: null, me: null }),
   useAppDispatch: () => dispatchMock
 }))
+vi.mock('../../../src/context/UIContext', () => ({
+  useUIState: () => ({ profileActor: null, me: null }),
+  useUIDispatch: () => dispatchMock
+}))
 vi.mock('../../../src/modules/profile/ProfilePosts.jsx', () => ({
   __esModule: true,
   default: () => null

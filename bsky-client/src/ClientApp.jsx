@@ -24,6 +24,7 @@ import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { MixerHorizontalIcon } from '@radix-ui/react-icons'
 import { Timeline, ThreadView } from './modules/timeline/index.js'
+import { useUIState } from './context/UIContext.jsx'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 import { runListRefresh, getListItemId } from './modules/listView/listService.js'
 import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
@@ -131,14 +132,16 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const {
     section,
     activeListKey,
-    lists,
+    lists
+  } = useAppState()
+  const {
     notificationsUnread,
     chatUnreadCount,
     me,
     profileViewer,
     hashtagSearch,
     chatViewer
-  } = useAppState()
+  } = useUIState()
   const dispatch = useAppDispatch()
   const {
     logout,

@@ -5,7 +5,8 @@ import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
-import { useAppDispatch, useAppState } from '../../context/AppContext'
+import { useAppDispatch } from '../../context/AppContext'
+import { useUIState } from '../../context/UIContext.jsx'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
@@ -15,7 +16,7 @@ const HASHTAG_TABS = [
 ]
 
 export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
-  const { hashtagSearch } = useAppState()
+  const { hashtagSearch } = useUIState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem } = useThread()
   const { openReplyComposer, openQuoteComposer } = useComposer()

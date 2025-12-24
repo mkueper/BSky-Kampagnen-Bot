@@ -46,6 +46,7 @@ import {
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
 import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useUIState } from '../../context/UIContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
@@ -466,7 +467,7 @@ function extractQuotedPost (subject) {
 
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
   const dispatch = useAppDispatch()
-  const { quoteReposts } = useAppState()
+  const { quoteReposts } = useUIState()
   const { t, locale } = useTranslation()
   const authContext = useContext(AuthContext)
   const session = authContext?.session || null
@@ -2128,7 +2129,8 @@ function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = fals
 export default function Notifications ({ activeTab = 'all', listKey = 'notifs:all' }) {
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
-  const { lists, notificationsUnread } = useAppState()
+  const { lists } = useAppState()
+  const { notificationsUnread } = useUIState()
   const dispatch = useAppDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()

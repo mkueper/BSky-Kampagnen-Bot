@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useAppDispatch } from '../../context/AppContext'
+import { useUIState } from '../../context/UIContext.jsx'
 import { fetchProfile } from '../shared/api/bsky'
 import {
   Card,
@@ -353,7 +354,7 @@ export default function ProfileView ({
   showHeroBackButton = true
 }) {
   const { t } = useTranslation()
-  const { profileActor, me } = useAppState()
+  const { profileActor, me } = useUIState()
   const dispatch = useAppDispatch()
   const actor = (actorOverride || profileActor || '').trim()
   const [profile, setProfile] = useState(null)
