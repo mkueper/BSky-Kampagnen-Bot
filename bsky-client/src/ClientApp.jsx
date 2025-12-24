@@ -108,12 +108,16 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   const { t } = useTranslation()
 
   const hasAuthenticatedContext = Boolean(authActiveAccountId || authSession)
+  const shouldRunChatPolling = authStatus === 'authenticated'
   if (authStatus === 'loading' && !hasAuthenticatedContext) return null
   if (authStatus === 'unauthenticated') return <LoginView />
 
   return (
     <>
-      <AuthenticatedClientApp onNavigateDashboard={onNavigateDashboard} />
+      <AuthenticatedClientApp
+        onNavigateDashboard={onNavigateDashboard}
+        shouldRunChatPolling={shouldRunChatPolling}
+      />
       {(authStatus === 'loading' && authStatusDetail === 'switch-account') ? (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm'>
           <div className='flex items-center gap-3 rounded-xl border border-border bg-background px-5 py-3 shadow-soft'>
@@ -128,7 +132,7 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   )
 }
 
-function AuthenticatedClientApp ({ onNavigateDashboard }) {
+function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) {
   const {
     section,
     activeListKey,
@@ -190,7 +194,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
 
   useListPolling()
   useNotificationPolling()
-  useChatPolling(dispatch)
+  useChatPolling(dispatch, shouldRunChatPolling)
 
   const officialTabs = useMemo(() => {
     return STATIC_TIMELINE_TABS.map((tab) => ({

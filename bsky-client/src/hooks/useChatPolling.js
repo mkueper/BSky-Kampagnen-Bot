@@ -2,11 +2,14 @@ import { useEffect, useRef } from 'react'
 import { fetchChatLogs, fetchChatUnreadSnapshot } from '../modules/shared'
 import { BLUESKY_CHAT_LOG_POLL_MS } from '../config/blueskyIntervals.js'
 
-export function useChatPolling (dispatch) {
+export function useChatPolling (dispatch, enabled = true) {
   const cursorRef = useRef(null)
   const disabledRef = useRef(false)
 
   useEffect(() => {
+    if (!enabled) {
+      return undefined
+    }
     let cancelled = false
     let pollHandle
 
@@ -69,5 +72,5 @@ export function useChatPolling (dispatch) {
       cancelled = true
       if (pollHandle) clearInterval(pollHandle)
     }
-  }, [dispatch])
+  }, [dispatch, enabled])
 }
