@@ -9,28 +9,22 @@
  * - ScrollToTop/Home: refresh + harter Scroll nach oben, wenn supportsRefresh === true.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense, useLayoutEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, useLayoutEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
 import { useTimelineState } from './context/TimelineContext.jsx'
 import { useThread } from './hooks/useThread'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
-import { useChatPolling } from './hooks/useChatPolling'
-import { useListPolling } from './hooks/useListPolling'
-import { useNotificationPolling } from './hooks/useNotificationPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { MixerHorizontalIcon } from '@radix-ui/react-icons'
-import { Timeline, ThreadView } from './modules/timeline/index.js'
+import { ThreadView } from './modules/timeline/index.js'
 import { useUIState } from './context/UIContext.jsx'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 import { runListRefresh, getListItemId } from './modules/listView/listService.js'
-import NotificationCardSkeleton from './modules/notifications/NotificationCardSkeleton.jsx'
-import SavedFeed from './modules/bookmarks/SavedFeed.jsx'
-import BlockListView from './modules/settings/BlockListView.jsx'
 import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
 import HashtagSearchPane from './modules/search/HashtagSearchPane.jsx'
 import { SearchProvider } from './modules/search/SearchContext.jsx'
@@ -40,6 +34,9 @@ import LoginView from './modules/login/LoginView.jsx'
 import ChatHeader from './modules/chat/ChatHeader.jsx'
 import ChatConversationPane from './modules/chat/ChatConversationPane.jsx'
 import { useClientConfig } from './hooks/useClientConfig.js'
+import { SearchViewLazy } from './modules/sections/lazySections.jsx'
+import { SectionRenderer } from './modules/sections/SectionRenderer.jsx'
+import { ClientServiceOrchestrator } from './modules/service/ClientServiceOrchestrator.jsx'
 
 const STATIC_TIMELINE_TABS = [
   { id: 'discover', labelKey: 'layout.timeline.tabs.discover', fallback: 'Discover', type: 'official', value: 'discover', origin: 'official' },
@@ -66,38 +63,9 @@ const ROUTE_SECTION_MAP = Object.entries(SECTION_ROUTE_MAP).reduce((acc, [sectio
   return acc
 }, {})
 
-const SearchViewLazy = lazy(async () => {
-  const module = await import('./modules/search/index.js')
-  return { default: module.SearchView ?? module.default }
-})
-const NotificationsLazy = lazy(async () => {
-  const module = await import('./modules/notifications/index.js')
-  return { default: module.Notifications ?? module.default }
-})
-const SettingsViewLazy = lazy(async () => {
-  const module = await import('./modules/settings/index.js')
-  return { default: module.SettingsView ?? module.default }
-})
-const ProfileViewLazy = lazy(async () => {
-  const module = await import('./modules/profile/ProfileView')
-  return { default: module.ProfileView ?? module.default }
-})
-const ChatListViewLazy = lazy(async () => {
-  const module = await import('./modules/chat/ChatListView.jsx')
-  return { default: module.default }
-})
-const SectionFallback = () => null
-
 const canRestoreListState = (list) => Boolean(list?.loaded && !list?.hasNew)
 
-const NotificationsFallback = () => (
-  <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
-    <NotificationCardSkeleton />
-    <NotificationCardSkeleton />
-    <NotificationCardSkeleton />
-    <NotificationCardSkeleton />
-  </div>
-)
+const SectionFallback = () => null
 
 export default function BskyClientApp ({ onNavigateDashboard }) {
   const {
@@ -192,10 +160,6 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
-
-  useListPolling()
-  useNotificationPolling()
-  useChatPolling(dispatch, shouldRunChatPolling)
 
   const officialTabs = useMemo(() => {
     return STATIC_TIMELINE_TABS.map((tab) => ({
@@ -1049,7 +1013,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       logoutPending={logoutPending}
       onOpenClientSettings={handleOpenClientSettings}
     >
-      <MainContent
+      <SectionRenderer
+        section={section}
         notificationTab={notificationTab}
         notificationListKey={notificationListKey}
         timelineListKey={timelineKeyRef.current}
@@ -1060,89 +1025,11 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
 
   return (
     <>
+      <ClientServiceOrchestrator shouldRunChatPolling={shouldRunChatPolling} />
       <SearchProvider>
         {layoutContent}
       </SearchProvider>
       <Modals />
     </>
   )
-}
-
-function MainContent ({ notificationTab, notificationListKey, timelineListKey, timelineLanguageFilter }) {
-  const { section } = useAppState()
-  if (section === 'home') {
-    return (
-      <div className='space-y-6'>
-        <Timeline listKey={timelineListKey} isActive languageFilter={timelineLanguageFilter} />
-      </div>
-    )
-  }
-
-  if (section === 'notifications') {
-    return (
-      <div className='space-y-6'>
-        <Suspense fallback={<NotificationsFallback />}>
-          <NotificationsLazy
-            listKey={notificationListKey}
-            activeTab={notificationTab}
-          />
-        </Suspense>
-      </div>
-    )
-  }
-
-  if (section === 'chat') {
-    return (
-      <div className='space-y-6'>
-        <Suspense fallback={<SectionFallback label='Chats' />}>
-          <ChatListViewLazy />
-        </Suspense>
-      </div>
-    )
-  }
-
-  if (section === 'settings') {
-    return (
-      <Suspense fallback={<SectionFallback label='Einstellungen' />}>
-        <SettingsViewLazy />
-      </Suspense>
-    )
-  }
-
-  if (section === 'profile') {
-    return (
-      <div className='space-y-6'>
-        <Suspense fallback={<SectionFallback label='Profil' />}>
-          <ProfileViewLazy showHeroBackButton={false} />
-        </Suspense>
-      </div>
-    )
-  }
-
-  if (section === 'saved') {
-    return (
-      <div className='space-y-6'>
-        <SavedFeed isActive={section === 'saved'} />
-      </div>
-    )
-  }
-
-  if (section === 'blocks') {
-    return (
-      <div className='space-y-6'>
-        <BlockListView />
-      </div>
-    )
-  }
-
-  const placeholderText = {
-    feeds: 'Feeds folgt',
-    lists: 'Listen folgt'
-  }[section]
-
-  if (placeholderText) {
-    return <div className='text-sm text-muted-foreground'>{placeholderText}</div>
-  }
-
-  return null
 }
