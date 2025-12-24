@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { fetchNotificationPollingSnapshot, fetchUnreadNotificationsCount } from '../modules/shared'
 import { BLUESKY_NOTIFICATION_POLL_MS } from '../config/blueskyIntervals.js'
+import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
 
 const NOTIFICATION_POLL_SWR_KEY = 'bsky:notification-poll'
 export const NOTIFICATION_UNREAD_SWR_KEY = 'bsky:notification-unread'
@@ -26,7 +27,9 @@ function isNotificationsDebugEnabled () {
   }
 }
 
-export function useNotificationPolling (lists, dispatch) {
+export function useNotificationPolling () {
+  const { lists } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
   const debugEnabledRef = useRef(false)
   const lastLogRef = useRef({ unreadCount: null, allTopId: null, mentionsTopId: null })

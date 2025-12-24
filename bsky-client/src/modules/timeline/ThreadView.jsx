@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SkeetItem from './SkeetItem'
-import { useAppDispatch, useAppState } from '../../context/AppContext'
+import { useThreadDispatch, useThreadState } from '../../context/ThreadContext.jsx'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
@@ -126,8 +126,8 @@ function ThreadNodeList ({
 }
 
 export default function ThreadView ({ registerLayoutHeader, renderHeaderInLayout = false }) {
-  const { threadState: state, threadViewVariant } = useAppState()
-  const dispatch = useAppDispatch()
+  const { threadState: state, threadViewVariant } = useThreadState()
+  const dispatch = useThreadDispatch()
   const { selectThreadFromItem, closeThread, reloadThread } = useThread()
   const { openMediaPreview } = useMediaLightbox()
   const { openReplyComposer, openQuoteComposer } = useComposer()

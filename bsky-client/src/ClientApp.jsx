@@ -15,9 +15,9 @@ import { useAppState, useAppDispatch } from './context/AppContext'
 import { useThread } from './hooks/useThread'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
+import { useChatPolling } from './hooks/useChatPolling'
 import { useListPolling } from './hooks/useListPolling'
 import { useNotificationPolling } from './hooks/useNotificationPolling'
-import { useChatPolling } from './hooks/useChatPolling'
 import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
@@ -185,8 +185,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard }) {
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
 
-  useListPolling(lists, dispatch)
-  useNotificationPolling(lists, dispatch)
+  useListPolling()
+  useNotificationPolling()
   useChatPolling(dispatch)
 
   const officialTabs = useMemo(() => {

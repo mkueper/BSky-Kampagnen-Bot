@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import ClientApp from './ClientApp.jsx'
 import { AppProvider, useAppDispatch, useAppState } from './context/AppContext.jsx'
+import { TimelineProvider } from './context/TimelineContext.jsx'
 import { SWRConfig } from 'swr'
 import { fetcher } from './lib/fetcher.js'
 import { HashRouter } from 'react-router-dom'
@@ -70,9 +71,11 @@ export default function BskyClientRoot (props) {
           }}>
             <HashRouter>
               <AuthProvider>
-                <AppProvider>
-                  <ClientApp {...props} />
-                </AppProvider>
+                <TimelineProvider>
+                  <AppProvider>
+                    <ClientApp {...props} />
+                  </AppProvider>
+                </TimelineProvider>
               </AuthProvider>
             </HashRouter>
           </SWRConfig>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { useAppDispatch, useAppState } from '../../context/AppContext.jsx'
+import { useComposerDispatch, useComposerState } from '../../context/ComposerContext.jsx'
 import {
   fetchPostInteractionSettings,
   savePostInteractionSettings,
@@ -13,8 +13,8 @@ import {
 } from './interactionSettingsUtils.js'
 
 export function useInteractionSettingsControls (t) {
-  const dispatch = useAppDispatch()
-  const { interactionSettings } = useAppState()
+  const dispatch = useComposerDispatch()
+  const { interactionSettings } = useComposerState()
 
   const data = interactionSettings?.data || createDefaultInteractionData()
   const draft = interactionSettings?.draft || createDefaultInteractionDraft()

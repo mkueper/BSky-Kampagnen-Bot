@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { fetchServerTopId } from '../modules/listView/listService.js'
 import { BLUESKY_LIST_POLL_MS } from '../config/blueskyIntervals.js'
+import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
 
-export function useListPolling(lists, dispatch) {
+export function useListPolling() {
+  const { lists } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
   const dispatchRef = useRef(dispatch)
 

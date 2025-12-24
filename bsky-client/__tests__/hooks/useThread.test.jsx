@@ -15,7 +15,8 @@ import { renderHook, act } from '@testing-library/react'
  * Teil der vereinheitlichten Thread-Handling-Logik des bsky-client.
  * Stellt sicher, dass der Hook stabil mit AppContext und API zusammenarbeitet.
  */
-import { AppProvider, useAppState } from '../../src/context/AppContext.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
+import { useThreadState } from '../../src/context/ThreadContext.jsx'
 import { useThread } from '../../src/hooks/useThread.js'
 
 const { fetchThreadMock } = vi.hoisted(() => ({
@@ -37,8 +38,8 @@ const wrapper = ({ children }) => (
 function renderUseThread () {
   return renderHook(() => {
     const thread = useThread()
-    const state = useAppState()
-    return { thread, state }
+    const threadContext = useThreadState()
+    return { thread, threadContext }
   }, { wrapper })
 }
 
@@ -147,18 +148,18 @@ describe('useThread', () => {
   it('setThreadViewVariant aktualisiert threadViewVariant im AppState', () => {
     const { result } = renderUseThread()
 
-    expect(result.current.state.threadViewVariant).toBe('modal-cards')
+    expect(result.current.threadContext.threadViewVariant).toBe('modal-cards')
 
     act(() => {
       result.current.thread.setThreadViewVariant('inline')
     })
 
-    expect(result.current.state.threadViewVariant).toBe('inline')
+    expect(result.current.threadContext.threadViewVariant).toBe('inline')
 
     act(() => {
       result.current.thread.setThreadViewVariant(123)
     })
 
-    expect(result.current.state.threadViewVariant).toBe('inline')
+    expect(result.current.threadContext.threadViewVariant).toBe('inline')
   })
 })
