@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Suspense, useLayoutEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppState, useAppDispatch } from './context/AppContext'
-import { useTimelineState } from './context/TimelineContext.jsx'
+import { useTimelineState, useTimelineDispatch } from './context/TimelineContext.jsx'
 import { useThread } from './hooks/useThread'
 import { useComposer } from './hooks/useComposer'
 import { useFeedPicker } from './hooks/useFeedPicker'
@@ -22,7 +22,8 @@ import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
 import { MixerHorizontalIcon } from '@radix-ui/react-icons'
 import { ThreadView } from './modules/timeline/index.js'
-import { useUIState } from './context/UIContext.jsx'
+import { useUIState, useUIDispatch } from './context/UIContext.jsx'
+import { useThreadDispatch } from './context/ThreadContext.jsx'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 import { runListRefresh, getListItemId } from './modules/listView/listService.js'
 import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
@@ -107,6 +108,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     activeListKey,
     lists
   } = useTimelineState()
+  const timelineDispatch = useTimelineDispatch()
+  const threadDispatch = useThreadDispatch()
   const {
     notificationsUnread,
     chatUnreadCount,
@@ -115,7 +118,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     hashtagSearch,
     chatViewer
   } = useUIState()
-  const dispatch = useAppDispatch()
+  const uiDispatch = useUIDispatch()
+  const appDispatch = useAppDispatch()
   const {
     logout,
     profile: authProfile,
@@ -433,8 +437,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     }
   }, [logout, logoutPending])
   const handleOpenClientSettings = useCallback(() => {
-    dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: true })
-  }, [dispatch])
+    uiDispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: true })
+  }, [uiDispatch])
 
   const captureVisibleAnchor = useCallback(() => {
     const container = getScrollContainer()
@@ -461,11 +465,11 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
           clearUnreadOnRefresh: Boolean(options.clearUnreadOnRefresh),
           ...(isNotification ? { markSeen: Boolean(options.clearUnreadOnRefresh) } : {})
         },
-        dispatch,
+        dispatch: timelineDispatch,
         meta
       })
       if (page && typeof page.unreadCount === 'number') {
-        dispatch({
+        uiDispatch({
           type: 'SET_NOTIFICATIONS_UNREAD',
           payload: Math.max(0, page.unreadCount)
         })
@@ -485,14 +489,15 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   }, [
     activeList?.key,
     captureVisibleAnchor,
-    dispatch,
     getNotificationListMeta,
     getTimelineListMeta,
     getScrollContainer,
     lists,
     restoreAnchorIfNeeded,
     scrollActiveListToTop,
-    section
+    section,
+    timelineDispatch,
+    uiDispatch
   ])
 
   const toggleFeedMenu = useCallback(() => {
@@ -513,11 +518,11 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     }
     scrollPositionsRef.current.clear()
     skipScrollRestoreRef.current = true
-    dispatch({ type: 'RESET_LISTS' })
+    timelineDispatch({ type: 'RESET_LISTS' })
 
     timelineKeyRef.current = 'discover'
-    dispatch({ type: 'SET_ACTIVE_LIST', payload: 'discover' })
-    dispatch({ type: 'SET_SECTION', payload: 'home' })
+    timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: 'discover' })
+    appDispatch({ type: 'SET_SECTION', payload: 'home' })
     pushSectionRoute('home')
 
     refreshListByKey('discover', { scrollAfter: true })
@@ -525,7 +530,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     activeAccountId,
     closeFeedMenu,
     closeThread,
-    dispatch,
+    appDispatch,
+    timelineDispatch,
     pushSectionRoute,
     refreshListByKey,
     threadState.active
@@ -545,19 +551,19 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
 
   useEffect(() => {
     if (section === 'home') {
-      dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
+      timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
     } else if (section === 'notifications') {
-      dispatch({ type: 'SET_ACTIVE_LIST', payload: notificationListKey })
+      timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: notificationListKey })
     }
-  }, [section, notificationListKey, dispatch])
+  }, [section, notificationListKey, timelineDispatch])
 
   useEffect(() => {
     const normalizedPath = location.pathname || '/'
     const nextSection = ROUTE_SECTION_MAP[normalizedPath] || 'home'
     if (nextSection !== sectionRef.current) {
-      dispatch({ type: 'SET_SECTION', payload: nextSection })
+      appDispatch({ type: 'SET_SECTION', payload: nextSection })
     }
-  }, [location.pathname, dispatch])
+  }, [location.pathname, appDispatch])
 
   useEffect(() => {
     refreshFeedPicker({ force: true })
@@ -642,9 +648,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       return
     }
     timelineKeyRef.current = nextKey
-    dispatch({ type: 'SET_ACTIVE_LIST', payload: nextKey })
+    timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: nextKey })
     if (section !== 'home') {
-      dispatch({ type: 'SET_SECTION', payload: 'home' })
+      appDispatch({ type: 'SET_SECTION', payload: 'home' })
       pushSectionRoute('home')
     }
     const canRestore = hasSavedPosition && canRestoreListState(existingList)
@@ -666,7 +672,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
         refreshListByKey(nextKey, { scrollAfter: !restored })
       }
     }
-  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, dispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition, clearSavedScrollPosition])
+  }, [getTimelineListMeta, lists, buildCompositeListKey, threadState.active, closeThread, closeFeedMenu, refreshListByKey, appDispatch, section, pushSectionRoute, scrollActiveListToTop, applySavedScrollPosition, clearSavedScrollPosition, timelineDispatch])
 
   const handleTimelineLanguageFilterChange = useCallback((value) => {
     setTimelineLanguageFilter((value || '').toLowerCase())
@@ -701,8 +707,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     console.info(t('chat.header.newChatPending', 'New chat coming soon.'))
   }, [t])
   const handleOpenNotificationSettings = useCallback(() => {
-    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
-  }, [dispatch])
+    uiDispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
+  }, [uiDispatch])
 
   const threadActions = threadState.active ? (
     <>
@@ -710,7 +716,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
         variant='secondary'
         size='pill'
         disabled={!threadState.isAuthorThread}
-        onClick={() => threadState.isAuthorThread ? dispatch({ type: 'OPEN_THREAD_UNROLL' }) : null}
+        onClick={() => threadState.isAuthorThread ? threadDispatch({ type: 'OPEN_THREAD_UNROLL' }) : null}
       >
         {t('layout.thread.actions.unroll', 'Unroll')}
       </Button>
@@ -849,7 +855,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
 
   const handleSelectSection = useCallback((id, actor = null) => {
     if (chatViewer?.open) {
-      dispatch({ type: 'CLOSE_CHAT_VIEWER' })
+      uiDispatch({ type: 'CLOSE_CHAT_VIEWER' })
     }
     if (id === 'dashboard') {
       if (typeof onNavigateDashboard === 'function') {
@@ -865,7 +871,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     }
     if (id === 'notifications') {
       if (threadState.active) closeThread({ force: true })
-      dispatch({ type: 'SET_SECTION', payload: 'notifications' })
+      appDispatch({ type: 'SET_SECTION', payload: 'notifications' })
       pushSectionRoute('notifications')
       if (section === 'notifications') {
         skipScrollRestoreRef.current = true
@@ -895,7 +901,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       const listLoaded = Boolean(timelineList?.loaded)
       const listHasNew = Boolean(timelineList?.hasNew)
       if (section !== 'home') {
-        dispatch({ type: 'SET_SECTION', payload: 'home' })
+        appDispatch({ type: 'SET_SECTION', payload: 'home' })
         pushSectionRoute('home')
         if (!listLoaded || listHasNew) {
           skipScrollRestoreRef.current = true
@@ -909,7 +915,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
         }
         return
       }
-      dispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
+      timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: timelineKeyRef.current })
       skipScrollRestoreRef.current = true
       clearSavedScrollPosition('home', timelineKeyRef.current)
       refreshListByKey(timelineKeyRef.current, { scrollAfter: true, clearUnreadOnRefresh: true })
@@ -918,14 +924,14 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     if (id === 'profile') {
       const targetActor = actor || me?.did || me?.handle || null
       if (targetActor) {
-        dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: targetActor })
+        uiDispatch({ type: 'OPEN_PROFILE_VIEWER', actor: targetActor })
         return
       }
     }
     if (threadState.active) closeThread({ force: true })
-    dispatch({ type: 'SET_SECTION', payload: id, actor })
+    appDispatch({ type: 'SET_SECTION', payload: id, actor })
     pushSectionRoute(id)
-  }, [chatViewer?.open, clearSavedScrollPosition, closeFeedMenu, closeThread, dispatch, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey, notificationList, timelineList, applySavedScrollPosition])
+  }, [appDispatch, chatViewer?.open, clearSavedScrollPosition, closeFeedMenu, closeThread, onNavigateDashboard, refreshFeedPicker, refreshListByKey, section, threadState.active, me, pushSectionRoute, notificationListKey, notificationList, timelineList, applySavedScrollPosition, timelineDispatch, uiDispatch])
 
   const scrollTopForceVisible = Boolean(activeList?.hasNew)
 

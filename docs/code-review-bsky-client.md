@@ -39,12 +39,11 @@ Empfehlung 4 und 5 sind damit größtenteils umgesetzt; der nächste Fokus liegt
 
 Ein konkreter Ordnungsbeitrag in der Dokumentation wäre eine Tabelle, die die aktuellen Context-Kopplungen (z. B. welche Aktion welchen Provider betrifft) aufzeigt; sie würde als Leitfaden dienen, wenn wir die noch offenen Recommendations (Provider-Split, UI-Service-Trennung) umsetzen.
 
+## Action-Dispatch-Matrix (aktualisiert)
+
 | Beispiel-Action / Hook            | Betroffener Provider | Warum                                   |
 |----------------------------------|----------------------|------------------------------------------|
-| `LIST_LOADED`, `LIST_SET_REFRESHING` | TimelineProvider     | `lists`, `activeListKey` wohnen hier     |
-| `SET_FEED_PICKER_STATE`           | TimelineProvider     | Feed-Picker glänzt mit Timeline-Logik   |
-| `SET_COMPOSE_OPEN`                | ComposerProvider     | Composer-Status ist exklusiv dort        |
-| `SET_THREAD_STATE`, `PATCH_POST_ENGAGEMENT` | ThreadProvider | Thread/Unroll-Logic bleibt isoliert        |
-| `SET_NOTIFICATIONS_UNREAD`       | UIProvider           | Notification-Badges / Flags im UI-Kontext |
-| `OPEN_CHAT_VIEWER`                | UIProvider           | UI-Abhängige Flags, auch wenn Listen sich ändern |
-| `SET_SECTION`                     | AppProvider (global) | `section` bleibt die einzige globale Info |
+| `LIST_LOADED`, `LIST_MARK_HAS_NEW`, `LIST_SET_REFRESHING` | TimelineProvider     | `timelineDispatch` aktualisiert nur List-/Feed-Zustände und wird von `runListRefresh` sowie `useListPolling` verwendet. |
+| `SET_NOTIFICATIONS_UNREAD`, `SET_CLIENT_SETTINGS_OPEN`, `OPEN_CHAT_VIEWER`, `SET_NOTIFICATIONS_SETTINGS_OPEN` | UIProvider           | UI-Flags (Badges, Modals, Viewer, Settings) leben explizit in `uiDispatch`, damit keine Timeline-Updates feuern. |
+| `OPEN_THREAD_UNROLL`, `CLOSE_THREAD_UNROLL`, `PATCH_POST_ENGAGEMENT` | ThreadProvider | Thread-Logik bleibt bei `threadDispatch`, z. B. `ThreadView` und `threadState` bekommen nur ihre Actions. |
+| `SET_SECTION`, `SET_ME`, `SET_FEED_PICKER_STATE` | AppProvider (global) | `appDispatch` koordiniert nur wirklich globale Infos (aktiver Bereich, Profil des Nutzers, Account-Wechsel) und löst ausschließlich die wenigen verbleibenden AppReducer-Fälle aus. |

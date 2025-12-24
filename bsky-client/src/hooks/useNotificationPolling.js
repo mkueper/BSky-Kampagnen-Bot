@@ -27,7 +27,7 @@ function isNotificationsDebugEnabled () {
   }
 }
 
-export function useNotificationPolling () {
+export function useNotificationPolling (enabled = true) {
   const { lists } = useTimelineState()
   const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
@@ -44,6 +44,7 @@ export function useNotificationPolling () {
 
   const { data: unreadData } = useSWR(NOTIFICATION_UNREAD_SWR_KEY, fetchUnreadNotificationsCount, {
     refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
+    enabled,
     onError: (error) => {
       if (!debugEnabledRef.current) return
       console.warn('[notifications][unread] failed', error)
@@ -52,6 +53,7 @@ export function useNotificationPolling () {
 
   const { data: snapshotData } = useSWR(NOTIFICATION_POLL_SWR_KEY, fetchNotificationPollingSnapshot, {
     refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
+    enabled,
     onError: (error) => {
       if (!debugEnabledRef.current) return
       console.warn('[notifications][poll] failed', error)
@@ -59,15 +61,17 @@ export function useNotificationPolling () {
   })
 
   useEffect(() => {
+    if (!enabled) return
     if (typeof unreadData?.unreadCount === 'number') {
       dispatch({
         type: 'SET_NOTIFICATIONS_UNREAD',
         payload: Math.max(0, unreadData.unreadCount)
       })
     }
-  }, [dispatch, unreadData])
+  }, [dispatch, unreadData, enabled])
 
   useEffect(() => {
+    if (!enabled) return undefined
     const currentLists = listsRef.current || {}
     const allList = currentLists['notifs:all']
     const mentionsList = currentLists['notifs:mentions']
@@ -130,5 +134,5 @@ export function useNotificationPolling () {
     if (shouldMarkMentionsHasNew) {
       dispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:mentions' })
     }
-  }, [dispatch, snapshotData, unreadData])
+  }, [dispatch, snapshotData, unreadData, enabled])
 }

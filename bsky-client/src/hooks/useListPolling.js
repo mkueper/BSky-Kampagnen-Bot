@@ -3,7 +3,7 @@ import { fetchServerTopId } from '../modules/listView/listService.js'
 import { BLUESKY_LIST_POLL_MS } from '../config/blueskyIntervals.js'
 import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
 
-export function useListPolling() {
+export function useListPolling(enabled = true) {
   const { lists } = useTimelineState()
   const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
@@ -18,6 +18,7 @@ export function useListPolling() {
   }, [dispatch])
 
   useEffect(() => {
+    if (!enabled) return undefined
     let cancelled = false
 
     const poll = async () => {
@@ -47,5 +48,5 @@ export function useListPolling() {
       cancelled = true
       clearInterval(handle)
     }
-  }, [])
+  }, [enabled])
 }
