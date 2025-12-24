@@ -22,6 +22,7 @@ Hinweis: Stand basiert auf dem aktuellen Code in `bsky-client`. Feeds und Listen
 | Footer-Aktionen wie in Timeline | Umgesetzt | Reply/Repost/Quote/Like/Bookmark/Share sind vorhanden. |
 | Uebersetzen | **TEILWEISE** | Nur mit konfiguriertem Uebersetzungsdienst; sonst Placeholder. |
 | Weitere Aktionen (anheften, Interaktions-Settings, mehr/weniger anzeigen, Thread stummschalten, Woerter stummschalten, Post ausblenden, Post melden) | **FEHLT** | Placeholder im Optionen-Menue. |
+| Badge-Zähler / Ungelesen | Umgesetzt | `useNotificationPolling` trennt Badge-Counts vom Snapshot-Polling, sodass die Zähler auch bei inaktiver Mitteilungssektion weiterlaufen. |
 
 ## Composer
 

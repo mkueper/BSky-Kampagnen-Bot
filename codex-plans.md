@@ -1,31 +1,26 @@
 1. Datum (TT.MM.JJJJ)
-22.12.2025
+24.12.2025
 
-2. Status (aktueller Stand, keine To-Dos)
-Debug-Logging für „dispatch während Render“ ist aktiv: Einträge landen in `localStorage`, Toast-Hinweis erscheint; Download per `bskyDownloadRenderDispatchLog()`. Dokumentation zum Funktionsabgleich mit bsky.app liegt in `docs/bsky-app-gap.md` (Feeds/Listen ausgenommen). Quote-Karten in der Timeline sind abgedunkelt (opacity), um Antworten hervorzuheben. Tests liefen grün (bekannte Warn-Logs wie zuvor).
+2. Status (aktueller Stand, keine ToDos)
+- Notification-Badges laufen weiterhin, auch wenn die Mitteilungssektion nicht aktiv ist; die Snapshot-/Has-New-Pollings feuern nur bei aktiver Sektion (`useNotificationPolling` wurde entsprechend geteilt).
+- Die Dokumentation in `docs/code-review-bsky-client.md` wurde aktualisiert, um diese Badge-Entkopplung zu beschreiben.
+- Alle Tests (Vitest, gesamte Repo) sowie die Pre-Commit-Lint/Build-Kette verliefen erfolgreich; bekannte Warnungen (AppProvider Dispatch, `@atproto/lex-data` Ponyfills, Backend-Logging `EACCES`, Chunk-Size-Warnung) bleiben bestehen.
 
 3. Startpunkt (kurze Einleitung für die nächste Session)
-Als Nächstes werten wir die Render-Dispatch-Logs aus, um die Warnung (und evtl. den ungewollten Refresh) zu lokalisieren.
+Badge-Polling ist sauber entkoppelt, der Orchestrator ruft die Hook-Flags korrekt auf; beim nächsten Mal schauen wir, ob neue Section-Konsumenten oder Provider-Splits weitere Anpassungen erfordern.
 
-4. Nächste Schritte (konkrete, umsetzbare To-Dos)
-- Render-Dispatch-Logs herunterladen und die auslösende Stelle bestimmen.
-- Beobachten: bsky.app Verhalten bei deaktivierter Video-Allowlist prüfen und dokumentieren.
-- Beobachten: Modal-Höhe im Client-Settings-Dialog (aktuell 65vh) visuell im Auge behalten.
-- Beobachten: nur offizielle Bluesky-Labels in Content-Warnblöcken anzeigen (Fremdlabels dürfen nicht auftauchen).
-- Beobachten: Inline-Videos stoppen zuverlässig, wenn sie aus dem Viewport verschwinden oder verdeckt werden.
+4. Nächste Schritte (konkrete, umsetzbare ToDos)
+1) Beobachte die Badge-Aktualisierung über längere Sitzungen und dokumentiere Auffälligkeiten (z. B. im Issue-Log oder TODO-Board).
+2) Prüfe, ob zusätzliche Sections (Profil/Settings/Saved) neue Polling-Anforderungen verursachen, und gleiche sie ggf. mit `ClientServiceOrchestrator` ab.
 
 5. ToDos nach Priorität, sofern bekannt durchnummerieren, sonst anhängen
-1) Render-Dispatch-Logs prüfen und die Quelle fixieren.
-2) Beobachten: Video-Allowlist-Verhalten mit bsky.app abgleichen und ggf. anpassen.
-3) Beobachten: Modal-Höhe im Client-Settings-Dialog visuell prüfen.
-4) Beobachten: Content-Warnblöcke bleiben auf offizielle Bluesky-Labels beschränkt.
-5) Beobachten: Inline-Videos stoppen beim Wegscrollen bzw. Verlassen des Viewports.
+1) Provider-Split weiter vorbereiten: kleineres `AppContext`-Refactoring, damit Dispatches nur betroffene Reducer treffen.
+2) UI-Service-Logik weiter auslagern: z. B. `SectionRenderer` oder neue Section-Komponenten, damit sie selbst keine Hooks aktivieren, sondern gezielt Services triggern.
 
 6. Abschluss-Check (prüfbare Kriterien, optional)
-- Debug-Log lässt sich per `bskyDownloadRenderDispatchLog()` herunterladen.
-- Content-Warnblöcke erscheinen nur für offizielle Bluesky-Labels.
-- Mitteilungen zeigen Interaktoren wie im Vorbild (Avatar-Stack, Toggle, Liste) ohne Layout-Sprünge.
-- Video-Hosts-Verhalten entspricht bsky.app, wenn Allowlist deaktiviert ist.
+- `useNotificationPolling` nutzt weiterhin `fetchUnreadNotificationsCount` für Badges und `fetchNotificationPollingSnapshot` nur bei `active === true`.
+- `ClientServiceOrchestrator` gibt `keepBadgeFresh: true` weiter, und `SectionRenderer` bleibt erneute Polling-Firewalls fern.
+- Tests & Lint/Build wurden zuletzt vollständig durchlaufen.
 
 7. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
-- Sollen Client-Einstellungen später serverseitig persistiert werden (Preferences), oder bleibt alles lokal?
+- Brauchen neue Feeds/Listen irgendwann doch neben UI-Tab-Polling auch Hintergrund-Logik, oder bleibt die Badge-Only-Strategie ausreichend?

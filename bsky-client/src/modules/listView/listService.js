@@ -17,6 +17,20 @@ import {
   resolveUnreadIds
 } from './listStateHelpers.js'
 
+function scheduleDispatch (dispatch, action) {
+  if (typeof dispatch !== 'function' || !action) return
+  const runDispatch = () => { dispatch(action) }
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(runDispatch)
+    return
+  }
+  if (typeof Promise === 'function') {
+    Promise.resolve().then(runDispatch)
+    return
+  }
+  setTimeout(runDispatch, 0)
+}
+
 async function fetchTimelinePage(list, { cursor = null, limit } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
@@ -53,7 +67,7 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
   const previousUnreadIds = Array.isArray(list?.unreadIds) ? list.unreadIds : []
   const previousTopId = list?.topId || null
   const clearUnreadOnRefresh = Boolean(list?.clearUnreadOnRefresh)
-  dispatch({
+  scheduleDispatch(dispatch, {
     type: 'LIST_SET_REFRESHING',
     payload: { key: list.key, value: true, meta }
   })
@@ -68,7 +82,7 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
       previousTopId,
       clearUnreadOnRefresh
     })
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
@@ -81,7 +95,7 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
     })
     return { ...page, items: nextItems }
   } finally {
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_SET_REFRESHING',
       payload: { key: list.key, value: false }
     })
@@ -93,7 +107,7 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
   if (!list.cursor) return list.items || []
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
-  dispatch({
+  scheduleDispatch(dispatch, {
     type: 'LIST_SET_LOADING_MORE',
     payload: { key: list.key, value: true }
   })
@@ -114,7 +128,7 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
       nextItems.length === 0 ||
       !madeProgress
     )
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
@@ -126,7 +140,7 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
     })
     return { ...page, items: mergedItems, cursor: stopPaging ? null : nextCursor }
   } finally {
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_SET_LOADING_MORE',
       payload: { key: list.key, value: false }
     })
