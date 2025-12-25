@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAppDispatch } from '../../context/AppContext';
-import { useComposerState } from '../../context/ComposerContext.jsx';
-import { useUIState } from '../../context/UIContext.jsx';
+import { useComposerDispatch, useComposerState } from '../../context/ComposerContext.jsx';
+import { useTimelineDispatch } from '../../context/TimelineContext.jsx';
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
@@ -55,7 +55,9 @@ export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useComposerState();
   const { clientSettingsOpen, notificationsSettingsOpen } = useUIState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
-  const dispatch = useAppDispatch();
+  const timelineDispatch = useTimelineDispatch()
+  const composerDispatch = useComposerDispatch()
+  const uiDispatch = useUIDispatch()
   const { clientConfig } = useClientConfig()
   const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering, setComposeMode } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
@@ -160,7 +162,7 @@ export function Modals() {
         if (i === 0) root = res
         parent = res
         if (!replyPatched && reply?.parent?.uri) {
-          dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: reply.parent.uri, patch: { replyDelta: 1 } } })
+          timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: reply.parent.uri, patch: { replyDelta: 1 } } })
           replyPatched = true
         }
       }
@@ -172,7 +174,7 @@ export function Modals() {
     } finally {
       setThreadSending(false)
     }
-  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData, initialReplyContext, dispatch])
+  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData, initialReplyContext, timelineDispatch])
 
   const handleThreadDraftTransfer = useCallback(({ text = '', media = [] } = {}) => {
     setThreadSource(text || '')
@@ -194,19 +196,19 @@ export function Modals() {
 
   const handleDiscardDecision = useCallback((requiresConfirm) => {
     if (requiresConfirm) {
-      dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })
+      composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })
     } else {
       closeComposer()
     }
-  }, [closeComposer, dispatch])
+  }, [closeComposer, composerDispatch])
 
   const handleComposerCancel = useCallback(({ hasContent }) => {
     handleDiscardDecision(Boolean(hasContent))
   }, [handleDiscardDecision])
 
   const handleCloseNotificationSettings = useCallback(() => {
-    dispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
-  }, [dispatch])
+    uiDispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
+  }, [uiDispatch])
 
   const handleNotificationProfileOpen = useCallback(() => {
     // Modal bleibt offen; ProfileViewer kommt darüber.
@@ -326,9 +328,9 @@ export function Modals() {
         cancelLabel={t('compose.cancel', 'Abbrechen')}
         confirmLabel={t('compose.discardConfirm', 'Verwerfen')}
         variant='primary'
-        onCancel={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}
+        onCancel={() => composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}
         onConfirm={() => {
-          dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false });
+          composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: false });
           closeComposer();
         }}
       />
@@ -384,7 +386,7 @@ export function Modals() {
       />
       <ClientSettingsModal
         open={Boolean(clientSettingsOpen)}
-        onClose={() => dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
+        onClose={() => uiDispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
       />
       <NotificationSettingsModal
         open={Boolean(notificationsSettingsOpen)}

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { MagnifyingGlassIcon, PersonIcon, SpeakerOffIcon } from '@radix-ui/react-icons'
 import { InlineMenu, InlineMenuContent, InlineMenuItem, InlineMenuTrigger } from '@bsky-kampagnen-bot/shared-ui'
 import { RichText as RichTextAPI } from '@atproto/api'
-import { useAppDispatch } from '../../context/AppContext'
+import { useUIDispatch } from '../../context/UIContext.jsx'
 import { getActiveBskyAgentClient } from './api/bskyAgentClient.js'
 const MIN_HASHTAG_LENGTH = 2
 
@@ -172,7 +172,7 @@ export default function RichText ({
   disableHashtagMenu = false,
   autoDetectFacets = true
 }) {
-  const dispatch = useAppDispatch()
+  const dispatch = useUIDispatch()
   const [detectedFacets, setDetectedFacets] = useState(null)
   const stopInteraction = useCallback((event) => {
     event.preventDefault()

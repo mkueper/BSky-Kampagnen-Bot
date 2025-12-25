@@ -1,14 +1,14 @@
 import { useCallback, useMemo, useState } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import { Button, Card, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem, ConfirmDialog, fetchBlocks, unblockActor, useConfirmDialog } from '../shared'
-import { useAppDispatch } from '../../context/AppContext'
+import { useUIDispatch } from '../../context/UIContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { CheckCircledIcon, DotsHorizontalIcon, Link2Icon, PersonIcon } from '@radix-ui/react-icons'
 
 const PAGE_SIZE = 50
 
 export default function BlockListView () {
-  const dispatch = useAppDispatch()
+  const dispatch = useUIDispatch()
   const [reloadTick, setReloadTick] = useState(0)
   const [actionBusyId, setActionBusyId] = useState(null)
   const { t } = useTranslation()

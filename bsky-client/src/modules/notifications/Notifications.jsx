@@ -45,9 +45,8 @@ import {
 } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
-import { useAppDispatch } from '../../context/AppContext'
-import { useTimelineState } from '../../context/TimelineContext.jsx'
-import { useUIState } from '../../context/UIContext.jsx'
+import { useTimelineDispatch, useTimelineState } from '../../context/TimelineContext.jsx'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
@@ -467,7 +466,8 @@ function extractQuotedPost (subject) {
 }
 
 export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
-  const dispatch = useAppDispatch()
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
   const { quoteReposts } = useUIState()
   const { t, locale } = useTranslation()
   const authContext = useContext(AuthContext)
@@ -871,7 +871,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         setDeletingPost(true)
         try {
           await deletePost({ uri: actionUri })
-          dispatch({ type: 'REMOVE_POST', payload: actionUri })
+          timelineDispatch({ type: 'REMOVE_POST', payload: actionUri })
           setFeedbackMessage(t('skeet.actions.deletePostSuccess', 'Post gelöscht.'))
           window.setTimeout(() => setFeedbackMessage(''), 2400)
         } catch (error) {
@@ -881,7 +881,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         }
       }
     })
-  }, [actionUri, deletePost, deletingPost, dispatch, openConfirm, showMenuError, t])
+  }, [actionUri, deletePost, deletingPost, openConfirm, showMenuError, t, timelineDispatch])
 
   const menuActions = useMemo(() => {
     const base = [
@@ -987,25 +987,25 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     clearError()
     const result = await toggleLike()
     if (result && actionUri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
     }
-  }, [actionUri, clearError, dispatch, toggleLike])
+  }, [actionUri, clearError, timelineDispatch, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
     if (result && actionUri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
     }
-  }, [actionUri, clearError, dispatch, toggleRepost])
+  }, [actionUri, clearError, timelineDispatch, toggleRepost])
 
   const handleToggleBookmark = useCallback(async () => {
     clearError()
     const result = await toggleBookmark()
     if (result && actionUri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { bookmarked: result.bookmarked } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { bookmarked: result.bookmarked } } })
     }
-  }, [actionUri, clearError, dispatch, toggleBookmark])
+  }, [actionUri, clearError, timelineDispatch, toggleBookmark])
 
   const handleUndoQuote = useCallback(async () => {
     if (!actionUri || !quotePostUri || quoteBusy) return
@@ -1014,7 +1014,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     setQuoteMessageIsError(false)
     try {
       await deletePost({ uri: quotePostUri })
-      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: actionUri })
+      uiDispatch({ type: 'CLEAR_QUOTE_REPOST', payload: actionUri })
       setQuoteMessage(t('notifications.card.actions.quoteUndoSuccess', 'Zitat zurückgezogen.'))
     } catch (error) {
       setQuoteMessage(error?.message || t('notifications.card.actions.quoteUndoError', 'Zitat konnte nicht zurückgezogen werden.'))
@@ -1026,7 +1026,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         setQuoteMessageIsError(false)
       }, 2400)
     }
-  }, [actionUri, deletePost, dispatch, quoteBusy, quotePostUri, t])
+  }, [actionUri, deletePost, quoteBusy, quotePostUri, t, uiDispatch])
 
   const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
 
@@ -1092,8 +1092,8 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   const openProfileViewer = useCallback(() => {
     if (!canOpenProfileViewer) return
     markAsRead()
-    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
-  }, [canOpenProfileViewer, dispatch, markAsRead, profileActor])
+    uiDispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, markAsRead, profileActor, uiDispatch])
 
   const handleProfileClick = useCallback((event) => {
     event?.preventDefault()
@@ -1609,7 +1609,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 })
 
 function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia, inlineVideoEnabled = false, muted = false }) {
-  const dispatch = useAppDispatch()
+  const uiDispatch = useUIDispatch()
   const { t, locale } = useTranslation()
   const { config } = useCardConfig()
   const author = subject?.author || {}
@@ -1681,8 +1681,8 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     if (!canOpenProfileViewer) return
     event?.preventDefault()
     event?.stopPropagation()
-    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
-  }, [canOpenProfileViewer, dispatch, profileActor])
+    uiDispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, profileActor, uiDispatch])
 
   const handlePreviewMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
@@ -2131,8 +2131,9 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
   const { lists } = useTimelineState()
+  const timelineDispatch = useTimelineDispatch()
   const { notificationsUnread } = useUIState()
-  const dispatch = useAppDispatch()
+  const uiDispatch = useUIDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
@@ -2156,9 +2157,9 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
   })
   const updateUnread = useCallback((count) => {
     const normalized = Math.max(0, count || 0)
-    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: normalized })
+    uiDispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: normalized })
     mutate(NOTIFICATION_UNREAD_SWR_KEY, { unreadCount: normalized }, false)
-  }, [dispatch, mutate])
+  }, [mutate, uiDispatch])
 
   const isLoadingInitial = !list || !list.loaded
   const isLoadingMore = Boolean(list?.isLoadingMore)
@@ -2176,7 +2177,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     let cancelled = false
     runListRefresh({
       list,
-      dispatch,
+      dispatch: timelineDispatch,
       ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
     })
       .then((page) => {
@@ -2192,20 +2193,20 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         if (!cancelled) setError(err)
       })
     return () => { cancelled = true }
-  }, [activeTab, listKey, list, dispatch, retryTick, updateUnread])
+  }, [activeTab, listKey, list, retryTick, timelineDispatch, updateUnread])
 
   const loadMore = useCallback(async () => {
     if (!list || isLoadingInitial || isLoadingMore || !hasMore) return
     try {
       await runListLoadMore({
         list,
-        dispatch,
+        dispatch: timelineDispatch,
         ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
       })
     } catch (err) {
       console.error('Failed to load more notifications', err)
     }
-  }, [activeTab, list, dispatch, hasMore, isLoadingInitial, isLoadingMore])
+  }, [activeTab, list, hasMore, isLoadingInitial, isLoadingMore, timelineDispatch])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead || !list) return
@@ -2217,7 +2218,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       if (entry.isRead) return entry
       return { ...entry, isRead: true }
     })
-    dispatch({
+    timelineDispatch({
       type: 'LIST_LOADED',
       payload: {
         key: listKey,
@@ -2230,7 +2231,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     })
     const nextUnread = Math.max(0, (notificationsUnread || 0) - 1)
     updateUnread(nextUnread)
-  }, [dispatch, list, listKey, notificationsUnread, updateUnread])
+  }, [list, listKey, notificationsUnread, timelineDispatch, updateUnread])
 
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return
@@ -2306,7 +2307,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
 
           state.attempts += 1
           setMentionsAutoLoadAttempts(state.attempts)
-          await runListLoadMore({ list: currentList, dispatch, limit: mentionsPageSize })
+          await runListLoadMore({ list: currentList, dispatch: timelineDispatch, limit: mentionsPageSize })
 
           const afterList = listRef.current
           const afterCursor = afterList?.cursor || null
@@ -2322,7 +2323,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         state.running = false
       }
     })()
-  }, [activeTab, dispatch, hasMore, isLoadingInitial, isLoadingMore, items.length])
+  }, [activeTab, hasMore, isLoadingInitial, isLoadingMore, items.length, timelineDispatch])
 
   if (isLoadingInitial) {
     return (

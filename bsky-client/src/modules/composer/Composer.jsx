@@ -4,13 +4,14 @@ import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon, ImageIcon, FaceIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
-import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useTimelineDispatch } from '../../context/TimelineContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useInteractionSettingsControls } from './useInteractionSettingsControls.js'
 import { calculateBlueskyPostLength } from '@bsky-kampagnen-bot/shared-logic'
 import { fetchLinkPreviewMetadata } from './linkPreviewService.js'
 import ReplyPreviewCard from './ReplyPreviewCard.jsx'
 import { buildReplyContext, buildReplyInfo } from './replyUtils.js'
+import { useUIDispatch } from '../../context/UIContext.jsx'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
@@ -57,7 +58,8 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const { clientConfig } = useClientConfig()
   const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
   const requireAltText = clientConfig?.layout?.requireAltText === true
-  const dispatch = useAppDispatch()
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
   const {
     interactionSettings,
     data: interactionData,
@@ -537,10 +539,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         interactions: interactionData
       })
       if (quoteInfo?.uri && sent?.uri) {
-        dispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
+        uiDispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
       }
       if (replyContext?.parent?.uri) {
-        dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: replyContext.parent.uri, patch: { replyDelta: 1 } } })
+        timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: replyContext.parent.uri, patch: { replyDelta: 1 } } })
       }
       pendingMedia.forEach((entry) => releasePreviewUrl(entry.previewUrl))
       setPendingMedia([])

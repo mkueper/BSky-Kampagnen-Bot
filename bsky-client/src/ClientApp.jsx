@@ -966,8 +966,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
 
   const isSearchSection = section === 'search'
   const layoutContent = isSearchSection ? (
-    <BskyClientLayout
-      activeSection={section}
+      <BskyClientLayout
+        activeSection={section}
       notificationsUnread={notificationsUnread}
       chatUnread={chatUnreadCount}
       onSelectSection={handleSelectSection}
@@ -1019,23 +1019,22 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       logoutPending={logoutPending}
       onOpenClientSettings={handleOpenClientSettings}
     >
-      <SectionRenderer
-        section={section}
-        notificationTab={notificationTab}
-        notificationListKey={notificationListKey}
-        timelineListKey={timelineKeyRef.current}
-        timelineLanguageFilter={timelineLanguageFilter}
-      />
-    </BskyClientLayout>
+        <SectionRenderer />
+      </BskyClientLayout>
   )
 
   return (
-    <>
-      <ClientServiceOrchestrator shouldRunChatPolling={shouldRunChatPolling} />
+    <ClientServiceOrchestrator
+      shouldRunChatPolling={shouldRunChatPolling}
+      notificationTab={notificationTab}
+      notificationListKey={notificationListKey}
+      timelineLanguageFilter={timelineLanguageFilter}
+      timelineListKey={timelineKeyRef.current}
+    >
       <SearchProvider>
         {layoutContent}
       </SearchProvider>
       <Modals />
-    </>
+    </ClientServiceOrchestrator>
   )
 }

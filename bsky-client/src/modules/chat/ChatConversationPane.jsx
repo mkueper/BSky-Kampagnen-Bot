@@ -3,8 +3,7 @@ import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 import { Button, fetchChatConversation, fetchChatMessages, sendChatMessage, updateChatReadState, addChatReaction, removeChatReaction, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem, RichText } from '../shared'
-import { useAppDispatch } from '../../context/AppContext.jsx'
-import { useUIState } from '../../context/UIContext.jsx'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { buildConversationHandles, buildConversationTitle, getInitials } from './chatUtils.js'
@@ -15,7 +14,7 @@ const PAGE_SIZE = 40
 
 export default function ChatConversationPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { chatViewer } = useUIState()
-  const dispatch = useAppDispatch()
+  const dispatch = useUIDispatch()
   const { t } = useTranslation()
   const { session } = useBskyAuth()
   const viewerDid = session?.did || null

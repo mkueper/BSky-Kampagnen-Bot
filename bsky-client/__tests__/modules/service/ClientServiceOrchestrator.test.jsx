@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react'
 import { ClientServiceOrchestrator } from '../../../src/modules/service/ClientServiceOrchestrator.jsx'
 import { useAppDispatch, useAppState } from '../../../src/context/AppContext.jsx'
+import { useUIDispatch } from '../../../src/context/UIContext.jsx'
 import { useChatPolling } from '../../../src/hooks/useChatPolling.js'
 import { useListPolling } from '../../../src/hooks/useListPolling.js'
 import { useNotificationPolling } from '../../../src/hooks/useNotificationPolling.js'
@@ -18,6 +19,9 @@ vi.mock('../../../src/context/AppContext.jsx', () => ({
   useAppState: vi.fn(),
   useAppDispatch: vi.fn()
 }))
+vi.mock('../../../src/context/UIContext.jsx', () => ({
+  useUIDispatch: vi.fn()
+}))
 
 describe('ClientServiceOrchestrator', () => {
   const fakeDispatch = {}
@@ -25,6 +29,7 @@ describe('ClientServiceOrchestrator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useAppDispatch.mockReturnValue(fakeDispatch)
+    useUIDispatch.mockReturnValue(fakeDispatch)
   })
 
   it('polls timeline & badges when home is active', () => {

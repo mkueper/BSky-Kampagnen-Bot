@@ -9,6 +9,7 @@ import {
   ProfileViewLazy,
   SettingsViewLazy
 } from './lazySections.jsx'
+import { useSectionActivity } from '../service/SectionActivityContext.jsx'
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
@@ -72,13 +73,14 @@ function ProfileSection () {
   )
 }
 
-export function SectionRenderer ({
-  section,
-  notificationTab,
-  notificationListKey,
-  timelineListKey,
-  timelineLanguageFilter
-}) {
+export function SectionRenderer () {
+  const {
+    section,
+    notificationTab,
+    notificationListKey,
+    timelineLanguageFilter,
+    timelineListKey
+  } = useSectionActivity()
   if (section === 'home') {
     return (
       <TimelineSection

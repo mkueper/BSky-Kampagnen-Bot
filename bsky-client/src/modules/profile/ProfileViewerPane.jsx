@@ -1,6 +1,5 @@
 import { Suspense, lazy, useCallback, useState } from 'react'
-import { useAppDispatch } from '../../context/AppContext'
-import { useUIState } from '../../context/UIContext.jsx'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 
@@ -11,7 +10,7 @@ const ProfileViewLazy = lazy(async () => {
 
 export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
   const { profileViewer, notificationsSettingsOpen } = useUIState()
-  const dispatch = useAppDispatch()
+  const dispatch = useUIDispatch()
   const actor = profileViewer?.actor || ''
   const [headline, setHeadline] = useState({ name: '', handle: '', did: '' })
 

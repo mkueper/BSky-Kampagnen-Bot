@@ -94,6 +94,8 @@ vi.mock('../../src/context/UIContext.jsx', async importOriginal => {
         notificationsUnread
       }
     }
+    ,
+    useUIDispatch: () => mockDispatch
   }
 })
 vi.mock('../../src/context/CardConfigContext.jsx', () => ({

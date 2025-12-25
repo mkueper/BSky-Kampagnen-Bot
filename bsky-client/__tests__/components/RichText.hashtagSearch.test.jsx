@@ -22,6 +22,10 @@ vi.mock('../../src/context/AppContext', () => ({
   useAppDispatch: () => mockDispatch
 }))
 
+vi.mock('../../src/context/UIContext.jsx', () => ({
+  useUIDispatch: () => mockDispatch
+}))
+
 vi.mock('@bsky-kampagnen-bot/shared-ui', () => {
   const InlineMenu = ({ children }) => <div data-inline-menu>{children}</div>
   const InlineMenuTrigger = ({ children }) => <div>{children}</div>
@@ -99,4 +103,3 @@ describe('RichText – Hashtag Search Integration', () => {
     expect(mockDispatch).not.toHaveBeenCalled()
   })
 })
-

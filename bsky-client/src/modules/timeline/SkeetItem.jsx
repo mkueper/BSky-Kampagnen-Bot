@@ -25,8 +25,8 @@ import {
   GearIcon
 } from '@radix-ui/react-icons'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
-import { useAppDispatch } from '../../context/AppContext.jsx'
-import { useUIState } from '../../context/UIContext.jsx'
+import { useTimelineDispatch } from '../../context/TimelineContext.jsx'
+import { useUIState, useUIDispatch } from '../../context/UIContext.jsx'
 import {
   useBskyEngagement,
   deletePost,
@@ -608,7 +608,8 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     })
     return () => observers.forEach((observer) => observer.disconnect())
   }, [inlineVideoOpen])
-  const dispatch = useAppDispatch()
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
   const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const [quoteBusy, setQuoteBusy] = useState(false)
@@ -640,7 +641,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     clearError()
     const result = await toggleLike()
     if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
     }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
@@ -648,13 +649,13 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         onEngagementChange(targetId, { likeUri: result.likeUri, likeCount: result.likeCount })
       }
     }
-  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleLike])
+  }, [clearError, timelineDispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
     if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
     }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
@@ -662,13 +663,13 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         onEngagementChange(targetId, { repostUri: result.repostUri, repostCount: result.repostCount })
       }
     }
-  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleRepost])
+  }, [clearError, timelineDispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleRepost])
 
   const handleToggleBookmark = useCallback(async () => {
     clearError()
     const result = await toggleBookmark()
     if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { bookmarked: result.bookmarked } } })
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { bookmarked: result.bookmarked } } })
     }
     if (result && onEngagementChange) {
       const targetId = item?.listEntryId || item?.uri || item?.cid
@@ -676,7 +677,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         onEngagementChange(targetId, { bookmarked: result.bookmarked })
       }
     }
-  }, [clearError, dispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
+  }, [clearError, timelineDispatch, item?.cid, item?.listEntryId, item?.uri, onEngagementChange, toggleBookmark])
 
   useEffect(() => {
     if (!youtubeInlineOpen) return
@@ -699,7 +700,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     setQuoteBusy(true)
     try {
       await deletePost({ uri: quotePostUri })
-      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
+      uiDispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
       setFeedbackMessage(t('skeet.quote.undoSuccess', 'Zitat zurückgezogen.'))
       window.setTimeout(() => setFeedbackMessage(''), 2400)
     } catch (error) {
@@ -708,7 +709,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     } finally {
       setQuoteBusy(false)
     }
-  }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
+  }, [deletePost, uiDispatch, item?.uri, quoteBusy, quotePostUri, t])
   const Wrapper = variant === 'card' ? Card : 'div'
   const unreadClassName = isUnread
     ? 'border-primary/70 bg-primary/5 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.45)] dark:bg-primary/15 dark:border-primary/80 dark:shadow-[0_10px_35px_-20px_rgba(56,189,248,0.6)]'
@@ -1128,7 +1129,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         setDeletingPost(true)
         try {
           await deletePost({ uri: item.uri })
-          dispatch({ type: 'REMOVE_POST', payload: item.uri })
+          timelineDispatch({ type: 'REMOVE_POST', payload: item.uri })
           setFeedbackMessage(t('skeet.actions.deletePostSuccess', 'Post gelöscht.'))
           window.setTimeout(() => setFeedbackMessage(''), 2400)
         } catch (error) {
@@ -1138,7 +1139,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         }
       }
     })
-  }, [deletePost, dispatch, item?.uri, deletingPost, openConfirm, showMenuError, t])
+  }, [deletePost, timelineDispatch, item?.uri, deletingPost, openConfirm, showMenuError, t])
 
   const menuActions = useMemo(() => {
     const base = [
@@ -1244,7 +1245,7 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     event.preventDefault()
     event.stopPropagation()
     if (!actorIdentifier) return
-    dispatch({
+    uiDispatch({
       type: 'OPEN_PROFILE_VIEWER',
       actor: actorIdentifier,
       anchor: item?.uri || null

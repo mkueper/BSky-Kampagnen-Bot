@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useUIDispatch } from '../../context/UIContext.jsx'
 import { ProfilePreviewTrigger } from './ProfilePreview.jsx'
 
 const noop = () => {}
@@ -24,7 +24,7 @@ export default function ActorProfileLink ({
   onOpen = noop,
   anchor = null
 }) {
-  const dispatch = useAppDispatch()
+  const dispatch = useUIDispatch()
   const actorIdentifier = (actor || handle || '').trim()
   const normalizedHandle = useMemo(() => normalizeHandle(handle), [handle])
   const fallbackLabel = label || (children ? '' : (normalizedHandle ? `@${normalizedHandle}` : actorIdentifier))
