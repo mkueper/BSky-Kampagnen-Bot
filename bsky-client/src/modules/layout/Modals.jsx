@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useComposerDispatch, useComposerState } from '../../context/ComposerContext.jsx';
+import { useAppState } from '../../context/AppContext.jsx';
 import { useTimelineDispatch } from '../../context/TimelineContext.jsx';
 import { useUIDispatch, useUIState } from '../../context/UIContext.jsx';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
@@ -58,6 +59,7 @@ export function Modals() {
   const timelineDispatch = useTimelineDispatch()
   const composerDispatch = useComposerDispatch()
   const uiDispatch = useUIDispatch()
+  const { section } = useAppState()
   const { clientConfig } = useClientConfig()
   const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering, setComposeMode } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
@@ -344,7 +346,7 @@ export function Modals() {
         />
       ) : null}
 
-      {feedManagerOpen ? (
+      {feedManagerOpen && section !== 'feeds' ? (
         <FeedManager
           open={feedManagerOpen}
           loading={feedPicker.loading}

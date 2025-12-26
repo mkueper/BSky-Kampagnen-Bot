@@ -160,8 +160,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const { openComposer, openThreadComposer } = useComposer()
   const {
     feedPicker,
+    feedManagerOpen,
     refreshFeeds: refreshFeedPicker,
-    openFeedManager
+    openFeedManager,
+    closeFeedManager
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
@@ -710,6 +712,13 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const handleOpenNotificationSettings = useCallback(() => {
     uiDispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: true })
   }, [uiDispatch])
+  const handleToggleFeedManager = useCallback(() => {
+    if (feedManagerOpen) {
+      closeFeedManager()
+    } else {
+      openFeedManager()
+    }
+  }, [closeFeedManager, feedManagerOpen, openFeedManager])
 
   const threadActions = threadState.active ? (
     <>
@@ -787,6 +796,23 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
         </div>
       )
     }
+    if (section === 'feeds') {
+      return (
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <p className='text-base font-semibold text-foreground'>{t('layout.feeds.headerTitle', 'Feeds')}</p>
+          <button
+            type='button'
+            className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm'
+            onClick={handleToggleFeedManager}
+            aria-pressed={feedManagerOpen}
+            title={t('layout.feeds.managerButtonAria', 'Feed-Manager öffnen')}
+            aria-label={t('layout.feeds.managerButtonAria', 'Feed-Manager öffnen')}
+          >
+            <MixerHorizontalIcon className='h-5 w-5' />
+          </button>
+        </div>
+      )
+    }
     return null
   }, [
     section,
@@ -803,7 +829,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     timelinePaneRefreshing,
     t,
     handleStartNewChat,
-    handleOpenNotificationSettings
+    handleOpenNotificationSettings,
+    handleToggleFeedManager,
+    feedManagerOpen
   ])
 
   const topBlock = section === 'notifications' ? (
@@ -866,7 +894,8 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     }
     if (id === 'feeds') {
       closeFeedMenu()
-      openFeedManager()
+      appDispatch({ type: 'SET_SECTION', payload: 'feeds' })
+      pushSectionRoute('feeds')
       refreshFeedPicker({ force: true })
       return
     }

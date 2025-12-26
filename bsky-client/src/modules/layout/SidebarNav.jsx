@@ -28,7 +28,7 @@ export const NAV_ITEMS = [
   { id: 'search', defaultLabel: 'Suchen', labelKey: 'nav.search', icon: MagnifyingGlassIcon },
   { id: 'notifications', defaultLabel: 'Mitteilungen', labelKey: 'nav.notifications', icon: BellIcon },
   { id: 'chat', defaultLabel: 'Chat', labelKey: 'nav.chat', icon: ChatBubbleIcon },
-  { id: 'feeds', defaultLabel: 'Feeds', labelKey: 'nav.feeds', icon: LayersIcon, disabled: true, disabledHint: 'TBD' },
+  { id: 'feeds', defaultLabel: 'Feeds', labelKey: 'nav.feeds', icon: LayersIcon },
   { id: 'lists', defaultLabel: 'Listen', labelKey: 'nav.lists', icon: ListBulletIcon, disabled: true, disabledHint: 'TBD' },
   { id: 'saved', defaultLabel: 'Gespeichert', labelKey: 'nav.saved', icon: BookmarkIcon },
   { id: 'blocks', defaultLabel: 'Blockliste', labelKey: 'nav.blocks', icon: SlashIcon },

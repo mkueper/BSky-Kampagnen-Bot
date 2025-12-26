@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { Button, Card } from '../shared/index.js'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
+  const { t } = useTranslation()
   const feedUri = feed.feedUri || feed.value
   const isPinned = Boolean(feed.pinned)
   const pinning = actionState?.pinning === feedUri
@@ -12,9 +14,13 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
     <Card background='subtle' padding='p-4' className='text-sm'>
       <div className='flex items-start justify-between gap-3'>
         <div>
-          <p className='text-base font-semibold text-foreground'>{feed.displayName || 'Feed'}</p>
+          <p className='text-base font-semibold text-foreground'>
+            {feed.displayName || t('layout.feeds.feedFallback', 'Feed')}
+          </p>
           {feed.creator?.handle ? (
-            <p className='text-xs text-foreground-muted'>von @{feed.creator.handle}</p>
+            <p className='text-xs text-foreground-muted'>
+              {t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle })}
+            </p>
           ) : null}
         </div>
         <div className='flex flex-wrap items-center gap-2'>
@@ -27,7 +33,9 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
                 disabled={disabled || pinning || unpinning}
                 onClick={onUnpin ? () => onUnpin(feedUri) : undefined}
               >
-                {unpinning ? 'Entferne...' : 'Unpin'}
+                {unpinning
+                  ? t('layout.feeds.unpinning', 'Entferne...')
+                  : t('layout.feeds.unpin', 'Unpin')}
               </Button>
               <Button
                 type='button'
@@ -35,9 +43,9 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
                 size='pill'
                 disabled={disabled || pinning || unpinning}
                 onClick={onMove ? () => onMove(-1) : undefined}
-                aria-label='Nach oben verschieben'
+                aria-label={t('layout.feeds.moveUp', 'Nach oben verschieben')}
               >
-                Up
+                {t('layout.feeds.moveUpShort', 'Up')}
               </Button>
               <Button
                 type='button'
@@ -45,9 +53,9 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
                 size='pill'
                 disabled={disabled || pinning || unpinning}
                 onClick={onMove ? () => onMove(1) : undefined}
-                aria-label='Nach unten verschieben'
+                aria-label={t('layout.feeds.moveDown', 'Nach unten verschieben')}
               >
-                Down
+                {t('layout.feeds.moveDownShort', 'Down')}
               </Button>
             </>
           ) : (
@@ -58,7 +66,9 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
               disabled={pinning || unpinning}
               onClick={onPin ? () => onPin(feedUri) : undefined}
             >
-              {pinning ? 'Pinne...' : 'Pin'}
+              {pinning
+                ? t('layout.feeds.pinning', 'Pinne...')
+                : t('layout.feeds.pin', 'Pin')}
             </Button>
           )}
         </div>
@@ -67,8 +77,12 @@ function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
         <p className='mt-2 text-foreground'>{feed.description}</p>
       ) : null}
       <div className='mt-2 flex flex-wrap gap-4 text-xs text-foreground-muted'>
-        {feed.likeCount != null ? <span>{feed.likeCount} Likes</span> : null}
-        {feed.status === 'error' ? <span className='text-amber-600'>Fehler beim Laden</span> : null}
+        {feed.likeCount != null ? (
+          <span>{t('layout.feeds.likes', '{count} Likes', { count: feed.likeCount })}</span>
+        ) : null}
+        {feed.status === 'error'
+          ? <span className='text-amber-600'>{t('layout.feeds.loadError', 'Fehler beim Laden')}</span>
+          : null}
       </div>
     </Card>
   )
@@ -95,6 +109,9 @@ FeedCard.propTypes = {
 }
 
 export default function FeedManager ({
+  variant = 'modal',
+  showHeader = true,
+  dataComponent = 'BskyFeedManager',
   open,
   loading,
   error,
@@ -105,6 +122,7 @@ export default function FeedManager ({
   onUnpin,
   onReorder
 }) {
+  const { t } = useTranslation()
   const pinned = feeds?.pinned || []
   const saved = feeds?.saved || []
   const errors = feeds?.errors || []
@@ -112,6 +130,8 @@ export default function FeedManager ({
   const managerErrors = useMemo(() => errors.filter(Boolean), [errors])
 
   if (!open) return null
+  const isPage = variant === 'page'
+  const isPane = variant === 'pane'
 
   const handleMove = (delta, id) => {
     const index = pinned.findIndex((entry) => entry.id === id)
@@ -125,21 +145,43 @@ export default function FeedManager ({
   }
 
   return (
-    <div className='fixed inset-0 z-[120] flex items-center justify-center' data-component='BskyFeedManager'>
-      <div className='absolute inset-0 bg-black/50 backdrop-blur-sm' onClick={onClose} aria-hidden='true' />
-      <div className='relative z-10 w-[min(960px,94vw)] max-h-[92vh] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl'>
-        <div className='flex items-center justify-between gap-3'>
-          <div>
-            <h2 className='text-xl font-semibold text-foreground'>Feed-Manager</h2>
-            <p className='text-sm text-foreground-muted'>Gepinnte Feeds erscheinen als Tabs in der Timeline.</p>
+    <div
+      className={(isPage || isPane) ? 'w-full' : 'fixed inset-0 z-[120] flex items-center justify-center'}
+      data-component={dataComponent || undefined}
+      data-variant={variant}
+    >
+      {(!isPage && !isPane) ? (
+        <div className='absolute inset-0 bg-black/50 backdrop-blur-sm' onClick={onClose} aria-hidden='true' />
+      ) : null}
+      <div
+        className={isPage
+          ? 'w-full max-w-[960px] space-y-6 rounded-3xl border border-border bg-background p-6 shadow-soft'
+          : isPane
+              ? 'w-full space-y-6 rounded-3xl border border-border bg-background p-4 shadow-soft'
+              : 'relative z-10 w-[min(960px,94vw)] max-h-[92vh] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl'}
+      >
+        {showHeader ? (
+          <div className='flex items-center justify-between gap-3'>
+            <div>
+              <h2 className='text-xl font-semibold text-foreground'>{t('layout.feeds.managerTitle', 'Feed-Manager')}</h2>
+              <p className='text-sm text-foreground-muted'>
+                {t('layout.feeds.managerDescription', 'Gepinnte Feeds erscheinen als Tabs in der Timeline.')}
+              </p>
+            </div>
+            <div className='flex items-center gap-2'>
+              <Button variant='secondary' size='pill' onClick={onRefresh} disabled={loading}>
+                {loading
+                  ? t('layout.feeds.refreshing', 'Aktualisiere...')
+                  : t('layout.feeds.refresh', 'Aktualisieren')}
+              </Button>
+              {!isPage ? (
+                <Button variant='ghost' size='pill' onClick={onClose}>
+                  {t('layout.feeds.close', 'Schliessen')}
+                </Button>
+              ) : null}
+            </div>
           </div>
-          <div className='flex items-center gap-2'>
-            <Button variant='secondary' size='pill' onClick={onRefresh} disabled={loading}>
-              {loading ? 'Aktualisiere...' : 'Aktualisieren'}
-            </Button>
-            <Button variant='ghost' size='pill' onClick={onClose}>Schliessen</Button>
-          </div>
-        </div>
+        ) : null}
 
         {error ? (
           <p className='mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700'>{error}</p>
@@ -148,20 +190,28 @@ export default function FeedManager ({
         {managerErrors.length > 0 ? (
           <div className='mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 space-y-1'>
             {managerErrors.map((entry, idx) => (
-              <p key={entry?.feedUri || idx}>{entry?.message || 'Feed konnte nicht geladen werden.'}</p>
+              <p key={entry?.feedUri || idx}>
+                {entry?.message || t('layout.feeds.feedError', 'Feed konnte nicht geladen werden.')}
+              </p>
             ))}
           </div>
         ) : null}
 
         <section className='mt-6 space-y-3'>
           <div className='flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-foreground'>Gepinnte Feeds</h3>
+            <h3 className='text-lg font-semibold text-foreground'>
+              {t('layout.feeds.pinnedTitle', 'Gepinnte Feeds')}
+            </h3>
             {pinned.length > 1 ? (
-              <p className='text-xs text-foreground-muted'>Reihenfolge via Pfeile anpassen.</p>
+              <p className='text-xs text-foreground-muted'>
+                {t('layout.feeds.pinnedHint', 'Reihenfolge via Pfeile anpassen.')}
+              </p>
             ) : null}
           </div>
           {pinned.length === 0 ? (
-            <p className='text-sm text-foreground-muted'>Noch keine Feeds angepinnt.</p>
+            <p className='text-sm text-foreground-muted'>
+              {t('layout.feeds.pinnedEmpty', 'Noch keine Feeds angepinnt.')}
+            </p>
           ) : (
             <div className='space-y-3'>
               {pinned.map((feed) => (
@@ -179,11 +229,17 @@ export default function FeedManager ({
 
         <section className='mt-8 space-y-3'>
           <div className='flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-foreground'>Gespeicherte Feeds</h3>
-            <p className='text-xs text-foreground-muted'>Pinne Feeds, um sie oben anzuzeigen.</p>
+            <h3 className='text-lg font-semibold text-foreground'>
+              {t('layout.feeds.savedTitle', 'Gespeicherte Feeds')}
+            </h3>
+            <p className='text-xs text-foreground-muted'>
+              {t('layout.feeds.savedHint', 'Pinne Feeds, um sie oben anzuzeigen.')}
+            </p>
           </div>
           {saved.length === 0 ? (
-            <p className='text-sm text-foreground-muted'>Keine weiteren gespeicherten Feeds vorhanden.</p>
+            <p className='text-sm text-foreground-muted'>
+              {t('layout.feeds.savedEmpty', 'Keine weiteren gespeicherten Feeds vorhanden.')}
+            </p>
           ) : (
             <div className='space-y-3'>
               {saved.map((feed) => (
@@ -203,6 +259,9 @@ export default function FeedManager ({
 }
 
 FeedManager.propTypes = {
+  variant: PropTypes.oneOf(['modal', 'page', 'pane']),
+  showHeader: PropTypes.bool,
+  dataComponent: PropTypes.string,
   open: PropTypes.bool,
   loading: PropTypes.bool,
   error: PropTypes.string,
@@ -220,6 +279,8 @@ FeedManager.propTypes = {
 }
 
 FeedManager.defaultProps = {
+  variant: 'modal',
+  showHeader: true,
   open: false,
   loading: false,
   error: '',

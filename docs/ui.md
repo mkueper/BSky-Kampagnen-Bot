@@ -313,6 +313,7 @@ function Example() {
 - `timeline`: Home-Feed/Tabs (TimelineHeader)
 - `search`: Globale Suche (SearchView)
 - `notifications`: Mitteilungen inkl. Tabs
+- `feeds`: Feeds-Seite mit Header + Tabs (Meine Feeds / Entdecke neue Feeds) und Tool-Button fuer den Feed-Manager
 - `settings`, `blocks`, `saved`, etc. – sämtliche Hauptsektionen laufen hier
 - Der Inhalt bleibt im DOM und wird nur bei aktivem Detail-Pane via CSS ausgeblendet.
 

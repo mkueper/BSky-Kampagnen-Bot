@@ -11,7 +11,7 @@ Gegenueberstellung der in Schritt 1 erfassten offiziellen Timeline-Funktionen mi
 | Funktion | Status | Hinweise |
 | --- | --- | --- |
 | Feste Following/Discover-nahe Tabs | Erfuellt | Es gibt die Tabs `Discover`, `Following`, `Popular with Friends`, `Mutuals`, `Best of Follows`. Re-Klick auf einen aktiven Tab triggert einen Reload (bsky-client/src/modules/layout/HeaderContent.jsx:7-69, bsky-client/src/ClientApp.jsx:73-82). |
-| Benutzerdefinierte Feeds (Picker, Pins, Sortierung) | Fehlt | Kein Feed-Picker in der Timeline; der separate Navigationspunkt `feeds` zeigt nur "Feeds folgt" (bsky-client/src/ClientApp.jsx:191-194). |
+| Benutzerdefinierte Feeds (Picker, Pins, Sortierung) | Teilweise | Feed-Manager mit Pinned/Saved und Sortierung vorhanden; Timeline-Header zeigt Pinned-Menu. Feed-Search/Subscribe/Create fehlen noch. |
 | Feed-spezifische Optionen (z. B. Hide Reposts pro Feed) | Fehlt | In der Timeline oder im Header gibt es keine Einstellungs-Schaltflaeche; keine State- oder UI-Elemente fuer Filter gefunden. |
 
 ## Timeline-UI

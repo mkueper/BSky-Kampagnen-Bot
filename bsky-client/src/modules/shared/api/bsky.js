@@ -33,6 +33,7 @@ const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
 const PROFILE_BATCH_SIZE = 25
 const feedMetaGlobalCache = new Map()
+const listMetaGlobalCache = new Map()
 
 const GLOBAL_SCOPE = (typeof globalThis === 'object' && globalThis) ? globalThis : undefined
 const DEFAULT_BSKY_SERVICE = 'https://bsky.social'
@@ -426,7 +427,31 @@ function storeGlobalFeedMeta (cacheKey, data, ttlMs) {
   })
 }
 
-async function loadFeedMetadata (agent, feedUri, metaCache, errors) {
+function readGlobalListMeta (cacheKey) {
+  if (!cacheKey) return null
+  const entry = listMetaGlobalCache.get(cacheKey)
+  if (!entry) return null
+  if (entry.data) {
+    if (!entry.expiresAt || entry.expiresAt > Date.now()) {
+      return entry.data
+    }
+    listMetaGlobalCache.delete(cacheKey)
+    return null
+  }
+  if (entry.promise) return entry.promise
+  listMetaGlobalCache.delete(cacheKey)
+  return null
+}
+
+function storeGlobalListMeta (cacheKey, data, ttlMs) {
+  if (!cacheKey) return
+  listMetaGlobalCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + Math.max(0, Number(ttlMs) || 0)
+  })
+}
+
+async function loadFeedMetadata (agent, feedUri, metaCache) {
   const cacheKey = feedUri || ''
   if (cacheKey && metaCache.has(cacheKey)) {
     return metaCache.get(cacheKey)
@@ -497,32 +522,98 @@ async function loadFeedMetadata (agent, feedUri, metaCache, errors) {
     }
     metaCache.set(cacheKey, fallback)
     if (cacheKey) storeGlobalFeedMeta(cacheKey, fallback, FEED_META_ERROR_TTL_MS)
-    if (error?.status !== 404 && error?.statusCode !== 404) {
-      const reason = error?.message || 'Feed konnte nicht geladen werden.'
-      const alreadyPresent = errors.some(entry => entry?.feedUri === feedUri && entry?.message === reason)
-      if (!alreadyPresent) errors.push({ feedUri, message: reason })
-    }
+    // Error-Details vorerst nicht in die UI pushen.
     return fallback
   }
 }
 
-async function hydrateSavedFeedList (entries = [], { agent, metaCache, errors }) {
+async function loadListMetadata (agent, listUri, metaCache) {
+  const cacheKey = listUri || ''
+  if (cacheKey && metaCache.has(cacheKey)) {
+    return metaCache.get(cacheKey)
+  }
+  if (cacheKey) {
+    const globalEntry = readGlobalListMeta(cacheKey)
+    if (globalEntry) {
+      if (typeof globalEntry.then === 'function') {
+        const meta = await globalEntry
+        metaCache.set(cacheKey, meta)
+        return meta
+      }
+      metaCache.set(cacheKey, globalEntry)
+      return globalEntry
+    }
+  }
+  if (!listUri) {
+    return {
+      displayName: 'Liste',
+      description: '',
+      avatar: null,
+      creator: null,
+      isValid: false,
+      status: 'unknown'
+    }
+  }
+  const fetchPromise = (async () => {
+    const res = await agent.app.bsky.graph.getList({ list: listUri, limit: 1 })
+    const data = res?.data ?? res ?? {}
+    const list = data.list || {}
+    return {
+      displayName: list.name || 'Liste',
+      description: list.description || '',
+      avatar: list.avatar || null,
+      creator: list.creator
+        ? {
+            did: list.creator.did || '',
+            handle: list.creator.handle || '',
+            displayName: list.creator.displayName || list.creator.handle || ''
+          }
+        : null,
+      isValid: Boolean(list),
+      status: list?.name ? 'ok' : 'unknown'
+    }
+  })()
+  if (cacheKey) {
+    listMetaGlobalCache.set(cacheKey, { promise: fetchPromise })
+  }
+  try {
+    const meta = await fetchPromise
+    metaCache.set(cacheKey, meta)
+    if (cacheKey) storeGlobalListMeta(cacheKey, meta, FEED_META_CACHE_TTL_MS)
+    return meta
+  } catch (error) {
+    const fallback = {
+      displayName: 'Liste',
+      description: '',
+      avatar: null,
+      creator: null,
+      isValid: false,
+      status: error?.status === 404 || error?.statusCode === 404 ? 'not-found' : 'error'
+    }
+    metaCache.set(cacheKey, fallback)
+    if (cacheKey) storeGlobalListMeta(cacheKey, fallback, FEED_META_ERROR_TTL_MS)
+    // Error-Details vorerst nicht in die UI pushen.
+    return fallback
+  }
+}
+
+async function hydrateSavedFeedList (entries = [], { agent, metaCache }) {
   if (!Array.isArray(entries) || entries.length === 0) return []
   const result = []
   for (let i = 0; i < entries.length; i += FEED_META_BATCH_SIZE) {
     const chunk = entries.slice(i, i + FEED_META_BATCH_SIZE)
     const chunkResults = await Promise.all(
-      chunk.map((entry) => hydrateSavedFeed(entry, { agent, metaCache, errors }))
+      chunk.map((entry) => hydrateSavedFeed(entry, { agent, metaCache }))
     )
     result.push(...chunkResults)
   }
   return result
 }
 
-async function hydrateSavedFeed (entry, { agent, metaCache, errors }) {
+async function hydrateSavedFeed (entry, { agent, metaCache }) {
   if (!entry) return null
   if (entry.type === 'timeline') {
-    const label = TIMELINE_LABELS[entry.value] || 'Timeline'
+    const label = entry.displayName || entry.name || TIMELINE_LABELS[entry.value] || entry.value || 'Timeline'
     return {
       id: entry.id,
       type: entry.type,
@@ -531,7 +622,7 @@ async function hydrateSavedFeed (entry, { agent, metaCache, errors }) {
       pinned: Boolean(entry.pinned),
       displayName: label,
       description: '',
-      avatar: null,
+      avatar: entry.avatar || null,
       creator: null,
       likeCount: null,
       isOnline: true,
@@ -540,7 +631,7 @@ async function hydrateSavedFeed (entry, { agent, metaCache, errors }) {
     }
   }
   if (entry.type === 'feed') {
-    const meta = await loadFeedMetadata(agent, entry.value, metaCache, errors)
+    const meta = await loadFeedMetadata(agent, entry.value, metaCache)
     return {
       id: entry.id,
       type: entry.type,
@@ -557,13 +648,31 @@ async function hydrateSavedFeed (entry, { agent, metaCache, errors }) {
       status: meta.status
     }
   }
+  if (entry.type === 'list') {
+    const meta = await loadListMetadata(agent, entry.value, metaCache)
+    return {
+      id: entry.id,
+      type: entry.type,
+      value: entry.value,
+      feedUri: entry.value || null,
+      pinned: Boolean(entry.pinned),
+      displayName: meta.displayName,
+      description: meta.description,
+      avatar: meta.avatar,
+      creator: meta.creator,
+      likeCount: null,
+      isOnline: true,
+      isValid: meta.isValid,
+      status: meta.status
+    }
+  }
   return {
     id: entry.id,
     type: entry.type || 'unknown',
     value: entry.value || '',
     feedUri: entry.value || null,
     pinned: Boolean(entry.pinned),
-    displayName: 'Unbekannter Feed',
+    displayName: entry.name || entry.displayName || entry.value || entry.uri || 'Unbekannter Feed',
     description: '',
     avatar: null,
     creator: null,
@@ -579,13 +688,11 @@ async function buildFeedListsFromSavedFeeds (savedFeeds = [], { agent }) {
   const errors = []
   const pinnedEntries = await hydrateSavedFeedList(savedFeeds.filter((entry) => entry?.pinned), {
     agent,
-    metaCache,
-    errors
+    metaCache
   })
   const savedEntries = await hydrateSavedFeedList(savedFeeds.filter((entry) => !entry?.pinned), {
     agent,
-    metaCache,
-    errors
+    metaCache
   })
   return {
     pinned: pinnedEntries.filter(Boolean),
@@ -633,8 +740,15 @@ function normalizeFeedUri (value) {
 }
 
 async function getSavedFeedsPreference (agent) {
-  const prefs = await agent.app.bsky.actor.getPreferences()
-  return Array.isArray(prefs?.savedFeeds) ? prefs.savedFeeds : []
+  const prefs = await resolveAgentPreferences(agent)
+  if (Array.isArray(prefs?.savedFeeds)) return prefs.savedFeeds
+  const list = Array.isArray(prefs?.preferences) ? prefs.preferences : []
+  const savedPref = list.find((entry) => (
+    entry?.$type === 'app.bsky.actor.defs#savedFeedsPref' ||
+    entry?.$type === 'app.bsky.actor.defs#savedFeedsV2' ||
+    entry?.type === 'savedFeeds'
+  ))
+  return Array.isArray(savedPref?.savedFeeds) ? savedPref.savedFeeds : []
 }
 
 async function buildFeedResponseFromSavedFeeds (agent, savedFeeds) {
