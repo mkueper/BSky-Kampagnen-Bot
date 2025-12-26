@@ -20,13 +20,12 @@ describe('ThreadComposer', () => {
       blob: () => Promise.resolve(new Blob([new Uint8Array(9 * 1024 * 1024)], { type: 'image/gif' }))
     })
 
-    const { getByText, queryByTestId } = render(<ThreadComposer value={'Hello'} onChange={() => {}} gifPickerEnabled />)
+    const { getByText, findByTestId } = render(<ThreadComposer value={'Hello'} onChange={() => {}} gifPickerEnabled />)
 
     const gifButton = getByText('GIF')
     fireEvent.click(gifButton)
 
-    const pick = queryByTestId('gif-pick')
-    expect(pick).toBeTruthy()
+    const pick = await findByTestId('gif-pick')
     fireEvent.click(pick)
 
     await waitFor(() => {

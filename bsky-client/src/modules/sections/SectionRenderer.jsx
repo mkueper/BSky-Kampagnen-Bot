@@ -1,11 +1,11 @@
 import { Suspense } from 'react'
 import NotificationCardSkeleton from '../notifications/NotificationCardSkeleton.jsx'
-import { Timeline } from '../timeline/index.js'
 import SavedFeed from '../bookmarks/SavedFeed.jsx'
 import BlockListView from '../settings/BlockListView.jsx'
 import {
   ChatListViewLazy,
   NotificationsLazy,
+  TimelineLazy,
   ProfileViewLazy,
   SettingsViewLazy
 } from './lazySections.jsx'
@@ -27,7 +27,9 @@ const SectionFallback = ({ label }) => (
 function TimelineSection ({ listKey, languageFilter }) {
   return (
     <div className='space-y-6'>
-      <Timeline listKey={listKey} isActive languageFilter={languageFilter} />
+      <Suspense fallback={<SectionFallback label='Timeline lädt…' />}>
+        <TimelineLazy listKey={listKey} isActive languageFilter={languageFilter} />
+      </Suspense>
     </div>
   )
 }

@@ -14,7 +14,7 @@
 - Konsolidiertes ListView-/Timeline-Management: `ClientApp`, `AppContext` und `listService` koordinieren Refresh, Polling und Badges konsistent; Notifications, Profile und Composer reagieren schneller auf State-Änderungen.
 - Umfangreicheres Test-Set (SidebarNav, TimelineHeader, Composer-Interaktionen, Profilaktionen) erhöht die Stabilität.
 - Electron-Hauptprozess trennt den Client vom Backend, nutzt einen eigenen Entry (`main-bsky-client`), temporäre Bridge-Dateien und Fensterzustands-Persistenz.
-- Dokumentation erweitert: `.env.sample` enthält neue Scheduler-/Client-Variablen, `docs/beta-client.md` erklärt Build/Sandbox, `bsky-client/Handbuch.md` beschreibt die Bedienung, `refacor-strategie.md` skizziert den Fahrplan.
+- Dokumentation erweitert: `.env.sample` enthält neue Scheduler-/Client-Variablen, `docs/beta-client.md` erklärt Build/Sandbox, `bsky-client/Handbuch.md` beschreibt die Bedienung, `notes/refacor-strategie.md` skizziert den Fahrplan.
 
 ## Downloads
 - **Linux (AppImage):** `BSky Client Beta-1.1.2.AppImage`

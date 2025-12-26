@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import useSWRInfinite from 'swr/infinite'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
@@ -8,7 +8,10 @@ import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { buildConversationHandles, buildConversationTitle, getInitials } from './chatUtils.js'
 import { ClipboardCopyIcon, DotsHorizontalIcon, ExitIcon, ExclamationTriangleIcon, FaceIcon, GlobeIcon, PersonIcon, SpeakerModerateIcon, SlashIcon, TrashIcon } from '@radix-ui/react-icons'
-import { EmojiPicker } from '@kampagnen-bot/media-pickers'
+const EmojiPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.EmojiPicker }
+})
 
 const PAGE_SIZE = 40
 
@@ -466,12 +469,16 @@ function ChatMessageBubble ({ message, membersByDid, viewerDid, formatter, t, co
           </InlineMenu>
         </div>
       </div>
-      <EmojiPicker
-        open={emojiPickerOpen}
-        onClose={() => setEmojiPickerOpen(false)}
-        anchorRef={emojiButtonRef}
-        onPick={handleEmojiPick}
-      />
+      {emojiPickerOpen ? (
+        <Suspense fallback={null}>
+          <EmojiPickerLazy
+            open={emojiPickerOpen}
+            onClose={() => setEmojiPickerOpen(false)}
+            anchorRef={emojiButtonRef}
+            onPick={handleEmojiPick}
+          />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

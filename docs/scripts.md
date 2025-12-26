@@ -6,7 +6,7 @@ Schnelle Referenz zu allen wichtigen CLI-Befehlen. Die Skripte befinden sich in 
 
 | Script | Beschreibung |
 | --- | --- |
-| `npm run test` | Führt die Vitest-Suite im Root (Backend) aus. |
+| `npm run test` | Führt die Vitest-Suite gemäß `vitest.config.mjs` aus (Backend + Frontends + Shared-Logic, je nach Include-Globs). |
 | `npm run test:ui` | Startet Vitest im UI-Modus. |
 | `npm run test:all` | Testet Backend, Dashboard, Bsky-Client und Shared-UI nacheinander (Workspaces). |
 | `npm run lint` / `npm run lint:fix` | ESLint-Check bzw. Auto-Fix im gesamten Repo. |
@@ -73,7 +73,7 @@ Schnelle Referenz zu allen wichtigen CLI-Befehlen. Die Skripte befinden sich in 
 
 - **Dashboard** (`dashboard/package.json`): besitzt eigene `dev`, `build`, `test`, `lint` Skripte; werden über die Root-Skripte angesprochen.
 - **Bsky-Client** (`bsky-client/package.json`): analog Dashboard mit Vite/Vitest.
-- **Shared-UI** (`packages/shared-ui/package.json`): `build` führt ESLint + Vitest aus; `lint`/`test` lassen sich auch separat starten.
+- **Shared-UI** (`packages/shared-ui/package.json`): `build` ist ein No-Op (Shared UI wird direkt aus `src/` konsumiert); `verify` führt `lint` + `test` aus.
 - **Media-Pickers** (`packages/media-pickers/package.json`): `build`/`lint` sind Platzhalter, da der Code eingecheckt ist.
 
 > 💡 Tipp: Für einzelne Workspaces können die Skripte auch direkt aufgerufen werden, z. B. `npm run test --workspace packages/shared-ui`.

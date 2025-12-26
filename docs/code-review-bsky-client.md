@@ -33,6 +33,7 @@ Empfehlung 4 und 5 sind damit größtenteils umgesetzt; der nächste Fokus liegt
 ## Weiteres Vorgehen
 - Validation: Die neuen Provider separat mit `react-test-renderer` oder Vitest testen; der globale AppState mag gleich bleiben, falls die Separation schrittweise erfolgt.
 - Dokumentation: Den Review ergänzt um eine kurze Tabelle (z. B. im `docs/`-Bereich), damit zukünftige Reviewer wissen, welche Contexts aktuell noch eng gekoppelt sind.
+- **Context-Usage prüfen**: Kontrolliere neue UI-Konsumenten (`RichText`, `ActorProfileLink`, Notifications/Timeline-Komponenten etc.), ob sie jetzt mit `useUIDispatch`, `useTimelineDispatch` oder `useComposerDispatch` arbeiten und nicht mehr fälschlich `useAppDispatch` konsumieren, damit der Provider-Split sauber bleibt.
 
 ## Empfehlung 2 & 3 – Nächste Schritte
 
@@ -40,6 +41,10 @@ Empfehlung 4 und 5 sind damit größtenteils umgesetzt; der nächste Fokus liegt
 - **UI-Service-Logik auslagern** – `AuthenticatedClientApp` orchestriert Routing, Polling und UI-Flags (`bsky-client/src/ClientApp.jsx:150-260`) und feuert `useListPolling`, `useNotificationPolling` sowie `useChatPolling` direkt aus der Hauptkomponente, was die Trennung von UI- und Service-Layer aufhebt. Schrittweise sollten Polling-/Routing-Registrierungen in dedizierte Komponenten verschoben werden (z. B. ein `TimelineSection`-Component, das selbst `useListPolling` aufruft) und Modals/Thread-Composer nach Context oder `lazy`-Schnittstellen auslagern. Tests könnten hier mit Vitest sicherstellen, dass `AuthenticatedClientApp` nur dann überhaupt Render-Pfade für `TimelineSection` oder `ChatSection` aufbaut, wenn `section` und `authStatus` passen, ohne dass die Polling-Hooks im Headless-Modus feuern.
 
 Ein konkreter Ordnungsbeitrag in der Dokumentation wäre eine Tabelle, die die aktuellen Context-Kopplungen (z. B. welche Aktion welchen Provider betrifft) aufzeigt; sie würde als Leitfaden dienen, wenn wir die noch offenen Recommendations (Provider-Split, UI-Service-Trennung) umsetzen.
+
+## Service- / UI-Architektur (Update)
+- `ClientServiceOrchestrator` fasst alle Polling Hooks (`useListPolling`, `useNotificationPolling`, `useChatPolling`) zusammen und stellt per `SectionActivityContext` dieselben Section/Lista/Tab-Flags für den UI-Layer (`SectionRenderer` & Lazy-Sections) bereit. Dadurch ist sichergestellt, dass Sections nicht selbst Polling starten, sondern ausschließlich die vom Orchestrator verwalteten Flags konsumieren.
+- `AppProvider` enthält im Wesentlichen nur noch globale Actions wie `SET_SECTION` oder `SET_ME`; alle anderen Komponenten greifen auf die jeweils zuständigen Dispatches (`useTimelineDispatch`, `useUIDispatch`, `useComposerDispatch`, `useThreadDispatch`) zurück. Das reduziert `guardedDispatch` auf ein Minimum und macht die Context-Ebenen leichter testbar.
 
 ## Action-Dispatch-Matrix (aktualisiert)
 
@@ -49,3 +54,4 @@ Ein konkreter Ordnungsbeitrag in der Dokumentation wäre eine Tabelle, die die a
 | `SET_NOTIFICATIONS_UNREAD`, `SET_CLIENT_SETTINGS_OPEN`, `OPEN_CHAT_VIEWER`, `SET_NOTIFICATIONS_SETTINGS_OPEN` | UIProvider           | UI-Flags (Badges, Modals, Viewer, Settings) leben explizit in `uiDispatch`, damit keine Timeline-Updates feuern. |
 | `OPEN_THREAD_UNROLL`, `CLOSE_THREAD_UNROLL`, `PATCH_POST_ENGAGEMENT` | ThreadProvider | Thread-Logik bleibt bei `threadDispatch`, z. B. `ThreadView` und `threadState` bekommen nur ihre Actions. |
 | `SET_SECTION`, `SET_ME`, `SET_FEED_PICKER_STATE` | AppProvider (global) | `appDispatch` koordiniert nur wirklich globale Infos (aktiver Bereich, Profil des Nutzers, Account-Wechsel) und löst ausschließlich die wenigen verbleibenden AppReducer-Fälle aus. |
+| `SectionActivityContext` / `ClientServiceOrchestrator` | ClientServiceOrchestrator | Polling-Hooks und Section-Flags (`section`, `notificationListKey`, `timelineListKey`, `notificationTab`, `timelineLanguageFilter`) werden aus einer Hand an `SectionRenderer` weitergegeben, damit UI-Komponenten keine eigenen Polling-Logiken starten. |

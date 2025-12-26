@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
-import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { VideoIcon, ImageIcon, FaceIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
@@ -17,6 +16,16 @@ const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 const POST_CHAR_LIMIT = 300
 const PREVIEW_TYPING_DELAY = 600
+
+const GifPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.GifPicker }
+})
+
+const EmojiPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.EmojiPicker }
+})
 
 function normalizePreviewUrl (value) {
   if (!value) return ''
@@ -843,27 +852,33 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}
         onClose={closeAltDialog}
       />
-      {tenorAvailable ? (
-        <GifPicker
-          open={gifPickerOpen}
-          styles={{ panel: { width: '70vw', maxWidth: '1200px' }}}
-          onClose={() => setGifPickerOpen(false)}
-          onPick={handleGifPick}
-          maxBytes={MAX_GIF_BYTES}
-          fetcher={tenorFetcher || undefined}
-        />
+      {tenorAvailable && gifPickerOpen ? (
+        <Suspense fallback={null}>
+          <GifPickerLazy
+            open={gifPickerOpen}
+            styles={{ panel: { width: '70vw', maxWidth: '1200px' }}}
+            onClose={() => setGifPickerOpen(false)}
+            onPick={handleGifPick}
+            maxBytes={MAX_GIF_BYTES}
+            fetcher={tenorFetcher || undefined}
+          />
+        </Suspense>
       ) : null}
-      <EmojiPicker
-        open={emojiPickerOpen}
-        onClose={() => setEmojiPickerOpen(false)}
-        anchorRef={emojiButtonRef}
-        onPick={(emoji) => {
-          const value = emoji?.native || emoji?.shortcodes || emoji?.id
-          if (!value) return
-          insertAtCursor(value)
-          setEmojiPickerOpen(false)
-        }}
-      />
+      {emojiPickerOpen ? (
+        <Suspense fallback={null}>
+          <EmojiPickerLazy
+            open={emojiPickerOpen}
+            onClose={() => setEmojiPickerOpen(false)}
+            anchorRef={emojiButtonRef}
+            onPick={(emoji) => {
+              const value = emoji?.native || emoji?.shortcodes || emoji?.id
+              if (!value) return
+              insertAtCursor(value)
+              setEmojiPickerOpen(false)
+            }}
+          />
+        </Suspense>
+      ) : null}
     </form>
   )
 }

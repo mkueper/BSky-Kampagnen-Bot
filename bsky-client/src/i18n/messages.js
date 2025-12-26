@@ -367,7 +367,8 @@ const messages = {
       errorBody: 'Blockliste konnte nicht geladen werden.',
       loading: 'Blockliste wird geladen…',
       empty: 'Du hast aktuell keine Accounts blockiert.',
-      loadMore: 'Mehr laden',
+      autoLoading: 'Weitere blockierte Einträge werden automatisch geladen…',
+      loadMore: 'Blockierte Einträge laden',
       loadingMore: 'Lädt…',
       actions: {
         more: 'Weitere Aktionen',
@@ -1089,7 +1090,8 @@ const messages = {
       errorBody: 'Could not load the block list.',
       loading: 'Loading block list…',
       empty: 'You are not blocking any accounts.',
-      loadMore: 'Load more',
+      autoLoading: 'More blocked entries are loading automatically…',
+      loadMore: 'Load blocked entries',
       loadingMore: 'Loading…',
       actions: {
         more: 'More actions',

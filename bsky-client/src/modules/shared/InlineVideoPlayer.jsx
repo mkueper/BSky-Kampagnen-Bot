@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useRef } from 'react'
 
+let hlsLoaderPromise = null
+
+function loadHls () {
+  if (!hlsLoaderPromise) {
+    hlsLoaderPromise = import('hls.js')
+      .then((module) => module.default || module)
+      .catch((error) => {
+        hlsLoaderPromise = null
+        throw error
+      })
+  }
+  return hlsLoaderPromise
+}
+
 function isHlsSource (src) {
   return /\.m3u8($|\?)/i.test(src || '')
 }
@@ -42,7 +56,7 @@ export default function InlineVideoPlayer ({ src = '', poster = '', autoPlay = t
     ;(async () => {
       let Hls
       try {
-        Hls = (await import('hls.js')).default
+        Hls = await loadHls()
       } catch (err) {
         console.warn('HLS import failed; cannot play inline sources.', err)
         return

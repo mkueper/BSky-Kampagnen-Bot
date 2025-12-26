@@ -1,13 +1,14 @@
 import React, {
   useCallback,
   useEffect,
+  lazy,
   useMemo,
   useRef,
   useState,
+  Suspense,
 } from 'react'
 import PropTypes from 'prop-types'
 import { FaceIcon, ImageIcon, VideoIcon } from '@radix-ui/react-icons'
-import { EmojiPicker, GifPicker } from '@kampagnen-bot/media-pickers'
 
 import Button from './Button.jsx'
 import MediaDialog from './MediaDialog.jsx'
@@ -28,6 +29,16 @@ const DEFAULT_ALLOWED_MIMES = [
 const DEFAULT_GIF_PICKER_STYLES = {
   panel: { width: '70vw', maxWidth: '1200px' },
 }
+
+const EmojiPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.EmojiPicker }
+})
+
+const GifPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.GifPicker }
+})
 
 const URL_REGEX = /https?:\/\/\S+/i
 
@@ -1078,17 +1089,21 @@ export default function ThreadComposer({
         </div>
       ) : null}
 
-      <EmojiPicker
-        open={emojiPickerOpen}
-        anchorRef={emojiButtonRef}
-        onClose={() => setEmojiPickerOpen(false)}
-        onPick={(emoji) => {
-          const valueToInsert = emoji?.native || emoji?.shortcodes || emoji?.id
-          if (!valueToInsert) return
-          insertAtCursor(valueToInsert)
-          setEmojiPickerOpen(false)
-        }}
-      />
+      {emojiPickerOpen ? (
+        <Suspense fallback={null}>
+          <EmojiPickerLazy
+            open={emojiPickerOpen}
+            anchorRef={emojiButtonRef}
+            onClose={() => setEmojiPickerOpen(false)}
+            onPick={(emoji) => {
+              const valueToInsert = emoji?.native || emoji?.shortcodes || emoji?.id
+              if (!valueToInsert) return
+              insertAtCursor(valueToInsert)
+              setEmojiPickerOpen(false)
+            }}
+          />
+        </Suspense>
+      ) : null}
       <MediaDialog
         open={mediaDialog.open}
         title={mergedLabels.addImageModalTitle}
@@ -1126,15 +1141,17 @@ export default function ThreadComposer({
           })
         }
       />
-      {gifPickerEnabled ? (
-        <GifPicker
-          open={gifPickerState.open}
-          onClose={() => setGifPickerState({ open: false, segmentId: null })}
-          styles={gifPickerStyles}
-          fetcher={gifPickerFetcher || undefined}
-          maxBytes={gifPickerMaxBytes}
-          onPick={(payload) => handleGifPick(gifPickerState.segmentId, payload)}
-        />
+      {gifPickerEnabled && gifPickerState.open ? (
+        <Suspense fallback={null}>
+          <GifPickerLazy
+            open={gifPickerState.open}
+            onClose={() => setGifPickerState({ open: false, segmentId: null })}
+            styles={gifPickerStyles}
+            fetcher={gifPickerFetcher || undefined}
+            maxBytes={gifPickerMaxBytes}
+            onPick={(payload) => handleGifPick(gifPickerState.segmentId, payload)}
+          />
+        </Suspense>
       ) : null}
     </div>
   )

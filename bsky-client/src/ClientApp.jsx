@@ -26,16 +26,17 @@ import { useUIState, useUIDispatch } from './context/UIContext.jsx'
 import { useThreadDispatch } from './context/ThreadContext.jsx'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 import { runListRefresh, getListItemId } from './modules/listView/listService.js'
-import ProfileViewerPane from './modules/profile/ProfileViewerPane.jsx'
-import HashtagSearchPane from './modules/search/HashtagSearchPane.jsx'
-import { SearchProvider } from './modules/search/SearchContext.jsx'
-import SearchHeader from './modules/search/SearchHeader.jsx'
+import { SearchProvider, SearchHeader } from './modules/search/index.js'
 import { useBskyAuth } from './modules/auth/AuthContext.jsx'
 import LoginView from './modules/login/LoginView.jsx'
 import ChatHeader from './modules/chat/ChatHeader.jsx'
-import ChatConversationPane from './modules/chat/ChatConversationPane.jsx'
 import { useClientConfig } from './hooks/useClientConfig.js'
-import { SearchViewLazy } from './modules/sections/lazySections.jsx'
+import {
+  SearchViewLazy,
+  ProfileViewerPaneLazy,
+  HashtagSearchPaneLazy,
+  ChatConversationPaneLazy
+} from './modules/sections/lazySections.jsx'
 import { SectionRenderer } from './modules/sections/SectionRenderer.jsx'
 import { ClientServiceOrchestrator } from './modules/service/ClientServiceOrchestrator.jsx'
 
@@ -951,9 +952,21 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   }, [activeList, refreshListByKey, scrollActiveListToTop])
 
   const threadPane = threadState.active ? <ThreadView /> : null
-  const profilePane = profileViewer?.open ? <ProfileViewerPane /> : null
-  const hashtagPane = hashtagSearch?.open ? <HashtagSearchPane /> : null
-  const chatPane = chatViewer?.open ? <ChatConversationPane /> : null
+  const profilePane = profileViewer?.open ? (
+    <Suspense fallback={<SectionFallback />}>
+      <ProfileViewerPaneLazy />
+    </Suspense>
+  ) : null
+  const hashtagPane = hashtagSearch?.open ? (
+    <Suspense fallback={<SectionFallback />}>
+      <HashtagSearchPaneLazy />
+    </Suspense>
+  ) : null
+  const chatPane = chatViewer?.open ? (
+    <Suspense fallback={<SectionFallback />}>
+      <ChatConversationPaneLazy />
+    </Suspense>
+  ) : null
   const detailPane = profilePane || threadPane || hashtagPane || chatPane
   const chatPaneActive = Boolean(chatPane)
   const detailPaneActive = Boolean(

@@ -33,7 +33,7 @@ Hinweis: Stand basiert auf dem aktuellen Code in `bsky-client`. Feeds und Listen
 | Alt-Text fuer Medien | Umgesetzt | Alt-Dialog vorhanden. |
 | Emoji-Picker | Umgesetzt | Emoji-Auswahl vorhanden. |
 | Interaktions-Settings (Wer darf antworten/quoten) | Umgesetzt | Post-Interaktions-Modal vorhanden. |
-| Link-Preview | **TEILWEISE** | Im Standalone-Modus derzeit nicht verfuegbar. |
+| Link-Preview | **TEILWEISE** | Verfuegbar, wenn ein Preview-Fetcher konfiguriert ist (z.B. `VITE_PREVIEW_PROXY_URL` oder `window.__BSKY_PREVIEW_*`); ohne Konfiguration erscheint eine Standalone-Meldung. |
 | Video-Upload | **FEHLT** | Keine Video-Upload-Logik im Composer. |
 
 ## Profile
@@ -76,5 +76,5 @@ Hinweis: Stand basiert auf dem aktuellen Code in `bsky-client`. Feeds und Listen
 | --- | --- | --- |
 | Blockliste einsehen und entblocken | Umgesetzt | `BlockListView.jsx` vorhanden. |
 | Client-Settings (Layout/Medien/Externe Dienste) | Umgesetzt | `ClientSettingsModal.jsx` vorhanden. |
-| Allgemeine Einstellungen-Seite | **FEHLT** | `SettingsView.jsx` ist leer. |
+| Allgemeine Einstellungen-Seite | **TEILWEISE** | `SettingsView.jsx` ist eine Platzhalter-Seite (keine konfigurierbaren Optionen). |
 | Benachrichtigungs-Praeferenzen / Activity-Subscriptions | **FEHLT** | API-Routen nicht verfuegbar (siehe `bsky.js`). |

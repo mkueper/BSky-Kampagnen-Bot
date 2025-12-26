@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWRInfinite from 'swr/infinite'
 import { Button, Card, InlineMenu, InlineMenuTrigger, InlineMenuContent, InlineMenuItem, ConfirmDialog, fetchBlocks, unblockActor, useConfirmDialog } from '../shared'
 import { useUIDispatch } from '../../context/UIContext.jsx'
@@ -13,6 +13,7 @@ export default function BlockListView () {
   const [actionBusyId, setActionBusyId] = useState(null)
   const { t } = useTranslation()
   const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
+  const loadMoreTriggerRef = useRef(null)
 
   const getBlocksKey = useCallback((pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.cursor) return null
@@ -62,6 +63,27 @@ export default function BlockListView () {
     if (!hasMore || isLoadingInitial || isLoadingMore) return
     setSize(size + 1)
   }, [hasMore, isLoadingInitial, isLoadingMore, setSize, size])
+
+  useEffect(() => {
+    if (!hasMore || !loadMoreTriggerRef.current || typeof IntersectionObserver === 'undefined') return
+    const root = typeof document !== 'undefined'
+      ? document.getElementById('bsky-scroll-container')
+      : null
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        handleLoadMore()
+      }
+    }, {
+      root,
+      rootMargin: '200px 0px'
+    })
+    const target = loadMoreTriggerRef.current
+    observer.observe(target)
+    return () => {
+      observer.unobserve(target)
+    }
+  }, [handleLoadMore, hasMore])
 
   const handleOpenProfile = useCallback((actor) => {
     if (!actor) return
@@ -192,10 +214,16 @@ export default function BlockListView () {
       </div>
 
       {hasMore ? (
-        <div className='flex justify-center pt-2'>
-          <Button variant='secondary' onClick={handleLoadMore} disabled={isLoadingMore}>
-            {isLoadingMore ? t('blocks.loadingMore', 'Lädt…') : t('blocks.loadMore', 'Mehr laden')}
-          </Button>
+        <div ref={loadMoreTriggerRef} className='pt-2 text-center text-xs text-foreground-muted'>
+          {typeof IntersectionObserver === 'undefined' ? (
+            <Button variant='secondary' onClick={handleLoadMore} disabled={isLoadingMore}>
+              {t('blocks.loadMore', 'Mehr laden')}
+            </Button>
+          ) : (
+            isLoadingMore
+              ? t('common.status.loading', 'Lade…')
+              : t('blocks.autoLoading', 'Weitere Einträge werden automatisch geladen…')
+          )}
         </div>
       ) : null}
       <ConfirmDialog
