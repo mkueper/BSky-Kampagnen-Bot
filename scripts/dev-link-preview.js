@@ -59,7 +59,7 @@ async function fetchPreview (targetUrl) {
   return getLinkPreview(targetUrl, {
     timeout: PREVIEW_TIMEOUT_MS,
     headers: {
-      'user-agent': 'BSky-Kampagnen-Bot-LinkPreview/1.0 (+https://github.com/mkueper/BSky-Kampagnen-Bot)'
+      'user-agent': 'BSky-Kampagnen-Tool-LinkPreview/1.0 (+https://github.com/mkueper/BSky-Kampagnen-Tool)'
     }
   })
 }

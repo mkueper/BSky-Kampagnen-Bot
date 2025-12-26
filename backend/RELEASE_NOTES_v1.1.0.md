@@ -1,4 +1,4 @@
-# BSky Kampagnen Bot – v1.1.0
+# BSky Kampagnen Tool – v1.1.0
 
 Release-Date: 2025-10-13
 
@@ -31,6 +31,6 @@ Release-Date: 2025-10-13
 - Update `.env.sample` and README
 
 ## Artifact
-- AppImage: `dist/BSky Kampagnen Bot-1.1.0.AppImage`
+- AppImage: `dist/BSky Kampagnen Tool-1.1.0.AppImage`
 - SHA256: `49997de214973ca694958659f0ec3bf980354c746f55430c6254e1698357359c`
 

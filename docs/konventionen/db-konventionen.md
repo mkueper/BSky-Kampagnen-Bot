@@ -1,8 +1,8 @@
 # DB-Konventionen
 
-**BSky-Kampagnen-Bot – Datenbank-Konventionen (Backend)**
+**BSky-Kampagnen-Tool – Datenbank-Konventionen (Backend)**
 
-Diese Datei beschreibt die verbindlichen Richtlinien für Datenbankstruktur, Migrationen und Abfragen im Backend des BSky-Kampagnen-Bots.
+Diese Datei beschreibt die verbindlichen Richtlinien für Datenbankstruktur, Migrationen und Abfragen im Backend des BSky-Kampagnen-Tools.
 Sie richtet sich an menschliche Entwickler:innen.
 
 ---

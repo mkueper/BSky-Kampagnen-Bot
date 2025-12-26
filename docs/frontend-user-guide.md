@@ -1,4 +1,4 @@
-# BSky Kampagnen-Bot – Benutzerhandbuch für das Dashboard
+# BSky Kampagnen-Tool – Benutzerhandbuch für das Dashboard
 
 Dieses Handbuch richtet sich an Redakteur:innen und Kampagnen-Manager:innen. Es erklärt, wie Posts (Skeets) und Threads geplant, veröffentlicht, Engagement beobachtet und der integrierte Bluesky-Client genutzt wird.
 

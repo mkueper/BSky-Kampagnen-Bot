@@ -46,10 +46,10 @@ function resolveBackendEntry () {
 function startBackend () {
   const port = process.env.APP_PORT || process.env.BACKEND_PORT || '35123'
 
-  // Prefer a stable config dir under XDG (~/.config/bsky-kampagnen-bot)
+  // Prefer a stable config dir under XDG (~/.config/bsky-kampagnen-tool)
   const configHome = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config')
-  const cfgDirPreferred = path.join(configHome, 'bsky-kampagnen-bot')
-  const cfgDirLegacy = path.join(configHome, 'BSky Kampagnen Bot')
+  const cfgDirPreferred = path.join(configHome, 'bsky-kampagnen-tool')
+  const cfgDirLegacy = path.join(configHome, 'BSky Kampagnen Tool')
   const cfgDir = fs.existsSync(cfgDirPreferred) || !fs.existsSync(cfgDirLegacy)
     ? cfgDirPreferred
     : cfgDirLegacy

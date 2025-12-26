@@ -1,6 +1,6 @@
 # Installation
 
-Hier findest du einen Überblick über die verfügbaren Installationswege für den **BSky-Kampagnen-Bot**. Wähle die Variante, die am besten zu deinem Einsatzzweck passt, und folge anschließend der jeweiligen Detailanleitung.
+Hier findest du einen Überblick über die verfügbaren Installationswege für den **BSky-Kampagnen-Tool**. Wähle die Variante, die am besten zu deinem Einsatzzweck passt, und folge anschließend der jeweiligen Detailanleitung.
 
 ---
 

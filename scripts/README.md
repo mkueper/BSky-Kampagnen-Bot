@@ -1,4 +1,4 @@
-# scripts – Hilfswerkzeuge für den BSky-Kampagnen-Bot
+# scripts – Hilfswerkzeuge für den BSky-Kampagnen-Tool
 
 Das Verzeichnis enthält manuell ausführbare TypeScript-Skripte für Smoke-Tests und Wartungsaufgaben. Sie sind nicht Teil des regulären Builds, können aber bei Entwicklung, Fehleranalyse oder Integrationen unterstützen.
 

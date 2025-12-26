@@ -1,6 +1,6 @@
 # Tests für die Pending-Skeet-Logik
 
-**BSKY-Kampagnen-Bot – Testdokumentation**
+**BSKY-Kampagnen-Tool – Testdokumentation**
 
 Diese Dokumentation beschreibt die Tests, die sicherstellen, dass die neue
 `pending_manual`-Logik korrekt funktioniert. Sie dient sowohl als Referenz für

@@ -129,7 +129,7 @@ Alle nennenswerten Änderungen an diesem Projekt.
 - Dashboard: Lint-Fixes – ungenutzte Variablen entfernt; ESLint-Fehler behoben
 
 ### Docs/IDE
-- VS Code Workspace verbessert (`BSky-Kampagnen-Bot.code-workspace`):
+- VS Code Workspace verbessert (`BSky-Kampagnen-Tool.code-workspace`):
 - ESLint Flat Config aktiviert und Auto-Fix on Save (`source.fixAll.eslint`).
 - TypeScript nutzt Workspace-TS (`typescript.tsdk`).
 - Suche/Explorer-Excludes vereinheitlicht; Dateizuordnungen für `*.mjs`/`*.cjs`.

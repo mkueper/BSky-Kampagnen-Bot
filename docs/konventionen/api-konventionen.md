@@ -1,6 +1,6 @@
-# BSky-Kampagnen-Bot – API-Konventionen (Backend)
+# BSky-Kampagnen-Tool – API-Konventionen (Backend)
 
-Diese Datei beschreibt die **Soll-Konventionen** für die interne und externe API-Gestaltung im Backend des BSky-Kampagnen-Bots.  
+Diese Datei beschreibt die **Soll-Konventionen** für die interne und externe API-Gestaltung im Backend des BSky-Kampagnen-Tools.  
 Sie ist das Zielbild für neue und schrittweise angepasste Endpunkte – der aktuelle Code weicht an einigen Stellen noch davon ab und soll langfristig harmonisiert werden.
 
 ---

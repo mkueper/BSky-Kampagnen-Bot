@@ -1,6 +1,6 @@
-# Bluesky Kampagnen-Bot
+# Bluesky Kampagnen-Tool
 
-[![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
+[![CI](https://github.com/mkueper/BSky-Kampagnen-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Tool/actions/workflows/ci.yml)
 
 ## Kurz erklärt: Was ist das Kampagnen-Tool?
 
@@ -9,7 +9,7 @@ Kurzüberblick: [docs/KurzErklaert.md](docs/KurzErklaert.md)
 > Hinweis: Dieses Projekt unterstützt verantwortungsvolle, faktenbasierte Kampagnenkommunikation.  
 > Die ethischen Leitlinien findest du in [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md).
 
-Der **Bluesky Kampagnen-Bot** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (Standard), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert. Andere SQL-Dialekte lassen sich prinzipiell über `DATABASE_URL` einbinden, gelten aber noch als experimentell, weil die Baseline-Migration aktuell SQLite-Pragmas verwendet.
+Der **Bluesky Kampagnen-Tool** hilft dabei, Skeets vorzuplanen, automatisiert zu veröffentlichen und Reaktionen komfortabel im Dashboard zu verfolgen. Das Projekt setzt auf eine Node.js/Express-API mit SQLite (Standard), ein React-Dashboard und einen Scheduler, der geplante Beiträge zuverlässig ausliefert. Andere SQL-Dialekte lassen sich prinzipiell über `DATABASE_URL` einbinden, gelten aber noch als experimentell, weil die Baseline-Migration aktuell SQLite-Pragmas verwendet.
 
 > Hinweis (Sicherheit & Reifegrad)
 >
@@ -50,8 +50,8 @@ Die Pending-Skeet-Logik stellt sicher, dass während eines Scheduler-Ausfalls ke
 
 ```bash
 # Repository klonen
-git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
-cd BSky-Kampagnen-Bot
+git clone https://github.com/mkueper/BSky-Kampagnen-Tool.git
+cd BSky-Kampagnen-Tool
 
 # Backend-Abhängigkeiten installieren
 npm install
@@ -114,7 +114,7 @@ Die Frontend-Container-Konfiguration (`docker/nginx-frontend.conf`) leitet `/api
 ## Projektstruktur (Kurzüberblick)
 
 ```
-BSKy-Kampagnen-Bot/
+BSKy-Kampagnen-Tool/
 ├─ backend/server.js        # Express-Einstiegspunkt, Scheduler-Bootstrap
 ├─ backend/src/             # Backend-Quellcode (Controller, Services, Models)
 ├─ dashboard/               # React-Dashboard (Vite, Build in dashboard/dist)
@@ -148,7 +148,7 @@ Changelog pflegen:
 | Variable                | Beschreibung                                             | Standard |
 |-------------------------|-----------------------------------------------------------|----------|
 | `BLUESKY_SERVER_URL`    | Bluesky-Endpunkt                                         | `https://bsky.social` |
-| `BLUESKY_IDENTIFIER`    | Handle oder Mailadresse für den Bot                      | –        |
+| `BLUESKY_IDENTIFIER`    | Handle oder Mailadresse für den Tool                      | –        |
 | `BLUESKY_APP_PASSWORD`  | App-spezifisches Passwort                                 | –        |
 | `MASTODON_API_URL`      | Mastodon-Instanz (optional)                              | –        |
 | `MASTODON_ACCESS_TOKEN` | Token für den Mastodon-Account                           | –        |
@@ -192,7 +192,7 @@ Ohne konfigurierte Werte (`AUTH_*`) verweigert das Backend sämtliche geschützt
 
 - Dateien:
   - `.env.dev` – Entwicklung/Test: Bluesky/Mastodon‑Zugangsdaten von leeren Test‑Accounts (keine Follower → kein Spam‑Risiko).
-  - `.env.prod` – Produktion: Zugangsdaten des echten Bot‑/User‑Kontos.
+  - `.env.prod` – Produktion: Zugangsdaten des echten Tool‑/User‑Kontos.
 - Aktive `.env` umschalten:
   - `npm run switchenv:dev` → kopiert `.env.dev` nach `.env` (alte `.env` wird mit Zeitstempel gesichert)
   - `npm run switchenv:prod` → kopiert `.env.prod` nach `.env`
@@ -311,7 +311,7 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
     - Notiz: `npm run changelog:note -- --section=UI "Änderung"` (schreibt nach `changelog-unreleased.md` unter dem heutigen Datum)
     - Release: `npm run changelog:release -- 1.2.3` (übernimmt Notizen nach `CHANGELOG.md`).
 - Environments
-  - Entwicklung/Test über `.env.dev` (Test-Accounts ohne Follower), Produktion `.env.prod` (echter Bot/User).
+  - Entwicklung/Test über `.env.dev` (Test-Accounts ohne Follower), Produktion `.env.prod` (echter Tool/User).
   - Umschalten: `npm run switchenv:dev` / `npm run switchenv:prod`.
 
 ---
@@ -320,7 +320,7 @@ Für Fragen oder Vorschläge einfach ein Issue eröffnen.
 *(Kurzfassung – vollständige Leitlinien siehe [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md))*
 
 Dieses Projekt verfolgt das Ziel, verantwortungsvolle und nachvollziehbare digitale Kommunikation zu unterstützen.  
-Der Kampagnen-Bot richtet sich an Akteur:innen, die faktenbasierte Inhalte veröffentlichen, transparente Prozesse fördern und eine medienkompetente Nutzung automatisierter Werkzeuge schätzen.
+Der Kampagnen-Tool richtet sich an Akteur:innen, die faktenbasierte Inhalte veröffentlichen, transparente Prozesse fördern und eine medienkompetente Nutzung automatisierter Werkzeuge schätzen.
 
 Wir bitten alle Nutzer:innen und Beitragenden, das Tool nicht für manipulative Praktiken, verdeckte Automatisierung, künstliche Reichweitenverstärkung oder die Verbreitung von Desinformation einzusetzen.
 

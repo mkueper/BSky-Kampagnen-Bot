@@ -25,7 +25,7 @@ async function main() {
   //const { serverUrl, identifier, appPassword } = env.bluesky;
 
   const res = await sendPost(
-    { content: "Hallo Bluesky 👋 (Smoke Test vom Kampagnen Bot)." },
+    { content: "Hallo Bluesky 👋 (Smoke Test vom Kampagnen Tool)." },
     "bluesky",
     bskyEnv,
   );

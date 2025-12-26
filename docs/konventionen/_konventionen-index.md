@@ -1,4 +1,4 @@
-# BSky-Kampagnen-Bot – UI-Konventionen (Dashboard & BSky-Client)
+# BSky-Kampagnen-Tool – UI-Konventionen (Dashboard & BSky-Client)
 
 Diese Datei definiert die verbindlichen Richtlinien für das Erstellen und Pflegen von UI-Komponenten in Dashboard und BSky-Client.
 

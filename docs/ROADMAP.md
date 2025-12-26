@@ -1,4 +1,4 @@
-# Roadmap – BSky-Kampagnen-Bot
+# Roadmap – BSky-Kampagnen-Tool
 
 Die Roadmap beschreibt mittelfristige Schwerpunkte. Sie wird laufend angepasst; Feedback und Issues sind ausdrücklich willkommen.
 

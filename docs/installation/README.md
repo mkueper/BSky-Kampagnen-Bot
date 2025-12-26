@@ -1,6 +1,6 @@
 # Installation
 
-Dieser Ordner bündelt alle Leitfäden, um den **BSky-Kampagnen-Bot** in unterschiedlichen Umgebungen einzurichten.
+Dieser Ordner bündelt alle Leitfäden, um den **BSky-Kampagnen-Tool** in unterschiedlichen Umgebungen einzurichten.
 
 - `installation.md` – Überblick über die verfügbaren Installationspfade und Entscheidungshilfen.
 - `local-install.md` – Schritt-für-Schritt-Anleitung für das lokale Development-Setup.

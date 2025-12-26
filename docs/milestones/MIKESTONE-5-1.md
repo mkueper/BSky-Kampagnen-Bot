@@ -13,7 +13,7 @@ Die `VirtualizedList` wurde erweitert um:
   - `overscan` (Default 4)
 - Berechnung eines virtuellen Fensters:
   - `startIndex`, `endIndex`, `slice`
-  - `paddingTop`, `paddingBottom` als Spacer
+  - `paddingTop`, `paddingTooltom` als Spacer
 - Vollständiger Fallback:
   - Wenn Bedingungen nicht erfüllt → **keine Virtualisierung**
   - komplettes, ursprüngliches `map()`-Verhalten bleibt erhalten

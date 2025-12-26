@@ -18,8 +18,8 @@ Optional:
 ## 1. Repository klonen
 
 ```bash
-git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
-cd BSky-Kampagnen-Bot
+git clone https://github.com/mkueper/BSky-Kampagnen-Tool.git
+cd BSky-Kampagnen-Tool
 ```
 
 ## 2. Abhängigkeiten installieren

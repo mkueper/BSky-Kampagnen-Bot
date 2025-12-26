@@ -1,6 +1,6 @@
 # Konventionen-Index
 
-**Übersicht aller Entwicklungsrichtlinien für den BSky-Kampagnen-Bot**
+**Übersicht aller Entwicklungsrichtlinien für den BSky-Kampagnen-Tool**
 
 Dieser Index dient als zentraler Einstiegspunkt in alle Konventionen- und Anweisungsdateien.
 Er zeigt Menschen (und Codex), wo welche Regeln abgelegt sind und wie sie zusammenhängen.

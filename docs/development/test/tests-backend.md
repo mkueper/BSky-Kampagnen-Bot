@@ -93,7 +93,7 @@ Neue Tests sollten durch Hinzufügen eines weiteren Abschnitts im selben Format 
 
 ## backend/__tests__/api/credentialsApi.test.js
 
-**Komponente/Bereich:** API rund um Zugangsdaten (Bluesky/Mastodon) für den Bot.
+**Komponente/Bereich:** API rund um Zugangsdaten (Bluesky/Mastodon) für den Tool.
 
 **Anforderungen (Architektur/Fachkonzept):**
 - **TBD**

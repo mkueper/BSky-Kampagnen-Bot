@@ -1,4 +1,4 @@
-# Modell- und Modus-Auswahl für das BSky-Kampagnen-Bot-Projekt
+# Modell- und Modus-Auswahl für das BSky-Kampagnen-Tool-Projekt
 
 **Leitfaden zur richtigen Modellwahl (ChatGPT/GPT-5.1/Codex) für Diagnose, Implementierung und Planung**
 

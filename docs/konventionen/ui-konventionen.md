@@ -1,6 +1,6 @@
 # UI-Konventionen
 
-**BSky-Kampagnen-Bot – UI-Leitfaden für Dashboard & BSky-Client**
+**BSky-Kampagnen-Tool – UI-Leitfaden für Dashboard & BSky-Client**
 
 Dies ist der zentrale, menschlich lesbare Styleguide für alle UI-Entwicklungen im Dashboard und im BSky-Client.
 Er vereint die allgemeinen Prinzipien konsistenter UI-Entwicklung mit den projektspezifischen Komponenten, Patterns und Layout-Regeln.

@@ -126,7 +126,7 @@ function CronInfo({ open, onClose }) {
 Wir unterscheiden klar zwischen:
 
 - **Plattform-/Protokollbegriffen** (Actions, Labels direkt aus Bluesky/Mastodon),
-- und **Navigations-/Bereichsnamen** im Kampagnen-Bot.
+- und **Navigations-/Bereichsnamen** im Kampagnen-Tool.
 
 **Plattformnahe Begriffe (Actions, Buttons, Menüs)**
 

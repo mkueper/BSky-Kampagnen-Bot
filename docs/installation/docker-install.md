@@ -1,6 +1,6 @@
 # Option C: Installation im Docker-Container
 
-Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Bot** mit Docker Compose betreiben möchten. Das Standard-Setup besteht aus zwei Containern (Backend + Frontend). Eine separate Datenbank ist optional – SQLite ist bereits integriert.
+Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Tool** mit Docker Compose betreiben möchten. Das Standard-Setup besteht aus zwei Containern (Backend + Frontend). Eine separate Datenbank ist optional – SQLite ist bereits integriert.
 
 | Service    | Beschreibung                               | Port (Standard) |
 |------------|---------------------------------------------|-----------------|
@@ -8,7 +8,7 @@ Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Bot** m
 | `frontend` | Nginx-Container mit vorgebauter React-App   | `FRONTEND_PORT` (8080) |
 
 ```
-BSky-Kampagnen-Bot/
+BSky-Kampagnen-Tool/
 ├─ docker/
 │  ├─ Dockerfile.backend
 │  └─ Dockerfile.frontend
@@ -29,8 +29,8 @@ BSky-Kampagnen-Bot/
 ## 1. Repository klonen
 
 ```bash
-git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
-cd BSky-Kampagnen-Bot
+git clone https://github.com/mkueper/BSky-Kampagnen-Tool.git
+cd BSky-Kampagnen-Tool
 ```
 
 ## 2. Konfiguration vorbereiten

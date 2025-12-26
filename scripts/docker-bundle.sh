@@ -8,9 +8,9 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PROJECT_ROOT}"
 
 # Standard-Bundle-Namen auf Basis des aktuellen Datums setzen
-# Format: Bsky-Kamp-Bot-YYYY-MM-DD
+# Format: Bsky-Kamp-Tool-YYYY-MM-DD
 STAMP=$(date +%F)
-DEFAULT_BUNDLE_NAME="Bsky-Kamp-Bot-${STAMP}"
+DEFAULT_BUNDLE_NAME="Bsky-Kamp-Tool-${STAMP}"
 
 BUNDLE_NAME=${1:-${DEFAULT_BUNDLE_NAME}}
 IMAGE_PREFIX=${2:-bsky-kampagnen-bot}

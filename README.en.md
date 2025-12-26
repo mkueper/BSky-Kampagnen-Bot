@@ -1,8 +1,8 @@
-# Bluesky Campaign Bot
+# Bluesky Campaign Tool
 
-[![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
+[![CI](https://github.com/mkueper/BSky-Kampagnen-Tool/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Tool/actions/workflows/ci.yml)
 
-The **Bluesky Campaign Bot** provides a reliable workflow for planning, scheduling, and publishing posts ("skeets") on Bluesky and additional platforms such as Mastodon. It includes an integrated dashboard, automated scheduler, live updates via SSE, and a set of tools designed for transparent, traceable, and efficient campaign communication.
+The **Bluesky Campaign Tool** provides a reliable workflow for planning, scheduling, and publishing posts ("skeets") on Bluesky and additional platforms such as Mastodon. It includes an integrated dashboard, automated scheduler, live updates via SSE, and a set of tools designed for transparent, traceable, and efficient campaign communication.
 
 The project is built on a Node.js/Express backend with SQLite as the primary database engine, a React-based dashboard, and a scheduler optimized for accuracy, resilience, and operational clarity.
 
@@ -50,8 +50,8 @@ To avoid accidental bulk posting after outages or scheduler interruptions, overd
 
 ```bash
 # Clone repository
-git clone https://github.com/mkueper/BSky-Kampagnen-Bot.git
-cd BSky-Kampagnen-Bot
+git clone https://github.com/mkueper/BSky-Kampagnen-Tool.git
+cd BSky-Kampagnen-Tool
 
 # Install backend dependencies
 npm install
@@ -116,7 +116,7 @@ Frontend configuration automatically proxies `/api/*` to the backend. More detai
 ## Project Structure (Overview)
 
 ```
-BSKy-Kampagnen-Bot/
+BSKy-Kampagnen-Tool/
 ├─ backend/server.js        # Express entrypoint + scheduler bootstrap
 ├─ backend/src/             # Backend logic (controllers, services, models)
 ├─ dashboard/               # React UI (Vite build in dashboard/dist)
@@ -145,7 +145,7 @@ Changelog maintenance is supported through:
 | Variable                | Description                                  | Default               |
 | ----------------------- | -------------------------------------------- | --------------------- |
 | `BLUESKY_SERVER_URL`    | Bluesky endpoint                             | `https://bsky.social` |
-| `BLUESKY_IDENTIFIER`    | Bot handle or account email                  | –                     |
+| `BLUESKY_IDENTIFIER`    | Tool handle or account email                  | –                     |
 | `BLUESKY_APP_PASSWORD`  | App password                                 | –                     |
 | `MASTODON_API_URL`      | Mastodon instance (optional)                 | –                     |
 | `MASTODON_ACCESS_TOKEN` | Mastodon access token                        | –                     |

@@ -1,6 +1,6 @@
 # Dokumentationsübersicht
 
-Dieser Bereich bündelt die begleitende Dokumentation für den **BSky-Kampagnen-Bot**. Sie richtet sich an Entwickler:innen, Operator:innen und Beitragende, die Architektur, Installation, Betrieb und Planung nachvollziehen möchten.
+Dieser Bereich bündelt die begleitende Dokumentation für den **BSky-Kampagnen-Tool**. Sie richtet sich an Entwickler:innen, Operator:innen und Beitragende, die Architektur, Installation, Betrieb und Planung nachvollziehen möchten.
 
 ---
 

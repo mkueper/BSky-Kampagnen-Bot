@@ -32,7 +32,7 @@ const messages = {
       roleTextAssistant: 'Unterstützung bei Texten & Übersetzungen',
       licenseTitle: 'Open Source & Lizenz',
       licenseBody:
-        'Das {project} wird als Open‑Source‑Projekt unter der GPL‑3.0 entwickelt. Details zur Lizenz finden sich in der Datei LICENSE im Projektverzeichnis. Quellcode & Issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+        'Das {project} wird als Open‑Source‑Projekt unter der GPL‑3.0 entwickelt. Details zur Lizenz finden sich in der Datei LICENSE im Projektverzeichnis. Quellcode & Issues: https://github.com/mkueper/BSky-Kampagnen-Tool',
       supportTitle: 'Support & Feedback',
       supportBody:
         'Feedback, Fehler und Ideen können als Issue im GitHub‑Repo gemeldet werden. Bitte keine Zugangsdaten oder vertraulichen Inhalte in Issues posten.',
@@ -1822,7 +1822,7 @@ const messages = {
       roleTextAssistant: 'Support for wording & translations',
       licenseTitle: 'Open source & license',
       licenseBody:
-        '{project} is developed as an open-source project under the GPL-3.0. License details can be found in the LICENSE file in the project directory. Source code & issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+        '{project} is developed as an open-source project under the GPL-3.0. License details can be found in the LICENSE file in the project directory. Source code & issues: https://github.com/mkueper/BSky-Kampagnen-Tool',
       supportTitle: 'Support & feedback',
       supportBody:
         'Feedback, bugs, and ideas can be reported as issues in the GitHub repository. Please avoid posting credentials or other sensitive data in issues.',

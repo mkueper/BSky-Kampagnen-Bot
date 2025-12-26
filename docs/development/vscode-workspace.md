@@ -4,7 +4,7 @@ Diese Anleitung beschreibt die bereitgestellte VS Code Workspace‑Konfiguration
 
 ## Überblick
 
-- Workspace-Datei: `BSky-Kampagnen-Bot.code-workspace`
+- Workspace-Datei: `BSky-Kampagnen-Tool.code-workspace`
 - Enthält:
   - Editor/Tooling‑Settings (ESLint Flat Config, TypeScript TSDK, Such‑Excludes)
   - Launch‑Konfigurationen (Backend Inspect, Dashboard Chrome, Compound)

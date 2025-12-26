@@ -1,6 +1,6 @@
 # coding-konventionen.md
 
-**BSky-Kampagnen-Bot – Coding-Konventionen**
+**BSky-Kampagnen-Tool – Coding-Konventionen**
 
 Diese Datei definiert die verbindlichen Richtlinien für alle Implementierungen innerhalb dieses Projekts.  
 Sie gilt für menschliche Entwickler:innen und explizit auch für alle durch Codex ausgeführten Implementierungen.

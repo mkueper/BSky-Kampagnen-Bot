@@ -1,4 +1,4 @@
-# BSky-Kampagnen-Bot – Test-Konventionen
+# BSky-Kampagnen-Tool – Test-Konventionen
 
 Diese Datei definiert die verbindlichen Richtlinien für das Schreiben, Strukturieren und Platzieren von Tests in diesem Projekt.  
 Sie richtet sich an menschliche Entwickler:innen und dient als Referenz, um eine einheitliche Testumgebung sicherzustellen.
