@@ -1,17 +1,48 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import SkeetItem from './SkeetItem'
 import SkeetItemSkeleton from './SkeetItemSkeleton.jsx'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useTimelineDispatch, useTimelineState } from '../../context/TimelineContext.jsx'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useThread } from '../../hooks/useThread'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
+import { searchBsky } from '../shared'
 
-export default function Timeline ({ listKey = 'discover', renderMode, isActive = true }) {
-  const { lists } = useAppState()
-  const dispatch = useAppDispatch()
+const LANGUAGE_FILTER_TARGET = 30
+
+function extractItemLanguages (item) {
+  if (!item) return []
+  const pools = [
+    item?.raw?.post?.record?.langs,
+    item?.raw?.post?.record?.language,
+    item?.raw?.item?.record?.langs,
+    item?.raw?.item?.record?.language,
+    item?.record?.langs,
+    item?.record?.language,
+    item?.langs,
+    item?.language
+  ]
+  const values = []
+  pools.forEach((entry) => {
+    if (Array.isArray(entry)) {
+      entry.forEach((lang) => {
+        if (typeof lang === 'string' && lang.trim()) {
+          values.push(lang.trim().toLowerCase())
+        }
+      })
+    } else if (typeof entry === 'string' && entry.trim()) {
+      values.push(entry.trim().toLowerCase())
+    }
+  })
+  if (values.length === 0) return []
+  return Array.from(new Set(values))
+}
+
+export default function Timeline ({ listKey = 'discover', renderMode, isActive = true, languageFilter = '' }) {
+  const { lists } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const list = listKey ? lists?.[listKey] : null
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
@@ -20,9 +51,24 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
 
   const [error, setError] = useState(null)
   const items = useMemo(() => (Array.isArray(list?.items) ? list.items : []), [list?.items])
+  const unreadIdSet = useMemo(() => new Set(Array.isArray(list?.unreadIds) ? list.unreadIds : []), [list?.unreadIds])
+  const normalizedLanguageFilter = typeof languageFilter === 'string' ? languageFilter.trim().toLowerCase() : ''
+  const filteredItems = useMemo(() => {
+    if (!normalizedLanguageFilter) return items
+    return items.filter((entry) => {
+      const langs = extractItemLanguages(entry)
+      if (!langs.length) return false
+      return langs.includes(normalizedLanguageFilter)
+    })
+  }, [items, normalizedLanguageFilter])
   const hasMore = Boolean(list?.cursor)
   const isLoadingInitial = !list || !list.loaded
   const isLoadingMore = Boolean(list?.isLoadingMore)
+  const [languageSearchState, setLanguageSearchState] = useState({
+    items: [],
+    loading: false,
+    error: ''
+  })
 
   useEffect(() => {
     setError(null)
@@ -37,6 +83,8 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     })
     return () => { cancelled = true }
   }, [listKey, list, dispatch])
+
+  const showLanguageSearch = Boolean(normalizedLanguageFilter)
 
   const variant = useMemo(() => {
     if (renderMode === 'flat' || renderMode === 'card') return renderMode
@@ -60,6 +108,7 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
   }, [list, dispatch, hasMore, isLoadingMore, isActive])
 
   useEffect(() => {
+    if (showLanguageSearch) return undefined
     const el = typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null
     if (!el || !isActive) return
     const onScroll = () => {
@@ -72,7 +121,54 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     }
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [loadMore, isActive])
+  }, [loadMore, isActive, showLanguageSearch])
+
+  useEffect(() => {
+    if (!showLanguageSearch) {
+      setLanguageSearchState({ items: [], loading: false, error: '' })
+      return
+    }
+    let ignore = false
+    setLanguageSearchState({ items: [], loading: true, error: '' })
+    searchBsky({
+      query: `lang:${normalizedLanguageFilter}`,
+      type: 'latest',
+      limit: 50,
+      language: normalizedLanguageFilter
+    })
+      .then((result) => {
+        if (ignore) return
+        setLanguageSearchState({
+          items: Array.isArray(result?.items) ? result.items : [],
+          loading: false,
+          error: ''
+        })
+      })
+      .catch((err) => {
+        if (ignore) return
+        setLanguageSearchState({
+          items: [],
+          loading: false,
+          error: err?.message || t('timeline.status.languageSearchFailed', 'Sprachsuche fehlgeschlagen.')
+        })
+      })
+    return () => { ignore = true }
+  }, [normalizedLanguageFilter, showLanguageSearch, t])
+
+  useEffect(() => {
+    if (!normalizedLanguageFilter) return
+    if (!isActive) return
+    if (filteredItems.length >= LANGUAGE_FILTER_TARGET) return
+    if (!hasMore || isLoadingMore) return
+    loadMore()
+  }, [
+    filteredItems.length,
+    hasMore,
+    isActive,
+    isLoadingMore,
+    loadMore,
+    normalizedLanguageFilter
+  ])
 
   const handleEngagementChange = useCallback((targetId, patch = {}) => {
     if (!list || !targetId) return
@@ -113,7 +209,42 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     })
   }, [dispatch, list, listKey])
 
-  if (isLoadingInitial) {
+  const handleMarkRead = useCallback((targetItem) => {
+    if (!list?.key) return
+    const targetId = getListItemId(targetItem)
+    if (!targetId) return
+    if (!unreadIdSet.has(targetId)) return
+    dispatch({
+      type: 'LIST_CLEAR_UNREAD',
+      payload: { key: list.key, ids: [targetId] }
+    })
+  }, [dispatch, list?.key, unreadIdSet])
+
+  if (showLanguageSearch) {
+    if (languageSearchState.loading) {
+      return (
+        <p className='text-sm text-foreground-muted' data-component='BskyTimeline' data-state='language-loading'>
+          {t('common.status.loading', 'Lade…')}
+        </p>
+      )
+    }
+    if (languageSearchState.error) {
+      return (
+        <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='language-error'>
+          {languageSearchState.error}
+        </p>
+      )
+    }
+    if (languageSearchState.items.length === 0) {
+      return (
+        <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty-language'>
+          {t('timeline.status.languageFilteredEmpty', 'Keine Beiträge in dieser Sprache.')}
+        </p>
+      )
+    }
+  }
+
+  if (!showLanguageSearch && isLoadingInitial) {
     return (
       <div className='space-y-3' data-component='BskyTimeline' data-state='loading' role='status' aria-live='polite'>
         <ul className='space-y-3'>
@@ -125,7 +256,7 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     )
   }
 
-  if (error) {
+  if (!showLanguageSearch && error) {
     const errorText = error?.message || (typeof error === 'string' ? error : String(error))
     return (
       <p className='text-sm text-red-600' data-component='BskyTimeline' data-state='error'>
@@ -134,7 +265,9 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     )
   }
 
-  if (items.length === 0) {
+  const displayItems = showLanguageSearch ? languageSearchState.items : filteredItems
+
+  if (displayItems.length === 0) {
     return (
       <p className='text-sm text-muted-foreground' data-component='BskyTimeline' data-state='empty'>
         {t('timeline.status.empty', 'Keine Einträge gefunden.')}
@@ -147,30 +280,36 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
       <VirtualizedList
         className='space-y-3'
         data-component='BskyTimeline'
-        data-tab={listKey}
-        items={items}
+        data-tab={showLanguageSearch ? `lang-${normalizedLanguageFilter}` : listKey}
+        items={displayItems}
         itemHeight={220}
         virtualizationThreshold={100}
         overscan={4}
         getItemId={getListItemId}
-        renderItem={(it) => (
-          <SkeetItem
-            item={it}
-            variant={variant}
-            onReply={onReply}
-            onQuote={onQuote}
-            onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
-            onViewMedia={onViewMedia}
-            onEngagementChange={handleEngagementChange}
-          />
-        )}
+        renderItem={(it) => {
+          const itemId = getListItemId(it)
+          const isUnread = itemId ? unreadIdSet.has(itemId) : false
+          return (
+            <SkeetItem
+              item={it}
+              variant={variant}
+              isUnread={isUnread}
+              onMarkRead={handleMarkRead}
+              onReply={onReply}
+              onQuote={onQuote}
+              onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
+              onViewMedia={onViewMedia}
+              onEngagementChange={showLanguageSearch ? undefined : handleEngagementChange}
+            />
+          )
+        }}
       />
-      {isLoadingMore ? (
+      {!showLanguageSearch && isLoadingMore ? (
         <div className='py-3 text-center text-xs text-foreground-muted'>
           {t('timeline.status.loadingMore', 'Mehr laden…')}
         </div>
       ) : null}
-      {!hasMore && items.length > 0 ? (
+      {!showLanguageSearch && !hasMore && filteredItems.length > 0 ? (
         <div className='py-3 text-center text-xs text-foreground-muted'>
           {t('timeline.status.endReached', 'Ende erreicht')}
         </div>

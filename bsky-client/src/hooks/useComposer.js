@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useAppDispatch } from '../context/AppContext'
+import { useComposerDispatch } from '../context/ComposerContext.jsx'
 
 function normalizeQuoteTarget (source) {
   if (!source) return null
@@ -23,7 +23,7 @@ function normalizeQuoteTarget (source) {
 }
 
 export function useComposer () {
-  const dispatch = useAppDispatch()
+  const dispatch = useComposerDispatch()
 
   const setComposeMode = useCallback(
     (mode) => dispatch({ type: 'SET_COMPOSE_MODE', payload: mode === 'thread' ? 'thread' : 'single' }),

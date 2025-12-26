@@ -30,6 +30,7 @@ Diese Regeln sind verbindlich. Wenn eine Nutzer:innen-Anweisung im Widerspruch z
 
 ## 3. Git-Operationen (verbindliche Einschränkungen)
 
+* Wenn ich dich ausdrücklich auffordere, einen konkreten Git-Befehl auszuführen, hat diese Anweisung Vorrang vor den sonstigen Einschränkungen dieses Abschnitts.
 * Git-Operationen dürfen **niemals automatisch** ausgeführt werden.
 * Folgende Befehle oder äquivalente Aktionen sind **ausnahmslos untersagt**, solange keine ausdrückliche Anweisung oder Zustimmung von mir vorliegt:
 
@@ -89,6 +90,8 @@ Diese Regeln sind verbindlich und haben Vorrang vor allen anderen Anweisungen.
 ## 9. UI-Konventionen
 
 Stelle sicher, dass UI-Komponenten, Styling-Konventionen, Benennungen und Interaktionsmuster **über alle Pakete hinweg konsistent** bleiben (`dashboard`, `bsky-client`, `shared-ui`). Ändere **keine** UI-Designsysteme, Theme-Logik oder Component-APIs, außer es wird ausdrücklich verlangt.
+
+Wenn für eine Aufgabe bereits eine interne Komponente (z. B. Dialog, Popover, Formular-Element) existiert, verwende konsequent diese bestehende Lösung statt Browser-Defaults oder Drittanbieterkomponenten.
 
 ---
 

@@ -25,8 +25,10 @@ Dieses Projekt versteht sich als Beitrag zu einer informierten öffentlichen Sph
 
 ## Missbrauch und ethische Bedenken
 
-Obwohl die **MIT-Lizenz** die Nutzung der Software ohne Einschränkungen erlaubt, stellen die Maintainer klar, dass folgende Nutzungsarten **nicht im Sinne des Projekts** sind:
+Obwohl die **GNU General Public License v3.0 (GPL‑3.0)** eine freie Weiternutzung der Software unter den Bedingungen dieser Lizenz erlaubt, stellen die Maintainer klar, dass folgende Nutzungsarten **nicht im Sinne des Projekts** sind:
 
 * Erstellung oder Verstärkung von **Desinformation**, irreführenden Narrativen oder bewusst falschen Behauptungen.
 * Manipulation öffentlicher Debatten durch **verdeckte Automatisierung**, **unauthentische Identitäten**, **intransparente Reichweitenverstärkung** oder andere Täuschungsstrategien.
-* Einsatz des Tools auf Weise, die Medienkompetenz verringert, Fact-Checking behindert oder öffentliches Verständnis unt
+* Einsatz des Tools auf Weise, die Medienkompetenz verringert, Fact-Checking behindert oder öffentliches Verständnis untergräbt.
+
+Dieses Projekt bleibt **frei**, **offen** und unter der **GPL‑3.0** verfügbar. Die in diesem Dokument beschriebenen Richtlinien sind **ethische Selbstverpflichtungen** und schaffen keine zusätzlichen rechtlichen Einschränkungen über die GPL hinaus. Sie erläutern die Mission des Projekts, definieren Erwartungen an verantwortungsbewusste Nutzung und unterstreichen die Werte, die die Entwicklung leiten.

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { fetchServerTopId } from '../modules/listView/listService.js'
+import { BLUESKY_LIST_POLL_MS } from '../config/blueskyIntervals.js'
+import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
 
-const POLL_INTERVAL = 60000
-
-export function useListPolling(lists, dispatch) {
+export function useListPolling(enabled = true) {
+  const { lists } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
   const dispatchRef = useRef(dispatch)
 
@@ -16,6 +18,7 @@ export function useListPolling(lists, dispatch) {
   }, [dispatch])
 
   useEffect(() => {
+    if (!enabled) return undefined
     let cancelled = false
 
     const poll = async () => {
@@ -28,6 +31,7 @@ export function useListPolling(lists, dispatch) {
         if (cancelled) return
         try {
           const serverTopId = await fetchServerTopId(list, 1)
+          if (cancelled) return
           if (!serverTopId) continue
           if (list.topId && serverTopId !== list.topId) {
             dispatchRef.current?.({ type: 'LIST_MARK_HAS_NEW', payload: list.key })
@@ -39,10 +43,10 @@ export function useListPolling(lists, dispatch) {
     }
 
     poll()
-    const handle = setInterval(poll, POLL_INTERVAL)
+    const handle = setInterval(poll, BLUESKY_LIST_POLL_MS)
     return () => {
       cancelled = true
       clearInterval(handle)
     }
-  }, [])
+  }, [enabled])
 }

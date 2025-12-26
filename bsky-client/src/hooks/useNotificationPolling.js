@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
-import { fetchNotificationPollingSnapshot } from '../modules/shared'
+import { fetchNotificationPollingSnapshot, fetchUnreadNotificationsCount } from '../modules/shared'
+import { BLUESKY_NOTIFICATION_POLL_MS } from '../config/blueskyIntervals.js'
+import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
 
 const NOTIFICATION_POLL_SWR_KEY = 'bsky:notification-poll'
+export const NOTIFICATION_UNREAD_SWR_KEY = 'bsky:notification-unread'
 
 function isNotificationsDebugEnabled () {
   const globalScope = typeof globalThis === 'object' && globalThis ? globalThis : null
@@ -24,11 +27,12 @@ function isNotificationsDebugEnabled () {
   }
 }
 
-export function useNotificationPolling (lists, dispatch) {
+export function useNotificationPolling ({ active = false, keepBadgeFresh = false } = {}) {
+  const { lists } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const listsRef = useRef(lists)
   const debugEnabledRef = useRef(false)
   const lastLogRef = useRef({ unreadCount: null, allTopId: null, mentionsTopId: null })
-
   useEffect(() => {
     listsRef.current = lists
   }, [lists])
@@ -37,8 +41,20 @@ export function useNotificationPolling (lists, dispatch) {
     debugEnabledRef.current = isNotificationsDebugEnabled()
   }, [])
 
-  const { data } = useSWR(NOTIFICATION_POLL_SWR_KEY, fetchNotificationPollingSnapshot, {
-    refreshInterval: 60000,
+  const unreadEnabled = Boolean(active || keepBadgeFresh)
+  const snapshotEnabled = Boolean(active)
+  const { data: unreadData } = useSWR(NOTIFICATION_UNREAD_SWR_KEY, fetchUnreadNotificationsCount, {
+    refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
+    enabled: unreadEnabled,
+    onError: (error) => {
+      if (!debugEnabledRef.current) return
+      console.warn('[notifications][unread] failed', error)
+    }
+  })
+
+  const { data: snapshotData } = useSWR(NOTIFICATION_POLL_SWR_KEY, fetchNotificationPollingSnapshot, {
+    refreshInterval: BLUESKY_NOTIFICATION_POLL_MS,
+    enabled: snapshotEnabled,
     onError: (error) => {
       if (!debugEnabledRef.current) return
       console.warn('[notifications][poll] failed', error)
@@ -46,53 +62,64 @@ export function useNotificationPolling (lists, dispatch) {
   })
 
   useEffect(() => {
-    if (typeof data?.unreadCount === 'number') {
+    if (!unreadEnabled) return
+    if (typeof unreadData?.unreadCount === 'number') {
       dispatch({
         type: 'SET_NOTIFICATIONS_UNREAD',
-        payload: Math.max(0, data.unreadCount)
+        payload: Math.max(0, unreadData.unreadCount)
       })
     }
+  }, [dispatch, unreadData, unreadEnabled])
+
+  useEffect(() => {
+    if (!active) return undefined
     const currentLists = listsRef.current || {}
     const allList = currentLists['notifs:all']
     const mentionsList = currentLists['notifs:mentions']
 
     const shouldMarkAllHasNew = Boolean(
-      data?.allTopId &&
+      snapshotData?.allTopId &&
       allList?.loaded &&
       allList?.topId &&
-      data.allTopId !== allList.topId
+      snapshotData.allTopId !== allList.topId
     )
     const shouldMarkMentionsHasNew = Boolean(
-      data?.mentionsTopId &&
+      snapshotData?.mentionsTopId &&
       mentionsList?.loaded &&
       mentionsList?.topId &&
-      data.mentionsTopId !== mentionsList.topId
+      snapshotData.mentionsTopId !== mentionsList.topId
     )
+
+    const resolvedUnreadCount = typeof unreadData?.unreadCount === 'number'
+      ? unreadData.unreadCount
+      : typeof snapshotData?.unreadCount === 'number'
+        ? snapshotData.unreadCount
+        : null
 
     if (debugEnabledRef.current) {
       const previous = lastLogRef.current
       const changed = (
-        previous.unreadCount !== data?.unreadCount ||
-        previous.allTopId !== data?.allTopId ||
-        previous.mentionsTopId !== data?.mentionsTopId
+        previous.unreadCount !== resolvedUnreadCount ||
+        previous.allTopId !== snapshotData?.allTopId ||
+        previous.mentionsTopId !== snapshotData?.mentionsTopId
       )
       if (changed) {
         lastLogRef.current = {
-          unreadCount: typeof data?.unreadCount === 'number' ? data.unreadCount : null,
-          allTopId: data?.allTopId || null,
-          mentionsTopId: data?.mentionsTopId || null
+          unreadCount: typeof resolvedUnreadCount === 'number' ? resolvedUnreadCount : null,
+          allTopId: snapshotData?.allTopId || null,
+          mentionsTopId: snapshotData?.mentionsTopId || null
         }
         console.info('[notifications][poll]', {
-          unreadCount: Number(data?.unreadCount) || 0,
+          unreadCount: Number(resolvedUnreadCount) || 0,
           all: {
-            serverTopId: data?.allTopId || null,
+            serverTopId: snapshotData?.allTopId || null,
             localTopId: allList?.topId || null,
             loaded: Boolean(allList?.loaded),
             hasNew: Boolean(allList?.hasNew),
             shouldMarkHasNew: shouldMarkAllHasNew
           },
           mentions: {
-            serverTopId: data?.mentionsTopId || null,
+            serverTopId: snapshotData?.mentionsTopId || null,
             localTopId: mentionsList?.topId || null,
             loaded: Boolean(mentionsList?.loaded),
             hasNew: Boolean(mentionsList?.hasNew),
@@ -108,5 +135,5 @@ export function useNotificationPolling (lists, dispatch) {
     if (shouldMarkMentionsHasNew) {
       dispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:mentions' })
     }
-  }, [data, dispatch])
+  }, [dispatch, snapshotData, unreadData, active])
 }

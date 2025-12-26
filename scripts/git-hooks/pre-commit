@@ -26,6 +26,7 @@ needs_dashboard=0
 needs_bsky_client=0
 needs_shared_ui=0
 needs_media_pickers=0
+needs_root_lint=0
 
 for file in "${changed_files[@]}"; do
   case "$file" in
@@ -51,6 +52,10 @@ for file in "${changed_files[@]}"; do
       needs_bsky_client=1
       needs_shared_ui=1
       needs_media_pickers=1
+      needs_root_lint=1
+      ;;
+    *.js|*.jsx|*.ts|*.tsx|*.mjs)
+      needs_root_lint=1
       ;;
   esac
 done
@@ -66,23 +71,32 @@ run_step() {
 }
 
 if [ "$needs_backend" -eq 1 ]; then
+  run_step "Lint Backend" npm run lint --workspace backend
   run_step "Backend" npm run --silent build:backend
 fi
 
 if [ "$needs_bsky_client" -eq 1 ]; then
+  run_step "Lint Bsky-Client" npm run lint --workspace bsky-client
   run_step "Bsky-Client" npm run build:bsky-client
 fi
 
 if [ "$needs_dashboard" -eq 1 ]; then
+  run_step "Lint Dashboard" npm run lint --workspace dashboard
   run_step "Dashboard" npm run build:frontend
 fi
 
 if [ "$needs_shared_ui" -eq 1 ]; then
+  run_step "Lint Shared UI" npm run lint --workspace @bsky-kampagnen-bot/shared-ui
   run_step "Shared UI" npm run build --workspace packages/shared-ui
 fi
 
 if [ "$needs_media_pickers" -eq 1 ]; then
+  run_step "Lint Media-Pickers" npm run lint --workspace @kampagnen-bot/media-pickers
   run_step "Media-Pickers" npm run build --workspace packages/media-pickers
+fi
+
+if [ "$needs_root_lint" -eq 1 ]; then
+  run_step "Lint Repo" npm run lint
 fi
 
 echo "[pre-commit] Alle erforderlichen Builds erfolgreich."

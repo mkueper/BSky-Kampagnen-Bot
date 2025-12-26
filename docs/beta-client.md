@@ -34,9 +34,9 @@ Damit lädt Electron direkt den Dev-Server (mit eingeschalteter Sandbox).
 ## Sandbox-Verhalten unter Linux
 
 - Die bisherige Komplett-App deaktiviert die Chromium-Sandbox, weil das Backend im selben Prozess läuft und AppImage-Umgebungen keine setuid-Helfer erlauben.
-- Die Beta-App lädt ausschließlich den `bsky-client/dist`, nutzt `sandbox: true` für den Browser-Prozess und verzichtet komplett auf `no-sandbox`/`disable-gpu-sandbox`.
-- Dadurch ist kein `--no-sandbox`-Parameter mehr nötig – auch nicht auf AppImage-basierten Distributionen.
-- Falls Electron feststellt, dass der ausgelieferte `chrome-sandbox`-Helper nicht setuid/root-besessen ist (typischer Fall bei AppImage-Mounts), schaltet das Entry automatisch auf `--no-sandbox` um. Damit entfällt der manuelle Parameter; wer das Verhalten überschreiben will, kann `BSKY_FORCE_SANDBOX=1` bzw. `BSKY_FORCE_NO_SANDBOX=1` setzen.
+- Die Beta-App lädt ausschließlich den `bsky-client/dist` und startet standardmäßig mit `sandbox: true` für den Browser-Prozess.
+- Auf Linux schaltet das Entry automatisch auf `--no-sandbox`/`disable-gpu-sandbox` um, wenn der ausgelieferte `chrome-sandbox`-Helper nicht root-owned + setuid ist (typisch bei AppImage-Mounts). Damit entfällt ein manueller `--no-sandbox`-Parameter in der Praxis.
+- Wer das Verhalten überschreiben will, kann `BSKY_FORCE_SANDBOX=1` bzw. `BSKY_FORCE_NO_SANDBOX=1` setzen (siehe `electron/main-bsky-client.js`).
 
 ## Unterschiede zur Vollversion
 

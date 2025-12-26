@@ -9,14 +9,14 @@ describe('settingsController client-polling API', () => {
   it('GET /api/settings/client-polling returns values/defaults', async () => {
     const svc = require('@core/services/settingsService')
     vi.spyOn(svc, 'getClientPollingSettings').mockResolvedValue({
-      values: { threadActiveMs: 30000, skeetHiddenMs: 300000 },
-      defaults: { threadActiveMs: 30000, skeetHiddenMs: 300000 }
+      values: { threadActiveMs: 60000, skeetHiddenMs: 300000 },
+      defaults: { threadActiveMs: 60000, skeetHiddenMs: 300000 }
     })
     const req = {}
     let payload = null
     const res = { json: (o) => { payload = o }, status: () => ({ json: (o) => { payload = o } }) }
     await settingsController.getClientPollingSettings(req, res)
-    expect(payload?.values?.threadActiveMs).toBe(30000)
+    expect(payload?.values?.threadActiveMs).toBe(60000)
     expect(payload?.defaults?.skeetHiddenMs).toBe(300000)
   })
 

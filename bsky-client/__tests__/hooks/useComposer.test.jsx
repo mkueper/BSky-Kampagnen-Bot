@@ -13,7 +13,8 @@ import { renderHook, act } from '@testing-library/react'
  * Teil der vereinheitlichten Teststruktur des bsky-client.
  * Stellt sicher, dass Komponenten, Hooks, Contexts und Flows stabil funktionieren.
  */
-import { AppProvider, useAppState } from '../../src/context/AppContext.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
+import { useComposerState } from '../../src/context/ComposerContext.jsx'
 import { useComposer } from '../../src/hooks/useComposer.js'
 
 const wrapper = ({ children }) => (
@@ -23,7 +24,7 @@ const wrapper = ({ children }) => (
 function renderComposer () {
   return renderHook(() => {
     const composer = useComposer()
-    const state = useAppState()
+    const state = useComposerState()
     return { composer, state }
   }, { wrapper })
 }

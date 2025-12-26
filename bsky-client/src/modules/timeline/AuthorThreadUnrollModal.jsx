@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useThreadState, useThreadDispatch } from '../../context/ThreadContext.jsx'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { buildAuthorTimeline } from './threadUtils'
 import { RichText } from '../shared'
@@ -40,8 +40,8 @@ function sanitizeThreadText (node) {
 }
 
 export default function AuthorThreadUnrollModal () {
-  const dispatch = useAppDispatch()
-  const { threadState, threadUnroll } = useAppState()
+  const dispatch = useThreadDispatch()
+  const { threadState, threadUnroll } = useThreadState()
   const { openMediaPreview } = useMediaLightbox()
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()

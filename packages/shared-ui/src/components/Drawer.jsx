@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import PropTypes from 'prop-types'
+import { getPortalRoot } from '../utils/portal.js'
 
 export default function Drawer ({
   open,
@@ -61,7 +62,8 @@ export default function Drawer ({
     </div>
   )
 
-  return createPortal(content, document.body)
+  const portalRoot = getPortalRoot()
+  return createPortal(content, portalRoot || document.body)
 }
 
 Drawer.propTypes = {

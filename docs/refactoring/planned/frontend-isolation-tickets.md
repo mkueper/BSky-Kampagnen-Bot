@@ -29,9 +29,15 @@ Ziel: `dashboard` und `bsky-client` sind zwei komplett eigenständige Frontend-A
 - **Ergebnis:** Liste der relevanten Imports/Verwendungen + Beschreibung der aktuellen Use-Cases im `dashboard`.
 - **Priorität:** Hoch
 - **Aufwand:** S
-- **Status:** Erledigt (Fundstellen dokumentiert)
+- **Status:** Erledigt (Kopplung inzwischen entfernt; Fundstellen unten sind historisch)
 
-### Aktueller Fund / Kopplungsstellen
+### Aktueller Stand (Stand 2025-12-25)
+
+- `dashboard/package.json` enthält keine Abhängigkeit auf `bsky-client`.
+- `dashboard/vite.config.js` enthält keinen Alias/Resolver für `bsky-client`.
+- `dashboard/src/App.jsx` rendert keine eingebettete `bsky-client`-App.
+
+### Historischer Fund / Kopplungsstellen (Stand 2025-12-06)
 
 - `dashboard/package.json`: Direkte Laufzeitabhängigkeit auf `bsky-client`:
   - `dependencies.bsky-client: "^0.1.0"`.
@@ -207,6 +213,7 @@ Weitere Kandidaten (z.B. gemeinsame Typen für Skeets/Threads oder einfache Hilf
 - **Ergebnis:** `dashboard` lässt sich starten, bauen und nutzen, ohne dass `bsky-client` als Abhängigkeit eingebunden ist.
 - **Priorität:** Sehr hoch
 - **Aufwand:** M
+- **Status:** Erledigt (Abhängigkeit/Imports entfernt)
 
 ## Ticket 7: Eigenes Routing/Navigation im `dashboard` definieren
 
@@ -218,7 +225,7 @@ Weitere Kandidaten (z.B. gemeinsame Typen für Skeets/Threads oder einfache Hilf
 ## Ticket 8: Build- und Dev-Setup für getrennte Frontends aufräumen
 
 - **Beschreibung:** `package.json`-Scripts, `docker-compose` und ggf. `README.md` aktualisieren, sodass klar ist, wie `dashboard` und `bsky-client` jeweils separat entwickelt, gebaut und deployed werden.
-- **Ergebnis:** Eindeutige Kommandos pro App (z.B. `npm run dev:dashboard`, `npm run dev:client`) und keine implizite Kopplung mehr zwischen den Frontends.
+- **Ergebnis:** Eindeutige Kommandos pro App (z.B. `npm run dev:frontend`, `npm run dev:bsky-client`) und keine implizite Kopplung mehr zwischen den Frontends.
 - **Priorität:** Mittel
 - **Aufwand:** S–M
 

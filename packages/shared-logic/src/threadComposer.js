@@ -1,36 +1,39 @@
-function splitIntoSentences (text) {
-  const normalized = text.replace(/\r\n/g, '\n')
-  if (!normalized.trim()) return ['']
+import { shortenLinksForCounting } from './blueskyText.js'
 
-  // Basic sentence splitter: captures sentences including trailing punctuation and whitespace
-  // Falls back to whole text when no matches found.
-  const re = /[^.!?]+[.!?]+[\])"'’”]*\s*|[^.!?]+$/g
-  const matches = normalized.match(re)
-  return matches && matches.length ? matches : [normalized]
+const PUNCTUATION_WINDOW = 30
+
+function findSplitIndex (window, limit, punctuationWindow) {
+  const maxIndex = Math.min(limit, window.length - 1)
+  const minIndex = Math.max(0, limit - punctuationWindow)
+
+  for (let i = maxIndex; i >= minIndex; i -= 1) {
+    const char = window[i]
+    if (char === '.' || char === '!' || char === '?') {
+      let splitIndex = i + 1
+      while (splitIndex < window.length && splitIndex <= limit) {
+        if (/[\])"'’”]/.test(window[splitIndex])) {
+          splitIndex += 1
+        } else {
+          break
+        }
+      }
+      return splitIndex
+    }
+  }
+
+  const lastWhitespace = window.lastIndexOf(' ')
+  if (lastWhitespace > 0) return lastWhitespace
+  return limit
 }
 
-function splitAtWordBoundaries (text, limit) {
+function splitByWindow (text, limit, punctuationWindow = PUNCTUATION_WINDOW) {
   if (!text) return ['']
   const chunks = []
   let remaining = text
 
   while (remaining.length > limit) {
     const window = remaining.slice(0, limit + 1)
-
-    // Prefer to split at punctuation within the window (.,;:)
-    const lastPunct = Math.max(
-      window.lastIndexOf('.'),
-      window.lastIndexOf(','),
-      window.lastIndexOf(';'),
-      window.lastIndexOf(':')
-    )
-
-    const lastWhitespace = window.lastIndexOf(' ')
-    let splitIndex = -1
-    if (lastPunct > 0) splitIndex = lastPunct + 1
-    else if (lastWhitespace > 0) splitIndex = lastWhitespace
-    else splitIndex = limit
-
+    const splitIndex = findSplitIndex(window, limit, punctuationWindow)
     const chunk = remaining.slice(0, splitIndex).trimEnd()
     if (chunk) {
       chunks.push(chunk)
@@ -127,49 +130,17 @@ function buildEffectiveSegments (rawSegments, limit, appendNumbering) {
       totalCount += 1
       return
     }
-    const sentences = splitIntoSentences(trimmed)
-    let buffer = ''
-    sentences.forEach(sentence => {
-      const candidate = buffer ? `${buffer}${sentence}` : sentence
-      if (candidate.trim().length <= effectiveLimit) {
-        buffer = candidate
-      } else {
-        if (buffer.trim()) {
-          const chunk = buffer.trim()
-          effectiveSegments.push(chunk)
-          const needle = chunk.trimStart()
-          let idx = raw.indexOf(needle, searchFrom)
-          if (idx === -1) idx = searchFrom
-          effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
-          searchFrom = idx + needle.length
-          totalCount += 1
-        }
-        let fallback = sentence.trim()
-        if (fallback.length > effectiveLimit) {
-          const wordChunks = splitAtWordBoundaries(fallback, effectiveLimit)
-          wordChunks.slice(0, -1).forEach(chunk => {
-            const needle = chunk.trimStart()
-            let idx = raw.indexOf(needle, searchFrom)
-            if (idx === -1) idx = searchFrom
-            effectiveSegments.push(chunk)
-            effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
-            searchFrom = idx + needle.length
-            totalCount += 1
-          })
-          fallback = wordChunks[wordChunks.length - 1]
-        }
-        buffer = fallback
-      }
-    })
-    if (buffer.trim()) {
-      const chunk = buffer.trim()
+    const chunks = splitByWindow(trimmed, effectiveLimit)
+    chunks.forEach((chunk) => {
+      if (!chunk) return
       effectiveSegments.push(chunk)
       const needle = chunk.trimStart()
       let idx = raw.indexOf(needle, searchFrom)
       if (idx === -1) idx = searchFrom
       effectiveOffsets.push({ rawIndex, offsetInRaw: idx })
+      searchFrom = idx + needle.length
       totalCount += 1
-    }
+    })
   })
 
   return { effectiveSegments, rawToEffectiveStartIndex, effectiveOffsets }
@@ -185,7 +156,8 @@ function buildPreviewSegments (effectiveSegments, appendNumbering, limit) {
     const formattedContent = appendNumbering
       ? `${trimmedEnd}${numbering}`
       : trimmedEnd
-    const characterCount = formattedContent.length
+    const shortenedForCount = shortenLinksForCounting(formattedContent)
+    const characterCount = shortenedForCount.length
     const isEmpty = trimmedEnd.trim().length === 0
     const exceedsLimit =
       typeof limit === 'number' ? characterCount > limit : false

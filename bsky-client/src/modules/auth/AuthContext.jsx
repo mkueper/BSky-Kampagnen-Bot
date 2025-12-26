@@ -434,92 +434,99 @@ export function AuthProvider ({ children }) {
 
   const login = useCallback(
     async ({ serviceUrl, identifier, appPassword, rememberCredentials, rememberSession, asNewAccount = false }) => {
+      const previousStatus = status
       setStatus('loading')
       setStatusDetail('login')
-      const agent = createBskyAgentClient({ serviceUrl })
-      const nextSession = await agent.login({ identifier, appPassword })
-      clientRef.current = agent
-      setClient(agent)
-      setSession(nextSession)
-      setStatus('authenticated')
-      setStatusDetail(null)
-      persistPreferences({
-        serviceUrl: agent.getServiceUrl(),
-        identifier,
-        rememberCredentials,
-        rememberSession
-      })
-      const nextProfile = await (async () => {
-        try {
-          return await agent.fetchProfile()
-        } catch {
-          return null
-        }
-      })()
-      const nextAccountId = deriveAccountId({
-        did: nextProfile?.did,
-        handle: nextProfile?.handle,
-        identifier
-      })
-      const accountPatch = {
-        id: nextAccountId,
-        serviceUrl: agent.getServiceUrl(),
-        identifier: rememberCredentials ? identifier : '',
-        rememberCredentials: Boolean(rememberCredentials),
-        rememberSession: Boolean(rememberSession),
-        session: rememberSession ? nextSession : null,
-        did: nextProfile?.did || '',
-        handle: nextProfile?.handle || '',
-        displayName: nextProfile?.displayName || '',
-        avatar: nextProfile?.avatar || ''
-      }
-
-      setAccounts(prev => {
-        const canonicalId = nextAccountId
-        const service = accountPatch.serviceUrl
-        const identifierValue = safeString(identifier).trim().toLowerCase()
-        const handleValue = safeString(accountPatch.handle).trim().toLowerCase()
-        const didValue = safeString(accountPatch.did).trim()
-
-        const findByIdentity = (acc) => {
-          if (!acc) return false
-          const accDid = safeString(acc.did).trim()
-          if (didValue && accDid && accDid === didValue) return true
-          const accHandle = safeString(acc.handle).trim().toLowerCase()
-          if (handleValue && accHandle && accHandle === handleValue && acc.serviceUrl === service) return true
-          const accIdentifier = safeString(acc.identifier).trim().toLowerCase()
-          if (identifierValue && accIdentifier && accIdentifier === identifierValue && acc.serviceUrl === service) return true
-          return false
+      try {
+        const agent = createBskyAgentClient({ serviceUrl })
+        const nextSession = await agent.login({ identifier, appPassword })
+        clientRef.current = agent
+        setClient(agent)
+        setSession(nextSession)
+        setStatus('authenticated')
+        setStatusDetail(null)
+        persistPreferences({
+          serviceUrl: agent.getServiceUrl(),
+          identifier,
+          rememberCredentials,
+          rememberSession
+        })
+        const nextProfile = await (async () => {
+          try {
+            return await agent.fetchProfile()
+          } catch {
+            return null
+          }
+        })()
+        const nextAccountId = deriveAccountId({
+          did: nextProfile?.did,
+          handle: nextProfile?.handle,
+          identifier
+        })
+        const accountPatch = {
+          id: nextAccountId,
+          serviceUrl: agent.getServiceUrl(),
+          identifier: rememberCredentials ? identifier : '',
+          rememberCredentials: Boolean(rememberCredentials),
+          rememberSession: Boolean(rememberSession),
+          session: rememberSession ? nextSession : null,
+          did: nextProfile?.did || '',
+          handle: nextProfile?.handle || '',
+          displayName: nextProfile?.displayName || '',
+          avatar: nextProfile?.avatar || ''
         }
 
-        const candidates = prev.filter(findByIdentity)
-        const merged = candidates.reduce((acc, entry) => mergeAccountRecords(acc, entry), null)
-        const mergedAccount = mergeAccountRecords(merged, accountPatch)
-        const finalAccount = { ...mergedAccount, id: canonicalId }
+        setAccounts(prev => {
+          const canonicalId = nextAccountId
+          const service = accountPatch.serviceUrl
+          const identifierValue = safeString(identifier).trim().toLowerCase()
+          const handleValue = safeString(accountPatch.handle).trim().toLowerCase()
+          const didValue = safeString(accountPatch.did).trim()
 
-        const withoutCandidates = prev.filter(acc => !findByIdentity(acc) && acc.id !== canonicalId)
-        const existingCanonical = prev.find(acc => acc.id === canonicalId)
-        const nextAccountsRaw = existingCanonical
-          ? [...withoutCandidates, mergeAccountRecords(existingCanonical, finalAccount)]
-          : [...withoutCandidates, finalAccount]
+          const findByIdentity = (acc) => {
+            if (!acc) return false
+            const accDid = safeString(acc.did).trim()
+            if (didValue && accDid && accDid === didValue) return true
+            const accHandle = safeString(acc.handle).trim().toLowerCase()
+            if (handleValue && accHandle && accHandle === handleValue && acc.serviceUrl === service) return true
+            const accIdentifier = safeString(acc.identifier).trim().toLowerCase()
+            if (identifierValue && accIdentifier && accIdentifier === identifierValue && acc.serviceUrl === service) return true
+            return false
+          }
 
-        const { accounts: normalized, activeAccountId: normalizedActiveId } =
-          normalizeAccountsList(nextAccountsRaw, canonicalId)
+          const candidates = prev.filter(findByIdentity)
+          const merged = candidates.reduce((acc, entry) => mergeAccountRecords(acc, entry), null)
+          const mergedAccount = mergeAccountRecords(merged, accountPatch)
+          const finalAccount = { ...mergedAccount, id: canonicalId }
 
-        persistAccounts(normalized, normalizedActiveId)
-        return normalized
-      })
-      setActiveAccountId(nextAccountId)
-      setProfile(nextProfile || null)
-      if (asNewAccount) {
-        setAddAccount({ open: false, prefill: null })
+          const withoutCandidates = prev.filter(acc => !findByIdentity(acc) && acc.id !== canonicalId)
+          const existingCanonical = prev.find(acc => acc.id === canonicalId)
+          const nextAccountsRaw = existingCanonical
+            ? [...withoutCandidates, mergeAccountRecords(existingCanonical, finalAccount)]
+            : [...withoutCandidates, finalAccount]
+
+          const { accounts: normalized, activeAccountId: normalizedActiveId } =
+            normalizeAccountsList(nextAccountsRaw, canonicalId)
+
+          persistAccounts(normalized, normalizedActiveId)
+          return normalized
+        })
+        setActiveAccountId(nextAccountId)
+        setProfile(nextProfile || null)
+        if (asNewAccount) {
+          setAddAccount({ open: false, prefill: null })
+        }
+        if (!rememberSession) {
+          localStorage.removeItem(STORAGE_KEYS.session)
+        }
+        return nextSession
+      } catch (error) {
+        setStatus(asNewAccount && previousStatus === 'authenticated' ? 'authenticated' : 'unauthenticated')
+        setStatusDetail(null)
+        throw error
       }
-      if (!rememberSession) {
-        localStorage.removeItem(STORAGE_KEYS.session)
-      }
-      return nextSession
     },
-    [persistAccounts, persistPreferences]
+    [persistAccounts, persistPreferences, status]
   )
 
   const beginAddAccount = useCallback((prefill = null) => {

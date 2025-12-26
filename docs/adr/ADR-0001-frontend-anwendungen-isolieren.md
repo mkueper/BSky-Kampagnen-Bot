@@ -1,13 +1,17 @@
 # ADR-0001: Frontend-Anwendungen isolieren
 
-**Status:** Geplant  
+**Status:** Umgesetzt  
 **Datum:** 2025-12-06  
 
 ## Kontext
 
-- Das `dashboard` lädt die `bsky-client`-Anwendung direkt als React-Komponente (dynamischer Import via `React.lazy(() => import('bsky-client'))`).
-- In `dashboard/package.json` besteht eine direkte Abhängigkeit auf das `bsky-client`-Paket (`"bsky-client": "workspace:*"`).
-- Beide Frontend-Anwendungen sind damit eng gekoppelt: Änderungen im `bsky-client` können das `dashboard` brechen (und umgekehrt), Deployments sind schwer entkoppelbar und die Projektstruktur ist unklar.
+Zum Zeitpunkt der Entscheidung (2025-12-06):
+
+- Das `dashboard` lud die `bsky-client`-Anwendung direkt als React-Komponente (dynamischer Import via `React.lazy(() => import('bsky-client'))`).
+- In `dashboard/package.json` bestand eine direkte Abhängigkeit auf das `bsky-client`-Paket (`"bsky-client": "workspace:*"`).
+- Beide Frontend-Anwendungen waren damit eng gekoppelt: Änderungen im `bsky-client` konnten das `dashboard` brechen (und umgekehrt), Deployments waren schwer entkoppelbar und die Projektstruktur war unklar.
+
+Aktueller Stand (2025-12-25): `dashboard` und `bsky-client` sind als getrennte Frontends ohne App-zu-App-Imports umgesetzt; gemeinsam genutzte Teile liegen in `packages/*`.
 - Es gibt bereits eine Analyse der Probleme und Refactoring-Ideen in:
   - `docs/refactoring/analyzed/architektur-bugs.md`
   - `docs/refactoring/analyzed/architektor-vorschlaege.md`

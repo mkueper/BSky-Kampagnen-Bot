@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAppState, useAppDispatch } from '../../context/AppContext';
+import { useComposerDispatch, useComposerState } from '../../context/ComposerContext.jsx';
+import { useTimelineDispatch } from '../../context/TimelineContext.jsx';
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
 import { useFeedPicker } from '../../hooks/useFeedPicker';
@@ -8,7 +10,9 @@ import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { Button, MediaLightbox, publishPost } from '../shared';
 import { ConfirmDialog } from '@bsky-kampagnen-bot/shared-ui';
 import { Composer, ComposeModal } from '../composer';
+import ReplyPreviewCard from '../composer/ReplyPreviewCard.jsx'
 import { ThreadComposer } from '@bsky-kampagnen-bot/shared-ui'
+import { buildReplyContext, buildReplyInfo } from '../composer/replyUtils.js'
 import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
@@ -16,6 +20,8 @@ import LoginView from '../login/LoginView.jsx'
 import { useInteractionSettingsControls } from '../composer/useInteractionSettingsControls.js'
 import PostInteractionSettingsModal from '../composer/PostInteractionSettingsModal.jsx'
 import ClientSettingsModal from '../settings/ClientSettingsModal.jsx'
+import { fetchLinkPreviewMetadata } from '../composer/linkPreviewService.js'
+import NotificationSettingsModal from '../notifications/NotificationSettingsModal.jsx'
 
 const THREAD_MEDIA_MAX_PER_SEGMENT = 4
 const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -46,11 +52,14 @@ function buildThreadReplyContext (root, parent) {
 }
 
 export function Modals() {
-  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering, clientSettingsOpen } = useAppState();
+  const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useComposerState();
+  const { clientSettingsOpen, notificationsSettingsOpen } = useUIState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
-  const dispatch = useAppDispatch();
+  const timelineDispatch = useTimelineDispatch()
+  const composerDispatch = useComposerDispatch()
+  const uiDispatch = useUIDispatch()
   const { clientConfig } = useClientConfig()
-  const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering } = useComposer();
+  const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering, setComposeMode } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
   const {
     feedPicker,
@@ -64,6 +73,7 @@ export function Modals() {
   const { t } = useTranslation();
   const [threadSending, setThreadSending] = useState(false)
   const [threadError, setThreadError] = useState('')
+  const [threadMediaDraft, setThreadMediaDraft] = useState([])
   const {
     interactionSettings,
     data: interactionData,
@@ -104,10 +114,22 @@ export function Modals() {
     }
   }, [clientConfig?.gifs?.tenorApiKey])
 
+  const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+  const requireAltText = clientConfig?.layout?.requireAltText === true
+  const replyInfo = useMemo(() => buildReplyInfo(replyTarget), [replyTarget])
+  const initialReplyContext = useMemo(() => buildReplyContext(replyTarget), [replyTarget])
+  const threadPreviewLabels = useMemo(() => ({
+    previewUnavailable: t('compose.previewUnavailableStandalone', 'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'),
+    previewLoading: t('compose.preview.loading', 'Lade Vorschau…'),
+    previewError: t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.'),
+    previewTimeout: t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.'),
+    previewDismissTitle: t('compose.preview.dismiss', 'Link-Vorschau entfernen'),
+    altRequired: t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.')
+  }), [t])
+
   const effectiveComposeMode = useMemo(() => {
-    if (replyTarget || quoteTarget) return 'single'
     return composeMode === 'thread' ? 'thread' : 'single'
-  }, [composeMode, quoteTarget, replyTarget])
+  }, [composeMode])
 
   const handleThreadSubmit = useCallback(async (segments) => {
     const error = resolveThreadSubmitError(segments, t)
@@ -129,24 +151,36 @@ export function Modals() {
 
       let root = null
       let parent = null
+      let replyPatched = false
       for (let i = 0; i < usable.length; i++) {
         const { text: content, mediaEntries } = usable[i]
-        const reply = i === 0 ? null : buildThreadReplyContext(root, parent)
+        const reply = i === 0 ? initialReplyContext : buildThreadReplyContext(root, parent)
         const res = await publishPost({ text: content, mediaEntries, reply, interactions })
         if (!res?.uri || !res?.cid) {
           throw new Error(t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
         }
         if (i === 0) root = res
         parent = res
+        if (!replyPatched && reply?.parent?.uri) {
+          timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: reply.parent.uri, patch: { replyDelta: 1 } } })
+          replyPatched = true
+        }
       }
       setThreadSource('')
+      setThreadMediaDraft([])
       closeComposer()
     } catch (e) {
       setThreadError(e?.message || t('compose.thread.sendFailed', 'Thread konnte nicht gesendet werden.'))
     } finally {
       setThreadSending(false)
     }
-  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData])
+  }, [closeComposer, publishPost, t, threadSending, setThreadSource, interactionData, initialReplyContext, timelineDispatch])
+
+  const handleThreadDraftTransfer = useCallback(({ text = '', media = [] } = {}) => {
+    setThreadSource(text || '')
+    setThreadMediaDraft(Array.isArray(media) ? media : [])
+    setComposeMode('thread')
+  }, [setComposeMode, setThreadSource])
 
   useEffect(() => {
     if (feedManagerOpen) {
@@ -154,25 +188,43 @@ export function Modals() {
     }
   }, [feedManagerOpen, refreshFeeds]);
 
+  useEffect(() => {
+    if (!composeOpen) {
+      setThreadMediaDraft([])
+    }
+  }, [composeOpen])
+
   const handleDiscardDecision = useCallback((requiresConfirm) => {
     if (requiresConfirm) {
-      dispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })
+      composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: true })
     } else {
       closeComposer()
     }
-  }, [closeComposer, dispatch])
+  }, [closeComposer, composerDispatch])
 
   const handleComposerCancel = useCallback(({ hasContent }) => {
     handleDiscardDecision(Boolean(hasContent))
   }, [handleDiscardDecision])
+
+  const handleCloseNotificationSettings = useCallback(() => {
+    uiDispatch({ type: 'SET_NOTIFICATIONS_SETTINGS_OPEN', payload: false })
+  }, [uiDispatch])
+
+  const handleNotificationProfileOpen = useCallback(() => {
+    // Modal bleibt offen; ProfileViewer kommt darüber.
+  }, [])
 
   const handleThreadCancel = useCallback(() => {
     const hasThreadContent = Boolean((threadSource || '').trim())
     if (!hasThreadContent) {
       setThreadSource('')
     }
-    handleDiscardDecision(hasThreadContent)
-  }, [threadSource, setThreadSource, handleDiscardDecision])
+    const hasTransferMedia = threadMediaDraft.length > 0
+    if (hasTransferMedia) {
+      setThreadMediaDraft([])
+    }
+    handleDiscardDecision(hasThreadContent || hasTransferMedia)
+  }, [threadMediaDraft.length, threadSource, setThreadSource, handleDiscardDecision])
 
   return (
     <>
@@ -190,6 +242,9 @@ export function Modals() {
       >
         {effectiveComposeMode === 'thread' ? (
           <div className='space-y-4'>
+            {allowReplyPreview && replyInfo ? (
+              <ReplyPreviewCard info={replyInfo} t={t} />
+            ) : null}
             <div className='h-[64vh] min-h-[480px]'>
               <ThreadComposer
                 className='h-full'
@@ -205,7 +260,7 @@ export function Modals() {
                 mediaMaxPerSegment={THREAD_MEDIA_MAX_PER_SEGMENT}
                 mediaMaxBytes={THREAD_MEDIA_MAX_BYTES}
                 mediaAllowedMimes={THREAD_ALLOWED_MIMES}
-                mediaRequireAltText={false}
+                mediaRequireAltText={requireAltText}
                 gifPickerEnabled={tenorAvailable}
                 gifPickerFetcher={tenorFetcher}
                 gifPickerMaxBytes={THREAD_GIF_MAX_BYTES}
@@ -214,7 +269,7 @@ export function Modals() {
                   <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
                     <button
                       type='button'
-                      className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
+                      className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
                       title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
                       onClick={openInteractionModal}
                       disabled={interactionSettings?.loading}
@@ -239,6 +294,10 @@ export function Modals() {
                     {t('compose.cancel', 'Abbrechen')}
                   </Button>
                 }
+                initialMediaEntries={threadMediaDraft}
+                onInitialMediaApplied={() => setThreadMediaDraft([])}
+                linkPreviewFetcher={fetchLinkPreviewMetadata}
+                labels={threadPreviewLabels}
               />
             </div>
             {threadError ? (
@@ -254,6 +313,7 @@ export function Modals() {
               closeComposer();
             }}
             onCancel={handleComposerCancel}
+            onConvertToThread={handleThreadDraftTransfer}
           />
         )}
       </ComposeModal>
@@ -268,9 +328,9 @@ export function Modals() {
         cancelLabel={t('compose.cancel', 'Abbrechen')}
         confirmLabel={t('compose.discardConfirm', 'Verwerfen')}
         variant='primary'
-        onCancel={() => dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}
+        onCancel={() => composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: false })}
         onConfirm={() => {
-          dispatch({ type: 'SET_CONFIRM_DISCARD', payload: false });
+          composerDispatch({ type: 'SET_CONFIRM_DISCARD', payload: false });
           closeComposer();
         }}
       />
@@ -326,7 +386,12 @@ export function Modals() {
       />
       <ClientSettingsModal
         open={Boolean(clientSettingsOpen)}
-        onClose={() => dispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
+        onClose={() => uiDispatch({ type: 'SET_CLIENT_SETTINGS_OPEN', payload: false })}
+      />
+      <NotificationSettingsModal
+        open={Boolean(notificationsSettingsOpen)}
+        onClose={handleCloseNotificationSettings}
+        onProfileOpen={handleNotificationProfileOpen}
       />
 
     </>

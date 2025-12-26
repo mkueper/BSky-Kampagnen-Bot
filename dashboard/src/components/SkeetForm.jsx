@@ -27,7 +27,7 @@ const DASHBOARD_GIF_PICKER_CLASSES = {
   title: 'text-base font-semibold text-foreground',
   searchBar: 'flex w-full items-center gap-2',
   input: 'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
-  buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
+  buttonPrimary: 'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground',
   button: 'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
   content: 'flex-1 overflow-y-auto bg-background px-4 py-4',
   grid: 'grid grid-cols-3 gap-3',
@@ -183,7 +183,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     () => ({
       imageAlt: index =>
         t('posts.form.media.imageAltFallback', 'Bild {index}', { index }),
-      altAddTitle: t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altAddTitle: t('posts.form.media.altAddTitle', 'Alt‑Text bearbeiten'),
       altEditTitle: t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
       altBadge: t('posts.form.media.altBadge', 'ALT'),
       altAddBadge: t('posts.form.media.altAddBadge', '+ ALT'),
@@ -591,7 +591,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
                   isActive
                     ? 'border-primary bg-primary/10 text-primary shadow-soft'
                     : 'border-border text-foreground-muted hover:border-primary/50'
-                } ${disabled ? 'opacity-60 cursor-not-allowed hover:border-border' : ''}`}
+                }`}
                 aria-disabled={disabled || undefined}
                 title={title}
               >
@@ -729,7 +729,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             <div className='mt-2 flex items-center gap-2 lg:hidden'>
               <button
                 type='button'
-                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -759,7 +759,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               {tenorAvailable ? (
               <button
                 type='button'
-                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                 onClick={() => setGifPicker({ open: true })}
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 title={
@@ -801,7 +801,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             <div className='flex flex-col items-center gap-2'>
               <button
                 type='button'
-                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
                 onClick={() =>
                   setMediaDialog({
                     open: true,
@@ -827,7 +827,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
               {tenorAvailable ? (
               <button
                 type='button'
-                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                className='rounded-full border border-border bg-background px-3 py-2 text-xs text-foreground hover:bg-background-elevated'
                 onClick={() => setGifPicker({ open: true })}
                 disabled={pendingMedia.length >= (imagePolicy.maxCount || 4)}
                 aria-label={t(
@@ -1496,7 +1496,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           title={
             altDialog.item.alt
               ? t('posts.form.media.altEditTitle', 'Alt‑Text bearbeiten')
-              : t('posts.form.media.altAddTitle', 'Alt‑Text hinzufügen')
+              : t('posts.form.media.altAddTitle', 'Alt‑Text bearbeiten')
           }
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}

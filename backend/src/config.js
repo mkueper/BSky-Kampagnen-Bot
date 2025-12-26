@@ -231,10 +231,10 @@ module.exports = {
       skeets: {
         activeMs:
           toNumber(process.env.SKEET_POLL_ACTIVE_MS, null) ??
-          toNumber(process.env.VITE_SKEET_POLL_ACTIVE_MS, 30000),
+          toNumber(process.env.VITE_SKEET_POLL_ACTIVE_MS, 60000),
         idleMs:
           toNumber(process.env.SKEET_POLL_IDLE_MS, null) ??
-          toNumber(process.env.VITE_SKEET_POLL_IDLE_MS, 120000),
+          toNumber(process.env.VITE_SKEET_POLL_IDLE_MS, 300000),
         hiddenMs:
           toNumber(process.env.SKEET_POLL_HIDDEN_MS, null) ??
           toNumber(process.env.VITE_SKEET_POLL_HIDDEN_MS, 300000),
@@ -246,10 +246,10 @@ module.exports = {
       threads: {
         activeMs:
           toNumber(process.env.THREAD_POLL_ACTIVE_MS, null) ??
-          toNumber(process.env.VITE_THREAD_POLL_ACTIVE_MS, 30000),
+          toNumber(process.env.VITE_THREAD_POLL_ACTIVE_MS, 60000),
         idleMs:
           toNumber(process.env.THREAD_POLL_IDLE_MS, null) ??
-          toNumber(process.env.VITE_THREAD_POLL_IDLE_MS, 120000),
+          toNumber(process.env.VITE_THREAD_POLL_IDLE_MS, 300000),
         hiddenMs:
           toNumber(process.env.THREAD_POLL_HIDDEN_MS, null) ??
           toNumber(process.env.VITE_THREAD_POLL_HIDDEN_MS, 300000),

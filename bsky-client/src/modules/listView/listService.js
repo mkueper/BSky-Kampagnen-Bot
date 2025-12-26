@@ -9,67 +9,29 @@
  * - ScrollToTop/Home: refresh + harter Scroll nach oben, wenn supportsRefresh === true.
  */
 import { fetchTimeline, fetchNotifications } from '../shared/index.js'
+import {
+  getListItemId,
+  mergeItemsAppend,
+  resolveDefaultPageSize,
+  resolveDescriptor,
+  resolveUnreadIds
+} from './listStateHelpers.js'
 
-const DEFAULT_TIMELINE_PAGE_SIZE = 20
-const DEFAULT_NOTIFICATIONS_PAGE_SIZE = 40
-
-function resolveDefaultPageSize(descriptor) {
-  return descriptor?.kind === 'notifications'
-    ? DEFAULT_NOTIFICATIONS_PAGE_SIZE
-    : DEFAULT_TIMELINE_PAGE_SIZE
-}
-
-function resolveDescriptor(list = {}) {
-  return {
-    key: list.key,
-    kind: list.kind || 'custom',
-    data: list.data || {},
-    label: list.label || list.key || '',
-    supportsRefresh: list.supportsRefresh !== false,
-    supportsPolling: Boolean(list.supportsPolling)
+function scheduleDispatch (dispatch, action) {
+  if (typeof dispatch !== 'function' || !action) return
+  const runDispatch = () => { dispatch(action) }
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(runDispatch)
+    return
   }
+  if (typeof Promise === 'function') {
+    Promise.resolve().then(runDispatch)
+    return
+  }
+  setTimeout(runDispatch, 0)
 }
 
-function getItemId(item) {
-  if (!item) return null
-  return item.listEntryId || item.uri || item.cid || item.id || null
-}
-
-function prependUnique(newItems = [], existingItems = []) {
-  const seen = new Set()
-  const result = []
-  newItems.forEach((item) => {
-    const id = getItemId(item)
-    if (id) seen.add(id)
-    result.push(item)
-  })
-  existingItems.forEach((item) => {
-    const id = getItemId(item)
-    if (id && seen.has(id)) return
-    if (id) seen.add(id)
-    result.push(item)
-  })
-  return result
-}
-
-function appendUnique(existingItems = [], nextItems = []) {
-  const seen = new Set()
-  const result = []
-  existingItems.forEach((item) => {
-    const id = getItemId(item)
-    if (id) seen.add(id)
-    result.push(item)
-  })
-  nextItems.forEach((item) => {
-    const id = getItemId(item)
-    if (id && seen.has(id)) return
-    if (id) seen.add(id)
-    result.push(item)
-  })
-  return result
-}
-
-async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_TIMELINE_PAGE_SIZE } = {}) {
+async function fetchTimelinePage(list, { cursor = null, limit } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
   const params = {
@@ -81,7 +43,7 @@ async function fetchTimelinePage(list, { cursor = null, limit = DEFAULT_TIMELINE
   return fetchTimeline(params)
 }
 
-async function fetchNotificationsPage(list, { cursor = null, limit = DEFAULT_NOTIFICATIONS_PAGE_SIZE, markSeen } = {}) {
+async function fetchNotificationsPage(list, { cursor = null, limit, markSeen } = {}) {
   const descriptor = resolveDescriptor(list)
   const data = descriptor.data || {}
   const shouldMarkSeen = typeof markSeen === 'boolean'
@@ -99,28 +61,41 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for refresh')
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
-  dispatch({
+  const shouldMarkSeen = descriptor.kind === 'notifications'
+    ? (list?.markSeen === true)
+    : undefined
+  const previousUnreadIds = Array.isArray(list?.unreadIds) ? list.unreadIds : []
+  const previousTopId = list?.topId || null
+  const clearUnreadOnRefresh = Boolean(list?.clearUnreadOnRefresh)
+  scheduleDispatch(dispatch, {
     type: 'LIST_SET_REFRESHING',
     payload: { key: list.key, value: true, meta }
   })
   try {
     const page = descriptor.kind === 'notifications'
-      ? await fetchNotificationsPage(list, { limit: effectiveLimit })
+      ? await fetchNotificationsPage(list, { limit: effectiveLimit, markSeen: shouldMarkSeen })
       : await fetchTimelinePage(list, { limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
-    dispatch({
+    const unreadIds = resolveUnreadIds({
+      previousUnreadIds,
+      nextItems,
+      previousTopId,
+      clearUnreadOnRefresh
+    })
+    scheduleDispatch(dispatch, {
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
         items: nextItems,
         cursor: page.cursor || null,
-        topId: nextItems[0] ? getItemId(nextItems[0]) : null,
-        meta: meta ? { ...meta, data: meta.data || list.data } : { data: list.data }
+        topId: nextItems[0] ? getListItemId(nextItems[0]) : null,
+        meta: meta ? { ...meta, data: meta.data || list.data } : { data: list.data },
+        unreadIds
       }
     })
     return { ...page, items: nextItems }
   } finally {
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_SET_REFRESHING',
       payload: { key: list.key, value: false }
     })
@@ -132,18 +107,18 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
   if (!list.cursor) return list.items || []
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
-  dispatch({
+  scheduleDispatch(dispatch, {
     type: 'LIST_SET_LOADING_MORE',
     payload: { key: list.key, value: true }
   })
   try {
     const beforeCursor = list.cursor || null
-    const page = list.kind === 'notifications'
+    const page = descriptor.kind === 'notifications'
       ? await fetchNotificationsPage(list, { cursor: list.cursor, limit: effectiveLimit })
       : await fetchTimelinePage(list, { cursor: list.cursor, limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
     const previousItems = Array.isArray(list.items) ? list.items : []
-    const mergedItems = appendUnique(previousItems, nextItems)
+    const mergedItems = mergeItemsAppend(previousItems, nextItems)
     const nextCursor = page?.cursor || null
     const cursorUnchanged = Boolean(nextCursor && beforeCursor && nextCursor === beforeCursor)
     const madeProgress = mergedItems.length > previousItems.length
@@ -153,19 +128,19 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
       nextItems.length === 0 ||
       !madeProgress
     )
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_LOADED',
       payload: {
         key: list.key,
         items: mergedItems,
         cursor: stopPaging ? null : nextCursor,
-        topId: mergedItems[0] ? getItemId(mergedItems[0]) : list.topId || null,
+        topId: mergedItems[0] ? getListItemId(mergedItems[0]) : list.topId || null,
         meta: { data: list.data }
       }
     })
     return { ...page, items: mergedItems, cursor: stopPaging ? null : nextCursor }
   } finally {
-    dispatch({
+    scheduleDispatch(dispatch, {
       type: 'LIST_SET_LOADING_MORE',
       payload: { key: list.key, value: false }
     })
@@ -179,17 +154,7 @@ export async function fetchServerTopId(list, limit = 1) {
     ? await fetchNotificationsPage(list, { limit, markSeen: false })
     : await fetchTimelinePage(list, { limit })
   const topItem = Array.isArray(page?.items) ? page.items[0] : null
-  return topItem ? getItemId(topItem) : null
+  return topItem ? getListItemId(topItem) : null
 }
 
-export function mergeItemsPrepend(newItems, existingItems) {
-  return prependUnique(newItems, existingItems)
-}
-
-export function mergeItemsAppend(existingItems, newItems) {
-  return appendUnique(existingItems, newItems)
-}
-
-export function getListItemId(item) {
-  return getItemId(item)
-}
+export { getListItemId } from './listStateHelpers.js'

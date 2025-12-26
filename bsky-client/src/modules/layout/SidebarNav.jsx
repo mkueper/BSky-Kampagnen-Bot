@@ -67,9 +67,9 @@ const SIDEBAR_BUTTON_PILL =
 const SIDEBAR_BUTTON_ACTIVE =
   'border border-border bg-background-subtle text-foreground shadow-soft'
 const SIDEBAR_BUTTON_INACTIVE =
-  'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg hover:scale-[1.02]'
+  'text-foreground-muted hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:text-foreground hover:shadow-lg'
 const SIDEBAR_BUTTON_DISABLED =
-  'opacity-50 cursor-not-allowed disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
+  'disabled:pointer-events-none disabled:hover:bg-transparent disabled:hover:text-foreground-muted disabled:hover:shadow-none'
 
 export default function SidebarNav ({
   active,
@@ -85,8 +85,8 @@ export default function SidebarNav ({
   onAddAccount = null,
   onLogout = null,
   logoutPending = false,
-  onOpenClientSettings = null,
-  showLabels = false
+  showLabels = false,
+  onOpenClientSettings = null
 }) {
   const { t } = useTranslation()
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -155,7 +155,7 @@ export default function SidebarNav ({
   return (
     <nav
       className={cx(
-        'relative flex h-full flex-col items-start gap-3',
+        'relative flex h-full flex-col items-start gap-3 overflow-x-hidden',
         showFullLabels ? 'w-max' : 'w-full'
       )}
       data-component='BskyPrimaryNav'
@@ -362,12 +362,8 @@ export default function SidebarNav ({
             )
           })}
 
-          <div className='pt-2'>
-            <hr className='border-t border-border' />
-          </div>
-
           {showThemeToggle ? (
-            <div className='pt-2'>
+            <div className='pb-2'>
               {showFullLabels ? (
                 <ThemeToggle
                   {...resolvedThemeToggle}
@@ -396,8 +392,11 @@ export default function SidebarNav ({
               )}
             </div>
           ) : null}
+          <div className='pt-2'>
+            <hr className='border-t border-border' />
+          </div>
           {typeof onComposeThread === 'function' ? (
-            <div className='pt-2'>
+            <div className='pt-3'>
               <button
                 type='button'
                 onClick={interactionsLocked ? undefined : onComposeThread}
@@ -423,7 +422,7 @@ export default function SidebarNav ({
               </button>
             </div>
           ) : null}
-          <div className='pt-2'>
+          <div className='pt-3'>
             <button
               type='button'
               onClick={interactionsLocked ? undefined : onCompose}

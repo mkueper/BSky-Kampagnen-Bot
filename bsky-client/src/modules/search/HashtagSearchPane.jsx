@@ -5,7 +5,7 @@ import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
-import { useAppDispatch, useAppState } from '../../context/AppContext'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
@@ -15,8 +15,8 @@ const HASHTAG_TABS = [
 ]
 
 export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
-  const { hashtagSearch } = useAppState()
-  const dispatch = useAppDispatch()
+  const { hashtagSearch } = useUIState()
+  const dispatch = useUIDispatch()
   const { selectThreadFromItem } = useThread()
   const { openReplyComposer, openQuoteComposer } = useComposer()
   const { openMediaPreview } = useMediaLightbox()
@@ -244,7 +244,7 @@ export default function HashtagSearchPane ({ registerLayoutHeader, renderHeaderI
                   type='button'
                   onClick={() => setSize(size + 1)}
                   disabled={isLoadingMore}
-                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm disabled:opacity-60' 
+                  className='rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm' 
                 >
                   {t('common.actions.retry', 'Erneut versuchen')}
                 </button>

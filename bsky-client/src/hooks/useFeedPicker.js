@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useAppDispatch, useAppState } from '../context/AppContext'
+import { useTimelineDispatch, useTimelineState } from '../context/TimelineContext.jsx'
 import {
   fetchFeeds,
   pinFeed as pinFeedRequest,
@@ -16,8 +16,8 @@ function normalizeFeedLists (data = {}, fallback = {}) {
 }
 
 export function useFeedPicker () {
-  const { feedPicker, feedManagerOpen } = useAppState()
-  const dispatch = useAppDispatch()
+  const { feedPicker, feedManagerOpen } = useTimelineState()
+  const dispatch = useTimelineDispatch()
   const lastUpdatedRef = useRef(feedPicker?.lastUpdatedAt || 0)
   const pinnedFeeds = feedPicker?.pinned || []
   const savedFeeds = feedPicker?.saved || []

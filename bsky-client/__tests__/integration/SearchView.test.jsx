@@ -27,6 +27,7 @@ const { searchBskyMock, selectThreadFromItemMock } = vi.hoisted(() => ({
 vi.mock('../../src/modules/shared', () => ({
   Button: ({ children, ...props }) => <button {...props}>{children}</button>,
   Card: ({ children, ...props }) => <div {...props}>{children}</div>,
+  ProfilePreviewTrigger: ({ children }) => <>{children}</>,
   RichText: ({ text }) => <span>{text}</span>,
   InlineMenu: ({ children }) => <div>{children}</div>,
   InlineMenuTrigger: ({ children }) => <>{children}</>,

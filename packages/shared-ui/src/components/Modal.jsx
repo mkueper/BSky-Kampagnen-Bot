@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import PropTypes from 'prop-types'
+import { getPortalRoot } from '../utils/portal.js'
 
-export default function Modal ({ open, title, children, onClose, actions, panelClassName }) {
+export default function Modal ({ open, title, children, onClose, actions, panelClassName, closeOnBackdrop = true }) {
   useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') onClose?.()
@@ -30,8 +31,11 @@ export default function Modal ({ open, title, children, onClose, actions, panelC
   if (!open) return null
 
   const content = (
-    <div className='fixed inset-0 z-[200] flex items-center justify-center'>
-      <div className='absolute inset-0 bg-black/40' onClick={onClose} />
+    <div className='fixed inset-0 z-[200] flex items-center justify-center p-4'>
+      <div
+        className='absolute inset-0 bg-black/40'
+        onClick={closeOnBackdrop ? onClose : undefined}
+      />
       <div className={['relative rounded-2xl border border-border bg-background-elevated p-4 shadow-soft', panelClassName || 'w-full max-w-md'].join(' ')}>
         {title ? <h3 className='text-base font-semibold text-foreground'>{title}</h3> : null}
         <div className='mt-2'>{children}</div>
@@ -40,7 +44,8 @@ export default function Modal ({ open, title, children, onClose, actions, panelC
     </div>
   )
 
-  return createPortal(content, document.body)
+  const portalRoot = getPortalRoot()
+  return createPortal(content, portalRoot || document.body)
 }
 
 Modal.propTypes = {
@@ -49,5 +54,6 @@ Modal.propTypes = {
   children: PropTypes.node,
   onClose: PropTypes.func,
   actions: PropTypes.node,
-  panelClassName: PropTypes.string
+  panelClassName: PropTypes.string,
+  closeOnBackdrop: PropTypes.bool
 }

@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml/badge.svg)](https://github.com/mkueper/BSky-Kampagnen-Bot/actions/workflows/ci.yml)
 
+## Kurz erklärt: Was ist das Kampagnen-Tool?
+
+Kurzüberblick: [docs/KurzErklaert.md](docs/KurzErklaert.md)
+
 > Hinweis: Dieses Projekt unterstützt verantwortungsvolle, faktenbasierte Kampagnenkommunikation.  
 > Die ethischen Leitlinien findest du in [ETHICS.en.md](ETHICS.en.md) und [ETHICS.de.md](ETHICS.de.md).
 
@@ -209,6 +213,35 @@ Ohne konfigurierte Werte (`AUTH_*`) verweigert das Backend sämtliche geschützt
 - Laufzeit‑Overrides ohne `VITE_` werden per `/api/client-config` an das Dashboard geliefert und können `VITE_*` zur Laufzeit überschreiben.
 - UI‑Overrides (Dashboard) werden dauerhaft in der Datenbank gespeichert und vom Backend in `/api/client-config` gegenüber Env/VITE bevorzugt ausgeliefert.
 - Portauflösung (Server): `APP_PORT` → `BACKEND_INTERNAL_PORT` → `INTERNAL_BACKEND_PORT` → `BACKEND_PORT` → `3000`.
+
+### Link-Vorschau im Bluesky-Client
+
+- Damit der Bluesky-Client OG/Twitter-Metatags laden kann, setze `VITE_PREVIEW_PROXY_URL` auf einen erreichbaren Proxy – beispielsweise `http://localhost:3000/api/preview`, wenn das Backend parallel läuft.
+- Für reine Client-Entwicklung ohne Backend kannst du `npm run dev:preview-proxy` starten. Das Skript lauscht standardmäßig auf `http://127.0.0.1:3456/preview`; setze anschließend `VITE_PREVIEW_PROXY_URL=http://127.0.0.1:3456/preview`.
+- Port/Host lassen sich via `PREVIEW_PROXY_PORT` bzw. `PREVIEW_PROXY_HOST` überschreiben.
+- Für dedizierte Umgebungen (z. B. privates Netz) steht unter `docker/link-preview-proxy.Dockerfile` ein minimales Image bereit:
+  ```bash
+  docker build -f docker/link-preview-proxy.Dockerfile -t bsky-preview-proxy .
+  docker run --rm -p 3456:3456 \
+    -e PREVIEW_PROXY_HOST=0.0.0.0 \
+    -e PREVIEW_PROXY_PORT=3456 \
+    bsky-preview-proxy
+  ```
+  Danach verweist `VITE_PREVIEW_PROXY_URL` auf `http://<dein-host>:3456/preview`. Compose-Beispiel:
+  ```yaml
+  services:
+    preview-proxy:
+      build:
+        context: .
+        dockerfile: docker/link-preview-proxy.Dockerfile
+      environment:
+        PREVIEW_PROXY_HOST: 0.0.0.0
+        PREVIEW_PROXY_PORT: 3456
+      ports:
+        - "3456:3456"
+  ```
+- Alternativ kann zur Laufzeit `window.__BSKY_PREVIEW_ENDPOINT__` (String) oder `window.__BSKY_PREVIEW_FETCH__` (Promise-basierte Fetch-Funktion) gesetzt werden, z. B. aus dem Electron-Preload heraus.
+- Ist kein Proxy konfiguriert, zeigt der Client wie bisher den Hinweis, dass Link-Vorschauen im Standalone-Modus nicht verfügbar sind.
 
 Sicherheitshinweis: `.env` nicht committen und lokal restriktive Rechte setzen (z. B. `chmod 600 .env`).
 

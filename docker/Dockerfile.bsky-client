@@ -1,0 +1,35 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Root-Lock + Workspace-Manifeste (optimiert Caching für npm ci)
+COPY package*.json ./
+COPY bsky-client/package*.json ./bsky-client/
+COPY packages/shared-ui/package*.json ./packages/shared-ui/
+COPY packages/shared-logic/package*.json ./packages/shared-logic/
+COPY packages/media-pickers/package*.json ./packages/media-pickers/
+
+# Installiere nur die benötigten Workspaces
+RUN npm ci \
+  --workspace bsky-client \
+  --workspace packages/shared-ui \
+  --workspace packages/shared-logic \
+  --workspace packages/media-pickers \
+  --include-workspace-root
+
+# Quellcode kopieren (gefiltert durch .dockerignore)
+COPY . .
+
+# Bluesky-Client-Build
+RUN npm run build --workspace bsky-client
+
+FROM node:20-alpine
+WORKDIR /app
+
+COPY --from=build /app /app
+
+ENV NODE_ENV=production
+ENV BSKY_CLIENT_PORT=5173
+
+EXPOSE 5173
+
+CMD ["sh", "-c", "npm run preview --workspace bsky-client -- --host 0.0.0.0 --port ${BSKY_CLIENT_PORT:-5173}"]

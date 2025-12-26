@@ -106,7 +106,7 @@ function MobileNavBar ({
               title={ariaLabel}
               className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition hover:bg-background-subtle hover:text-primary ${
                 isActive ? 'bg-background-subtle text-primary shadow-soft' : ''
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              }`}
             >
               {Icon ? <Icon className='h-5 w-5' /> : null}
               {showBadge ? (
@@ -138,6 +138,8 @@ export default function BskyClientLayout ({
   onOpenComposeThread,
   headerContent,
   topBlock,
+  topBlockClassName = '',
+  scrollContainerClassName = '',
   children,
   detailPane = null,
   detailPaneActive = false,
@@ -217,6 +219,10 @@ export default function BskyClientLayout ({
   const navInteractionsLocked = typeof navInteractionsLockedProp === 'boolean'
     ? navInteractionsLockedProp
     : Boolean(detailPaneActive)
+  const newPostLabel = t('nav.newPost', 'Neuer Post')
+  const newPostAria = t('nav.newPostAria', 'Neuen Post erstellen')
+  const newThreadLabel = t('nav.newThread', 'Neuer Thread')
+  const newThreadAria = t('nav.newThreadAria', 'Neuen Thread erstellen')
 
   const handleSelect = useCallback(
     (section, actorOrOptions = null, maybeOptions = {}) => {
@@ -254,7 +260,6 @@ export default function BskyClientLayout ({
       onOpenClientSettings()
     }
   }, [onOpenClientSettings])
-
   const asideClassName = clsx(
     'z-40 rounded-2xl border border-border bg-background-elevated/80 px-4 py-3 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60 transition-transform duration-200 overflow-hidden',
     'fixed top-4 bottom-4 left-4',
@@ -275,11 +280,12 @@ export default function BskyClientLayout ({
   const mobileNavReservedSpace = `calc(var(--bottom-nav-height, ${MOBILE_NAV_HEIGHT}px) + var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
   const bottomPaddingValue = isMobile ? '16px' : undefined
   const isProfileSection = activeSection === 'profile'
-  const scrollContainerClassName = clsx(
+  const resolvedScrollContainerClassName = clsx(
     'flex-1 min-h-0 h-full',
     isProfileSection
       ? 'overflow-y-auto p-[2px] sm:p-2'
-      : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4'
+      : 'overflow-y-auto px-2 pt-3 sm:px-5 sm:pt-4',
+    scrollContainerClassName
   )
   const mainClassName = clsx({
     'flex h-full w-full min-h-0 justify-center': isProfileSection,
@@ -398,7 +404,10 @@ export default function BskyClientLayout ({
 
         {showTopBlock ? (
           <section
-            className='space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6'
+            className={clsx(
+              'space-y-6 px-2 pb-6 sm:space-y-8 sm:px-4 sm:pb-8 md:px-6',
+              topBlockClassName
+            )}
             data-component='BskyTopBlock'
           >
             {topBlock}
@@ -407,7 +416,7 @@ export default function BskyClientLayout ({
 
         <div
           id='bsky-scroll-container'
-          className={scrollContainerClassName}
+          className={resolvedScrollContainerClassName}
           data-component='BskyScrollContainer'
           style={{
             scrollbarGutter: 'stable',
@@ -417,7 +426,7 @@ export default function BskyClientLayout ({
           <div className={contentWrapperClassName}>
             <main
               className={mainClassName}
-              aria-hidden={isPaneExclusive}
+              inert={isPaneExclusive ? '' : undefined}
               style={isPaneExclusive ? { display: 'none' } : undefined}
             >
               {children}
@@ -465,15 +474,15 @@ export default function BskyClientLayout ({
                   <InlineMenuTrigger>
                     <button
                       type='button'
-                      onClick={() => setComposeMenuOpen(true)}
-                      className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
-                      style={{ bottom: mobileNavReservedSpace }}
-                      aria-label='Neuen Beitrag verfassen'
-                      title='Neuen Beitrag verfassen'
-                    >
-                      <PlusIcon className='h-6 w-6' />
-                      <span className='hidden sm:inline'>Neu</span>
-                    </button>
+                    onClick={() => setComposeMenuOpen(true)}
+                    className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
+                    style={{ bottom: mobileNavReservedSpace }}
+                    aria-label={newPostAria}
+                    title={newPostAria}
+                  >
+                    <PlusIcon className='h-6 w-6' />
+                    <span className='hidden sm:inline'>{newPostLabel}</span>
+                  </button>
                   </InlineMenuTrigger>
                   <InlineMenuContent side='top' align='end' sideOffset={10} className='w-56'>
                     <div className='py-1 text-sm'>
@@ -481,19 +490,19 @@ export default function BskyClientLayout ({
                         icon={PlusIcon}
                         onSelect={() => {
                           setComposeMenuOpen(false)
-                          handleOpenCompose()
-                        }}
-                      >
-                        Neuer Post
+                        handleOpenCompose()
+                      }}
+                    >
+                      {newPostLabel}
                       </InlineMenuItem>
                       <InlineMenuItem
                         icon={PlusIcon}
                         onSelect={() => {
                           setComposeMenuOpen(false)
-                          handleOpenComposeThread()
-                        }}
-                      >
-                        Neuer Thread
+                        handleOpenComposeThread()
+                      }}
+                    >
+                      {newThreadLabel}
                       </InlineMenuItem>
                     </div>
                   </InlineMenuContent>
@@ -505,22 +514,22 @@ export default function BskyClientLayout ({
                     onClick={handleOpenComposeThread}
                     className='fixed right-5 inline-flex items-center gap-2 rounded-full border border-border bg-background-elevated px-4 py-3 text-base font-semibold text-foreground shadow-soft hover:bg-background'
                     style={{ bottom: '96px' }}
-                    aria-label='Neuer Thread'
-                    title='Neuen Thread posten'
+                    aria-label={newThreadAria}
+                    title={newThreadLabel}
                   >
                     <PlusIcon className='h-6 w-6' />
-                    <span className='hidden sm:inline'>Neuer Thread</span>
+                    <span className='hidden sm:inline'>{newThreadLabel}</span>
                   </button>
                   <button
                     type='button'
                     onClick={handleOpenCompose}
                     className='fixed right-5 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-soft hover:opacity-95'
                     style={{ bottom: '20px' }}
-                    aria-label='Neuer Post'
-                    title='Neuen Post posten'
+                    aria-label={newPostAria}
+                    title={newPostLabel}
                   >
                     <PlusIcon className='h-6 w-6' />
-                    <span className='hidden sm:inline'>Neuer Post</span>
+                    <span className='hidden sm:inline'>{newPostLabel}</span>
                   </button>
                 </>
               )}

@@ -1,7 +1,20 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-// Dynamically import Hls when needed to avoid bundling it into the initial payload
 import { parseAspectRatioValue } from './utils/media.js'
+
+let hlsLoaderPromise = null
+
+function loadHls () {
+  if (!hlsLoaderPromise) {
+    hlsLoaderPromise = import('hls.js')
+      .then((module) => module.default || module)
+      .catch((error) => {
+        hlsLoaderPromise = null
+        throw error
+      })
+  }
+  return hlsLoaderPromise
+}
 
 function isVideo (item) {
   if (!item) return false
@@ -74,7 +87,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
     ;(async () => {
       let Hls
       try {
-        Hls = (await import('hls.js')).default
+        Hls = await loadHls()
       } catch (err) {
         console.warn('HLS import failed; cannot play HLS sources.', err)
         return

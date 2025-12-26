@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { useAppState, useAppDispatch } from '../context/AppContext';
+import { useThreadState, useThreadDispatch } from '../context/ThreadContext.jsx';
 import { fetchThread as fetchThreadApi } from '../modules/shared';
 
 function detectThreadMetadata (data) {
@@ -31,8 +31,8 @@ function detectThreadMetadata (data) {
 const HISTORY_LIMIT = 10
 
 export function useThread() {
-  const { threadState, threadViewVariant } = useAppState();
-  const dispatch = useAppDispatch();
+  const { threadState, threadViewVariant } = useThreadState();
+  const dispatch = useThreadDispatch();
   const threadScrollPosRef = useRef(0);
   const threadHistoryRef = useRef([]);
   const requestIdRef = useRef(0);

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useState } from 'react'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
 import BskyDetailPane from '../layout/BskyDetailPane.jsx'
 
@@ -9,8 +9,8 @@ const ProfileViewLazy = lazy(async () => {
 })
 
 export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderInLayout = false }) {
-  const { profileViewer } = useAppState()
-  const dispatch = useAppDispatch()
+  const { profileViewer, notificationsSettingsOpen } = useUIState()
+  const dispatch = useUIDispatch()
   const actor = profileViewer?.actor || ''
   const [headline, setHeadline] = useState({ name: '', handle: '', did: '' })
 
@@ -37,6 +37,8 @@ export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderI
 
   const titleName = headline.name || formatIdentifier(headline.handle) || formatIdentifier(actor)
   const headerTitle = titleName || 'Profil'
+  const containerClassName = notificationsSettingsOpen ? 'relative z-[210]' : ''
+  const effectiveRenderHeaderInLayout = renderHeaderInLayout && !notificationsSettingsOpen
 
   return (
     <BskyDetailPane
@@ -44,9 +46,10 @@ export default function ProfileViewerPane ({ registerLayoutHeader, renderHeaderI
         title: headerTitle,
         onBack: handleClose
       }}
+      containerClassName={containerClassName}
       bodyClassName='overflow-hidden'
       registerLayoutHeader={registerLayoutHeader}
-      renderHeaderInLayout={renderHeaderInLayout}
+      renderHeaderInLayout={effectiveRenderHeaderInLayout}
     >
       <Suspense fallback={
         <div className='flex h-full w-full items-center justify-center p-4'>

@@ -5,7 +5,7 @@ function classNames (...parts) {
   return parts.filter(Boolean).join(' ')
 }
 
-const baseClasses = 'inline-flex items-center gap-3 rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50'
+const baseClasses = 'inline-flex items-center gap-3 rounded-2xl text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2'
 
 const sizeClasses = {
   default: 'w-full px-4 py-2',

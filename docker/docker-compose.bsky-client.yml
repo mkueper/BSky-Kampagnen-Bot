@@ -1,0 +1,18 @@
+services:
+  bsky-client:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bsky-client
+    env_file: .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      BSKY_CLIENT_PORT: ${BSKY_CLIENT_PORT:-5173}
+    ports:
+      - "${BSKY_CLIENT_PORT:-5173}:${BSKY_CLIENT_PORT:-5173}"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const p=process.env.BSKY_CLIENT_PORT||5173; fetch('http://localhost:'+p+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

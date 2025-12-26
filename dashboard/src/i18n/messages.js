@@ -9,7 +9,15 @@ const messages = {
       'threads-overview': 'Aktivität',
       'threads-plan': 'Thread planen',
       config: 'Konfiguration',
-      about: 'Über Kampagnen‑Tool'
+      about: 'Über Kampagnen‑Tool',
+      clientLauncher: 'Client öffnen',
+      blueskyClient: 'Bluesky Client',
+      mastodonClient: 'Mastodon Client',
+      clientLauncherSuccessTitle: 'Client geöffnet',
+      clientLauncherSuccessDescription: 'Der Client-Link wurde geöffnet.',
+      clientLauncherErrorTitle: 'Client konnte nicht geöffnet werden',
+      clientLauncherErrorDescription: 'Bitte Konfiguration prüfen.',
+      clientLauncherPopupBlocked: 'Bitte Popups erlauben.'
     },
     about: {
       introTitle: 'Was das {project} macht',
@@ -24,7 +32,7 @@ const messages = {
       roleTextAssistant: 'Unterstützung bei Texten & Übersetzungen',
       licenseTitle: 'Open Source & Lizenz',
       licenseBody:
-        'Das {project} wird als Open‑Source‑Projekt unter der MIT‑Lizenz entwickelt. Details zur Lizenz finden sich in der Datei LICENSE im Projektverzeichnis. Quellcode & Issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+        'Das {project} wird als Open‑Source‑Projekt unter der GPL‑3.0 entwickelt. Details zur Lizenz finden sich in der Datei LICENSE im Projektverzeichnis. Quellcode & Issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
       supportTitle: 'Support & Feedback',
       supportBody:
         'Feedback, Fehler und Ideen können als Issue im GitHub‑Repo gemeldet werden. Bitte keine Zugangsdaten oder vertraulichen Inhalte in Issues posten.',
@@ -212,7 +220,7 @@ const messages = {
           removeButtonTitle: 'Bild entfernen',
           imageAltFallback: 'Bild {index}',
           altEditTitle: 'Alt‑Text bearbeiten',
-          altAddTitle: 'Alt‑Text hinzufügen',
+          altAddTitle: 'Alt‑Text bearbeiten',
           altSaveErrorFallback: 'Alt‑Text konnte nicht gespeichert werden.',
           altSaveErrorTitle: 'Fehler beim Alt‑Text',
           altBadge: 'ALT',
@@ -441,7 +449,7 @@ const messages = {
           addedDescription: 'Bild hinzugefügt.',
           imageAltFallback: 'Bild {index}',
           altEditTitle: 'Alt‑Text bearbeiten',
-          altAddTitle: 'Alt‑Text hinzufügen',
+          altAddTitle: 'Alt‑Text bearbeiten',
           altSaveErrorFallback: 'Alt‑Text konnte nicht gespeichert werden.',
           altSaveSuccessTitle: 'Alt‑Text gespeichert',
           altSaveErrorTitle: 'Fehler beim Alt‑Text',
@@ -880,14 +888,27 @@ const messages = {
           identifierLabel: 'Identifier (Handle/E-Mail)',
           appPasswordLabel: 'App Password',
           appPasswordHint:
-            'Leer lassen, um das bestehende Passwort zu behalten.'
+            'Leer lassen, um das bestehende Passwort zu behalten.',
+          clientAppLabel: 'Client-URL',
+          clientAppPlaceholder:
+            'https://client.example oder http://192.168.1.20:5173',
+          clientAppHint:
+            'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.',
+          sessionTtlLabel: 'Session-Dauer (Stunden)',
+          sessionTtlHint:
+            'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
         },
         mastodon: {
           heading: 'Mastodon',
           apiUrlLabel: 'API URL',
           accessTokenLabel: 'Access Token',
           accessTokenHint:
-            'Leer lassen, um das bestehende Token zu behalten.'
+            'Leer lassen, um das bestehende Token zu behalten.',
+          clientAppLabel: 'Client-URL',
+          clientAppPlaceholder:
+            'https://client.example oder http://192.168.1.20:5173',
+          clientAppHint:
+            'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
         },
         tenor: {
           heading: 'Externe API-Keys',
@@ -895,15 +916,28 @@ const messages = {
           apiKeyHint:
             'Leer lassen, um den bestehenden Key zu behalten.'
         },
+        clientUrlClear: 'URL entfernen',
+        clientUrlInvalid: 'Bitte eine gültige URL angeben.',
+        clientUrlInvalidProtocol: 'Nur https:// erlaubt (http:// nur für localhost/private IPs).',
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen'
+      },
+      externalServices: {
+        heading: 'Externe Dienste',
+        subtitle: 'API-Keys und Zugangsdaten für optionale Integrationen.',
+        toastTitle: 'Externe Dienste',
+        saveSuccessTitle: 'Externe Dienste gespeichert',
+        saveSuccessDescription: 'API-Keys wurden aktualisiert.',
+        saveErrorTitle: 'Speichern fehlgeschlagen',
+        saveErrorDescription: 'Externe Dienste konnten nicht gespeichert werden.'
       },
       tabs: {
         ariaLabel: 'Konfig-Themen',
         general: 'Allgemein',
         scheduler: 'Scheduler & Retry',
         polling: 'Dashboard-Polling',
-        credentials: 'Zugangsdaten'
+        credentials: 'Zugangsdaten',
+        externalServices: 'Externe Dienste'
       }
     },
     layout: {
@@ -936,7 +970,15 @@ const messages = {
       'threads-overview': 'Activity',
       'threads-plan': 'Schedule thread',
       config: 'Configuration',
-      about: 'About Campaign Tool'
+      about: 'About Campaign Tool',
+      clientLauncher: 'Open client',
+      blueskyClient: 'Bluesky client',
+      mastodonClient: 'Mastodon client',
+      clientLauncherSuccessTitle: 'Client opened',
+      clientLauncherSuccessDescription: 'The client link was opened.',
+      clientLauncherErrorTitle: 'Client could not be opened',
+      clientLauncherErrorDescription: 'Please check the configuration.',
+      clientLauncherPopupBlocked: 'Please allow popups.'
     },
     header: {
       caption: {
@@ -1715,14 +1757,27 @@ const messages = {
           identifierLabel: 'Identifier (handle/email)',
           appPasswordLabel: 'App password',
           appPasswordHint:
-            'Leave empty to keep existing password.'
+            'Leave empty to keep existing password.',
+          clientAppLabel: 'Client URL',
+          clientAppPlaceholder:
+            'https://client.example or http://192.168.1.20:5173',
+          clientAppHint:
+            'Opens as a link in the dashboard. http:// only for localhost/private IPs.',
+          sessionTtlLabel: 'Session duration (hours)',
+          sessionTtlHint:
+            'Applies only on this device (6 to 168 hours).'
         },
         mastodon: {
           heading: 'Mastodon',
           apiUrlLabel: 'API URL',
           accessTokenLabel: 'Access token',
           accessTokenHint:
-            'Leave empty to keep existing token.'
+            'Leave empty to keep existing token.',
+          clientAppLabel: 'Client URL',
+          clientAppPlaceholder:
+            'https://client.example or http://192.168.1.20:5173',
+          clientAppHint:
+            'Opens as a link in the dashboard. http:// only for localhost/private IPs.'
         },
         tenor: {
           heading: 'External API keys',
@@ -1730,15 +1785,28 @@ const messages = {
           apiKeyHint:
             'Leave empty to keep existing key.'
         },
+        clientUrlClear: 'Remove URL',
+        clientUrlInvalid: 'Please enter a valid URL.',
+        clientUrlInvalidProtocol: 'Only https:// allowed (http:// only for localhost/private IPs).',
         saveBusy: 'Applying…',
         saveLabel: 'Apply'
+      },
+      externalServices: {
+        heading: 'External services',
+        subtitle: 'API keys and credentials for optional integrations.',
+        toastTitle: 'External services',
+        saveSuccessTitle: 'External services saved',
+        saveSuccessDescription: 'API keys were updated.',
+        saveErrorTitle: 'Save failed',
+        saveErrorDescription: 'External services could not be saved.'
       },
       tabs: {
         ariaLabel: 'Configuration topics',
         general: 'General',
         scheduler: 'Scheduler & retry',
         polling: 'Dashboard polling',
-        credentials: 'Credentials'
+        credentials: 'Credentials',
+        externalServices: 'External services'
       }
     },
     about: {
@@ -1754,7 +1822,7 @@ const messages = {
       roleTextAssistant: 'Support for wording & translations',
       licenseTitle: 'Open source & license',
       licenseBody:
-        '{project} is developed as an open‑source project under the MIT license. License details can be found in the LICENSE file in the project directory. Source code & issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
+        '{project} is developed as an open-source project under the GPL-3.0. License details can be found in the LICENSE file in the project directory. Source code & issues: https://github.com/mkueper/BSky-Kampagnen-Bot',
       supportTitle: 'Support & feedback',
       supportBody:
         'Feedback, bugs, and ideas can be reported as issues in the GitHub repository. Please avoid posting credentials or other sensitive data in issues.',

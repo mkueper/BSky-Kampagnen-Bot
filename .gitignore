@@ -23,6 +23,7 @@ threadwriter/dist/
 threadwriter/src-tauri/target/
 threadwriter/src-tauri/gen/
 *.sqlite
+*.log
 logs/
 false/
 Codex-Vereinbarungen.md
@@ -32,3 +33,5 @@ Codex*.md
 _reminder.md
 _remind-me.md
 :electron
+1.txt
+1.md

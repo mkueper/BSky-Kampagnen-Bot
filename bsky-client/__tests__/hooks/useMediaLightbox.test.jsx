@@ -13,13 +13,14 @@ import { renderHook, act } from '@testing-library/react'
  * Teil der vereinheitlichten Teststruktur für Hooks im bsky-client.
  * Stellt sicher, dass die Media-Lightbox-State-Maschine stabil funktioniert.
  */
-import { AppProvider, useAppState } from '../../src/context/AppContext.jsx'
+import { AppProvider } from '../../src/context/AppContext.jsx'
+import { useUIState } from '../../src/context/UIContext.jsx'
 import { useMediaLightbox } from '../../src/hooks/useMediaLightbox.js'
 
 const wrapper = ({ children }) => <AppProvider>{children}</AppProvider>
 
 function useHookWithState () {
-  const state = useAppState()
+  const state = useUIState()
   const lightbox = useMediaLightbox()
   return { state, lightbox }
 }

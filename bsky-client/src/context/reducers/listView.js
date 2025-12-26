@@ -9,6 +9,7 @@ function createListState(meta = {}) {
     cursor: meta.cursor || null,
     loaded: Boolean(meta.loaded),
     hasNew: Boolean(meta.hasNew),
+    unreadIds: Array.isArray(meta.unreadIds) ? [...meta.unreadIds] : [],
     supportsPolling: meta.supportsPolling ?? false,
     supportsRefresh: meta.supportsRefresh ?? false,
     isRefreshing: Boolean(meta.isRefreshing),
@@ -121,6 +122,7 @@ export function listViewReducer(state, action) {
         topId: nextTopId,
         loaded: true,
         hasNew: keepHasNew ? prevList.hasNew : false,
+        unreadIds: Array.isArray(payload.unreadIds) ? payload.unreadIds : prevList.unreadIds || [],
         isRefreshing: false,
         isLoadingMore: false
       }
@@ -142,6 +144,29 @@ export function listViewReducer(state, action) {
         lists: {
           ...state.lists,
           [key]: { ...list, hasNew: true }
+        }
+      }
+    }
+    case 'LIST_CLEAR_UNREAD': {
+      const payload = action.payload || {}
+      const key = payload.key
+      if (!key) return state
+      const list = state.lists[key]
+      if (!list) return state
+      if (!Array.isArray(list.unreadIds) || list.unreadIds.length === 0) return state
+      const ids = Array.isArray(payload.ids) ? payload.ids : null
+      const nextUnreadIds = ids
+        ? list.unreadIds.filter((id) => !ids.includes(id))
+        : []
+      if (nextUnreadIds.length === list.unreadIds.length) return state
+      return {
+        ...state,
+        lists: {
+          ...state.lists,
+          [key]: {
+            ...list,
+            unreadIds: nextUnreadIds
+          }
         }
       }
     }

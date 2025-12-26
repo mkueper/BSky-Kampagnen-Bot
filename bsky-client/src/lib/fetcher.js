@@ -1,14 +1,18 @@
 import { fetchTimeline } from '../modules/shared/api/bsky'
 
-const defaultFetcher = (...args) => globalThis.fetch(...args).then(res => {
-  if (!res.ok) {
+const defaultFetcher = async (...args) => {
+  const response = await globalThis.fetch(...args)
+  const body = await response.json()
+
+  if (!response.ok) {
     const error = new Error('An error occurred while fetching the data.')
-    error.info = res.json()
-    error.status = res.status
+    error.info = body
+    error.status = response.status
     throw error
   }
-  return res.json()
-})
+
+  return body
+}
 
 export const fetcher = (url, ...args) => {
   if (Array.isArray(url)) {
@@ -19,3 +23,5 @@ export const fetcher = (url, ...args) => {
   }
   return defaultFetcher(url, ...args)
 }
+
+export { defaultFetcher }

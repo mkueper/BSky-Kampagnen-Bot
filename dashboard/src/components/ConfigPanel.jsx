@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
+import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
@@ -1003,6 +1004,12 @@ export default function ConfigPanel () {
               {t('config.tabs.credentials', 'Zugangsdaten')}
             </Tabs.Trigger>
             <Tabs.Trigger
+              value='external-services'
+              className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
+            >
+              {t('config.tabs.externalServices', 'Externe Dienste')}
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value='scheduler'
               className='rounded-full px-4 py-2 text-sm font-medium transition data-[state=active]:bg-background-elevated data-[state=active]:shadow-soft text-foreground-muted hover:text-foreground'
             >
@@ -1050,7 +1057,7 @@ export default function ConfigPanel () {
                       setGeneralValues(prev => ({ ...prev, locale: value }))
                     }}
                     disabled={generalLoading || generalSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                   >
                     <option value='de'>Deutsch</option>
                     <option value='en'>English</option>
@@ -1241,7 +1248,7 @@ export default function ConfigPanel () {
                             updateField('scheduleTime', e.target.value)
                           }
                           disabled={loading || saving}
-                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                           placeholder={defaults.scheduleTime}
                         />
                       </div>
@@ -1266,7 +1273,7 @@ export default function ConfigPanel () {
                               updateField('randomOffsetMinutes', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-2 w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-2 w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.randomOffsetMinutes}
                           />
                           <p className='mt-1 text-xs text-foreground-muted'>
@@ -1365,7 +1372,7 @@ export default function ConfigPanel () {
                               updateField('postRetries', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postRetries}
                           />
                         </div>
@@ -1387,7 +1394,7 @@ export default function ConfigPanel () {
                               updateField('postBackoffMs', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postBackoffMs}
                           />
                         </div>
@@ -1409,7 +1416,7 @@ export default function ConfigPanel () {
                               updateField('postBackoffMaxMs', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.postBackoffMaxMs}
                           />
                         </div>
@@ -1431,7 +1438,7 @@ export default function ConfigPanel () {
                               updateField('graceWindowMinutes', e.target.value)
                             }
                             disabled={loading || saving}
-                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                            className='mt-auto w-32 rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                             placeholder={defaults.graceWindowMinutes}
                           />
                         </div>
@@ -1566,7 +1573,7 @@ export default function ConfigPanel () {
                       updatePollField('threadActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadActiveMs}
                   />
                 </div>
@@ -1585,7 +1592,7 @@ export default function ConfigPanel () {
                       updatePollField('threadIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadIdleMs}
                   />
                 </div>
@@ -1604,7 +1611,7 @@ export default function ConfigPanel () {
                       updatePollField('threadHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.threadHiddenMs}
                   />
                 </div>
@@ -1645,7 +1652,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetActiveMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetActiveMs}
                   />
                 </div>
@@ -1661,7 +1668,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetIdleMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetIdleMs}
                   />
                 </div>
@@ -1680,7 +1687,7 @@ export default function ConfigPanel () {
                       updatePollField('skeetHiddenMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.skeetHiddenMs}
                   />
                 </div>
@@ -1722,7 +1729,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffStartMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.backoffStartMs}
                   />
                 </div>
@@ -1741,7 +1748,7 @@ export default function ConfigPanel () {
                       updatePollField('backoffMaxMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.backoffMaxMs}
                   />
                 </div>
@@ -1762,7 +1769,7 @@ export default function ConfigPanel () {
                       updatePollField('jitterRatio', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.jitterRatio}
                   />
                 </div>
@@ -1778,7 +1785,7 @@ export default function ConfigPanel () {
                       updatePollField('heartbeatMs', e.target.value)
                     }
                     disabled={pollLoading || pollSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                     placeholder={pollDefaults.heartbeatMs}
                   />
                 </div>
@@ -1817,6 +1824,9 @@ export default function ConfigPanel () {
         <Tabs.Content value='credentials' className='outline-none'>
           <CredentialsSection />
         </Tabs.Content>
+        <Tabs.Content value='external-services' className='outline-none'>
+          <ExternalServicesSection />
+        </Tabs.Content>
       </Tabs.Root>
     </div>
   )
@@ -1826,30 +1836,44 @@ function CredentialsSection () {
   const toast = useToast()
   const { t } = useTranslation()
   const [infoOpen, setInfoOpen] = useState(false)
+  const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
+  const SESSION_TTL_MIN_HOURS = 6
+  const SESSION_TTL_MAX_HOURS = 168
+  const SESSION_TTL_DEFAULT_HOURS = 12
   const [values, setValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
     blueskyAppPassword: '',
+    blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
-    tenorApiKey: ''
+    mastodonClientApp: ''
   })
   const [initialValues, setInitialValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
     blueskyAppPassword: '',
+    blueskyClientApp: '',
     mastodonApiUrl: '',
     mastodonAccessToken: '',
-    tenorApiKey: ''
+    mastodonClientApp: ''
   })
   const [hasSecret, setHasSecret] = useState({
     bsky: false,
-    masto: false,
-    tenor: false
+    masto: false
+  })
+  const [sessionTtlInput, setSessionTtlInput] = useState(() => {
+    if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
+    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
+    const parsed = Number(stored)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    return String(clamped)
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [blink, setBlink] = useState({})
+  const [clientUrlErrors, setClientUrlErrors] = useState({})
 
   const triggerBlink = (keys = []) => {
     const obj = {}
@@ -1858,6 +1882,34 @@ function CredentialsSection () {
     })
     setBlink(obj)
     setTimeout(() => setBlink({}), 900)
+  }
+
+  const isPrivateHostname = (hostname) => {
+    if (!hostname) return false
+    const host = hostname.toLowerCase()
+    if (host === 'localhost') return true
+    const v4 = host.split('.').map(part => Number(part))
+    if (v4.length !== 4 || v4.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false
+    if (v4[0] === 10) return true
+    if (v4[0] === 172 && v4[1] >= 16 && v4[1] <= 31) return true
+    if (v4[0] === 192 && v4[1] === 168) return true
+    return false
+  }
+
+  const validateClientUrl = (value) => {
+    const raw = (value ?? '').toString().trim()
+    if (!raw) return ''
+    try {
+      const parsed = new URL(raw)
+      if (parsed.protocol === 'https:') return ''
+      if (parsed.protocol === 'http:' && isPrivateHostname(parsed.hostname)) return ''
+      return t(
+        'config.credentials.clientUrlInvalidProtocol',
+        'Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+      )
+    } catch {
+      return t('config.credentials.clientUrlInvalid', 'Bitte eine gültige URL angeben.')
+    }
   }
 
   useEffect(() => {
@@ -1882,16 +1934,16 @@ function CredentialsSection () {
             blueskyServerUrl: data?.bluesky?.serverUrl || '',
             blueskyIdentifier: data?.bluesky?.identifier || '',
             blueskyAppPassword: '',
+            blueskyClientApp: data?.bluesky?.clientApp || '',
             mastodonApiUrl: data?.mastodon?.apiUrl || '',
             mastodonAccessToken: '',
-            tenorApiKey: ''
+            mastodonClientApp: data?.mastodon?.clientApp || ''
           }
           setValues(nextValues)
           setInitialValues(nextValues)
           setHasSecret({
             bsky: Boolean(data?.bluesky?.hasAppPassword),
-            masto: Boolean(data?.mastodon?.hasAccessToken),
-            tenor: Boolean(data?.tenor?.hasApiKey)
+            masto: Boolean(data?.mastodon?.hasAccessToken)
           })
         }
       } catch (error) {
@@ -1916,6 +1968,30 @@ function CredentialsSection () {
   }, [toast])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+  const onClientUrlBlur = key => () => {
+    const message = validateClientUrl(values[key])
+    setClientUrlErrors(current => ({ ...current, [key]: message }))
+  }
+  const clearClientUrl = key => () => {
+    setValues(current => ({ ...current, [key]: '' }))
+    setClientUrlErrors(current => ({ ...current, [key]: '' }))
+  }
+  const onSessionTtlChange = (event) => {
+    const nextValue = event.target.value
+    if (nextValue === '' || /^\d+$/.test(nextValue)) {
+      setSessionTtlInput(nextValue)
+    }
+  }
+
+  const normalizeSessionTtl = () => {
+    const parsed = Number(sessionTtlInput)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    setSessionTtlInput(String(clamped))
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SESSION_TTL_STORAGE_KEY, String(clamped))
+    }
+  }
 
   const hasCredentialChanges = useMemo(() => {
     return Object.keys(values).some(
@@ -1940,11 +2016,19 @@ function CredentialsSection () {
     if (!next.blueskyIdentifier) missing.push('blueskyIdentifier')
     if (!hasSecret.bsky && !next.blueskyAppPassword)
       missing.push('blueskyAppPassword')
+    const blueskyUrlError = validateClientUrl(next.blueskyClientApp)
+    const mastodonUrlError = validateClientUrl(next.mastodonClientApp)
+    if (blueskyUrlError) missing.push('blueskyClientApp')
+    if (mastodonUrlError) missing.push('mastodonClientApp')
     if (missing.length) {
       triggerBlink(missing)
+      setClientUrlErrors({
+        blueskyClientApp: blueskyUrlError,
+        mastodonClientApp: mastodonUrlError
+      })
       toast.error({
         title: 'Eingaben fehlen',
-        description: 'Bitte Bluesky‑Identifier und App‑Passwort ausfüllen.'
+        description: 'Bitte markierte Felder prüfen.'
       })
       return
     }
@@ -1954,7 +2038,6 @@ function CredentialsSection () {
       const payload = { ...next }
       if (!payload.blueskyAppPassword) delete payload.blueskyAppPassword
       if (!payload.mastodonAccessToken) delete payload.mastodonAccessToken
-      if (!payload.tenorApiKey) delete payload.tenorApiKey
       const res = await fetch('/api/config/credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1973,12 +2056,10 @@ function CredentialsSection () {
       await res.json().catch(() => ({}))
       if (values.blueskyAppPassword) setHasSecret(s => ({ ...s, bsky: true }))
       if (values.mastodonAccessToken) setHasSecret(s => ({ ...s, masto: true }))
-      if (values.tenorApiKey) setHasSecret(s => ({ ...s, tenor: true }))
       setValues(v => ({
         ...v,
         blueskyAppPassword: '',
-        mastodonAccessToken: '',
-        tenorApiKey: ''
+        mastodonAccessToken: ''
       }))
       toast.success({
         title: t('config.credentials.saveSuccessTitle', 'Gespeichert'),
@@ -1998,6 +2079,7 @@ function CredentialsSection () {
       )
       try {
         window.dispatchEvent(new Event('client-config:refresh'))
+        window.dispatchEvent(new Event('client-apps:refresh'))
         // Hintergrund-Refresh mit Cache-Bust, falls Browser cached
         await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
       } catch {
@@ -2054,10 +2136,6 @@ function CredentialsSection () {
               )}
             </p>
             <p>
-              {t(
-                'config.credentials.infoTenor',
-                'Optional kann ein Tenor‑API‑Key hinterlegt werden, um die GIF‑Suche im Dashboard zu aktivieren. Ohne Key bleibt die GIF‑Suche deaktiviert, das Planen von Posts ist davon unabhängig.'
-              )}{' '}
               {t(
                 'config.credentials.infoSecurity',
                 'Zugangsdaten werden serverseitig gespeichert. Felder für Passwörter und Tokens können leer gelassen werden, um vorhandene Werte beizubehalten.'
@@ -2173,31 +2251,109 @@ function CredentialsSection () {
                   />
                 </label>
               </div>
-              <label className='space-y-1 md:w-1/2'>
-              <span className='text-sm font-medium'>
-                {t(
-                  'config.credentials.bluesky.appPasswordLabel',
-                  'App Password'
-                )}
-              </span>
-              <input
-                type='password'
-                className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                  blink.blueskyAppPassword
-                    ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                    : 'border-border'
-                }`}
-                placeholder={hasSecret.bsky ? '••••••••' : ''}
-                value={values.blueskyAppPassword}
-                  onChange={onChange('blueskyAppPassword')}
-                />
-                <p className='text-xs text-foreground-muted'>
-                  {t(
-                    'config.credentials.bluesky.appPasswordHint',
-                    'Leer lassen, um das bestehende Passwort zu behalten.'
-                  )}
-                </p>
-              </label>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.appPasswordLabel',
+                      'App Password'
+                    )}
+                  </span>
+                  <input
+                    type='password'
+                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                      blink.blueskyAppPassword
+                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                        : 'border-border'
+                    }`}
+                    placeholder={hasSecret.bsky ? '••••••••' : ''}
+                    value={values.blueskyAppPassword}
+                    onChange={onChange('blueskyAppPassword')}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.appPasswordHint',
+                      'Leer lassen, um das bestehende Passwort zu behalten.'
+                    )}
+                  </p>
+                </label>
+                <label className='space-y-1'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.sessionTtlLabel',
+                      'Session-Dauer (Stunden)'
+                    )}
+                  </span>
+                  <input
+                    type='number'
+                    min={SESSION_TTL_MIN_HOURS}
+                    max={SESSION_TTL_MAX_HOURS}
+                    step='1'
+                    inputMode='numeric'
+                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    value={sessionTtlInput}
+                    onChange={onSessionTtlChange}
+                    onBlur={normalizeSessionTtl}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.sessionTtlHint',
+                      'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
+                    )}
+                  </p>
+                </label>
+              </div>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1 md:col-span-2'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.bluesky.clientAppLabel',
+                      'Client-App'
+                    )}
+                  </span>
+                  <div className='relative'>
+                    <input
+                      type='url'
+                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        blink.blueskyClientApp
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : clientUrlErrors.blueskyClientApp
+                            ? 'border-destructive'
+                            : 'border-border'
+                      }`}
+                      placeholder={t(
+                        'config.credentials.bluesky.clientAppPlaceholder',
+                        'https://client.example oder http://192.168.1.20:5173'
+                      )}
+                      value={values.blueskyClientApp}
+                      onChange={onChange('blueskyClientApp')}
+                      onBlur={onClientUrlBlur('blueskyClientApp')}
+                    />
+                    {values.blueskyClientApp ? (
+                      <button
+                        type='button'
+                        onClick={clearClientUrl('blueskyClientApp')}
+                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                      >
+                        <Cross2Icon className='h-4 w-4' />
+                      </button>
+                    ) : null}
+                  </div>
+                  {clientUrlErrors.blueskyClientApp ? (
+                    <p className='text-xs text-destructive'>
+                      {clientUrlErrors.blueskyClientApp}
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.bluesky.clientAppHint',
+                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
+                    )}
+                  </p>
+                </label>
+              </div>
             </div>
           </section>
           <section className='space-y-4'>
@@ -2240,8 +2396,246 @@ function CredentialsSection () {
                   </p>
                 </label>
               </div>
+              <div className='grid gap-4 md:grid-cols-2'>
+                <label className='space-y-1 md:col-span-2'>
+                  <span className='text-sm font-medium'>
+                    {t(
+                      'config.credentials.mastodon.clientAppLabel',
+                      'Client-App'
+                    )}
+                  </span>
+                  <div className='relative'>
+                    <input
+                      type='url'
+                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        blink.mastodonClientApp
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : clientUrlErrors.mastodonClientApp
+                            ? 'border-destructive'
+                            : 'border-border'
+                      }`}
+                      placeholder={t(
+                        'config.credentials.mastodon.clientAppPlaceholder',
+                        'https://client.example oder http://192.168.1.20:5173'
+                      )}
+                      value={values.mastodonClientApp}
+                      onChange={onChange('mastodonClientApp')}
+                      onBlur={onClientUrlBlur('mastodonClientApp')}
+                    />
+                    {values.mastodonClientApp ? (
+                      <button
+                        type='button'
+                        onClick={clearClientUrl('mastodonClientApp')}
+                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                      >
+                        <Cross2Icon className='h-4 w-4' />
+                      </button>
+                    ) : null}
+                  </div>
+                  {clientUrlErrors.mastodonClientApp ? (
+                    <p className='text-xs text-destructive'>
+                      {clientUrlErrors.mastodonClientApp}
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.credentials.mastodon.clientAppHint',
+                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
+                    )}
+                  </p>
+                </label>
+              </div>
             </div>
           </section>
+          <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
+            <div className='flex flex-wrap gap-3'>
+              <Button
+                type='button'
+                variant='secondary'
+                onClick={handleCancel}
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {t('common.actions.cancel', 'Abbrechen')}
+              </Button>
+              <Button
+                type='submit'
+                variant='primary'
+                disabled={loading || saving || !hasCredentialChanges}
+              >
+                {saving
+                  ? t('config.credentials.saveBusy', 'Übernehmen…')
+                  : t('config.credentials.saveLabel', 'Übernehmen')}
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+      </Card>
+    </>
+  )
+}
+
+function ExternalServicesSection () {
+  const toast = useToast()
+  const { t } = useTranslation()
+  const [values, setValues] = useState({
+    tenorApiKey: ''
+  })
+  const [initialValues, setInitialValues] = useState({
+    tenorApiKey: ''
+  })
+  const [hasSecret, setHasSecret] = useState({
+    tenor: false
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let ignore = false
+    async function loadServices () {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/config/credentials')
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(
+            data.error ||
+              t(
+                'config.credentials.loadErrorFallback',
+                'Fehler beim Laden der Zugangsdaten.'
+              )
+          )
+        }
+        const data = await res.json()
+        if (!ignore) {
+          const nextValues = { tenorApiKey: '' }
+          setValues(nextValues)
+          setInitialValues(nextValues)
+          setHasSecret({ tenor: Boolean(data?.tenor?.hasApiKey) })
+        }
+      } catch (error) {
+        console.error('Externe Dienste laden fehlgeschlagen:', error)
+        toast.error({
+          title: t('config.externalServices.toastTitle', 'Externe Dienste'),
+          description:
+            error.message ||
+            t(
+              'config.credentials.loadErrorDescription',
+              'Die Zugangsdaten konnten nicht geladen werden.'
+            )
+        })
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    loadServices()
+    return () => {
+      ignore = true
+    }
+  }, [toast])
+
+  const hasChanges = useMemo(() => {
+    return Object.keys(values).some(
+      key => String(values[key] ?? '') !== String(initialValues[key] ?? '')
+    )
+  }, [values, initialValues])
+
+  const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+
+  const handleCancel = () => {
+    setValues(initialValues)
+  }
+
+  const handleSave = async e => {
+    e.preventDefault()
+
+    if (!hasChanges) return
+
+    setSaving(true)
+    try {
+      const payload = { ...values }
+      if (!payload.tenorApiKey) delete payload.tenorApiKey
+      const res = await fetch('/api/config/credentials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(
+          data.error ||
+            t(
+              'config.credentials.saveErrorFallback',
+              'Fehler beim Speichern der Zugangsdaten.'
+            )
+        )
+      }
+      await res.json().catch(() => ({}))
+      if (values.tenorApiKey) setHasSecret({ tenor: true })
+      setValues(v => ({
+        ...v,
+        tenorApiKey: ''
+      }))
+      setInitialValues({ tenorApiKey: '' })
+      toast.success({
+        title: t(
+          'config.externalServices.saveSuccessTitle',
+          'Externe Dienste gespeichert'
+        ),
+        description: t(
+          'config.externalServices.saveSuccessDescription',
+          'API-Keys wurden aktualisiert.'
+        )
+      })
+      try {
+        window.dispatchEvent(new Event('client-config:refresh'))
+        window.dispatchEvent(new Event('client-apps:refresh'))
+        await fetch(`/api/client-config?t=${Date.now()}`).catch(() => null)
+      } catch {
+        /* ignore */
+      }
+    } catch (error) {
+      console.error('Externe Dienste speichern fehlgeschlagen:', error)
+      toast.error({
+        title: t(
+          'config.externalServices.saveErrorTitle',
+          'Speichern fehlgeschlagen'
+        ),
+        description:
+          error.message ||
+          t(
+            'config.externalServices.saveErrorDescription',
+            'Externe Dienste konnten nicht gespeichert werden.'
+          )
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card padding='p-6 lg:p-10'>
+      <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
+        <div>
+          <h3 className='text-2xl font-semibold'>
+            {t('config.externalServices.heading', 'Externe Dienste')}
+          </h3>
+          <p className='text-sm text-foreground-muted'>
+            {t(
+              'config.externalServices.subtitle',
+              'API-Keys und Zugangsdaten für optionale Integrationen.'
+            )}
+          </p>
+        </div>
+      </div>
+      {loading ? (
+        <p className='text-sm text-foreground-muted'>
+          {t('config.credentials.loading', 'Lade …')}
+        </p>
+      ) : (
+        <form onSubmit={handleSave} className='space-y-6'>
           <section className='space-y-4'>
             <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
               <h4 className='text-lg font-semibold'>
@@ -2275,14 +2669,14 @@ function CredentialsSection () {
                 type='button'
                 variant='secondary'
                 onClick={handleCancel}
-                disabled={loading || saving || !hasCredentialChanges}
+                disabled={loading || saving || !hasChanges}
               >
                 {t('common.actions.cancel', 'Abbrechen')}
               </Button>
               <Button
                 type='submit'
                 variant='primary'
-                disabled={loading || saving || !hasCredentialChanges}
+                disabled={loading || saving || !hasChanges}
               >
                 {saving
                   ? t('config.credentials.saveBusy', 'Übernehmen…')
@@ -2292,7 +2686,6 @@ function CredentialsSection () {
           </div>
         </form>
       )}
-      </Card>
-    </>
+    </Card>
   )
 }

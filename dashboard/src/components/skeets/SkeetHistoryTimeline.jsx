@@ -31,7 +31,11 @@ function getStatusMeta (status) {
   return STATUS_META[status] || { label: status || 'Aktualisiert', icon: '•', tone: 'neutral' }
 }
 
-export default function SkeetHistoryTimeline ({ history = [], title = 'Sendehistorie' }) {
+export default function SkeetHistoryTimeline ({
+  history = [],
+  title = 'Sendehistorie',
+  showTitle = true
+}) {
   const items = Array.isArray(history)
     ? [...history]
       .filter(Boolean)
@@ -46,7 +50,9 @@ export default function SkeetHistoryTimeline ({ history = [], title = 'Sendehist
 
   return (
     <section className='skeet-history' aria-live='polite'>
-      <p className='skeet-history-title'>{title}</p>
+      {showTitle ? (
+        <p className='skeet-history-title'>{title}</p>
+      ) : null}
       {items.length === 0 ? (
         <p className='skeet-history-empty'>Noch keine Sendehistorie vorhanden.</p>
       ) : (

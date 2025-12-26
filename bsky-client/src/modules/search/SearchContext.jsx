@@ -394,8 +394,6 @@ function useProvideSearchContext () {
     [recentQueryEntries]
   )
 
-  const prefixHintDictionary = clientConfig?.search?.prefixHints || null
-
   return {
     draftQuery,
     setDraftQuery,
@@ -424,7 +422,6 @@ function useProvideSearchContext () {
     showInlinePrefixHint,
     applyPrefixSuggestion,
     advancedPrefixes: advancedPrefixEntries,
-    prefixHintDictionary,
     loadMore,
     handleEngagementChange
   }

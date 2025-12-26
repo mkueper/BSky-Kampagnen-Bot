@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types'
 import * as Popover from '@radix-ui/react-popover'
 import { forwardRef } from 'react'
+import { getPortalRoot } from '../utils/portal.js'
 
 export function InlineMenuTrigger ({ asChild = true, children, ...rest }) {
   return (
@@ -21,6 +22,7 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
   sideOffset = 8,
   withArrow = false,
   portalled = true,
+  portalContainer = null,
   className = '',
   children,
   style,
@@ -32,17 +34,20 @@ export const InlineMenuContent = forwardRef(function InlineMenuContent ({
       align={align}
       side={side}
       sideOffset={sideOffset}
-      className={`z-[250] rounded-2xl border border-border bg-background shadow-2xl focus-visible:outline-none ${className}`}
+      className={`z-[250] rounded-2xl border border-border bg-background-elevated shadow-2xl focus-visible:outline-none ${className}`}
       style={{ minWidth: 160, ...style }}
       {...rest}
     >
       {children}
       {withArrow ? (
-        <Popover.Arrow className='fill-background stroke-border' />
+        <Popover.Arrow className='fill-background-elevated stroke-border' />
       ) : null}
     </Popover.Content>
   )
-  return portalled ? <Popover.Portal>{content}</Popover.Portal> : content
+  const resolvedContainer = portalContainer || getPortalRoot()
+  return portalled
+    ? <Popover.Portal container={resolvedContainer || undefined}>{content}</Popover.Portal>
+    : content
 })
 
 InlineMenuContent.propTypes = {
@@ -51,6 +56,7 @@ InlineMenuContent.propTypes = {
   sideOffset: PropTypes.number,
   withArrow: PropTypes.bool,
   portalled: PropTypes.bool,
+  portalContainer: PropTypes.instanceOf(Element),
   className: PropTypes.string,
   children: PropTypes.node,
   style: PropTypes.object
@@ -77,9 +83,7 @@ export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = fal
       type='button'
       onClick={onSelect}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container} ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
+      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container}`}
     >
       {Icon ? <Icon className={`h-4 w-4 ${currentVariant.icon}`} /> : null}
       <span className={variant === 'destructive' ? 'text-destructive' : variant === 'warning' ? 'text-amber-900 dark:text-amber-100' : 'text-foreground'}>{children}</span>

@@ -19,8 +19,8 @@ Gegenueberstellung der in Schritt 1 erfassten offiziellen Timeline-Funktionen mi
 | Funktion | Status | Hinweise |
 | --- | --- | --- |
 | Infinite Scroll + Auto-Laden | Erfuellt | `Timeline` haengt einen Scroll-Listener an den Container und laedt bei 80 % Scrolltiefe nach (bsky-client/src/modules/timeline/Timeline.jsx:5-140). |
-| Soft-Loading/Skeletons | Teilweise | Beim Laden erscheint nur ein Spinner, keine Skelettkarten (bsky-client/src/modules/timeline/Timeline.jsx:98-115). |
-| "Neue Beitraege verfuegbar"-Banner | Fehlt | `timelineHasNew` wird gesetzt (bsky-client/src/ClientApp.jsx:55-82, bsky-client/src/context/AppContext.jsx:17-48), aber kein Component liest den Wert. |
+| Soft-Loading/Skeletons | Erfuellt | Beim initialen Laden werden Skelettkarten gerendert (bsky-client/src/modules/timeline/Timeline.jsx). |
+| "Neue Beitraege verfuegbar"-Banner | Teilweise | Polling setzt `hasNew` pro Liste (`LIST_MARK_HAS_NEW` via `useListPolling`), und der Header zeigt dazu einen Badge-Punkt pro Tab; ein Banner/CTA in der Timeline gibt es derzeit nicht (bsky-client/src/hooks/useListPolling.js, bsky-client/src/modules/layout/HeaderContent.jsx). |
 | Thread-Vorschau / Inline-Zitate | Teilweise | Inline-Zitate werden in `SkeetItem` rendert (bsky-client/src/modules/timeline/SkeetItem.jsx:120-220). Eine Thread-Vorschau innerhalb der Timeline fehlt; stattdessen oeffnet ein Klick die Thread-Ansicht. |
 | Kontextleisten ("hat repostet", "gefaellt X") | Fehlt | `SkeetItem` zeigt nur Autor, Handle und Inhalt; es gibt keinen Hinweis auf Repost-/Like-Kontexte (bsky-client/src/modules/timeline/SkeetItem.jsx:200-240). |
 | Thread-Ansicht im Fokus | Erfuellt | `ThreadView` baut Parent/Child-Baeume und hebt den fokussierten Beitrag hervor (bsky-client/src/modules/timeline/ThreadView.jsx:1-120). |
@@ -30,24 +30,24 @@ Gegenueberstellung der in Schritt 1 erfassten offiziellen Timeline-Funktionen mi
 | Funktion | Status | Hinweise |
 | --- | --- | --- |
 | Like, Repost/Quote, Reply | Erfuellt | Buttons fuer Antworten, Likes und Reposts (inkl. Quote-Option) sind vorhanden; State-Management ueber `useBskyEngagement` aktualisiert Counts sofort (bsky-client/src/modules/timeline/SkeetItem.jsx:400-432, bsky-client/src/modules/shared/hooks/useBskyEngagement.js:1-120). |
-| Share-Menue (Copy Link, Open in App) | Fehlt | In `SkeetItem` existieren keine weiteren Aktions-Buttons ausser Reply/Repost/Like/Refresh. |
-| Inline-Medien mit ALT + Lightbox | Teilweise | Bilder werden als Grid/Single gerendert und ueber eine Lightbox mit Pfeilnavigation geoeffnet (bsky-client/src/modules/timeline/SkeetItem.jsx:205-320, bsky-client/src/modules/shared/MediaLightbox.jsx:1-76). ALT-Text wird angezeigt, aber es gibt keinen Hinweis, wenn einer fehlt bzw. keine Multi-Media-Typen (Video) ausserhalb statischer Bilder. |
+| Share-Menue (Copy Link, Open in App) | Teilweise | Share-Menue ist vorhanden (Copy-Link umgesetzt); weitere Ziele wie DM/Embed sind aktuell Platzhalter (bsky-client/src/modules/timeline/SkeetItem.jsx). |
+| Inline-Medien mit ALT + Lightbox | Teilweise | Bilder werden als Grid/Single gerendert und in einer Lightbox geoeffnet; Videos werden inline und in der Lightbox unterstuetzt. ALT-Text wird angezeigt; Hinweise auf fehlenden ALT-Text sind derzeit nicht Teil der UI (bsky-client/src/modules/timeline/SkeetItem.jsx, bsky-client/src/modules/shared/MediaLightbox.jsx). |
 
 ## Composer-Integration
 
 | Funktion | Status | Hinweise |
 | --- | --- | --- |
 | Modal-Composer inkl. Reply/Quote | Erfuellt | `Modals` oeffnet den `Composer` fuer neue Posts, Replies und Quotes (bsky-client/src/modules/layout/Modals.jsx:9-46, bsky-client/src/modules/composer/Composer.jsx:191-244). |
-| Medien-Uploads + GIF/Emoji + Link-Preview | Erfuellt | Bis zu vier Bilder, Tenor-GIFs (falls konfiguriert) und Emoji-Picker vorhanden; Link-Vorschauen werden automatisch geladen (bsky-client/src/modules/composer/Composer.jsx:320-424). |
+| Medien-Uploads + GIF/Emoji + Link-Preview | Teilweise | Bis zu vier Bilder, Tenor-GIFs (falls konfiguriert) und Emoji-Picker vorhanden; Link-Preview wird nur geladen, wenn ein Preview-Fetcher konfiguriert ist (`VITE_PREVIEW_PROXY_URL` oder `window.__BSKY_PREVIEW_*`), sonst erscheint eine Standalone-Meldung (bsky-client/src/modules/composer/linkPreviewService.js, bsky-client/src/modules/composer/Composer.jsx). |
 | Quick-Composer inline | Fehlt | Es existiert nur der Modal-Composer (Floating Action Button / Nav-Button); keine Inline-Eingabe oberhalb der Timeline. |
-| Polls / ALT-Text-Editor | Fehlt | Im Composer gibt es weder Eingabefelder fuer Umfragen noch fuer ALT-Texte der hochgeladenen Bilder; der Button "Jeder kann interagieren" ist nur ein Platzhalter (bsky-client/src/modules/composer/Composer.jsx:392-401). |
+| Polls / ALT-Text-Editor | Teilweise | Polls fehlen; ALT-Text ist fuer hochgeladene Medien vorhanden (Alt-Dialog, optional als Pflicht ueber Config). Interaktionseinstellungen werden per Modal geladen/konfiguriert (bsky-client/src/modules/composer/Composer.jsx). |
 
 ## Moderation & Filter
 
 | Funktion | Status | Hinweise |
 | --- | --- | --- |
-| Label-/Safety-Indikatoren | Fehlt | Timeline-Beitraege werden ohne Warnhinweise oder Click-to-view-Wrapper dargestellt; `SkeetItem` wertet keine Label-Informationen aus. |
-| Reply/Quote/Language-Filter (Hide Replies) | Fehlt | Kein UI-Element fuer Filter; einzig ein (noch unverbundener) Button im Composer fuer Interaktions-Einstellungen (bsky-client/src/modules/composer/Composer.jsx:392-401). |
+| Label-/Safety-Indikatoren | Teilweise | `SkeetItem` wendet Moderations-Entscheidungen an (Warnhinweise/Blur/Toggle fuer offizielle Labels), aber nicht jede bsky.app-Moderationsfunktion ist abgebildet (bsky-client/src/modules/timeline/SkeetItem.jsx). |
+| Reply/Quote/Language-Filter (Hide Replies) | Teilweise | Sprachfilter ist im Timeline-Header vorhanden; Hide-Replies/weitere Filter fehlen derzeit (bsky-client/src/modules/layout/HeaderContent.jsx, bsky-client/src/modules/timeline/Timeline.jsx). |
 
 ## Thread-Handling
 
@@ -113,29 +113,28 @@ Gegenueberstellung der in Schritt 1 erfassten offiziellen Timeline-Funktionen mi
 
 ## Umsetzungsschritte - "Neue Beitraege"-Banner
 
-**Ziel:** Das bestehende `timelineHasNew`-Signal sichtbar machen und Nutzer:innen per CTA zum Reload scrollen lassen, sobald neue Posts auf dem Server eingetroffen sind.
+**Ziel:** Das bestehende `hasNew`-Signal (pro Liste) sichtbar machen und Nutzer:innen per CTA zum Reload scrollen lassen, sobald neue Posts auf dem Server eingetroffen sind.
 
 ### Status-Quellen
 
-- `ClientApp` setzt `timelineTopUri` und prueft alle 45 s auf Abweichungen (`fetchTimelineApi` mit `limit=1`). Bei Unterschieden -> `SET_TIMELINE_HAS_NEW true`.
-- Der Scroll-Container `bsky-scroll-container` existiert bereits; `ScrollTopButton` nutzt ihn als Referenz.
+- `useListPolling` prueft pro Timeline-Liste den Server-Top-Post (`fetchServerTopId`, `limit=1`). Bei Abweichungen -> `LIST_MARK_HAS_NEW` fuer den betroffenen List-Key.
+- Der Header rendert pro Tab einen Badge-Punkt, wenn `tab.hasNew === true` ist (`TimelineHeader`).
 
 ### Frontend-Anpassungen
 
-- `AppContext`: `timelineHasNew` existiert, aber UI liest ihn nicht. Neue Memo `showTimelineBanner = timelineHasNew && section === 'home' && !threadState.active`.
-- `ClientApp`:
-  - Nutzen des bereits definierten `scrollTimelineToTop`. Bei Klick auf den Banner: `scrollTimelineToTop()`, `refreshTimeline()`, `dispatch({ type: 'SET_TIMELINE_HAS_NEW', payload: false })`.
-  - Zusatz-Effekt: Wenn Timeline wieder bis `< 120px` gescrollt wird (Event-Listener auf `bsky-scroll-container`), `SET_TIMELINE_HAS_NEW false`, damit Banner nicht "steckenbleibt".
+- `TimelineContext`/Listen-State: `hasNew` ist bereits am List-Slice vorhanden; fuer ein Banner braucht es eine klare Zuordnung (z.B. nur fuer den aktiven `listKey` anzeigen).
+- `ClientApp` bzw. die aktive Timeline-Section:
+  - Bei Klick auf den Banner: Scroll-to-top + `runListRefresh({ list, dispatch })`.
+  - Danach `hasNew` fuer den aktiven Tab zuruecksetzen (z.B. ueber einen dedizierten Action-Reset oder im Zuge eines Refreshes).
 - UI-Komponente:
   - `NewPostsBanner`: Stickied Element direkt unter dem Header (innerhalb von `homeContent`, aber ausserhalb des Thread-Containers). Darstellung: pillfoermige Schaltflaeche mit Copy wie "Neue Beitraege anzeigen (3)" - Count optional falls API spaeter differenziert.
   - Accessibility: `role='status'` + `aria-live='polite'`, Tastaturfokus moeglich.
 - Timeline-Integration:
-  - `Timeline` sendet beim Laden `onTopItemChange` bereits das neue Item nach oben; beim Refresh also `onTopItemChange` -> `SET_TIMELINE_TOP_URI`.
-  - Falls der Banner aktiv ist und `Timeline` gerade laedt (`onLoadingChange(true)`), CTA deaktivieren, Spinner anzeigen.
+  - Falls Banner aktiv ist und Timeline gerade laedt, CTA deaktivieren, Spinner/Loading-Text anzeigen.
 
 ### Tests & Telemetrie
 
-- Unit-Test fuer `TimelineHeader` oder `NewPostsBanner` sicherstellen, dass Banner nur angezeigt wird, wenn `timelineHasNew` true ist.
+- Unit-Test fuer `TimelineHeader` oder `NewPostsBanner` sicherstellen, dass Banner nur angezeigt wird, wenn `hasNew` fuer den aktiven Tab true ist.
 - Cypress/Playwright-E2E (falls vorhanden) kann spaeter das Verhalten pruefen (Simulieren durch Mocken von `fetchTimeline` Rueckgaben).
 
 ### Offene Fragen

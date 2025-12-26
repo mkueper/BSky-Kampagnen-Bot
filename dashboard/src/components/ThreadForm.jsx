@@ -37,7 +37,7 @@ const DASHBOARD_GIF_PICKER_CLASSES = {
   input:
     'flex-1 rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground',
   buttonPrimary:
-    'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed',
+    'rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground',
   button:
     'rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground hover:bg-background',
   content: 'flex-1 overflow-y-auto bg-background px-4 py-4',
@@ -424,7 +424,7 @@ function ThreadForm ({
     () => ({
       imageAlt: index =>
         t('threads.form.media.imageAltFallback', 'Bild {index}', { index }),
-      altAddTitle: t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen'),
+      altAddTitle: t('threads.form.media.altAddTitle', 'Alt‑Text bearbeiten'),
       altEditTitle: t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten'),
       altBadge: t('threads.form.media.altBadge', 'ALT'),
       altAddBadge: t('threads.form.media.altAddBadge', '+ ALT'),
@@ -1106,7 +1106,7 @@ function ThreadForm ({
                             : 'border-border text-foreground-muted hover:border-primary/50'
                         } ${
                           disabled
-                            ? 'opacity-60 cursor-not-allowed hover:border-border'
+                            ? ''
                             : ''
                         }`}
                         title={title}
@@ -1391,7 +1391,7 @@ function ThreadForm ({
                         </span>
                         <button
                           type='button'
-                          className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                          className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                           onClick={() => openMediaDialog(segment.id)}
                           title={
                             getMediaCount(segment.id) >= imagePolicy.maxCount
@@ -1411,7 +1411,7 @@ function ThreadForm ({
                         {tenorAvailable ? (
                           <button
                             type='button'
-                            className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated disabled:opacity-50 disabled:cursor-not-allowed'
+                            className='rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground hover:bg-background-elevated'
                             onClick={() => setGifPicker({ open: true, index })}
                             title={
                               getMediaCount(segment.id) >= imagePolicy.maxCount
@@ -1686,7 +1686,7 @@ function ThreadForm ({
           title={
             altDialog.item.alt
               ? t('threads.form.media.altEditTitle', 'Alt‑Text bearbeiten')
-              : t('threads.form.media.altAddTitle', 'Alt‑Text hinzufügen')
+              : t('threads.form.media.altAddTitle', 'Alt‑Text bearbeiten')
           }
           mode='alt'
           previewSrc={altDialog.item.src}

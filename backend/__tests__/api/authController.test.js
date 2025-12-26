@@ -41,7 +41,7 @@ describe('authController.session', () => {
     vi.restoreAllMocks()
   })
 
-  it('gibt configured=false und authenticated=false zurück, wenn Auth nicht konfiguriert ist', () => {
+  it('gibt configured=false und authenticated=false zurück, wenn Auth nicht konfiguriert ist', async () => {
     const authController = loadController({
       getStatus: () => ({
         configured: false,
@@ -55,7 +55,7 @@ describe('authController.session', () => {
       json: (obj) => { payload = obj }
     }
 
-    authController.session({}, res)
+    await authController.session({}, res)
 
     expect(payload).toEqual({
       authenticated: false,
@@ -63,7 +63,7 @@ describe('authController.session', () => {
     })
   })
 
-  it('gibt authenticated=false zurück, wenn keine Session vorliegt', () => {
+  it('gibt authenticated=false zurück, wenn keine Session vorliegt', async () => {
     const authController = loadController({
       getStatus: () => ({
         configured: true,
@@ -78,7 +78,7 @@ describe('authController.session', () => {
       json: (obj) => { payload = obj }
     }
 
-    authController.session({ cookies: {} }, res)
+    await authController.session({ cookies: {} }, res)
 
     expect(payload).toEqual({
       authenticated: false,
@@ -86,7 +86,7 @@ describe('authController.session', () => {
     })
   })
 
-  it('gibt authenticated=true und Userdaten zurück, wenn Session vorhanden ist', () => {
+  it('gibt authenticated=true und Userdaten zurück, wenn Session vorhanden ist', async () => {
     const nowSeconds = Math.floor(Date.now() / 1000) + 3600
     const authController = loadController({
       getStatus: () => ({
@@ -105,7 +105,7 @@ describe('authController.session', () => {
       json: (obj) => { payload = obj }
     }
 
-    authController.session({ cookies: { sess: 'token' } }, res)
+    await authController.session({ cookies: { sess: 'token' } }, res)
 
     expect(payload?.authenticated).toBe(true)
     expect(payload?.configured).toBe(true)
@@ -237,8 +237,8 @@ describe('authController.login', () => {
     authController.login(req, res)
 
     expect(statusCode).toBe(200)
-    expect(issueSpy).toHaveBeenCalledWith('admin')
-    expect(persistSpy).toHaveBeenCalled()
+    expect(issueSpy).toHaveBeenCalledWith('admin', 1234)
+    expect(persistSpy).toHaveBeenCalledWith(res, 'token123', 1234)
     expect(payload?.ok).toBe(true)
     expect(payload?.expiresInSeconds).toBe(1234)
   })

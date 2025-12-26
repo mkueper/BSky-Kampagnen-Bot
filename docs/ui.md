@@ -12,6 +12,9 @@ Kurzer Leitfaden für konsistente Komponenten und Styles im Dashboard.
   - Varianten: `primary`, `secondary`, `neutral`, `warning`, `destructive`, `ghost`
   - Größen: `md`, `icon`; disabled-Zustand und Fokus sind vordefiniert
 
+- `ThreadComposer` (`@bsky-kampagnen-bot/shared-ui`)
+  - Lädt Emoji- und GIF-Picker erst bei Bedarf (lazy), daher kann das Öffnen der Picker kurz asynchron erfolgen.
+
 - `Badge` (`dashboard/src/components/ui/Badge.jsx`)
   - Varianten: `neutral`, `outline`, `success`, `warning`, `destructive`
   - Größen: `sm`, `md`; optionales `icon` für Plattform-Symbole
@@ -321,3 +324,4 @@ function Example() {
 
 ### Modals (klassisch)
 - Composer, Medien-Dialoge, Bestätigungen – reine Dialoge, keine Pane-Inhalte.
+- Portals nutzen den gemeinsamen Root `#bsky-portal-root` statt pro Komponente eigene `<div>` im `<body>` anzulegen.

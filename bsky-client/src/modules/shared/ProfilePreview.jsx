@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Card } from '@bsky-kampagnen-bot/shared-ui'
+import { Card, getPortalRoot } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
-import { useAppState } from '../../context/AppContext.jsx'
+import { useUIState } from '../../context/UIContext.jsx'
 
 const profileCache = new Map()
 const numberFormatter = new Intl.NumberFormat('de-DE')
@@ -20,21 +20,6 @@ function formatNumber (value) {
 function getDocument () {
   if (typeof globalThis !== 'undefined' && globalThis.document) return globalThis.document
   return null
-}
-
-function usePortalContainer () {
-  const [container, setContainer] = useState(null)
-  useEffect(() => {
-    const doc = getDocument()
-    if (!doc) return
-    const el = doc.createElement('div')
-    doc.body.appendChild(el)
-    setContainer(el)
-    return () => {
-      doc.body.removeChild(el)
-    }
-  }, [])
-  return container
 }
 
 function ProfileCardSkeleton () {
@@ -82,10 +67,19 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           <div className='min-w-0'>
             <p className='truncate text-base font-semibold text-foreground'>{profile.displayName || profile.handle}</p>
             <p className='truncate text-sm text-foreground-muted'>@{profile.handle}</p>
-            {profile.viewer?.followedBy ? (
-              <span className='mt-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
-                Folgt dir
-              </span>
+            {(profile.viewer?.followedBy || profile.viewer?.following) ? (
+              <div className='mt-1 flex flex-wrap items-center gap-2'>
+                {profile.viewer?.followedBy ? (
+                  <span className='inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
+                    Folgt dir
+                  </span>
+                ) : null}
+                {profile.viewer?.following ? (
+                  <span className='inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-foreground'>
+                    Folge ich
+                  </span>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>
@@ -100,7 +94,7 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           </div>
         </div>
         {profile.description ? (
-          <p className='mt-3 text-sm text-foreground whitespace-pre-line'>{profile.description}</p>
+          <p className='mt-3 text-sm text-foreground whitespace-pre-line break-words'>{profile.description}</p>
         ) : null}
         {Array.isArray(profile.labels) && profile.labels.length > 0 ? (
           <div className='mt-3 flex flex-wrap gap-2'>
@@ -144,8 +138,8 @@ export function ProfilePreviewTrigger ({
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const portalContainer = usePortalContainer()
-  const { profileViewer } = useAppState()
+  const portalContainer = useMemo(() => getPortalRoot(), [])
+  const { profileViewer } = useUIState()
   const [supportsHover, setSupportsHover] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true
     return window.matchMedia('(hover: hover) and (pointer: fine)').matches

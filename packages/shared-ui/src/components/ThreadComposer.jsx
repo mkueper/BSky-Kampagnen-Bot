@@ -1,13 +1,14 @@
 import React, {
   useCallback,
   useEffect,
+  lazy,
   useMemo,
   useRef,
   useState,
+  Suspense,
 } from 'react'
 import PropTypes from 'prop-types'
 import { FaceIcon, ImageIcon, VideoIcon } from '@radix-ui/react-icons'
-import { EmojiPicker, GifPicker } from '@kampagnen-bot/media-pickers'
 
 import Button from './Button.jsx'
 import MediaDialog from './MediaDialog.jsx'
@@ -29,6 +30,16 @@ const DEFAULT_GIF_PICKER_STYLES = {
   panel: { width: '70vw', maxWidth: '1200px' },
 }
 
+const EmojiPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.EmojiPicker }
+})
+
+const GifPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.GifPicker }
+})
+
 const URL_REGEX = /https?:\/\/\S+/i
 
 const defaultLabels = {
@@ -39,6 +50,10 @@ const defaultLabels = {
   numberingToggle: 'Append automatic numbering (1/x)',
   previewTitle: 'Preview',
   previewUnavailable: 'Link preview is not available in standalone mode yet.',
+  previewLoading: 'Loading preview…',
+  previewError: 'Link preview could not be loaded.',
+  previewTimeout: 'Link preview took too long.',
+  previewDismissTitle: 'Remove link preview',
   postsCounter: (count) => `${count} post${count === 1 ? '' : 's'}`,
   segmentLabel: (index) => `Post ${index}`,
   charCount: (count, max) => (max ? `${count} / ${max}` : `${count}`),
@@ -56,6 +71,7 @@ const defaultLabels = {
   gifLoadFailed: 'GIF could not be loaded.',
   altAddTitle: 'Add alt text',
   altEditTitle: 'Edit alt text',
+  altRequired: 'Add alt text for all media.',
   threadLimitWarning: (limit) => `Maximum ${limit} posts per thread.`,
 }
 
@@ -122,6 +138,9 @@ export default function ThreadComposer({
   gifPickerMaxBytes = 8 * 1024 * 1024,
   gifPickerStyles = DEFAULT_GIF_PICKER_STYLES,
   footerAside = null,
+  initialMediaEntries = [],
+  onInitialMediaApplied = null,
+  linkPreviewFetcher = null,
 }) {
   const mergedLabels = mergeLabels(labels)
   const [internalNumbering, setInternalNumbering] = useState(true)
@@ -146,10 +165,13 @@ export default function ThreadComposer({
       ? controlledNumbering
       : internalNumbering
   const textareaRef = useRef(null)
+  const previewContainerRef = useRef(null)
+  const previewSegmentRefs = useRef(new Map())
   const emojiButtonRef = useRef(null)
   const previewUrlsRef = useRef(new Set())
   const lastCursorSegmentRef = useRef(0)
   const gifFetchControllerRef = useRef(null)
+  const initialMediaAppliedRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -199,6 +221,7 @@ export default function ThreadComposer({
     totalSegments,
     rawToEffectiveStartIndex,
     effectiveOffsets,
+    rawSegments,
   } = useMemo(
     () =>
       splitThread({
@@ -234,6 +257,42 @@ export default function ThreadComposer({
       onSegmentsChange(previewWithMedia)
     }
   }, [previewWithMedia, onSegmentsChange])
+
+  useEffect(() => {
+    if (initialMediaAppliedRef.current) return
+    if (!Array.isArray(initialMediaEntries) || initialMediaEntries.length === 0) return
+    const targetSegmentId = previewSegments[0]?.id ?? 0
+    if (!Number.isFinite(targetSegmentId)) return
+    const normalized = initialMediaEntries
+      .filter((entry) => {
+        if (!entry || !entry.file) return false
+        if (typeof File === 'undefined') return true
+        return entry.file instanceof File
+      })
+      .slice(0, mediaMaxPerSegment)
+      .map((entry) => {
+        const previewUrl = entry.file ? URL.createObjectURL(entry.file) : ''
+        if (previewUrl && previewUrl.startsWith('blob:')) {
+          registerPreviewUrl(previewUrl)
+        }
+        return {
+          id: createMediaId(),
+          file: entry.file,
+          altText: entry.altText || '',
+          previewUrl
+        }
+      })
+      .filter(Boolean)
+    if (!normalized.length) return
+    initialMediaAppliedRef.current = true
+    setPendingMedia((prev) => ({
+      ...prev,
+      [targetSegmentId]: normalized
+    }))
+    if (typeof onInitialMediaApplied === 'function') {
+      onInitialMediaApplied()
+    }
+  }, [initialMediaEntries, mediaMaxPerSegment, onInitialMediaApplied, previewSegments, registerPreviewUrl])
 
   useEffect(() => {
     setPendingMedia((prev) => {
@@ -364,6 +423,37 @@ export default function ThreadComposer({
     ],
   )
 
+  const setPreviewSegmentRef = useCallback((index, node) => {
+    if (!Number.isFinite(index)) return
+    if (node) {
+      previewSegmentRefs.current.set(index, node)
+    } else {
+      previewSegmentRefs.current.delete(index)
+    }
+  }, [])
+
+  const scrollPreviewToSegment = useCallback((segmentIndex, behavior = 'smooth') => {
+    if (!Number.isFinite(segmentIndex)) return
+    const container = previewContainerRef.current
+    if (!container) return
+    const target = previewSegmentRefs.current.get(segmentIndex)
+    if (!target) return
+    const containerRect = container.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const above = targetRect.top < containerRect.top
+    const below = targetRect.bottom > containerRect.bottom
+    if (!above && !below) return
+    const scrollOffset = target.offsetTop - container.clientHeight / 3
+    container.scrollTo({
+      top: Math.max(scrollOffset, 0),
+      behavior,
+    })
+  }, [])
+
+  useEffect(() => {
+    scrollPreviewToSegment(lastCursorSegmentRef.current ?? 0, 'auto')
+  }, [previewSegments.length, scrollPreviewToSegment])
+
   const rememberCursorSegment = useCallback(
     (target) => {
       if (!target) return
@@ -371,9 +461,11 @@ export default function ThreadComposer({
         typeof target.selectionStart === 'number'
           ? target.selectionStart
           : (value || '').length
-      lastCursorSegmentRef.current = getSegmentIdForCursor(pos)
+      const segmentIndex = getSegmentIdForCursor(pos)
+      lastCursorSegmentRef.current = segmentIndex
+      scrollPreviewToSegment(segmentIndex)
     },
-    [getSegmentIdForCursor, value],
+    [getSegmentIdForCursor, scrollPreviewToSegment, value],
   )
 
   const handleInsertSeparator = useCallback(() => {
@@ -662,7 +754,55 @@ export default function ThreadComposer({
     [rememberCursorSegment],
   )
 
+  const handlePreviewSegmentClick = useCallback(
+    (segmentIndex) => {
+      if (!Number.isFinite(segmentIndex)) return
+      const textarea = textareaRef.current
+      const offsets = Array.isArray(effectiveOffsets) ? effectiveOffsets[segmentIndex] : null
+      if (!textarea || !offsets) return
+      const { rawIndex, offsetInRaw } = offsets
+      if (!Number.isFinite(rawIndex) || !Number.isFinite(offsetInRaw)) return
+      const normalizedValue = String(value || '').replace(/\r\n/g, '\n')
+      const delimiter = `\n${hardBreakMarker}\n`
+      let globalIndex = 0
+      for (let i = 0; i < rawIndex; i++) {
+        const rawSegment = String(rawSegments?.[i] || '').replace(/\r\n/g, '\n')
+        globalIndex += rawSegment.length
+        globalIndex += delimiter.length
+      }
+      globalIndex += offsetInRaw
+      const cursorIndex = Math.min(Math.max(globalIndex, 0), normalizedValue.length)
+      try {
+        textarea.focus()
+        textarea.selectionStart = cursorIndex
+        textarea.selectionEnd = cursorIndex
+        lastCursorSegmentRef.current = segmentIndex
+        scrollPreviewToSegment(segmentIndex)
+      } catch {
+        /* ignore cursor updates */
+      }
+    },
+    [effectiveOffsets, hardBreakMarker, rawSegments, scrollPreviewToSegment, value],
+  )
+
+  const handlePreviewSegmentPointer = useCallback(
+    (event, segmentIndex) => {
+      // ignore clicks originating from buttons/inputs/links inside the card
+      const interactiveTarget = event.target?.closest?.('button, input, a')
+      if (interactiveTarget) return
+      handlePreviewSegmentClick(segmentIndex)
+    },
+    [handlePreviewSegmentClick],
+  )
+
   const exceedsThreadLimit = totalSegments > MAX_THREAD_SEGMENTS
+  const missingAltText =
+    mediaRequireAltText &&
+    Object.values(pendingMedia).some(
+      (list) =>
+        Array.isArray(list) &&
+        list.some((entry) => !String(entry?.altText || '').trim()),
+    )
 
   const submitDisabled =
     (!value?.trim() && !hasPending) ||
@@ -670,9 +810,11 @@ export default function ThreadComposer({
       (segment) => segment.isEmpty && !getPendingCount(segment.id),
     ) ||
     disabled ||
-    exceedsThreadLimit
+    exceedsThreadLimit ||
+    missingAltText
 
   const effectiveSubmitLabel = submitLabel || mergedLabels.submitLabel
+  const altRequiredMessage = missingAltText ? mergedLabels.altRequired : ''
 
   const mediaGridLabels = useMemo(
     () => ({
@@ -735,7 +877,7 @@ export default function ThreadComposer({
             onSelect={handleSelectionUpdate}
             onKeyUp={handleSelectionUpdate}
             onClick={handleSelectionUpdate}
-            className='mt-2 h-full min-h-[16rem] flex-1 rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60'
+            className='mt-2 h-full min-h-[16rem] flex-1 rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
             placeholder={placeholder || mergedLabels.placeholder}
             disabled={disabled}
             aria-label={mergedLabels.title}
@@ -756,7 +898,7 @@ export default function ThreadComposer({
               <button
                 ref={emojiButtonRef}
                 type='button'
-                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary'
                 title='Emoji einfügen'
                 aria-label='Emoji einfügen'
                 onClick={() => setEmojiPickerOpen((open) => !open)}
@@ -766,7 +908,7 @@ export default function ThreadComposer({
               </button>
               <button
                 type='button'
-                className='inline-flex h-10 items-center justify-center rounded-full border border-border bg-background-subtle px-4 text-sm font-medium text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'
+                className='inline-flex h-10 items-center justify-center rounded-full border border-border bg-background-subtle px-4 text-sm font-medium text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary'
                 onClick={handleInsertSeparator}
                 disabled={disabled}
               >
@@ -785,7 +927,7 @@ export default function ThreadComposer({
               {mergedLabels.postsCounter(totalSegments)}
             </span>
           </div>
-          <div className='mt-4 flex-1 space-y-3 overflow-y-auto pr-1'>
+          <div ref={previewContainerRef} className='mt-4 flex-1 space-y-3 overflow-y-auto pr-1'>
             {previewWithMedia.map((segment, index) => {
               const mediaItems = mediaItemsBySegment.get(segment.id) || []
               const currentCount = Math.min(
@@ -804,7 +946,9 @@ export default function ThreadComposer({
               return (
                 <article
                   key={segment.id}
+                  ref={(node) => setPreviewSegmentRef(index, node)}
                   className='rounded-2xl border border-border bg-background-subtle p-4'
+                  onClick={(event) => handlePreviewSegmentPointer(event, index)}
                 >
                   <header className='flex flex-wrap items-center justify-between gap-3 text-xs'>
                     <span className='font-semibold text-foreground'>
@@ -826,7 +970,7 @@ export default function ThreadComposer({
                       <div className='flex items-center gap-2'>
                         <button
                           type='button'
-                          className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60'
+                          className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary'
                           onClick={() =>
                             setMediaDialog({ open: true, segmentId: segment.id })
                           }
@@ -845,7 +989,7 @@ export default function ThreadComposer({
                         {gifPickerEnabled ? (
                           <button
                             type='button'
-                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60'
+                            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground transition hover:border-primary/60 hover:text-primary'
                             onClick={() =>
                               setGifPickerState({ open: true, segmentId: segment.id })
                             }
@@ -879,8 +1023,15 @@ export default function ThreadComposer({
                   {showLinkPreview ? (
                     <SegmentLinkPreview
                       url={segmentUrl}
+                      fetcher={linkPreviewFetcher}
                       onDismiss={() => handleDismissPreview(segment.id, segmentUrl)}
-                      unavailableMessage={mergedLabels.previewUnavailable}
+                      labels={{
+                        previewUnavailable: mergedLabels.previewUnavailable,
+                        previewLoading: mergedLabels.previewLoading,
+                        previewError: mergedLabels.previewError,
+                        previewTimeout: mergedLabels.previewTimeout,
+                        previewDismissTitle: mergedLabels.previewDismissTitle,
+                      }}
                     />
                   ) : null}
                   {Number.isFinite(mediaMaxPerSegment) ? (
@@ -916,6 +1067,9 @@ export default function ThreadComposer({
           {mediaMessage ? (
             <p className='mt-2 text-xs text-destructive'>{mediaMessage}</p>
           ) : null}
+          {altRequiredMessage ? (
+            <p className='mt-2 text-xs text-destructive'>{altRequiredMessage}</p>
+          ) : null}
         </section>
       </div>
 
@@ -935,17 +1089,21 @@ export default function ThreadComposer({
         </div>
       ) : null}
 
-      <EmojiPicker
-        open={emojiPickerOpen}
-        anchorRef={emojiButtonRef}
-        onClose={() => setEmojiPickerOpen(false)}
-        onPick={(emoji) => {
-          const valueToInsert = emoji?.native || emoji?.shortcodes || emoji?.id
-          if (!valueToInsert) return
-          insertAtCursor(valueToInsert)
-          setEmojiPickerOpen(false)
-        }}
-      />
+      {emojiPickerOpen ? (
+        <Suspense fallback={null}>
+          <EmojiPickerLazy
+            open={emojiPickerOpen}
+            anchorRef={emojiButtonRef}
+            onClose={() => setEmojiPickerOpen(false)}
+            onPick={(emoji) => {
+              const valueToInsert = emoji?.native || emoji?.shortcodes || emoji?.id
+              if (!valueToInsert) return
+              insertAtCursor(valueToInsert)
+              setEmojiPickerOpen(false)
+            }}
+          />
+        </Suspense>
+      ) : null}
       <MediaDialog
         open={mediaDialog.open}
         title={mergedLabels.addImageModalTitle}
@@ -983,15 +1141,17 @@ export default function ThreadComposer({
           })
         }
       />
-      {gifPickerEnabled ? (
-        <GifPicker
-          open={gifPickerState.open}
-          onClose={() => setGifPickerState({ open: false, segmentId: null })}
-          styles={gifPickerStyles}
-          fetcher={gifPickerFetcher || undefined}
-          maxBytes={gifPickerMaxBytes}
-          onPick={(payload) => handleGifPick(gifPickerState.segmentId, payload)}
-        />
+      {gifPickerEnabled && gifPickerState.open ? (
+        <Suspense fallback={null}>
+          <GifPickerLazy
+            open={gifPickerState.open}
+            onClose={() => setGifPickerState({ open: false, segmentId: null })}
+            styles={gifPickerStyles}
+            fetcher={gifPickerFetcher || undefined}
+            maxBytes={gifPickerMaxBytes}
+            onPick={(payload) => handleGifPick(gifPickerState.segmentId, payload)}
+          />
+        </Suspense>
       ) : null}
     </div>
   )
@@ -1031,8 +1191,13 @@ ThreadComposer.propTypes = {
     gifLoadFailed: PropTypes.string,
     altAddTitle: PropTypes.string,
     altEditTitle: PropTypes.string,
+    altRequired: PropTypes.string,
     threadLimitWarning: PropTypes.func,
     previewUnavailable: PropTypes.string,
+    previewLoading: PropTypes.string,
+    previewError: PropTypes.string,
+    previewTimeout: PropTypes.string,
+    previewDismissTitle: PropTypes.string,
   }),
   className: PropTypes.string,
   onSegmentsChange: PropTypes.func,
@@ -1046,40 +1211,96 @@ ThreadComposer.propTypes = {
   gifPickerMaxBytes: PropTypes.number,
   gifPickerStyles: PropTypes.object,
   footerAside: PropTypes.node,
+  initialMediaEntries: PropTypes.arrayOf(PropTypes.shape({
+    file: PropTypes.any,
+    altText: PropTypes.string
+  })),
+  onInitialMediaApplied: PropTypes.func,
+  linkPreviewFetcher: PropTypes.func,
 }
 
-function useSegmentLinkPreview(url, { unavailableMessage = '' } = {}) {
+function useSegmentLinkPreview(
+  url,
+  { unavailableMessage = '', fetcher = null } = {},
+) {
   const [state, setState] = useState({
     loading: false,
     data: null,
     error: '',
+    errorCode: '',
   })
 
   useEffect(() => {
     if (!url) {
-      setState({ loading: false, data: null, error: '' })
+      setState({ loading: false, data: null, error: '', errorCode: '' })
       return
     }
-    setState({
-      loading: false,
-      data: { uri: url },
-      error: unavailableMessage || '',
-    })
-    return () => {
-      setState((prev) =>
-        prev.loading
-          ? { loading: false, data: prev.data, error: prev.error }
-          : prev,
-      )
+    if (typeof fetcher !== 'function') {
+      setState({
+        loading: false,
+        data: { uri: url },
+        error: unavailableMessage || '',
+        errorCode: 'PREVIEW_UNAVAILABLE',
+      })
+      return
     }
-  }, [url, unavailableMessage])
+    let ignore = false
+    setState({ loading: true, data: null, error: '', errorCode: '' })
+    Promise.resolve()
+      .then(() => fetcher(url))
+      .then((payload) => {
+        if (ignore) return
+        const normalized =
+          payload && typeof payload === 'object'
+            ? {
+                uri: payload.uri || url,
+                title: payload.title || '',
+                description: payload.description || '',
+                image: payload.image || '',
+                domain: payload.domain || '',
+              }
+            : { uri: url }
+        setState({
+          loading: false,
+          data: normalized,
+          error: '',
+          errorCode: '',
+        })
+      })
+      .catch((err) => {
+        if (ignore) return
+        const code = err?.code || ''
+        const message =
+          code === 'PREVIEW_UNAVAILABLE'
+            ? unavailableMessage || ''
+            : err?.message || ''
+        setState({
+          loading: false,
+          data: null,
+          error: message,
+          errorCode: code,
+        })
+      })
+    return () => {
+      ignore = true
+    }
+  }, [url, fetcher, unavailableMessage])
 
   return state
 }
 
-function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
-  const { loading, data, error } = useSegmentLinkPreview(url, {
-    unavailableMessage,
+function SegmentLinkPreview({ url, fetcher, onDismiss, labels }) {
+  const mergedLabels = labels || {}
+  const {
+    previewUnavailable = '',
+    previewLoading = '',
+    previewError = '',
+    previewTimeout = '',
+    previewDismissTitle = '',
+  } = mergedLabels
+  const { loading, data, error, errorCode } = useSegmentLinkPreview(url, {
+    unavailableMessage: previewUnavailable,
+    fetcher,
   })
   if (!url) return null
   let hostname = ''
@@ -1092,6 +1313,16 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
   const description = data?.description || ''
   const domain = data?.domain || hostname
   const image = data?.image || ''
+  const errorMessage = (() => {
+    if (!error && !errorCode) return ''
+    if (errorCode === 'PREVIEW_TIMEOUT') {
+      return previewTimeout || previewError || error || ''
+    }
+    if (errorCode === 'PREVIEW_UNAVAILABLE') {
+      return previewUnavailable || previewError || error || ''
+    }
+    return error || previewError
+  })()
 
   return (
     <div className='relative mt-3 rounded-2xl border border-border bg-background p-3'>
@@ -1099,7 +1330,8 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
         <button
           type='button'
           className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background-subtle text-sm text-foreground-muted hover:text-foreground'
-          title='Link-Vorschau entfernen'
+          title={previewDismissTitle || 'Remove link preview'}
+          aria-label={previewDismissTitle || 'Remove link preview'}
           onClick={onDismiss}
         >
           ×
@@ -1127,7 +1359,7 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
           ) : null}
           <p className='mt-1 text-xs text-foreground-subtle'>{domain}</p>
           <div className='text-xs text-foreground-muted'>
-            {loading ? 'Lade…' : error ? error : ''}
+            {loading ? previewLoading || 'Loading…' : errorMessage}
           </div>
         </div>
       </div>
@@ -1138,5 +1370,12 @@ function SegmentLinkPreview({ url, onDismiss, unavailableMessage }) {
 SegmentLinkPreview.propTypes = {
   url: PropTypes.string.isRequired,
   onDismiss: PropTypes.func,
-  unavailableMessage: PropTypes.string,
+  fetcher: PropTypes.func,
+  labels: PropTypes.shape({
+    previewUnavailable: PropTypes.string,
+    previewLoading: PropTypes.string,
+    previewError: PropTypes.string,
+    previewTimeout: PropTypes.string,
+    previewDismissTitle: PropTypes.string,
+  }),
 }

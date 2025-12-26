@@ -1,17 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, RichText, MediaDialog, SegmentMediaGrid } from '../shared'
-import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
-import { VideoIcon } from '@radix-ui/react-icons'
+import { VideoIcon, ImageIcon, FaceIcon } from '@radix-ui/react-icons'
 import { publishPost } from '../shared/api/bsky.js'
 import { useClientConfig } from '../../hooks/useClientConfig.js'
-import { useAppDispatch } from '../../context/AppContext.jsx'
+import { useTimelineDispatch } from '../../context/TimelineContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useInteractionSettingsControls } from './useInteractionSettingsControls.js'
+import { calculateBlueskyPostLength } from '@bsky-kampagnen-bot/shared-logic'
+import { fetchLinkPreviewMetadata } from './linkPreviewService.js'
+import ReplyPreviewCard from './ReplyPreviewCard.jsx'
+import { buildReplyContext, buildReplyInfo } from './replyUtils.js'
+import { useUIDispatch } from '../../context/UIContext.jsx'
 
 const MAX_MEDIA_COUNT = 4
 const MAX_GIF_BYTES = 8 * 1024 * 1024
 const POST_CHAR_LIMIT = 300
 const PREVIEW_TYPING_DELAY = 600
+
+const GifPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.GifPicker }
+})
+
+const EmojiPickerLazy = lazy(async () => {
+  const module = await import('@kampagnen-bot/media-pickers')
+  return { default: module.EmojiPicker }
+})
 
 function normalizePreviewUrl (value) {
   if (!value) return ''
@@ -48,10 +62,13 @@ function detectUrlCandidate (text = '') {
   }
 }
 
-export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel }) {
+export default function Composer ({ reply = null, quote = null, onCancelQuote, onSent, onCancel, onConvertToThread = null }) {
   const { t } = useTranslation()
   const { clientConfig } = useClientConfig()
-  const dispatch = useAppDispatch()
+  const allowReplyPreview = clientConfig?.composer?.showReplyPreview !== false
+  const requireAltText = clientConfig?.layout?.requireAltText === true
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
   const {
     interactionSettings,
     data: interactionData,
@@ -124,6 +141,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [quote])
   const quoteInfoAuthorLabel = quoteInfo ? (quoteInfo.author.displayName || quoteInfo.author.handle || 'Unbekannt') : ''
   const quoteInfoAuthorMissing = quoteInfo ? !(quoteInfo.author.displayName || quoteInfo.author.handle) : false
+  const replyInfo = useMemo(() => buildReplyInfo(reply), [reply])
   const pendingMediaItems = useMemo(
     () =>
       pendingMedia.map((item, idx) => ({
@@ -180,7 +198,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       altBadge: 'ALT',
       altAddBadge: '+ ALT',
       altEditTitle: 'Alt-Text bearbeiten',
-      altAddTitle: 'Alt-Text hinzufügen'
+      altAddTitle: 'Alt-Text bearbeiten'
     }),
     []
   )
@@ -296,27 +314,38 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
     let cancelled = false
     setPreviewLoading(true)
-    const timeoutId = setTimeout(() => {
-      if (cancelled) return
-      setPreview({
-        uri: url,
-        title: '',
-        description: '',
-        image: '',
-        domain: ''
+    setPreviewError('')
+    fetchLinkPreviewMetadata(url)
+      .then((data) => {
+        if (cancelled) return
+        setPreview(data)
+        setPreviewError('')
+        setPreviewLoading(false)
       })
-      setPreviewError(
-        t(
-          'compose.previewUnavailableStandalone',
-          'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
-        )
-      )
-      setPreviewLoading(false)
-    }, PREVIEW_TYPING_DELAY)
+      .catch((error) => {
+        if (cancelled) return
+        if (error?.code === 'PREVIEW_UNAVAILABLE') {
+          setPreviewError(
+            t(
+              'compose.previewUnavailableStandalone',
+              'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+            )
+          )
+        } else if (error?.code === 'PREVIEW_TIMEOUT') {
+          setPreviewError(
+            t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.')
+          )
+        } else {
+          setPreviewError(
+            error?.message || t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.')
+          )
+        }
+        setPreview(null)
+        setPreviewLoading(false)
+      })
 
     return () => {
       cancelled = true
-      clearTimeout(timeoutId)
     }
   }, [previewDismissed, previewUrl, t])
 
@@ -501,18 +530,15 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       setMessage('Bitte Text eingeben oder ein Zitat verwenden.')
       return
     }
+    if (missingAltText) {
+      setMessage(t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.'))
+      return
+    }
     const externalPayload = buildExternalPayload()
     if (sending) return
     setSending(true)
     try {
-      const replyContext = reply && reply.uri && reply.cid
-        ? (() => {
-            const parent = { uri: reply.uri, cid: reply.cid }
-            const rootReply = reply.raw?.post?.record?.reply?.root
-            const root = rootReply && rootReply.uri && rootReply.cid ? rootReply : parent
-            return { root, parent }
-          })()
-        : null
+      const replyContext = buildReplyContext(reply)
       const sent = await publishPost({
         text: content,
         mediaEntries: pendingMedia.map((entry) => ({ file: entry.file, altText: entry.altText || '' })),
@@ -522,10 +548,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         interactions: interactionData
       })
       if (quoteInfo?.uri && sent?.uri) {
-        dispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
+        uiDispatch({ type: 'SET_QUOTE_REPOST', payload: { targetUri: quoteInfo.uri, quoteUri: sent.uri } })
       }
       if (replyContext?.parent?.uri) {
-        dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: replyContext.parent.uri, patch: { replyDelta: 1 } } })
+        timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: replyContext.parent.uri, patch: { replyDelta: 1 } } })
       }
       pendingMedia.forEach((entry) => releasePreviewUrl(entry.previewUrl))
       setPendingMedia([])
@@ -543,8 +569,12 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   const showMediaGrid = pendingMediaItems.length > 0
   const showLinkPreview = !showMediaGrid && Boolean(previewUrl) && (!dismissedPreviewUrl || dismissedPreviewUrl !== previewUrl)
   const hasContent = text.trim().length > 0 || pendingMedia.length > 0
-  const characterCount = text.length
+  const characterCount = calculateBlueskyPostLength(text)
   const exceedsCharLimit = characterCount > POST_CHAR_LIMIT
+  const missingAltText = requireAltText && pendingMedia.some((entry) => !String(entry?.altText || '').trim())
+  const altTextMissingHint = missingAltText
+    ? t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.')
+    : ''
 
   const handleCancelComposer = useCallback(() => {
     if (typeof onCancel === 'function') {
@@ -552,10 +582,28 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     }
   }, [hasContent, onCancel])
 
+  const convertToThread = useCallback(() => {
+    if (typeof onConvertToThread !== 'function') return
+    onConvertToThread({
+      text,
+      media: pendingMedia.map((entry) => ({
+        file: entry.file,
+        altText: entry.altText || ''
+      }))
+    })
+  }, [onConvertToThread, pendingMedia, text])
+
+  const canRequestThread = Boolean(reply && typeof onConvertToThread === 'function')
+  const convertButtonTitle = t('compose.thread.convertHint', 'Antwort in einen Thread umwandeln, um mehrere Posts zu senden.')
+
   return (
     <form id='bsky-composer-form' onSubmit={handleSendNow} className='space-y-4' data-component='BskyComposer'>
+      {allowReplyPreview && replyInfo ? (
+        <ReplyPreviewCard info={replyInfo} t={t} />
+      ) : null}
+
       {quoteInfo ? (
-        <div className='rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground'>
+        <div className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground ${(allowReplyPreview && replyInfo) ? 'mt-3' : ''}`}>
           <div className='flex items-start gap-3'>
             {quoteInfo.author.avatar ? (
               <img
@@ -571,7 +619,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 {quoteInfoAuthorLabel}
               </p>
               {quoteInfoAuthorMissing ? (
-                <p className='text-xs text-foreground-muted'>Autorinformationen wurden nicht mitgeliefert.</p>
+                <p className='text-xs text-foreground-muted'>
+                  {t('compose.context.authorMissing', 'Autorinformationen wurden nicht mitgeliefert.')}
+                </p>
               ) : null}
               {quoteInfo.author.handle ? (
                 <p className='truncate text-xs text-foreground-muted'>@{quoteInfo.author.handle}</p>
@@ -591,9 +641,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 type='button'
                 className='ml-2 rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
                 onClick={onCancelQuote}
-                title='Zitat entfernen'
+                title={t('compose.context.quoteRemove', 'Zitat entfernen')}
               >
-                Entfernen
+                {t('compose.context.quoteRemove', 'Zitat entfernen')}
               </button>
             ) : null}
           </div>
@@ -622,8 +672,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               onClick={() => setMediaDialogOpen(true)}
               disabled={mediaDisabled}
               title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
+              aria-label={mediaDisabled ? 'Medienlimit erreicht' : 'Bild oder GIF hochladen'}
             >
-              <span className='text-base leading-none md:text-lg'>🖼️</span>
+              <ImageIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
             {tenorAvailable ? (
               <Button
@@ -634,7 +685,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
               >
                 <VideoIcon className='h-4 w-4' aria-hidden='true' />
-                <span>GIF</span>
+                <span className='sr-only'>GIF</span>
               </Button>
             ) : null}
             <Button
@@ -644,8 +695,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               onClick={() => setEmojiPickerOpen((v) => !v)}
               title='Emoji auswählen'
               aria-expanded={emojiPickerOpen}
+              aria-label='Emoji auswählen'
             >
-              <span className='text-base leading-none md:text-lg'>😊</span>
+              <FaceIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
           </div>
         </div>
@@ -665,7 +717,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               {characterCount}/{POST_CHAR_LIMIT}
             </span>
           </div>
-          <article className='mt-4 rounded-2xl border border-border bg-background-subtle p-4'>
+          <article className='mt-4 min-h-[16rem] rounded-2xl border border-border bg-background-subtle p-4'>
             {text.trim() ? (
               <RichText
                 text={text}
@@ -673,7 +725,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               />
             ) : (
               <p className='text-sm text-foreground-muted'>
-                Dein Text erscheint hier.
+                {t('compose.preview.placeholder', 'Dein Text erscheint hier.')}
               </p>
             )}
             {showMediaGrid ? (
@@ -713,16 +765,16 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                       <p className='mt-1 line-clamp-2 text-sm text-foreground-muted'>{preview.description}</p>
                     ) : null}
                     <p className='mt-1 text-xs text-foreground-subtle'>{preview?.domain || new URL(previewUrl).hostname.replace(/^www\./, '')}</p>
-                    <div className='text-xs text-foreground-muted'>
-                      {previewLoading ? 'Lade…' : (previewError ? 'Kein Preview' : '')}
-                    </div>
+                <div className='text-xs text-foreground-muted'>
+                  {previewLoading ? t('compose.preview.loading', 'Lade Vorschau…') : (previewError || '')}
+                </div>
                   </div>
                 </div>
               </div>
             ) : null}
             {!text.trim() && !showMediaGrid && !showLinkPreview ? (
               <p className='mt-4 text-xs text-foreground-muted'>
-                Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.
+                {t('compose.preview.emptyHint', 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.')}
               </p>
             ) : null}
           </article>
@@ -733,7 +785,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
         <div className='flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3'>
           <button
             type='button'
-            className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated disabled:opacity-60'
+            className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground hover:bg-background-elevated'
             title={t('compose.interactions.buttonTitle', 'Interaktionen konfigurieren')}
             onClick={openInteractionModal}
             disabled={interactionSettings?.loading}
@@ -751,17 +803,31 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               {t('compose.interactions.retry', 'Erneut versuchen')}
             </button>
           ) : null}
+          {altTextMissingHint ? (
+            <span className='text-xs text-destructive'>{altTextMissingHint}</span>
+          ) : null}
           {message ? (
             <span className='text-xs text-muted-foreground'>{message}</span>
           ) : null}
         </div>
         <div className='flex items-center gap-3'>
+          {canRequestThread ? (
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={convertToThread}
+              disabled={sending}
+              title={convertButtonTitle}
+            >
+              {t('compose.thread.convertButton', 'In Thread umwandeln')}
+            </Button>
+          ) : null}
           {onCancel ? (
             <Button type='button' variant='secondary' onClick={handleCancelComposer} disabled={sending}>
               {t('compose.cancel', 'Abbrechen')}
             </Button>
           ) : null}
-          <Button type='submit' variant='primary' disabled={sending}>
+          <Button type='submit' variant='primary' disabled={sending || missingAltText}>
             {sending ? t('compose.thread.sending', 'Sende…') : t('compose.submit', 'Posten')}
           </Button>
         </div>
@@ -769,6 +835,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       <MediaDialog
         open={mediaDialogOpen}
         title='Bild hinzufügen'
+        requireAltText={requireAltText}
         onClose={() => setMediaDialogOpen(false)}
         onConfirm={(file, altText) => {
           setMediaDialogOpen(false)
@@ -778,33 +845,40 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       <MediaDialog
         open={altDialog.open}
         mode='alt'
-        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text hinzufügen'}
+        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text bearbeiten'}
         previewSrc={altDialog.previewSrc}
         initialAlt={altDialog.initialAlt}
+        requireAltText={requireAltText}
         onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}
         onClose={closeAltDialog}
       />
-      {tenorAvailable ? (
-        <GifPicker
-          open={gifPickerOpen}
-          styles={{ panel: { width: '70vw', maxWidth: '1200px' }}}
-          onClose={() => setGifPickerOpen(false)}
-          onPick={handleGifPick}
-          maxBytes={MAX_GIF_BYTES}
-          fetcher={tenorFetcher || undefined}
-        />
+      {tenorAvailable && gifPickerOpen ? (
+        <Suspense fallback={null}>
+          <GifPickerLazy
+            open={gifPickerOpen}
+            styles={{ panel: { width: '70vw', maxWidth: '1200px' }}}
+            onClose={() => setGifPickerOpen(false)}
+            onPick={handleGifPick}
+            maxBytes={MAX_GIF_BYTES}
+            fetcher={tenorFetcher || undefined}
+          />
+        </Suspense>
       ) : null}
-      <EmojiPicker
-        open={emojiPickerOpen}
-        onClose={() => setEmojiPickerOpen(false)}
-        anchorRef={emojiButtonRef}
-        onPick={(emoji) => {
-          const value = emoji?.native || emoji?.shortcodes || emoji?.id
-          if (!value) return
-          insertAtCursor(value)
-          setEmojiPickerOpen(false)
-        }}
-      />
+      {emojiPickerOpen ? (
+        <Suspense fallback={null}>
+          <EmojiPickerLazy
+            open={emojiPickerOpen}
+            onClose={() => setEmojiPickerOpen(false)}
+            anchorRef={emojiButtonRef}
+            onPick={(emoji) => {
+              const value = emoji?.native || emoji?.shortcodes || emoji?.id
+              if (!value) return
+              insertAtCursor(value)
+              setEmojiPickerOpen(false)
+            }}
+          />
+        </Suspense>
+      ) : null}
     </form>
   )
 }

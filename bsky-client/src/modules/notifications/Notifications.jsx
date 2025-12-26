@@ -1,21 +1,162 @@
 import React from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { ChatBubbleIcon, HeartFilledIcon, HeartIcon, TriangleRightIcon } from '@radix-ui/react-icons'
-import { Button, Card, useBskyEngagement, RichText, RepostMenuButton, deletePost } from '../shared'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, memo } from 'react'
+import {
+  ChatBubbleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  HeartFilledIcon,
+  HeartIcon,
+  TriangleRightIcon,
+  Share2Icon,
+  DotsHorizontalIcon,
+  Link2Icon,
+  CopyIcon,
+  CodeIcon,
+  GlobeIcon,
+  ExclamationTriangleIcon,
+  FaceIcon,
+  SpeakerOffIcon,
+  SpeakerModerateIcon,
+  MixerVerticalIcon,
+  EyeClosedIcon,
+  ScissorsIcon,
+  BookmarkIcon,
+  BookmarkFilledIcon,
+  PinLeftIcon,
+  TrashIcon,
+  GearIcon
+} from '@radix-ui/react-icons'
+import {
+  Button,
+  Card,
+  useBskyEngagement,
+  RichText,
+  RepostMenuButton,
+  deletePost,
+  ProfilePreviewTrigger,
+  ActorProfileLink,
+  InlineVideoPlayer,
+  InlineMenu,
+  InlineMenuTrigger,
+  InlineMenuContent,
+  InlineMenuItem,
+  ConfirmDialog,
+  useConfirmDialog
+} from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
-import { useAppState, useAppDispatch } from '../../context/AppContext'
+import { useTimelineDispatch, useTimelineState } from '../../context/TimelineContext.jsx'
+import { useUIDispatch, useUIState } from '../../context/UIContext.jsx'
 import { useCardConfig } from '../../context/CardConfigContext.jsx'
 import { useThread } from '../../hooks/useThread.js'
 import { useComposer } from '../../hooks/useComposer.js'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox.js'
+import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { AuthContext } from '../auth/AuthContext.jsx'
+import { muteActor as apiMuteActor, blockActor as apiBlockActor } from '../shared/api/bsky'
 import { runListRefresh, runListLoadMore, getListItemId } from '../listView/listService.js'
 import { VirtualizedList } from '../listView/VirtualizedList.jsx'
+import { useSWRConfig } from 'swr'
+import { NOTIFICATION_UNREAD_SWR_KEY } from '../../hooks/useNotificationPolling.js'
 
 
 const APP_BSKY_REASON_PREFIX = 'app.bsky.notification.'
 const POST_RECORD_SEGMENT = '/app.bsky.feed.post/'
+const DEFAULT_TRANSLATE_BASE = 'http://localhost:5000'
+
+const parseBoolean = (value, fallback = null) => {
+  if (value === true || value === 'true') return true
+  if (value === false || value === 'false') return false
+  return fallback
+}
+
+const normalizeTranslateEndpoint = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return ''
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return ''
+  const withProtocol = trimmed.includes('://') ? trimmed : `https://${trimmed}`
+  try {
+    const parsed = new URL(withProtocol)
+    if (parsed.pathname.endsWith('/')) {
+      parsed.pathname = parsed.pathname.slice(0, -1)
+    }
+    if (!parsed.pathname.endsWith('/translate')) {
+      parsed.pathname = `${parsed.pathname}/translate`
+    }
+    return parsed.toString()
+  } catch {
+    return ''
+  }
+}
+
+const buildFallbackTranslateUrl = (service, language, content) => {
+  const lang = language || 'en'
+  const target = encodeURIComponent(String(content || '').trim())
+  if (!target) return ''
+  if (service === 'deepl') {
+    return `https://www.deepl.com/translator#auto/${lang}/${target}`
+  }
+  if (service === 'bing') {
+    return `https://www.bing.com/translator?from=auto&to=${lang}&text=${target}`
+  }
+  if (service === 'yandex') {
+    return `https://translate.yandex.com/?lang=auto-${lang}&text=${target}`
+  }
+  if (service === 'google') {
+    return `https://translate.google.com/?sl=auto&tl=${lang}&text=${target}`
+  }
+  return ''
+}
+
+const resolveTranslationConfig = (clientConfig, envBaseUrl, envEnabledRaw) => {
+  const translationConfig = clientConfig?.translation || {}
+  const baseFromConfig = typeof translationConfig.baseUrl === 'string' ? translationConfig.baseUrl.trim() : ''
+  const baseFromEnv = typeof envBaseUrl === 'string' ? envBaseUrl.trim() : ''
+  const allowGoogle = translationConfig.allowGoogle !== false
+  const fallbackRaw = typeof translationConfig.fallbackService === 'string'
+    ? translationConfig.fallbackService.trim().toLowerCase()
+    : ''
+  const fallbackOptions = new Set(['google', 'deepl', 'bing', 'yandex', 'none'])
+  const fallbackService = fallbackOptions.has(fallbackRaw)
+    ? fallbackRaw
+    : (allowGoogle ? 'google' : 'none')
+  const allowFallback = fallbackService !== 'none'
+  const explicitEnabled = typeof translationConfig.enabled === 'boolean' ? translationConfig.enabled : null
+  const envEnabled = parseBoolean(envEnabledRaw, null)
+  let featureEnabled = true
+  if (envEnabled !== null) {
+    featureEnabled = envEnabled
+  } else if (explicitEnabled !== null) {
+    featureEnabled = explicitEnabled
+  } else if (baseFromConfig || baseFromEnv) {
+    featureEnabled = true
+  } else {
+    featureEnabled = false
+  }
+  if (!featureEnabled) {
+    return { enabled: false, endpoint: null, allowFallback: false, fallbackService: 'none' }
+  }
+  const shouldFallbackToDefault = !(baseFromConfig || baseFromEnv) && !allowFallback
+  const rawEndpoint = baseFromConfig || baseFromEnv || (shouldFallbackToDefault ? DEFAULT_TRANSLATE_BASE : '')
+  const endpoint = normalizeTranslateEndpoint(rawEndpoint)
+  return { enabled: true, endpoint, allowFallback, fallbackService }
+}
+
+function buildShareUrl (item) {
+  try {
+    const uri = item?.uri || ''
+    const author = item?.author || {}
+    const handle = author?.handle || author?.did || ''
+    if (!uri || !handle) return uri
+    const parts = uri.split('/')
+    const rkey = parts[parts.length - 1]
+    if (!rkey) return uri
+    return `https://bsky.app/profile/${handle}/post/${rkey}`
+  } catch {
+    return item?.uri || ''
+  }
+}
 
 
 
@@ -293,19 +434,19 @@ function extractQuotedPost (subject) {
   if (viewType.endsWith('#viewBlocked')) {
     return {
       status: 'blocked',
-      statusMessage: 'Dieser Beitrag ist geschützt oder blockiert.'
+      statusMessage: ''
     }
   }
   if (viewType.endsWith('#viewNotFound')) {
     return {
       status: 'not_found',
-      statusMessage: 'Der Original-Beitrag wurde entfernt oder ist nicht mehr verfügbar.'
+      statusMessage: ''
     }
   }
   if (viewType.endsWith('#viewDetached')) {
     return {
       status: 'detached',
-      statusMessage: 'Der Original-Beitrag wurde losgelöst und kann nicht angezeigt werden.'
+      statusMessage: ''
     }
   }
   const author = view?.author || {}
@@ -324,36 +465,15 @@ function extractQuotedPost (subject) {
   }
 }
 
-function buildReplyTarget (notification) {
-  try {
-    if (!notification) return null
-    const record = { ...(notification?.raw?.post?.record || notification?.record || {}) }
-    const author = notification?.author || notification?.raw?.post?.author || {}
-    const uri = notification?.uri || record?.uri || notification?.reasonSubject || null
-    const cid = notification?.cid || record?.cid || null
-    if (!uri || !cid) return null
-    const post = {
-      uri,
-      cid,
-      record,
-      author,
-      viewer: notification?.record?.viewer || notification?.raw?.post?.viewer || {}
-    }
-    return {
-      uri,
-      cid,
-      author,
-      raw: { post }
-    }
-  } catch {
-    return null
-  }
-}
-
-export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia }) {
-  const dispatch = useAppDispatch()
-  const { quoteReposts } = useAppState()
-  const { t } = useTranslation()
+export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
+  const { quoteReposts } = useUIState()
+  const { t, locale } = useTranslation()
+  const authContext = useContext(AuthContext)
+  const session = authContext?.session || null
+  const { clientConfig } = useClientConfig()
+  const { dialog: confirmDialog, openConfirm, closeConfirm } = useConfirmDialog()
   const cardRef = useRef(null)
   const {
     author = {},
@@ -366,8 +486,8 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
 
   const subjectType = useMemo(() => resolveSubjectType(subject), [subject])
   const subjectLabel = useMemo(() => {
-    const defaults = { post: 'Beitrag', reply: 'Antwort', repost: 'Repost' }
-    const fallback = defaults[subjectType] || defaults.post
+    const fallbackMap = { post: 'Beitrag', reply: 'Antwort', repost: 'Repost' }
+    const fallback = fallbackMap[subjectType] || fallbackMap.post
     return t(`notifications.subject.${subjectType}`, fallback)
   }, [subjectType, t])
   const reasonInfo = REASON_COPY[reason] || formatAppBskyReason(reason, t) || {
@@ -382,10 +502,36 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     : (reasonInfo.descriptionKey
         ? t(reasonInfo.descriptionKey, reasonInfo.description || '')
         : (reasonInfo.description || ''))
-  const timestamp = indexedAt ? new Date(indexedAt).toLocaleString('de-DE') : ''
+  const timestamp = indexedAt ? new Date(indexedAt).toLocaleString(locale || 'de-DE') : ''
   const recordText = record?.text || ''
   const isReply = reason === 'reply'
+  const envTranslateBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_BASE_URL)
+    ? import.meta.env.VITE_TRANSLATION_BASE_URL
+    : ''
+  const envTranslateEnabled = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRANSLATION_ENABLED)
+    ? import.meta.env.VITE_TRANSLATION_ENABLED
+    : null
+  const translationPreferences = useMemo(
+    () => resolveTranslationConfig(clientConfig, envTranslateBaseUrl, envTranslateEnabled),
+    [clientConfig, envTranslateBaseUrl, envTranslateEnabled]
+  )
+  const translationAbortRef = useRef(null)
+  const detectAbortRef = useRef(null)
+  const [translationResult, setTranslationResult] = useState(null)
+  const [translationError, setTranslationError] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [detectedLanguage, setDetectedLanguage] = useState(null)
+  const [detectingLanguage, setDetectingLanguage] = useState(false)
   const profileActor = author?.did || author?.handle || ''
+  const resolvedActors = useMemo(() => {
+    if (Array.isArray(item?.actors) && item.actors.length) return item.actors
+    if (author?.did || author?.handle || author?.displayName || author?.avatar) return [author]
+    return []
+  }, [author, item?.actors])
+  const maxActors = 5
+  const visibleActors = resolvedActors.slice(0, maxActors)
+  const overflowCount = Math.max(0, resolvedActors.length - maxActors)
+  const canExpandActors = resolvedActors.length > 1
 
   const replyMedia = useMemo(() => {
     if (!isReply) return null
@@ -393,31 +539,59 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [isReply, record])
 
   const canOpenProfileViewer = Boolean(profileActor)
+  const engagementSource = (reason === 'like' || reason === 'repost')
+    ? (subject || item)
+    : item
+  const actionUri = engagementSource?.uri || engagementSource?.record?.uri || engagementSource?.raw?.post?.uri || item?.reasonSubject || null
+  const actionCid = engagementSource?.cid || engagementSource?.record?.cid || engagementSource?.raw?.post?.cid || null
+  const actionAuthor = engagementSource?.raw?.post?.author || engagementSource?.author || author || {}
+  const actorDid = actionAuthor?.did || ''
+  const engagementViewer = engagementSource?.raw?.post?.viewer || engagementSource?.viewer || engagementSource?.record?.viewer || item?.raw?.post?.viewer || item?.viewer || record?.viewer || item?.raw?.post?.record?.viewer || {}
 
   const {
     likeCount,
     repostCount,
     hasLiked,
     hasReposted,
+    isBookmarked,
     busy,
+    bookmarking,
     error: actionError,
     toggleLike,
     toggleRepost,
+    toggleBookmark,
     clearError,
   } = useBskyEngagement({
-    uri: item?.uri,
-    cid: item?.cid || record?.cid,
-    initialLikes: record?.stats?.likeCount,
-    initialReposts: record?.stats?.repostCount,
-    viewer: record?.viewer || item?.viewer,
+    uri: actionUri,
+    cid: actionCid,
+    initialLikes: engagementSource?.record?.stats?.likeCount || engagementSource?.stats?.likeCount || engagementSource?.raw?.post?.record?.stats?.likeCount || engagementSource?.raw?.post?.stats?.likeCount,
+    initialReposts: engagementSource?.record?.stats?.repostCount || engagementSource?.stats?.repostCount || engagementSource?.raw?.post?.record?.stats?.repostCount || engagementSource?.raw?.post?.stats?.repostCount,
+    viewer: engagementViewer,
   })
 
   const likeStyle = hasLiked ? { color: '#e11d48' } : undefined
   const repostStyle = hasReposted ? { color: '#0ea5e9' } : undefined
-  const quotePostUri = item?.uri ? (quoteReposts?.[item.uri] || null) : null
+  const bookmarkStyle = isBookmarked ? { color: '#f97316' } : undefined
+  const quotePostUri = actionUri ? (quoteReposts?.[actionUri] || null) : null
   const [quoteBusy, setQuoteBusy] = useState(false)
   const [quoteMessage, setQuoteMessage] = useState('')
   const [quoteMessageIsError, setQuoteMessageIsError] = useState(false)
+  const [actorsExpanded, setActorsExpanded] = useState(false)
+  const replyCountStat = Number(
+    item?.stats?.replyCount ??
+    item?.record?.stats?.replyCount ??
+    item?.raw?.post?.replyCount ??
+    record?.stats?.replyCount ??
+    item?.replyCount ??
+    0
+  )
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [shareMenuOpen, setShareMenuOpen] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const [mutingAccount, setMutingAccount] = useState(false)
+  const [blockingAccount, setBlockingAccount] = useState(false)
+  const [menuActionError, setMenuActionError] = useState('')
+  const [deletingPost, setDeletingPost] = useState(false)
 
   const markAsRead = useCallback(() => {
     if (!isRead && typeof onMarkRead === 'function') {
@@ -425,61 +599,422 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     }
   }, [isRead, onMarkRead, item])
 
-  useEffect(() => {
-    if (isRead) return undefined
-    const target = cardRef.current
-    if (!target) return undefined
-
-    if (typeof IntersectionObserver !== 'function') {
-      markAsRead()
-      return undefined
-    }
-
-    const root = typeof document !== 'undefined'
-      ? document.getElementById('bsky-scroll-container')
-      : null
-
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (!entry) return
-      if (entry.isIntersecting) {
-        markAsRead()
-        observer.disconnect()
-      }
-    }, {
-      root,
-      threshold: 0.35
-    })
-    observer.observe(target)
-    return () => {
-      observer.disconnect()
-    }
+  const handleActiveRead = useCallback(() => {
+    if (isRead) return
+    markAsRead()
   }, [isRead, markAsRead])
+
+  const shareUrl = useMemo(
+    () => buildShareUrl({ uri: actionUri || '', author: actionAuthor }),
+    [actionAuthor, actionUri]
+  )
+
+  useEffect(() => {
+    return () => {
+      translationAbortRef.current?.abort?.()
+    }
+  }, [])
+  useEffect(() => {
+    return () => {
+      detectAbortRef.current?.abort?.()
+    }
+  }, [])
+
+  useEffect(() => {
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [recordText, item?.uri])
+
+  const targetLanguage = useMemo(() => {
+    const base = (locale || navigator?.language || 'en').split('-')[0] || 'en'
+    return base.toLowerCase()
+  }, [locale])
+  const translationEndpoint = translationPreferences.endpoint
+  const translationEnabled = translationPreferences.enabled !== false
+  const fallbackService = translationPreferences.fallbackService || 'none'
+  const allowFallback = translationPreferences.allowFallback === true
+  const canInlineTranslate = Boolean(translationEndpoint)
+  const translateUnavailable = !canInlineTranslate && !allowFallback
+  const detectEndpoint = useMemo(() => {
+    if (!translationEndpoint) return null
+    return translationEndpoint.replace(/\/translate$/i, '/detect')
+  }, [translationEndpoint])
+  const sameLanguageDetected = detectedLanguage && detectedLanguage === targetLanguage
+  const translateButtonDisabled = !translationResult && (translateUnavailable ||
+    !recordText ||
+    !recordText.trim() ||
+    (canInlineTranslate && translating) ||
+    (sameLanguageDetected && !detectingLanguage))
+
+  useEffect(() => {
+    detectAbortRef.current?.abort?.()
+    if (!translationEnabled || !canInlineTranslate || !detectEndpoint || !recordText?.trim()) {
+      setDetectingLanguage(false)
+      setDetectedLanguage(null)
+      return
+    }
+    const controller = new AbortController()
+    detectAbortRef.current = controller
+    setDetectingLanguage(true)
+    const payload = JSON.stringify({ q: recordText })
+    fetch(detectEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: payload,
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Detect failed')
+        const data = await response.json()
+        const entry = Array.isArray(data)
+          ? data[0]
+          : Array.isArray(data?.detections) ? data.detections[0] : null
+        const lang = typeof entry?.language === 'string'
+          ? entry.language
+          : (typeof entry?.languageCode === 'string' ? entry.languageCode : null)
+        setDetectedLanguage(lang ? lang.toLowerCase() : null)
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return
+        setDetectedLanguage(null)
+      })
+      .finally(() => {
+        setDetectingLanguage(false)
+      })
+  }, [canInlineTranslate, detectEndpoint, recordText, translationEnabled])
+
+  const copyToClipboard = async (value, successMessage = t('skeet.actions.copySuccess', 'Kopiert')) => {
+    if (!value) return
+    const fallback = () => window.prompt(t('skeet.actions.copyPrompt', 'Zum Kopieren'), value)
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+        setFeedbackMessage(successMessage)
+        window.setTimeout(() => setFeedbackMessage(''), 2400)
+      } else {
+        fallback()
+      }
+    } catch {
+      fallback()
+    }
+  }
+
+  const showPlaceholder = useCallback((label) => {
+    setFeedbackMessage(t('skeet.actions.placeholder', '{label} ist noch nicht verfügbar.', { label }))
+    window.setTimeout(() => setFeedbackMessage(''), 2400)
+  }, [t])
+
+  const showMenuError = useCallback((message) => {
+    setMenuActionError(message)
+    window.setTimeout(() => setMenuActionError(''), 3200)
+  }, [])
+
+  const openExternalTranslate = useCallback(() => {
+    if (!allowFallback) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    const url = buildFallbackTranslateUrl(fallbackService, targetLanguage || 'en', recordText || '')
+    if (!url) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [allowFallback, fallbackService, showPlaceholder, t, targetLanguage, recordText])
+
+  const handleInlineTranslate = useCallback(async () => {
+    if (!translationEnabled || !canInlineTranslate) {
+      return
+    }
+    if (!recordText || !recordText.trim()) {
+      setTranslationError(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      return
+    }
+    if (translating) return
+    translationAbortRef.current?.abort?.()
+    const controller = new AbortController()
+    translationAbortRef.current = controller
+    setTranslating(true)
+    setTranslationError('')
+    try {
+      const response = await fetch(translationEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          q: recordText,
+          source: 'auto',
+          target: targetLanguage || 'en',
+          format: 'text'
+        }),
+        signal: controller.signal
+      })
+      if (!response.ok) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      }
+      const payload = await response.json()
+      const translated = (payload?.translatedText || payload?.translation || '').trim()
+      if (!translated) {
+        throw new Error(t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+      }
+      setTranslationResult({
+        text: translated,
+        detected: payload?.detectedLanguage?.language || payload?.detectedLanguage || null
+      })
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      if (allowFallback) {
+        openExternalTranslate()
+        return
+      }
+      setTranslationError(error?.message || t('skeet.translation.error', 'Übersetzung konnte nicht abgerufen werden.'))
+    } finally {
+      setTranslating(false)
+    }
+  }, [
+    allowFallback,
+    canInlineTranslate,
+    openExternalTranslate,
+    t,
+    targetLanguage,
+    recordText,
+    translationEnabled,
+    translationEndpoint,
+    translating
+  ])
+
+  const handleTranslateAction = useCallback(() => {
+    if (!translationEnabled) {
+      showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+      return
+    }
+    if (canInlineTranslate) {
+      handleInlineTranslate()
+      return
+    }
+    if (allowFallback) {
+      openExternalTranslate()
+      return
+    }
+    showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
+  }, [
+    allowFallback,
+    canInlineTranslate,
+    handleInlineTranslate,
+    openExternalTranslate,
+    showPlaceholder,
+    t,
+    translationEnabled
+  ])
+
+  const handleClearTranslation = useCallback(() => {
+    translationAbortRef.current?.abort?.()
+    setTranslationResult(null)
+    setTranslationError('')
+  }, [])
+
+  const handleMuteAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.muteAccount', 'Account stummschalten'))
+      return
+    }
+    if (mutingAccount) return
+    setMenuActionError('')
+    setMutingAccount(true)
+    try {
+      await apiMuteActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.muteAccountSuccess', 'Account wurde stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteAccountError', 'Account konnte nicht stummgeschaltet werden.'))
+    } finally {
+      setMutingAccount(false)
+    }
+  }, [actorDid, mutingAccount, showMenuError, showPlaceholder, t])
+
+  const handleBlockAccount = useCallback(async () => {
+    if (!actorDid) {
+      showPlaceholder(t('skeet.actions.blockAccount', 'Account blockieren'))
+      return
+    }
+    if (blockingAccount) return
+    setMenuActionError('')
+    setBlockingAccount(true)
+    try {
+      await apiBlockActor(actorDid)
+      setFeedbackMessage(t('skeet.actions.blockAccountSuccess', 'Account wurde blockiert.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.blockAccountError', 'Account konnte nicht blockiert werden.'))
+    } finally {
+      setBlockingAccount(false)
+    }
+  }, [actorDid, blockingAccount, showMenuError, showPlaceholder, t])
+
+  const isOwnPost = Boolean(session?.did && actorDid && session.did === actorDid)
+
+  const handleDeleteOwnPost = useCallback(async () => {
+    if (!actionUri || deletingPost) return
+    openConfirm({
+      title: t('skeet.actions.confirmDeleteTitle', 'Post löschen?'),
+      description: t('skeet.actions.confirmDeleteDescription', 'Dieser Schritt ist endgültig. Der Post wird dauerhaft entfernt.'),
+      confirmLabel: t('skeet.actions.deletePost', 'Post löschen'),
+      cancelLabel: t('compose.cancel', 'Abbrechen'),
+      variant: 'destructive',
+      onConfirm: async () => {
+        setMenuActionError('')
+        setDeletingPost(true)
+        try {
+          await deletePost({ uri: actionUri })
+          timelineDispatch({ type: 'REMOVE_POST', payload: actionUri })
+          setFeedbackMessage(t('skeet.actions.deletePostSuccess', 'Post gelöscht.'))
+          window.setTimeout(() => setFeedbackMessage(''), 2400)
+        } catch (error) {
+          showMenuError(error?.message || t('skeet.actions.deletePostError', 'Post konnte nicht gelöscht werden.'))
+        } finally {
+          setDeletingPost(false)
+        }
+      }
+    })
+  }, [actionUri, deletePost, deletingPost, openConfirm, showMenuError, t, timelineDispatch])
+
+  const menuActions = useMemo(() => {
+    const base = [
+      {
+        key: 'copy-text',
+        label: t('skeet.actions.copyText', 'Post-Text kopieren'),
+        icon: CopyIcon,
+        action: () => copyToClipboard(String(recordText || ''), t('skeet.actions.copyTextSuccess', 'Text kopiert'))
+      }
+    ]
+
+    if (isOwnPost) {
+      return [
+        ...base,
+        {
+          key: 'pin-post',
+          label: t('skeet.actions.pinPost', 'An dein Profil anheften'),
+          icon: PinLeftIcon,
+          action: () => showPlaceholder(t('skeet.actions.pinPost', 'Post anheften')),
+          disabled: true
+        },
+        {
+          key: 'edit-interactions',
+          label: t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten'),
+          icon: GearIcon,
+          action: () => showPlaceholder(t('skeet.actions.editInteractions', 'Interaktionseinstellungen bearbeiten')),
+          disabled: true
+        },
+        {
+          key: 'delete-post',
+          label: t('skeet.actions.deletePost', 'Post löschen'),
+          icon: TrashIcon,
+          action: handleDeleteOwnPost,
+          disabled: deletingPost,
+          variant: 'destructive'
+        }
+      ]
+    }
+
+    return [
+      ...base,
+      {
+        key: 'show-more',
+        label: t('skeet.actions.showMore', 'Mehr davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'show-less',
+        label: t('skeet.actions.showLess', 'Weniger davon anzeigen'),
+        icon: FaceIcon,
+        action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')),
+        disabled: true
+      },
+      {
+        key: 'mute-thread',
+        label: t('skeet.actions.muteThread', 'Thread stummschalten'),
+        icon: SpeakerOffIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'mute-words',
+        label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
+        icon: MixerVerticalIcon,
+        action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')),
+        disabled: true
+      },
+      {
+        key: 'hide-post',
+        label: t('skeet.actions.hidePost', 'Post für mich ausblenden'),
+        icon: EyeClosedIcon,
+        action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')),
+        disabled: true
+      },
+      {
+        key: 'mute-account',
+        label: t('skeet.actions.muteAccount', 'Account stummschalten'),
+        icon: SpeakerModerateIcon,
+        action: handleMuteAccount,
+        disabled: mutingAccount
+      },
+      {
+        key: 'block-account',
+        label: t('skeet.actions.blockAccount', 'Account blockieren'),
+        icon: ScissorsIcon,
+        action: handleBlockAccount,
+        disabled: blockingAccount,
+        variant: 'destructive'
+      },
+      {
+        key: 'report-post',
+        label: t('skeet.actions.reportPost', 'Post melden'),
+        icon: ExclamationTriangleIcon,
+        action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')),
+        disabled: true
+      }
+    ]
+  }, [blockingAccount, copyToClipboard, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleMuteAccount, isOwnPost, mutingAccount, recordText, showPlaceholder, t])
 
   const handleToggleLike = useCallback(async () => {
     clearError()
     const result = await toggleLike()
-    if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
+    if (result && actionUri) {
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { likeUri: result.likeUri, likeCount: result.likeCount } } })
     }
-  }, [clearError, dispatch, item?.uri, toggleLike])
+  }, [actionUri, clearError, timelineDispatch, toggleLike])
 
   const handleToggleRepost = useCallback(async () => {
     clearError()
     const result = await toggleRepost()
-    if (result && item?.uri) {
-      dispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: item.uri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
+    if (result && actionUri) {
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { repostUri: result.repostUri, repostCount: result.repostCount } } })
     }
-  }, [clearError, dispatch, item?.uri, toggleRepost])
+  }, [actionUri, clearError, timelineDispatch, toggleRepost])
+
+  const handleToggleBookmark = useCallback(async () => {
+    clearError()
+    const result = await toggleBookmark()
+    if (result && actionUri) {
+      timelineDispatch({ type: 'PATCH_POST_ENGAGEMENT', payload: { uri: actionUri, patch: { bookmarked: result.bookmarked } } })
+    }
+  }, [actionUri, clearError, timelineDispatch, toggleBookmark])
 
   const handleUndoQuote = useCallback(async () => {
-    if (!item?.uri || !quotePostUri || quoteBusy) return
+    if (!actionUri || !quotePostUri || quoteBusy) return
     setQuoteBusy(true)
     setQuoteMessage('')
     setQuoteMessageIsError(false)
     try {
       await deletePost({ uri: quotePostUri })
-      dispatch({ type: 'CLEAR_QUOTE_REPOST', payload: item.uri })
+      uiDispatch({ type: 'CLEAR_QUOTE_REPOST', payload: actionUri })
       setQuoteMessage(t('notifications.card.actions.quoteUndoSuccess', 'Zitat zurückgezogen.'))
     } catch (error) {
       setQuoteMessage(error?.message || t('notifications.card.actions.quoteUndoError', 'Zitat konnte nicht zurückgezogen werden.'))
@@ -491,7 +1026,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         setQuoteMessageIsError(false)
       }, 2400)
     }
-  }, [deletePost, dispatch, item?.uri, quoteBusy, quotePostUri, t])
+  }, [actionUri, deletePost, quoteBusy, quotePostUri, t, uiDispatch])
 
   const fallbackUri = item?.reasonSubject || record?.subject?.uri || record?.uri || null
 
@@ -519,6 +1054,16 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
   }, [threadTarget])
   const canOpenItem = Boolean(resolvedThreadTarget && typeof onSelectItem === 'function')
   const canOpenSubject = Boolean(resolvedThreadTarget && subject && typeof onSelectSubject === 'function')
+  const actionTarget = useMemo(() => {
+    const baseTarget = (reason === 'like' || reason === 'repost')
+      ? (subject || item)
+      : (item || subject)
+    if (!baseTarget) return null
+    const built = buildThreadTarget(baseTarget)
+    if (!built?.uri || !isPostUri(built.uri)) return null
+    return built
+  }, [buildThreadTarget, item, reason, subject])
+  const showFooter = Boolean(actionTarget && reason !== 'like')
 
   const handleSelectItem = useCallback((target) => {
     if (!resolvedThreadTarget || typeof onSelectItem !== 'function') return
@@ -534,23 +1079,226 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     onSelectSubject(buildThreadTarget(finalTarget))
   }, [onSelectSubject, markAsRead, buildThreadTarget, resolvedThreadTarget])
 
+  useEffect(() => {
+    setActorsExpanded(false)
+  }, [item?.listEntryId])
+
   const authorDisplayName = author.displayName || author.handle || ''
   const fallbackAuthorLabel = t('notifications.card.authorUnknown', 'Unbekannt')
   const authorLabel = authorDisplayName || author?.handle || fallbackAuthorLabel
   const authorFallbackHint = authorDisplayName ? '' : t('notifications.card.authorMissing', 'Profilangaben wurden von Bluesky für diese Benachrichtigung nicht mitgeliefert.')
-  const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)]'
+  const unreadHighlight = isRead ? 'bg-background border-border' : 'bg-primary/5 border-primary/60 shadow-[0_10px_35px_-20px_rgba(14,165,233,0.7)] dark:bg-primary/15 dark:border-primary/80 dark:shadow-[0_10px_35px_-20px_rgba(56,189,248,0.65)]'
 
   const openProfileViewer = useCallback(() => {
     if (!canOpenProfileViewer) return
     markAsRead()
-    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
-  }, [canOpenProfileViewer, dispatch, markAsRead, profileActor])
+    uiDispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, markAsRead, profileActor, uiDispatch])
 
   const handleProfileClick = useCallback((event) => {
     event?.preventDefault()
     event?.stopPropagation()
     openProfileViewer()
   }, [openProfileViewer])
+
+  const renderAuthorLabel = useCallback((variant = 'button') => {
+    const textClass = `block truncate font-semibold ${variant === 'button' ? '' : 'text-foreground'}`
+    const content = (
+      <span className={textClass} title={authorLabel}>
+        {authorLabel}
+      </span>
+    )
+    if (profileActor) {
+      return (
+        <ProfilePreviewTrigger actor={profileActor} fallback={author} as='span' className='block max-w-full'>
+          {content}
+        </ProfilePreviewTrigger>
+      )
+    }
+    return content
+  }, [author, authorLabel, profileActor])
+
+  const toggleActorsExpanded = useCallback(() => {
+    if (!canExpandActors) return
+    setActorsExpanded((prev) => !prev)
+  }, [canExpandActors])
+
+  const renderActorAvatar = useCallback((actor, index) => {
+    const actorHandle = actor?.handle || ''
+    const actorId = actor?.did || actorHandle
+    const actorLabel = actor?.displayName || actorHandle || fallbackAuthorLabel
+    const avatarVisual = actor?.avatar
+      ? <img src={actor.avatar} alt='' className='h-8 w-8 rounded-full object-cover' />
+      : <div className='h-8 w-8 rounded-full bg-background-subtle' />
+    const wrapperClass = index === 0 ? '' : '-ml-2'
+    if (!actorId) {
+      return (
+        <span key={`actor-${index}`} className={`${wrapperClass} inline-flex h-8 w-8 items-center justify-center rounded-full border border-border`}>
+          {avatarVisual}
+        </span>
+      )
+    }
+    return (
+      <span key={`${actorId}-${index}`} className={wrapperClass}>
+        <ActorProfileLink
+          actor={actorId}
+          handle={actorHandle}
+          label={actorLabel}
+          onOpen={markAsRead}
+          className='inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background transition hover:ring-2 hover:ring-primary/40'
+        >
+          {avatarVisual}
+        </ActorProfileLink>
+      </span>
+    )
+  }, [fallbackAuthorLabel, markAsRead])
+
+  const avatarVisual = author.avatar ? (
+    <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
+  ) : (
+    <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
+  )
+
+  const avatarWithPreview = profileActor
+    ? (
+      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
+        {avatarVisual}
+      </ProfilePreviewTrigger>
+      )
+    : avatarVisual
+
+  const actorStack = (
+    <div className='flex items-center gap-2'>
+      <div className='flex items-center'>{visibleActors.map(renderActorAvatar)}</div>
+      <Button
+        type='button'
+        variant='ghost'
+        size='pill'
+        onClick={toggleActorsExpanded}
+        aria-label={actorsExpanded
+          ? t('notifications.actors.collapse', 'Ausblenden')
+          : (overflowCount > 0
+              ? t('notifications.actors.expandLabel', '{count} weitere anzeigen', { count: overflowCount })
+              : t('notifications.actors.expand', 'Weitere anzeigen'))}
+        className={`notification-toggle-button h-8 px-2 text-xs font-semibold ${
+          canExpandActors ? 'text-foreground-muted hover:text-foreground' : 'cursor-not-allowed text-foreground-muted/60'
+        }`}
+        disabled={!canExpandActors}
+      >
+        {!actorsExpanded && overflowCount > 0 ? <span>{`+${overflowCount}`}</span> : null}
+        {actorsExpanded ? <ChevronUpIcon className='h-4 w-4' /> : <ChevronDownIcon className='h-4 w-4' />}
+      </Button>
+    </div>
+  )
+
+  const showActorList = canExpandActors && actorsExpanded
+  const useActorStackLayout = true
+
+  const subjectPreview = !isReply && subject ? (
+    <NotificationSubjectPreview
+      subject={subject}
+      reason={reason}
+      threadTarget={resolvedThreadTarget}
+      onSelect={canOpenSubject ? handleSelectSubject : undefined}
+      onSelectQuoted={handleSelectSubject}
+      onViewMedia={onViewMedia}
+      inlineVideoEnabled={inlineVideoEnabled}
+      muted
+    />
+  ) : null
+  const quotePreview = reason === 'quote' && subjectPreview ? (
+    <div className='mt-3 ml-3 opacity-70'>
+      {subjectPreview}
+    </div>
+  ) : null
+
+  const contentBody = (
+    <>
+      {authorFallbackHint ? (
+        <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
+      ) : null}
+      {reasonDescription ? (
+        <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
+      ) : null}
+      {showActorList ? (
+        <div className='space-y-1.5 rounded-2xl border border-border bg-background-subtle p-2'>
+          {resolvedActors.map((actor, index) => {
+            const actorHandle = actor?.handle || ''
+            const actorId = actor?.did || actorHandle
+            const actorLabel = actor?.displayName || actorHandle || fallbackAuthorLabel
+            const actorAvatar = actor?.avatar
+              ? <img src={actor.avatar} alt='' className='h-9 w-9 rounded-full border border-border object-cover' />
+              : <div className='h-9 w-9 rounded-full border border-border bg-background' />
+            if (!actorId) {
+              return (
+                <div key={`actor-row-${index}`} className='flex items-center gap-3 px-2 py-1'>
+                  {actorAvatar}
+                  <span className='text-sm font-semibold text-foreground'>{actorLabel}</span>
+                </div>
+              )
+            }
+            return (
+              <ActorProfileLink
+                key={`${actorId}-${index}`}
+                actor={actorId}
+                handle={actorHandle}
+                label={actorLabel}
+                onOpen={markAsRead}
+                className='flex w-full items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-background'
+              >
+                <span className='inline-flex min-w-0 items-center gap-3'>
+                  {actorAvatar}
+                  <span className='inline-flex min-w-0 items-center gap-2'>
+                    <span className='min-w-0 truncate text-sm font-semibold text-foreground'>{actorLabel}</span>
+                    {actorHandle ? (
+                      <span className='shrink-0 text-sm font-semibold text-foreground-muted'>@{actorHandle}</span>
+                    ) : null}
+                  </span>
+                </span>
+              </ActorProfileLink>
+            )
+          })}
+        </div>
+      ) : null}
+      {recordText ? (
+        <div className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
+          <RichText
+            text={recordText}
+            className='whitespace-pre-wrap break-words'
+            hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
+          />
+          {quotePreview}
+        </div>
+      ) : null}
+      {translationResult ? (
+        <div className='rounded-2xl border border-border bg-background-subtle/60 p-3 text-sm text-foreground' data-component='BskyTranslationPreview'>
+          <div className='mb-1 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-foreground-muted'>
+            <span>{t('skeet.translation.title', 'Übersetzung')}</span>
+          </div>
+          <p className='whitespace-pre-wrap break-words'>{translationResult.text}</p>
+          <p className='mt-2 text-[11px] uppercase tracking-wide text-foreground-muted'>
+            {translationResult.detected
+              ? t('skeet.translation.detected', 'Erkannt: {language}', { language: translationResult.detected.toUpperCase() })
+              : null}
+            <span className='ml-2'>{t('skeet.translation.via', 'Automatisch übersetzt via LibreTranslate')}</span>
+          </p>
+        </div>
+      ) : null}
+      {isReply && replyMedia?.media?.length > 0 ? (
+        <div className='rounded-2xl border border-border bg-background-subtle p-2'>
+          <ReplyMediaPreview
+            media={replyMedia.media}
+            onViewMedia={onViewMedia}
+            inlineVideoEnabled={inlineVideoEnabled}
+          />
+        </div>
+      ) : null}
+      {!isReply && subject && reason !== 'quote' ? subjectPreview : null}
+      {timestamp ? (
+        <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
+      ) : null}
+    </>
+  )
 
   return (
     <Card
@@ -576,95 +1324,78 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       }}
       role={canOpenItem ? 'button' : undefined}
       tabIndex={canOpenItem ? 0 : undefined}
-      aria-label={canOpenItem ? 'Thread öffnen' : undefined}
+      aria-label={canOpenItem ? t('notifications.card.openThread', 'Thread öffnen') : undefined}
     >
-      <div className='flex items-start gap-3'>
-        {author.avatar ? (
-          canOpenProfileViewer ? (
-            <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
-              <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
-            </button>
-          ) : (
-            <img src={author.avatar} alt='' className='h-12 w-12 rounded-full border border-border object-cover' />
-          )
-        ) : (
-          <div className='h-12 w-12 rounded-full border border-border bg-background-subtle' />
-        )}
-        <div className='min-w-0 flex-1 space-y-2'>
+      {useActorStackLayout ? (
+        <div className='space-y-2'>
           <div className='flex flex-wrap items-center gap-2 min-w-0'>
+            {actorStack}
             {canOpenProfileViewer ? (
               <button
                 type='button'
                 onClick={handleProfileClick}
-                className='truncate text-left font-semibold text-foreground transition hover:text-primary'
+                className='truncate text-left font-semibold leading-none text-foreground transition hover:text-primary'
                 title={authorLabel}
               >
-                {authorLabel}
+                {renderAuthorLabel('button')}
               </button>
             ) : (
-              <p className='truncate font-semibold text-foreground' title={authorLabel}>{authorLabel}</p>
+              renderAuthorLabel('static')
             )}
             <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted ml-auto'>
               {reasonLabel}
             </span>
           </div>
-          {authorFallbackHint ? (
-            <p className='text-xs text-foreground-muted'>{authorFallbackHint}</p>
-          ) : null}
-          {reasonDescription ? (
-            <p className='text-sm text-foreground break-words'>{reasonDescription}</p>
-          ) : null}
-          {recordText ? (
-            <p className='rounded-2xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground'>
-              <RichText
-                text={recordText}
-                className='whitespace-pre-wrap break-words'
-                hashtagContext={{ authorHandle: author?.handle, authorDid: author?.did }}
-              />
-            </p>
-          ) : null}
-          {isReply && replyMedia?.media?.length > 0 ? (
-            <div className='rounded-2xl border border-border bg-background-subtle p-2'>
-              <ReplyMediaPreview
-                media={replyMedia.media}
-                onViewMedia={onViewMedia}
-              />
-            </div>
-          ) : null}
-          {!isReply && subject ? (
-            <NotificationSubjectPreview
-              subject={subject}
-              reason={reason}
-              threadTarget={resolvedThreadTarget}
-              onSelect={canOpenSubject ? handleSelectSubject : undefined}
-              onSelectQuoted={handleSelectSubject}
-              onViewMedia={onViewMedia}
-            />
-          ) : null}
-          {timestamp ? (
-            <time className='block text-xs text-foreground-muted' dateTime={indexedAt}>{timestamp}</time>
-          ) : null}
+          {contentBody}
         </div>
-      </div>
-      {isReply ? (
+      ) : (
+        <div className='flex items-start gap-3'>
+          {canOpenProfileViewer ? (
+            <button type='button' onClick={handleProfileClick} className='h-12 w-12 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+              {avatarWithPreview}
+            </button>
+          ) : (
+            avatarWithPreview
+          )}
+          <div className='min-w-0 flex-1 space-y-2'>
+            <div className='flex flex-wrap items-center gap-2 min-w-0'>
+              {canOpenProfileViewer ? (
+                <button
+                  type='button'
+                  onClick={handleProfileClick}
+                  className='truncate text-left font-semibold text-foreground transition hover:text-primary'
+                  title={authorLabel}
+                >
+                  {renderAuthorLabel('button')}
+                </button>
+              ) : (
+                renderAuthorLabel('static')
+              )}
+              <span className='rounded-full border border-border px-2 py-0.5 text-xs uppercase tracking-wide text-foreground-muted ml-auto'>
+                {reasonLabel}
+              </span>
+            </div>
+            {contentBody}
+          </div>
+        </div>
+      )}
+      {showFooter ? (
         <>
-          <footer className='mt-3 flex flex-wrap items-center gap-4 text-sm text-foreground-muted'>
+          <footer className='mt-3 flex flex-wrap items-center gap-3 text-sm text-foreground-muted sm:gap-5'>
             <button
               type='button'
               className='group inline-flex items-center gap-2 hover:text-foreground transition'
               title={t('notifications.card.actions.reply', 'Antworten')}
               onClick={() => {
-                if (typeof onReply === 'function') {
-                  const target = buildReplyTarget(item)
-                  if (target) {
-                    clearError()
-                    onReply(target)
-                  }
+                if (typeof onReply === 'function' && actionTarget) {
+                  handleActiveRead()
+                  clearError()
+                  onReply(actionTarget)
                 }
               }}
             >
               <ChatBubbleIcon className='h-5 w-5' />
-              <span className='tabular-nums'>{record?.stats?.replyCount ?? 0}</span>
+              <span className='tabular-nums'>{replyCountStat}</span>
             </button>
             <RepostMenuButton
               count={repostCount}
@@ -673,15 +1404,18 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               busy={busy || quoteBusy}
               style={repostStyle}
               onRepost={() => {
+                handleActiveRead()
                 handleToggleRepost()
               }}
               onUnrepost={() => {
+                handleActiveRead()
                 handleToggleRepost()
               }}
               onUnquote={quotePostUri ? handleUndoQuote : undefined}
-              onQuote={onQuote ? (() => {
+              onQuote={onQuote && actionTarget ? (() => {
+                handleActiveRead()
                 clearError()
-                onQuote(item)
+                onQuote(actionTarget)
               }) : undefined}
             />
             <button
@@ -691,7 +1425,10 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               title={t('notifications.card.actions.like', 'Gefällt mir')}
               aria-pressed={hasLiked}
               disabled={busy}
-              onClick={handleToggleLike}
+              onClick={() => {
+                handleActiveRead()
+                handleToggleLike()
+              }}
             >
               {hasLiked ? (
                 <HeartFilledIcon className='h-5 w-5' />
@@ -700,27 +1437,185 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
               )}
               <span className='tabular-nums'>{likeCount}</span>
             </button>
+            <div className='relative ml-auto flex items-center gap-1'>
+              <button
+                type='button'
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle transition ${bookmarking ? 'opacity-60' : ''}`}
+                style={bookmarkStyle}
+                title={isBookmarked ? t('skeet.actions.bookmarkRemove', 'Gespeichert') : t('skeet.actions.bookmarkAdd', 'Merken')}
+                aria-pressed={isBookmarked}
+                disabled={bookmarking}
+                onClick={() => {
+                  handleActiveRead()
+                  handleToggleBookmark()
+                }}
+              >
+                {isBookmarked ? (
+                  <BookmarkFilledIcon className='h-4 w-4' />
+                ) : (
+                  <BookmarkIcon className='h-4 w-4' />
+                )}
+              </button>
+              <InlineMenu open={shareMenuOpen} onOpenChange={setShareMenuOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle'
+                    title={t('skeet.actions.share', 'Teilen')}
+                    aria-label={t('skeet.actions.shareAria', 'Beitrag teilen')}
+                    onClick={handleActiveRead}
+                  >
+                    <Share2Icon className='h-4 w-4' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent side='bottom' align='end' sideOffset={10}>
+                  <div className='py-1'>
+                    <InlineMenuItem
+                      icon={CopyIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        handleActiveRead()
+                        copyToClipboard(shareUrl, t('skeet.share.linkCopied', 'Link zum Post kopiert'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.copyLink', 'Link zum Post kopieren')}
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={Link2Icon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        handleActiveRead()
+                        showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.directMessageAction', 'Per Direktnachricht senden')}
+                    </InlineMenuItem>
+                    <InlineMenuItem
+                      icon={CodeIcon}
+                      onSelect={(event) => {
+                        event?.preventDefault?.()
+                        handleActiveRead()
+                        showPlaceholder(t('skeet.share.embed', 'Embed'))
+                        setShareMenuOpen(false)
+                      }}
+                    >
+                      {t('skeet.share.embedAction', 'Post einbetten')}
+                    </InlineMenuItem>
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+              {translationEnabled ? (
+                <button
+                  type='button'
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-background-subtle ${translateButtonDisabled ? 'opacity-60' : ''}`}
+                  title={
+                    translationResult
+                      ? t('skeet.translation.close', 'Schließen')
+                      : (translating && canInlineTranslate
+                        ? t('skeet.actions.translating', 'Übersetze…')
+                        : t('skeet.actions.translate', 'Übersetzen'))
+                  }
+                  aria-label={translationResult ? t('skeet.translation.close', 'Schließen') : t('skeet.actions.translate', 'Übersetzen')}
+                  onClick={(event) => {
+                    handleActiveRead()
+                    if (translationResult) {
+                      handleClearTranslation()
+                      return
+                    }
+                    handleTranslateAction(event)
+                  }}
+                  disabled={translateButtonDisabled}
+                >
+                  {translating && canInlineTranslate && !translationResult ? (
+                    <span className='h-4 w-4 animate-spin rounded-full border-2 border-border border-t-transparent' aria-hidden='true' />
+                  ) : (
+                    <GlobeIcon className='h-4 w-4' />
+                  )}
+                </button>
+              ) : null}
+              <InlineMenu open={optionsOpen} onOpenChange={setOptionsOpen}>
+                <InlineMenuTrigger>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-muted hover:bg-background-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                    aria-label={t('skeet.actions.moreOptions', 'Mehr Optionen')}
+                    onClick={handleActiveRead}
+                  >
+                    <DotsHorizontalIcon className='h-5 w-5' />
+                  </button>
+                </InlineMenuTrigger>
+                <InlineMenuContent align='end' side='top' sideOffset={10} style={{ width: 240 }}>
+                  <div className='py-1 text-sm'>
+                    {menuActions.map((entry) => {
+                      const Icon = entry.icon
+                      return (
+                        <InlineMenuItem
+                          key={entry.key || entry.label}
+                          icon={Icon}
+                          disabled={entry.disabled}
+                          variant={entry.variant || 'default'}
+                          onSelect={(event) => {
+                            event?.preventDefault?.()
+                            if (entry.disabled) return
+                            handleActiveRead()
+                            try {
+                              entry.action()
+                            } catch {
+                              /* ignore menu action errors */
+                            }
+                            setOptionsOpen(false)
+                          }}
+                        >
+                          {entry.label}
+                        </InlineMenuItem>
+                      )
+                    })}
+                  </div>
+                </InlineMenuContent>
+              </InlineMenu>
+            </div>
           </footer>
+          {feedbackMessage ? (
+            <p className='mt-2 text-xs text-emerald-600'>{feedbackMessage}</p>
+          ) : null}
+          {translationError ? (
+            <p className='mt-2 text-xs text-red-600'>{translationError}</p>
+          ) : null}
           {actionError ? (
             <p className='mt-2 text-xs text-red-600'>{actionError}</p>
+          ) : null}
+          {menuActionError ? (
+            <p className='mt-2 text-xs text-red-600'>{menuActionError}</p>
           ) : null}
           {quoteMessage ? (
             <p className={`mt-2 text-xs ${quoteMessageIsError ? 'text-red-600' : 'text-foreground-muted'}`}>{quoteMessage}</p>
           ) : null}
         </>
       ) : null}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        cancelLabel={confirmDialog.cancelLabel}
+        variant={confirmDialog.variant || 'primary'}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </Card>
   )
 })
 
-function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia }) {
-  const dispatch = useAppDispatch()
-  const { t } = useTranslation()
+function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted, threadTarget, onViewMedia, inlineVideoEnabled = false, muted = false }) {
+  const uiDispatch = useUIDispatch()
+  const { t, locale } = useTranslation()
   const { config } = useCardConfig()
   const author = subject?.author || {}
   const preview = extractSubjectPreview(subject)
   const previewMedia = preview?.media || []
-  const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString('de-DE') : ''
+  const timestamp = subject?.createdAt ? new Date(subject.createdAt).toLocaleString(locale || 'de-DE') : ''
   const profileActor = author?.did || author?.handle || ''
   const canOpenProfileViewer = Boolean(profileActor)
   const showQuoted = isViaRepostReason(reason)
@@ -729,6 +1624,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     ? (quoted.author.displayName || quoted.author.handle || t('notifications.card.authorUnknown', 'Unbekannt'))
     : ''
   const quotedAuthorMissing = quoted?.author ? !(quoted.author.displayName || quoted.author.handle) : false
+  const subjectAuthorLabel = author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')
   const canOpenSubject = typeof onSelect === 'function' && Boolean(threadTarget || subject)
   const canOpenQuoted = typeof onSelectQuoted === 'function' && quoted?.uri && quoted.status === 'ok'
   const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
@@ -738,6 +1634,27 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   const quotedStatusMessage = quoted?.status
     ? t(`notifications.preview.quoted.status.${quoted.status}`, quoted?.statusMessage || '')
     : (quoted?.statusMessage || '')
+  const [inlineVideoOpen, setInlineVideoOpen] = useState(false)
+  const inlineVideoRef = useRef(null)
+
+  useEffect(() => {
+    setInlineVideoOpen(false)
+  }, [preview?.video?.src])
+  useEffect(() => {
+    if (!inlineVideoOpen) return
+    const node = inlineVideoRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          setInlineVideoOpen(false)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [inlineVideoOpen])
 
   const handleSelectSubject = useCallback((event) => {
     if (!canOpenSubject) return
@@ -764,8 +1681,8 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     if (!canOpenProfileViewer) return
     event?.preventDefault()
     event?.stopPropagation()
-    dispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
-  }, [canOpenProfileViewer, dispatch, profileActor])
+    uiDispatch({ type: 'OPEN_PROFILE_VIEWER', actor: profileActor })
+  }, [canOpenProfileViewer, profileActor, uiDispatch])
 
   const handlePreviewMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
@@ -776,9 +1693,45 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
     onViewMedia(previewMedia, safeIndex)
   }, [onViewMedia, previewMedia])
 
+  const subjectAvatarVisual = author.avatar
+    ? (
+        <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
+      )
+    : (
+        <div className='h-8 w-8 rounded-full border border-border bg-background' />
+      )
+
+  const subjectAvatarWithPreview = profileActor
+    ? (
+      <ProfilePreviewTrigger actor={profileActor} fallback={author}>
+        {subjectAvatarVisual}
+      </ProfilePreviewTrigger>
+      )
+    : subjectAvatarVisual
+
+  const renderSubjectAuthorLabel = useCallback((variant = 'button') => {
+    const textClass = `block truncate font-semibold ${variant === 'button' ? '' : 'text-foreground'}`
+    const content = (
+      <span className={textClass} title={subjectAuthorLabel}>
+        {subjectAuthorLabel}
+      </span>
+    )
+    if (profileActor) {
+      return (
+        <ProfilePreviewTrigger actor={profileActor} fallback={author} as='span' className='block max-w-full'>
+          {content}
+        </ProfilePreviewTrigger>
+      )
+    }
+    return content
+  }, [author, profileActor, subjectAuthorLabel])
+
+  const textClass = muted ? 'text-foreground-muted' : 'text-foreground'
+  const subtleTextClass = muted ? 'text-foreground-muted/80' : 'text-foreground-muted'
+
   return (
     <div
-      className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm text-foreground space-y-2 ${
+      className={`rounded-2xl border border-border bg-background-subtle px-3 py-3 text-sm ${textClass} space-y-2 ${
         canOpenSubject ? 'cursor-pointer transition hover:bg-background-subtle/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70' : ''
       }`}
       role={canOpenSubject ? 'button' : undefined}
@@ -791,34 +1744,28 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
       }) : undefined}
     >
       <div className='flex items-center gap-3'>
-        {author.avatar ? (
-          canOpenProfileViewer
-            ? (
-              <button type='button' onClick={openSubjectAuthor} className='h-8 w-8 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
-                <img src={author.avatar} alt='' className='h-full w-full rounded-full object-cover' />
-              </button>
-              )
-            : <img src={author.avatar} alt='' className='h-8 w-8 rounded-full border border-border object-cover' />
-        ) : (
-          <div className='h-8 w-8 rounded-full border border-border bg-background' />
-        )}
+        {canOpenProfileViewer ? (
+          <button type='button' onClick={openSubjectAuthor} className='h-8 w-8 rounded-full border border-border transition hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'>
+            {subjectAvatarWithPreview}
+          </button>
+        ) : subjectAvatarWithPreview}
         <div className='min-w-0 flex-1'>
           {canOpenProfileViewer ? (
             <button
               type='button'
               onClick={openSubjectAuthor}
-              className='block w-full truncate text-left font-semibold text-foreground transition hover:text-primary'
+              className={`block w-full truncate text-left font-semibold ${textClass} transition hover:text-primary`}
             >
-              {author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}
+              {renderSubjectAuthorLabel('button')}
             </button>
           ) : (
-            <p className='truncate font-semibold text-foreground'>{author.displayName || author.handle || t('notifications.preview.profileFallback', 'Profil')}</p>
+            renderSubjectAuthorLabel('static')
           )}
-          {timestamp ? <p className='text-xs text-foreground-muted'>{timestamp}</p> : null}
+          {timestamp ? <p className={`text-xs ${subtleTextClass}`}>{timestamp}</p> : null}
         </div>
       </div>
       {subject?.text ? (
-        <div className='text-sm text-foreground'>
+        <div className={`text-sm ${textClass}`}>
           <RichText
             text={subject.text}
             className='whitespace-pre-wrap break-words'
@@ -856,12 +1803,60 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
         (() => {
           const singleMax = config?.singleMax ?? 256
           const ratio = parseAspectRatioValue(preview.video.aspectRatio) || (16 / 9)
+          const previewStyle = {
+            aspectRatio: ratio,
+            width: '100%',
+            maxHeight: singleMax,
+            minHeight: singleMax,
+            backgroundColor: 'var(--background-subtle, #000)'
+          }
+          if (inlineVideoEnabled && inlineVideoOpen) {
+            return (
+              <div ref={inlineVideoRef} className='space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+                <div className='flex items-center justify-between gap-3'>
+                  <p className='text-sm font-semibold text-foreground'>{videoBadgeLabel}</p>
+                  <button
+                    type='button'
+                    className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+                    onClick={() => setInlineVideoOpen(false)}
+                  >
+                    {t('common.actions.close', 'Schließen')}
+                  </button>
+                </div>
+                <div
+                  className='relative w-full overflow-hidden rounded-lg border border-border bg-black'
+                  style={{ aspectRatio: ratio }}
+                >
+                  <InlineVideoPlayer
+                    src={preview.video.src}
+                    poster={preview.video.poster}
+                    autoPlay
+                    className='absolute inset-0 h-full w-full'
+                  />
+                </div>
+              </div>
+            )
+          }
           return (
             <button
               type='button'
-              onClick={(event) => handlePreviewMediaClick(event, preview.videoIndex ?? 0)}
+              onClick={(event) => {
+                if (inlineVideoEnabled) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setInlineVideoOpen(true)
+                  return
+                }
+                handlePreviewMediaClick(event, preview.videoIndex ?? 0)
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
+                  if (inlineVideoEnabled) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setInlineVideoOpen(true)
+                    return
+                  }
                   handlePreviewMediaClick(event, preview.videoIndex ?? 0)
                 }
               }}
@@ -871,13 +1866,7 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
             >
               <div
                 className='relative w-full overflow-hidden rounded-xl'
-                style={{
-                  aspectRatio: ratio,
-                  width: '100%',
-                  maxHeight: singleMax,
-                  minHeight: singleMax,
-                  backgroundColor: 'var(--background-subtle, #000)'
-                }}
+                style={previewStyle}
               >
                 {preview.video.poster ? (
                   <img
@@ -946,7 +1935,13 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
                       <p className='text-xs text-foreground-muted'>{quotedAuthorMissingLabel}</p>
                     ) : null}
                     {quoted.author?.handle ? (
-                      <p className='truncate text-xs text-foreground-muted'>@{quoted.author.handle}</p>
+                      <ActorProfileLink
+                        actor={quoted.author?.did || quoted.author?.handle}
+                        handle={quoted.author?.handle}
+                        className='truncate text-xs text-foreground-muted text-left hover:text-primary'
+                      >
+                        @{quoted.author.handle}
+                      </ActorProfileLink>
                     ) : null}
                   </div>
                 </div>
@@ -968,9 +1963,11 @@ function NotificationSubjectPreview ({ subject, reason, onSelect, onSelectQuoted
   )
 }
 
-function ReplyMediaPreview ({ media = [], onViewMedia }) {
+function ReplyMediaPreview ({ media = [], onViewMedia, inlineVideoEnabled = false }) {
   const { config } = useCardConfig()
   const { t } = useTranslation()
+  const [inlineVideoOpen, setInlineVideoOpen] = useState(false)
+  const inlineVideoRef = useRef(null)
   const handleMediaClick = useCallback((event, mediaIndex = 0) => {
     if (typeof onViewMedia !== 'function') return
     if (!Array.isArray(media) || media.length === 0) return
@@ -980,10 +1977,32 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
     onViewMedia(media, safeIndex)
   }, [onViewMedia, media])
 
-  if (!media || media.length === 0) return null
+  const hasMedia = Array.isArray(media) && media.length > 0
+  const firstImage = hasMedia ? media.find(m => m.type === 'image') : null
+  const firstVideo = hasMedia ? media.find(m => m.type === 'video') : null
 
-  const firstImage = media.find(m => m.type === 'image')
-  const firstVideo = media.find(m => m.type === 'video')
+  useEffect(() => {
+    if (!hasMedia) return
+    setInlineVideoOpen(false)
+  }, [firstVideo?.src, hasMedia])
+  useEffect(() => {
+    if (!hasMedia) return
+    if (!inlineVideoOpen) return
+    const node = inlineVideoRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          setInlineVideoOpen(false)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMedia, inlineVideoOpen])
+
+  if (!hasMedia) return null
 
   if (firstImage) {
     const imageIndex = media.indexOf(firstImage)
@@ -1021,12 +2040,53 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
     const ratio = parseAspectRatioValue(firstVideo.aspectRatio) || (16 / 9)
     const videoOpenLabel = t('notifications.preview.videoOpen', 'Video öffnen')
     const videoBadgeLabel = t('notifications.preview.videoLabel', 'Video')
+    if (inlineVideoEnabled && inlineVideoOpen) {
+      return (
+        <div ref={inlineVideoRef} className='space-y-2 rounded-xl border border-border bg-background-subtle p-3'>
+          <div className='flex items-center justify-between gap-3'>
+            <p className='text-sm font-semibold text-foreground'>{videoBadgeLabel}</p>
+            <button
+              type='button'
+              className='rounded-full border border-border px-2 py-1 text-xs text-foreground-muted hover:text-foreground'
+              onClick={() => setInlineVideoOpen(false)}
+            >
+              {t('common.actions.close', 'Schließen')}
+            </button>
+          </div>
+          <div
+            className='relative w-full overflow-hidden rounded-lg border border-border bg-black'
+            style={{ aspectRatio: ratio }}
+          >
+            <InlineVideoPlayer
+              src={firstVideo.src}
+              poster={firstVideo.poster}
+              autoPlay
+              className='absolute inset-0 h-full w-full'
+            />
+          </div>
+        </div>
+      )
+    }
     return (
       <button
         type='button'
-        onClick={(event) => handleMediaClick(event, videoIndex)}
+        onClick={(event) => {
+          if (inlineVideoEnabled) {
+            event.preventDefault()
+            event.stopPropagation()
+            setInlineVideoOpen(true)
+            return
+          }
+          handleMediaClick(event, videoIndex)
+        }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
+            if (inlineVideoEnabled) {
+              event.preventDefault()
+              event.stopPropagation()
+              setInlineVideoOpen(true)
+              return
+            }
             handleMediaClick(event, videoIndex)
           }
         }}
@@ -1069,11 +2129,16 @@ function ReplyMediaPreview ({ media = [], onViewMedia }) {
 
 export default function Notifications ({ activeTab = 'all', listKey = 'notifs:all' }) {
   const { t } = useTranslation()
-  const { lists, notificationsUnread } = useAppState()
-  const dispatch = useAppDispatch()
+  const { clientConfig } = useClientConfig()
+  const { lists } = useTimelineState()
+  const timelineDispatch = useTimelineDispatch()
+  const { notificationsUnread } = useUIState()
+  const uiDispatch = useUIDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
+  const { mutate } = useSWRConfig()
+  const inlineVideoEnabled = clientConfig?.layout?.inlineVideo === true || clientConfig?.layout?.inlineYoutube === true
 
   const list = listKey ? lists?.[listKey] : null
   const listRef = useRef(list)
@@ -1091,8 +2156,10 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     running: false
   })
   const updateUnread = useCallback((count) => {
-    dispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: Math.max(0, count || 0) })
-  }, [dispatch])
+    const normalized = Math.max(0, count || 0)
+    uiDispatch({ type: 'SET_NOTIFICATIONS_UNREAD', payload: normalized })
+    mutate(NOTIFICATION_UNREAD_SWR_KEY, { unreadCount: normalized }, false)
+  }, [mutate, uiDispatch])
 
   const isLoadingInitial = !list || !list.loaded
   const isLoadingMore = Boolean(list?.isLoadingMore)
@@ -1110,7 +2177,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     let cancelled = false
     runListRefresh({
       list,
-      dispatch,
+      dispatch: timelineDispatch,
       ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
     })
       .then((page) => {
@@ -1126,20 +2193,20 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         if (!cancelled) setError(err)
       })
     return () => { cancelled = true }
-  }, [activeTab, listKey, list, dispatch, retryTick, updateUnread])
+  }, [activeTab, listKey, list, retryTick, timelineDispatch, updateUnread])
 
   const loadMore = useCallback(async () => {
     if (!list || isLoadingInitial || isLoadingMore || !hasMore) return
     try {
       await runListLoadMore({
         list,
-        dispatch,
+        dispatch: timelineDispatch,
         ...(activeTab === 'mentions' ? { limit: mentionsPageSize } : {})
       })
     } catch (err) {
       console.error('Failed to load more notifications', err)
     }
-  }, [activeTab, list, dispatch, hasMore, isLoadingInitial, isLoadingMore])
+  }, [activeTab, list, hasMore, isLoadingInitial, isLoadingMore, timelineDispatch])
 
   const handleMarkRead = useCallback((notification) => {
     if (!notification || notification.isRead || !list) return
@@ -1151,7 +2218,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
       if (entry.isRead) return entry
       return { ...entry, isRead: true }
     })
-    dispatch({
+    timelineDispatch({
       type: 'LIST_LOADED',
       payload: {
         key: listKey,
@@ -1164,7 +2231,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
     })
     const nextUnread = Math.max(0, (notificationsUnread || 0) - 1)
     updateUnread(nextUnread)
-  }, [dispatch, list, listKey, notificationsUnread, updateUnread])
+  }, [list, listKey, notificationsUnread, timelineDispatch, updateUnread])
 
   useEffect(() => {
     if (!hasMore || !loadMoreTriggerRef.current) return
@@ -1240,7 +2307,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
 
           state.attempts += 1
           setMentionsAutoLoadAttempts(state.attempts)
-          await runListLoadMore({ list: currentList, dispatch, limit: mentionsPageSize })
+          await runListLoadMore({ list: currentList, dispatch: timelineDispatch, limit: mentionsPageSize })
 
           const afterList = listRef.current
           const afterCursor = afterList?.cursor || null
@@ -1256,7 +2323,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
         state.running = false
       }
     })()
-  }, [activeTab, dispatch, hasMore, isLoadingInitial, isLoadingMore, items.length])
+  }, [activeTab, hasMore, isLoadingInitial, isLoadingMore, items.length, timelineDispatch])
 
   if (isLoadingInitial) {
     return (
@@ -1302,6 +2369,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
             onQuote={onQuote}
             onMarkRead={handleMarkRead}
             onViewMedia={onViewMedia}
+            inlineVideoEnabled={inlineVideoEnabled}
           />
         )}
       />

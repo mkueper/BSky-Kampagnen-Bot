@@ -52,17 +52,50 @@ vi.mock('../../src/context/AppContext', async importOriginal => {
   const original = await importOriginal()
   return {
     ...original,
-    useAppState: () => {
-      const realState = original.useAppState()
-      return customAppState.current
-        ? { ...realState, ...customAppState.current }
-        : realState
-    },
     useAppDispatch: () => (
       dispatchMode.useReal
         ? original.useAppDispatch()
         : mockDispatch
     )
+  }
+})
+vi.mock('../../src/context/TimelineContext.jsx', async importOriginal => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useTimelineState: () => {
+      const realState = original.useTimelineState()
+      const listOverrides = customAppState.current?.lists
+      if (!listOverrides || !Object.keys(listOverrides).length) {
+        return realState
+      }
+      return {
+        ...realState,
+        lists: {
+          ...realState.lists,
+          ...listOverrides
+        }
+      }
+    }
+  }
+})
+vi.mock('../../src/context/UIContext.jsx', async importOriginal => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    useUIState: () => {
+      const realState = original.useUIState()
+      const notificationsUnread = customAppState.current?.notificationsUnread
+      if (typeof notificationsUnread !== 'number') {
+        return realState
+      }
+      return {
+        ...realState,
+        notificationsUnread
+      }
+    }
+    ,
+    useUIDispatch: () => mockDispatch
   }
 })
 vi.mock('../../src/context/CardConfigContext.jsx', () => ({
@@ -77,11 +110,14 @@ vi.mock('../../src/modules/shared', () => {
     repostCount: 0,
     hasLiked: false,
     hasReposted: false,
+    isBookmarked: false,
+    bookmarking: false,
     busy: false,
     refreshing: false,
     error: '',
     toggleLike: () => {},
     toggleRepost: () => {},
+    toggleBookmark: () => {},
     refresh: () => {},
     clearError: () => {}
   })
@@ -111,10 +147,24 @@ vi.mock('../../src/modules/shared', () => {
 
   return {
     Button: ({ children, ...props }) => <button {...props}>{children}</button>,
+    ActorProfileLink: ({ children, onOpen, ...props }) => <button {...props}>{children}</button>,
     Card,
+    ProfilePreviewTrigger: ({ children }) => <>{children}</>,
     RichText: ({ text, className = '' }) => <span className={className}>{text}</span>,
     RepostMenuButton,
+    InlineMenu: ({ children }) => <div>{children}</div>,
+    InlineMenuTrigger: ({ children }) => <div>{children}</div>,
+    InlineMenuContent: ({ children }) => <div>{children}</div>,
+    InlineMenuItem: ({ children, onSelect, ...props }) => (
+      <button type='button' onClick={onSelect} {...props}>{children}</button>
+    ),
     deletePost: vi.fn(async () => ({ success: true })),
+    ConfirmDialog: () => null,
+    useConfirmDialog: () => ({
+      dialog: { open: false },
+      openConfirm: () => {},
+      closeConfirm: () => {}
+    }),
     useBskyEngagement: () => ({
       ...buildEngagement(),
       ...(engagementOverrides.current || {})
@@ -284,6 +334,46 @@ describe('Notifications', () => {
     // expect(screen.getByText('Bravo Text')).toBeVisible()
   })
 
+  it('zeigt die Interaktor-Liste bei gruppierten Mitteilungen', async () => {
+    const user = userEvent.setup()
+    const actors = Array.from({ length: 6 }, (_, index) => ({
+      displayName: `Person ${index + 1}`,
+      handle: `person-${index + 1}`,
+      did: `did:person-${index + 1}`,
+      avatar: `https://example.com/avatar-${index + 1}.png`
+    }))
+    const item = {
+      ...createNotification({ id: 'multi-1', text: 'Multi Text' }),
+      actors,
+      additionalCount: actors.length - 1
+    }
+
+    await act(async () => {
+      customAppState.current = {
+        lists: {
+          'notifs:all': {
+            key: 'notifs:all',
+            kind: 'notifications',
+            items: [item],
+            cursor: null,
+            loaded: true,
+            isLoadingMore: false,
+            data: { type: 'notifications', filter: 'all' }
+          }
+        },
+        notificationsUnread: 0
+      }
+      renderWithProviders(<Notifications activeTab='all' listKey='notifs:all' />)
+    })
+
+    const toggle = await screen.findByRole('button', { name: /1 weitere anzeigen/i })
+    expect(toggle).toBeInTheDocument()
+    await user.click(toggle)
+
+    expect(screen.getByText('Person 6')).toBeInTheDocument()
+    expect(screen.getByText('@person-6')).toBeInTheDocument()
+  })
+
   it('lädt Erwähnungen und füllt den Puffer auf, wenn der Mentions-Tab aktiv ist', async () => {
     // Stub state for mentions list: one initial mention plus buffer items
     const firstMention = createNotification({
@@ -366,7 +456,7 @@ describe('NotificationCard interactions', () => {
     expect(selected?.uri).toBe(item.subject?.raw?.post?.uri ?? item.uri)
   })
 
-  it('markiert ungelesene Einträge automatisch beim Sichtbarwerden', () => {
+  it('markiert ungelesene Einträge nicht automatisch beim Sichtbarwerden', () => {
     const item = { ...createNotification({ id: 'auto-1' }), isRead: false }
     const handleMarkRead = vi.fn()
     const originalObserver = global.IntersectionObserver
@@ -386,9 +476,8 @@ describe('NotificationCard interactions', () => {
 
     try {
       renderWithProviders(<NotificationCard item={item} onMarkRead={handleMarkRead} />)
-      expect(observers).toHaveLength(1)
-      act(() => observers[0].callback([{ isIntersecting: true }]))
-      expect(handleMarkRead).toHaveBeenCalledWith(item)
+      expect(observers).toHaveLength(0)
+      expect(handleMarkRead).not.toHaveBeenCalled()
     } finally {
       global.IntersectionObserver = originalObserver
     }

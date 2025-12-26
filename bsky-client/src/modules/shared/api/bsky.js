@@ -27,6 +27,7 @@ const TIMELINE_TAB_CONFIG = {
 
 const GROUPABLE_NOTIFICATION_REASONS = new Set(['like', 'repost', 'like-via-repost', 'repost-via-repost'])
 const TIMELINE_LABELS = { following: 'Following' }
+const NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT = 5
 const FEED_META_CACHE_TTL_MS = 5 * 60 * 1000
 const FEED_META_ERROR_TTL_MS = 60 * 1000
 const FEED_META_BATCH_SIZE = 4
@@ -42,6 +43,7 @@ const CHAT_PROXY_HEADER_VALUE = resolveChatProxyHeader()
 const CHAT_SERVICE_HEADERS = Object.freeze({ 'atproto-proxy': CHAT_PROXY_HEADER_VALUE })
 let chatProxyFailed = false
 let cachedChatServiceBaseUrl = null
+let chatUnreadPollingDisabled = false
 
 function clampNumber (value, min, max, fallback) {
   const numeric = Number(value)
@@ -126,6 +128,21 @@ function transformChatApiError (error) {
     return new Error('Chat-API derzeit nicht verfügbar (Bluesky rollt Chats noch aus).')
   }
   return error
+}
+
+function isChatFeatureUnavailableError (error) {
+  if (!error) return false
+  const status = Number(error?.status ?? error?.statusCode)
+  if ([400, 401, 403, 404].includes(status)) return true
+  const code = (error?.error || error?.data?.error || '').toLowerCase()
+  if (code === 'xrpcnotsupported' || code === 'featuredisabled') return true
+  const message = (error?.message || '').toLowerCase()
+  if (!message) return false
+  return (
+    message.includes('chat-api derzeit nicht verfügbar') ||
+    message.includes('chat api currently unavailable') ||
+    message.includes('chat-api')
+  )
 }
 
 function buildChatServiceUrl (nsid, params) {
@@ -773,6 +790,24 @@ async function fetchChatConversationsDirect ({ cursor, limit, readState, status 
   }
 }
 
+async function fetchChatLogsDirect ({ cursor } = {}) {
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  let data
+  try {
+    data = await executeChatRequest(
+      convoApi?.getLog ? () => convoApi.getLog(cursor ? { cursor } : {}, { headers: CHAT_SERVICE_HEADERS }) : null,
+      { nsid: 'chat.bsky.convo.getLog', httpMethod: 'GET', params: cursor ? { cursor } : {} }
+    )
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+  return {
+    logs: Array.isArray(data?.logs) ? data.logs : [],
+    cursor: data?.cursor || null
+  }
+}
+
 async function fetchChatConversationDirect ({ convoId } = {}) {
   if (!convoId) {
     throw new Error('conversationId ist erforderlich.')
@@ -868,6 +903,56 @@ async function updateChatReadStateDirect ({ convoId, messageId } = {}) {
   }
 }
 
+async function addChatReactionDirect ({ convoId, messageId, value } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  if (!messageId) {
+    throw new Error('messageId ist erforderlich.')
+  }
+  const reaction = typeof value === 'string' ? value.trim() : ''
+  if (!reaction) {
+    throw new Error('Reaktion darf nicht leer sein.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  const payload = { convoId, messageId, value: reaction }
+  try {
+    const data = await executeChatRequest(
+      convoApi?.addReaction ? () => convoApi.addReaction(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' }) : null,
+      { nsid: 'chat.bsky.convo.addReaction', httpMethod: 'POST', body: payload }
+    )
+    return { message: mapChatMessageView(data?.message) }
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+}
+
+async function removeChatReactionDirect ({ convoId, messageId, value } = {}) {
+  if (!convoId) {
+    throw new Error('conversationId ist erforderlich.')
+  }
+  if (!messageId) {
+    throw new Error('messageId ist erforderlich.')
+  }
+  const reaction = typeof value === 'string' ? value.trim() : ''
+  if (!reaction) {
+    throw new Error('Reaktion darf nicht leer sein.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  const payload = { convoId, messageId, value: reaction }
+  try {
+    const data = await executeChatRequest(
+      convoApi?.removeReaction ? () => convoApi.removeReaction(payload, { headers: CHAT_SERVICE_HEADERS, encoding: 'application/json' }) : null,
+      { nsid: 'chat.bsky.convo.removeReaction', httpMethod: 'POST', body: payload }
+    )
+    return { message: mapChatMessageView(data?.message) }
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+}
+
 async function fetchChatUnreadSnapshotDirect () {
   const agent = assertActiveAgent()
   const convoApi = agent.chat?.bsky?.convo
@@ -914,6 +999,22 @@ async function fetchBookmarksDirect ({ cursor, limit } = {}) {
   }
 }
 
+function normalizeNotificationActor (entry) {
+  if (!entry || typeof entry !== 'object') return null
+  const author = entry.author || {}
+  const handle = author.handle || ''
+  const did = author.did || ''
+  const displayName = author.displayName || handle || ''
+  const avatar = author.avatar || null
+  if (!handle && !did && !displayName && !avatar) return null
+  return { handle, did, displayName, avatar }
+}
+
+function getNotificationActorKey (actor) {
+  if (!actor || typeof actor !== 'object') return ''
+  return actor.did || actor.handle || actor.displayName || ''
+}
+
 function aggregateNotificationEntries (notifications = []) {
   const grouped = []
   const groupMap = new Map()
@@ -923,19 +1024,36 @@ function aggregateNotificationEntries (notifications = []) {
     const subjectUri = entry.reasonSubject || entry?.record?.subject?.uri || null
     const canGroup = subjectUri && GROUPABLE_NOTIFICATION_REASONS.has(reason)
     const key = canGroup ? `${reason}__${subjectUri}` : null
+    const actor = normalizeNotificationActor(entry)
     if (key && groupMap.has(key)) {
       const bucket = groupMap.get(key)
       bucket.additionalCount += 1
+      if (actor) {
+        const actorKey = getNotificationActorKey(actor)
+        if (!bucket.actorIds) bucket.actorIds = new Set()
+        if (!actorKey || !bucket.actorIds.has(actorKey)) {
+          if (actorKey) bucket.actorIds.add(actorKey)
+          bucket.actors.push(actor)
+        }
+      }
       continue
     }
-    const bucket = { entry, additionalCount: 0 }
+    const bucket = {
+      entry,
+      additionalCount: 0,
+      actors: actor ? [actor] : []
+    }
+    if (actor) {
+      const actorKey = getNotificationActorKey(actor)
+      if (actorKey) bucket.actorIds = new Set([actorKey])
+    }
     grouped.push(bucket)
     if (key) groupMap.set(key, bucket)
   }
   return grouped
 }
 
-function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) {
+function mapNotificationEntry (entry, subjectMap, { additionalCount = 0, actors = null } = {}) {
   if (!entry) return null
   const author = entry.author || {}
   const record = entry.record || {}
@@ -952,6 +1070,10 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
       }
     }
   }
+  const entryActor = normalizeNotificationActor(entry)
+  const normalizedActors = Array.isArray(actors) && actors.length
+    ? actors
+    : (entryActor ? [entryActor] : [])
   const baseEntry = {
     uri: entry.uri || null,
     cid: entry.cid || null,
@@ -975,6 +1097,7 @@ function mapNotificationEntry (entry, subjectMap, { additionalCount = 0 } = {}) 
     },
     subject,
     raw: entry,
+    actors: normalizedActors,
     additionalCount
   }
   const baseIdentifier = entry.uri || entry.cid || entry.groupKey || `${entry.reason || 'notification'}:${reasonSubject || ''}`
@@ -1107,6 +1230,46 @@ async function resolveAgentPreferences (agent) {
     return agent.getPreferences()
   }
   const res = await agent.app.bsky.actor.getPreferences()
+  return res?.data || res
+}
+
+async function fetchNotificationPreferencesDirect () {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.getPreferences) {
+    throw new Error('Notification-Preferences API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.getPreferences()
+  return res?.data || res
+}
+
+async function updateNotificationPreferencesDirect (patch = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.putPreferencesV2) {
+    throw new Error('Notification-Preferences API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.putPreferencesV2(patch)
+  return res?.data || res
+}
+
+async function fetchActivitySubscriptionsDirect ({ limit = 50, cursor } = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.listActivitySubscriptions) {
+    throw new Error('Activity-Subscriptions API nicht verfügbar.')
+  }
+  const res = await agent.app.bsky.notification.listActivitySubscriptions({ limit, cursor })
+  return res?.data || res
+}
+
+async function updateActivitySubscriptionDirect ({ subject, activitySubscription } = {}) {
+  const agent = assertActiveAgent()
+  if (!agent?.app?.bsky?.notification?.putActivitySubscription) {
+    throw new Error('Activity-Subscription API nicht verfügbar.')
+  }
+  const payload = {
+    subject,
+    activitySubscription
+  }
+  const res = await agent.app.bsky.notification.putActivitySubscription(payload)
   return res?.data || res
 }
 
@@ -1321,7 +1484,7 @@ async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {
   ])
   const aggregated = aggregateNotificationEntries(notifications)
   const items = aggregated
-    .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
+    .map(({ entry, additionalCount, actors }) => mapNotificationEntry(entry, subjectMap, { additionalCount, actors }))
     .filter(Boolean)
 
   for (const item of items) {
@@ -1350,6 +1513,22 @@ async function fetchNotificationsDirect ({ cursor, markSeen, filter, limit } = {
     unreadCount: raw?.unreadCount ?? 0,
     seenAt: raw?.seenAt || null
   }
+}
+
+async function fetchNotificationsUnreadCountDirect () {
+  const client = getActiveBskyAgentClient()
+  const agent = client?.getAgent?.()
+  if (!agent?.app?.bsky?.notification?.getUnreadCount) return null
+  try {
+    const res = await agent.app.bsky.notification.getUnreadCount({})
+    const count = Number(res?.data?.count ?? res?.count ?? res?.data?.unreadCount ?? 0)
+    if (Number.isFinite(count)) {
+      return Math.max(0, count)
+    }
+  } catch (error) {
+    console.warn('getUnreadCount failed', error)
+  }
+  return null
 }
 
 async function uploadBlobFromFile (file) {
@@ -1714,22 +1893,27 @@ export async function fetchNotifications({ cursor, markSeen, filter, limit } = {
 }
 
 export async function fetchUnreadNotificationsCount () {
-  const snapshot = await fetchNotificationPollingSnapshot()
+  const directCount = await fetchNotificationsUnreadCountDirect()
+  if (typeof directCount === 'number') {
+    return { unreadCount: directCount }
+  }
+  const snapshot = await fetchNotificationPollingSnapshot({ limit: 1 })
   return { unreadCount: Number(snapshot?.unreadCount) || 0 }
 }
 
-export async function fetchNotificationPollingSnapshot () {
-  const allRaw = await listNotificationsRawDirect({ limit: 40, filter: 'all' })
+export async function fetchNotificationPollingSnapshot ({ limit = NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT } = {}) {
+  const safeLimit = clampNumber(limit, 1, 40, NOTIFICATION_SNAPSHOT_DEFAULT_LIMIT)
+  const allRaw = await listNotificationsRawDirect({ limit: safeLimit, filter: 'all' })
   if (!allRaw) {
     return { unreadCount: 0, allTopId: null, mentionsTopId: null }
   }
-  const mentionsRaw = await listNotificationsRawDirect({ limit: 40, filter: 'mentions' })
+  const mentionsRaw = await listNotificationsRawDirect({ limit: safeLimit, filter: 'mentions' })
 
   const subjectMap = new Map()
   const toAggregatedItems = (notifications = []) => {
     const aggregated = aggregateNotificationEntries(notifications)
     return aggregated
-      .map(({ entry, additionalCount }) => mapNotificationEntry(entry, subjectMap, { additionalCount }))
+      .map(({ entry, additionalCount, actors }) => mapNotificationEntry(entry, subjectMap, { additionalCount, actors }))
       .filter(Boolean)
   }
 
@@ -1740,6 +1924,22 @@ export async function fetchNotificationPollingSnapshot () {
     allTopId: allItems.length > 0 ? getNotificationItemId(allItems[0]) : null,
     mentionsTopId: mentionsItems.length > 0 ? getNotificationItemId(mentionsItems[0]) : null
   }
+}
+
+export async function fetchNotificationPreferences () {
+  return fetchNotificationPreferencesDirect()
+}
+
+export async function updateNotificationPreferences (patch = {}) {
+  return updateNotificationPreferencesDirect(patch)
+}
+
+export async function fetchActivitySubscriptions ({ limit = 50, cursor } = {}) {
+  return fetchActivitySubscriptionsDirect({ limit, cursor })
+}
+
+export async function updateActivitySubscription ({ subject, activitySubscription } = {}) {
+  return updateActivitySubscriptionDirect({ subject, activitySubscription })
 }
 
 export async function fetchThread(uri) {
@@ -1772,8 +1972,44 @@ export async function updateChatReadState ({ convoId, messageId } = {}) {
   return updateChatReadStateDirect({ convoId, messageId })
 }
 
+export async function addChatReaction ({ convoId, messageId, value } = {}) {
+  return addChatReactionDirect({ convoId, messageId, value })
+}
+
+export async function removeChatReaction ({ convoId, messageId, value } = {}) {
+  return removeChatReactionDirect({ convoId, messageId, value })
+}
+
+export async function fetchChatLogs ({ cursor } = {}) {
+  if (chatUnreadPollingDisabled) {
+    return { logs: [], cursor: null, disabled: true }
+  }
+  try {
+    return await fetchChatLogsDirect({ cursor })
+  } catch (error) {
+    if (isChatFeatureUnavailableError(error)) {
+      chatUnreadPollingDisabled = true
+      console.info('[chat] Chat-Polling deaktiviert (nicht verfügbar).', error)
+      return { logs: [], cursor: null, disabled: true }
+    }
+    throw error
+  }
+}
+
 export async function fetchChatUnreadSnapshot () {
-  return fetchChatUnreadSnapshotDirect()
+  if (chatUnreadPollingDisabled) {
+    return { unreadCount: 0, disabled: true }
+  }
+  try {
+    return await fetchChatUnreadSnapshotDirect()
+  } catch (error) {
+    if (isChatFeatureUnavailableError(error)) {
+      chatUnreadPollingDisabled = true
+      console.info('[chat] Chat-Polling deaktiviert (nicht verfügbar).', error)
+      return { unreadCount: 0, disabled: true }
+    }
+    throw error
+  }
 }
 
 export async function muteActor (did) {
@@ -1959,13 +2195,16 @@ export async function fetchBookmarks({ cursor, limit } = {}) {
   return fetchBookmarksDirect({ cursor, limit })
 }
 
-async function searchPostsDirect ({ query, cursor, limit, sort = 'top' } = {}) {
+async function searchPostsDirect ({ query, cursor, limit, sort = 'top', language } = {}) {
   const normalizedQuery = String(query || '').trim()
   if (!normalizedQuery) return { items: [], cursor: null, type: sort }
   const agent = assertActiveAgent()
   const safeLimit = clampNumber(limit, 1, 100, 25)
   const params = { q: normalizedQuery, limit: safeLimit, sort }
   if (cursor) params.cursor = cursor
+  if (typeof language === 'string' && language.trim()) {
+    params.lang = language.trim().toLowerCase()
+  }
   const res = await agent.app.bsky.feed.searchPosts(params)
   const data = res?.data ?? res ?? {}
   const posts = Array.isArray(data?.posts) ? data.posts : []
@@ -2005,15 +2244,15 @@ async function searchActorsDirect ({ query, cursor, limit } = {}) {
   }
 }
 
-export async function searchBsky({ query, type, cursor, limit } = {}) {
+export async function searchBsky({ query, type, cursor, limit, language } = {}) {
   const normalizedType = typeof type === 'string' ? type.trim().toLowerCase() : ''
   if (normalizedType === 'people') {
     return searchActorsDirect({ query, cursor, limit })
   }
   if (normalizedType === 'latest') {
-    return searchPostsDirect({ query, cursor, limit, sort: 'latest' })
+    return searchPostsDirect({ query, cursor, limit, sort: 'latest', language })
   }
-  return searchPostsDirect({ query, cursor, limit, sort: 'top' })
+  return searchPostsDirect({ query, cursor, limit, sort: 'top', language })
 }
 
 export async function fetchProfile (actor) {
