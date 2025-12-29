@@ -161,6 +161,67 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
 
+  useLayoutEffect(() => {
+    const did = me?.did
+    if (!did) return
+    if (feedPicker?.lastUpdatedAt) return
+    if (typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage?.getItem(`bsky.feedPickerCache:${did}`)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      const pinned = Array.isArray(parsed?.pinned) ? parsed.pinned : null
+      const saved = Array.isArray(parsed?.saved) ? parsed.saved : null
+      if (!pinned || !saved) return
+      const cachedAt = Number(parsed?.cachedAt) || 0
+      timelineDispatch({
+        type: 'SET_FEED_PICKER_STATE',
+        payload: {
+          pinned,
+          saved,
+          errors: Array.isArray(parsed?.errors) ? parsed.errors : [],
+          loading: false,
+          error: '',
+          lastUpdatedAt: cachedAt > 0 ? cachedAt : Date.now()
+        }
+      })
+    } catch {
+      // ignore storage/parse errors
+    }
+  }, [feedPicker?.lastUpdatedAt, me?.did, timelineDispatch])
+
+  useEffect(() => {
+    const did = me?.did
+    if (!did) return
+    if (typeof window === 'undefined') return
+    const pinned = Array.isArray(feedPicker?.pinned) ? feedPicker.pinned : null
+    const saved = Array.isArray(feedPicker?.saved) ? feedPicker.saved : null
+    if (!pinned || !saved) return
+    if (!feedPicker?.lastUpdatedAt) return
+    if (feedPicker?.loading || feedPicker?.action?.refreshing) return
+    try {
+      window.localStorage?.setItem(
+        `bsky.feedPickerCache:${did}`,
+        JSON.stringify({
+          cachedAt: feedPicker.lastUpdatedAt,
+          pinned,
+          saved,
+          errors: Array.isArray(feedPicker?.errors) ? feedPicker.errors : []
+        })
+      )
+    } catch {
+      // ignore quota/storage errors
+    }
+  }, [
+    feedPicker?.action?.refreshing,
+    feedPicker?.errors,
+    feedPicker?.lastUpdatedAt,
+    feedPicker?.loading,
+    feedPicker?.pinned,
+    feedPicker?.saved,
+    me?.did
+  ])
+
   const pinnedTabs = useMemo(() => {
     const fallbackLabel = t('layout.timeline.feedFallback', 'Feed')
     const entries = Array.isArray(feedPicker?.pinned) ? feedPicker.pinned : []
