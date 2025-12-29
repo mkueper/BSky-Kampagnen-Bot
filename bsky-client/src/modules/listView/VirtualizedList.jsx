@@ -10,6 +10,8 @@ export function VirtualizedList ({
   itemHeight,
   overscan = 3,
   getItemId,
+  onEndReached,
+  endReachedThreshold = 0.8,
   debugVirtualization = false,
   ...passthroughProps
 }) {
@@ -21,10 +23,12 @@ export function VirtualizedList ({
   const { style: inlineStyle, ...restProps } = passthroughProps
   const scrollRafRef = useRef(null)
   const resizeRafRef = useRef(null)
+  const endReachedTriggeredRef = useRef(false)
 
   const hasValidHeight = typeof itemHeight === 'number' && itemHeight > 0
   const meetsThreshold = totalCount >= virtualizationThreshold
-  const shouldTrackScroll = meetsThreshold && hasValidHeight
+  const shouldCheckEndReached = typeof onEndReached === 'function'
+  const shouldTrackScroll = (meetsThreshold && hasValidHeight) || shouldCheckEndReached
 
   const updateScrollTop = useMemo(() => {
     return (container) => {
@@ -39,6 +43,11 @@ export function VirtualizedList ({
       setViewportHeight(nextViewportHeight)
     }
   }, [])
+
+  useEffect(() => {
+    if (!shouldCheckEndReached) return
+    endReachedTriggeredRef.current = false
+  }, [shouldCheckEndReached, totalCount])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -59,16 +68,38 @@ export function VirtualizedList ({
       }
     }
 
+    const thresholdRaw = typeof endReachedThreshold === 'number' ? endReachedThreshold : 0.8
+    const threshold = Math.min(0.99, Math.max(0.5, thresholdRaw))
+
     const handleScroll = () => {
       if (typeof requestAnimationFrame === 'undefined') {
         updateScrollTop(container)
+        if (shouldCheckEndReached) maybeTriggerEndReached(container)
         return
       }
       if (scrollRafRef.current != null) return
       scrollRafRef.current = requestAnimationFrame(() => {
         scrollRafRef.current = null
         updateScrollTop(container)
+        if (shouldCheckEndReached) maybeTriggerEndReached(container)
       })
+    }
+
+    const maybeTriggerEndReached = (candidate) => {
+      if (!shouldCheckEndReached) return
+      const scrollHeight = candidate?.scrollHeight || 0
+      const clientHeight = candidate?.clientHeight || 0
+      if (scrollHeight <= 0) return
+      const currentScrollTop = candidate?.scrollTop || 0
+      const ratio = (currentScrollTop + clientHeight) / scrollHeight
+      if (ratio >= threshold) {
+        if (!endReachedTriggeredRef.current) {
+          endReachedTriggeredRef.current = true
+          onEndReached()
+        }
+      } else if (endReachedTriggeredRef.current) {
+        endReachedTriggeredRef.current = false
+      }
     }
 
     const handleResize = () => {
@@ -103,7 +134,7 @@ export function VirtualizedList ({
       }
       setHasScrollContainer(false)
     }
-  }, [shouldTrackScroll, updateScrollTop, updateViewportHeight])
+  }, [endReachedThreshold, onEndReached, shouldCheckEndReached, shouldTrackScroll, updateScrollTop, updateViewportHeight])
 
   if (listItems.length === 0) {
     if (emptyFallback !== undefined) {

@@ -174,15 +174,18 @@ export function listViewReducer(state, action) {
       const payload = action.payload || {}
       const key = payload.key || payload.listKey
       if (!key) return state
-      const prev = ensureList(state, key, payload.meta)
-      if (prev.isRefreshing === Boolean(payload.value)) return state
+      const nextValue = Boolean(payload.value)
+      const meta = payload.meta || null
+      const existing = state.lists[key]
+      const prev = ensureList(state, key, meta)
+      if (existing && prev.isRefreshing === nextValue && !meta) return state
       return {
         ...state,
         lists: {
           ...state.lists,
           [key]: {
-            ...mergeMeta(prev, payload.meta),
-            isRefreshing: Boolean(payload.value)
+            ...mergeMeta(prev, meta),
+            isRefreshing: nextValue
           }
         }
       }
@@ -191,15 +194,18 @@ export function listViewReducer(state, action) {
       const payload = action.payload || {}
       const key = payload.key || payload.listKey
       if (!key) return state
-      const prev = ensureList(state, key, payload.meta)
-      if (prev.isLoadingMore === Boolean(payload.value)) return state
+      const nextValue = Boolean(payload.value)
+      const meta = payload.meta || null
+      const existing = state.lists[key]
+      const prev = ensureList(state, key, meta)
+      if (existing && prev.isLoadingMore === nextValue && !meta) return state
       return {
         ...state,
         lists: {
           ...state.lists,
           [key]: {
-            ...mergeMeta(prev, payload.meta),
-            isLoadingMore: Boolean(payload.value)
+            ...mergeMeta(prev, meta),
+            isLoadingMore: nextValue
           }
         }
       }

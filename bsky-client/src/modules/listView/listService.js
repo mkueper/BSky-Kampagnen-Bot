@@ -11,11 +11,56 @@
 import { fetchTimeline, fetchNotifications } from '../shared/index.js'
 import {
   getListItemId,
-  mergeItemsAppend,
   resolveDefaultPageSize,
   resolveDescriptor,
   resolveUnreadIds
 } from './listStateHelpers.js'
+
+const refreshInFlightByDispatch = new WeakMap()
+const loadMoreInFlightByDispatch = new WeakMap()
+const itemIdSetByKey = new Map()
+
+function getInFlightKeySet(map, dispatch) {
+  if (typeof dispatch !== 'function') return null
+  const existing = map.get(dispatch)
+  if (existing) return existing
+  const created = new Set()
+  map.set(dispatch, created)
+  return created
+}
+
+function buildItemIdSet(items = []) {
+  const set = new Set()
+  if (!Array.isArray(items)) return set
+  for (const item of items) {
+    const id = getListItemId(item)
+    if (id) set.add(id)
+  }
+  return set
+}
+
+function mergeItemsAppendCached(listKey, existingItems = [], newItems = []) {
+  const base = Array.isArray(existingItems) ? existingItems : []
+  const incoming = Array.isArray(newItems) ? newItems : []
+  if (!incoming.length) return base
+
+  let seen = itemIdSetByKey.get(listKey)
+  if (!seen) {
+    seen = buildItemIdSet(base)
+    itemIdSetByKey.set(listKey, seen)
+  }
+
+  let changed = false
+  const result = base.slice()
+  for (const item of incoming) {
+    const id = getListItemId(item)
+    if (id && seen.has(id)) continue
+    if (id) seen.add(id)
+    result.push(item)
+    changed = true
+  }
+  return changed ? result : base
+}
 
 function scheduleDispatch (dispatch, action) {
   if (typeof dispatch !== 'function' || !action) return
@@ -59,6 +104,9 @@ async function fetchNotificationsPage(list, { cursor = null, limit, markSeen } =
 
 export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for refresh')
+  const refreshKeys = getInFlightKeySet(refreshInFlightByDispatch, dispatch)
+  if (refreshKeys?.has(list.key)) return { items: list.items || [], cursor: list.cursor || null }
+  refreshKeys?.add(list.key)
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
   const shouldMarkSeen = descriptor.kind === 'notifications'
@@ -76,6 +124,7 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
       ? await fetchNotificationsPage(list, { limit: effectiveLimit, markSeen: shouldMarkSeen })
       : await fetchTimelinePage(list, { limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
+    itemIdSetByKey.set(list.key, buildItemIdSet(nextItems))
     const unreadIds = resolveUnreadIds({
       previousUnreadIds,
       nextItems,
@@ -95,6 +144,7 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
     })
     return { ...page, items: nextItems }
   } finally {
+    refreshKeys?.delete(list.key)
     scheduleDispatch(dispatch, {
       type: 'LIST_SET_REFRESHING',
       payload: { key: list.key, value: false }
@@ -105,6 +155,9 @@ export async function runListRefresh({ list, dispatch, meta, limit } = {}) {
 export async function runListLoadMore({ list, dispatch, limit } = {}) {
   if (!list?.key) throw new Error('Missing list key for load more')
   if (!list.cursor) return list.items || []
+  const loadMoreKeys = getInFlightKeySet(loadMoreInFlightByDispatch, dispatch)
+  if (loadMoreKeys?.has(list.key)) return list.items || []
+  loadMoreKeys?.add(list.key)
   const descriptor = resolveDescriptor(list)
   const effectiveLimit = typeof limit === 'number' ? limit : resolveDefaultPageSize(descriptor)
   scheduleDispatch(dispatch, {
@@ -118,7 +171,7 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
       : await fetchTimelinePage(list, { cursor: list.cursor, limit: effectiveLimit })
     const nextItems = Array.isArray(page?.items) ? page.items : []
     const previousItems = Array.isArray(list.items) ? list.items : []
-    const mergedItems = mergeItemsAppend(previousItems, nextItems)
+    const mergedItems = mergeItemsAppendCached(list.key, previousItems, nextItems)
     const nextCursor = page?.cursor || null
     const cursorUnchanged = Boolean(nextCursor && beforeCursor && nextCursor === beforeCursor)
     const madeProgress = mergedItems.length > previousItems.length
@@ -140,6 +193,7 @@ export async function runListLoadMore({ list, dispatch, limit } = {}) {
     })
     return { ...page, items: mergedItems, cursor: stopPaging ? null : nextCursor }
   } finally {
+    loadMoreKeys?.delete(list.key)
     scheduleDispatch(dispatch, {
       type: 'LIST_SET_LOADING_MORE',
       payload: { key: list.key, value: false }

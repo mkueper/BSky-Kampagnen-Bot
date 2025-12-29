@@ -108,22 +108,6 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
   }, [list, dispatch, hasMore, isLoadingMore, isActive])
 
   useEffect(() => {
-    if (showLanguageSearch) return undefined
-    const el = typeof document !== 'undefined' ? document.getElementById('bsky-scroll-container') : null
-    if (!el || !isActive) return
-    const onScroll = () => {
-      const { scrollTop, clientHeight, scrollHeight } = el
-      if (scrollHeight <= 0) return
-      const ratio = (scrollTop + clientHeight) / scrollHeight
-      if (ratio >= 0.8) {
-        loadMore()
-      }
-    }
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [loadMore, isActive, showLanguageSearch])
-
-  useEffect(() => {
     if (!showLanguageSearch) {
       setLanguageSearchState({ items: [], loading: false, error: '' })
       return
@@ -169,45 +153,6 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
     loadMore,
     normalizedLanguageFilter
   ])
-
-  const handleEngagementChange = useCallback((targetId, patch = {}) => {
-    if (!list || !targetId) return
-    const updated = (list.items || []).map((entry) => {
-      const entryId = entry?.listEntryId || entry?.uri || entry?.cid
-      if (entryId !== targetId) return entry
-      const nextStats = { ...(entry.stats || {}) }
-      if (patch.likeCount != null) nextStats.likeCount = patch.likeCount
-      if (patch.repostCount != null) nextStats.repostCount = patch.repostCount
-      const baseViewer = entry.viewer || entry?.raw?.post?.viewer || entry?.raw?.item?.viewer || {}
-      const nextViewer = { ...baseViewer }
-      if (patch.likeUri !== undefined) nextViewer.like = patch.likeUri
-      if (patch.repostUri !== undefined) nextViewer.repost = patch.repostUri
-      if (patch.bookmarked !== undefined) nextViewer.bookmarked = patch.bookmarked
-      const nextRaw = entry.raw ? { ...entry.raw } : null
-      if (nextRaw?.post) {
-        nextRaw.post = { ...nextRaw.post, viewer: nextViewer }
-      } else if (nextRaw?.item) {
-        nextRaw.item = { ...nextRaw.item, viewer: nextViewer }
-      }
-      return {
-        ...entry,
-        stats: nextStats,
-        viewer: nextViewer,
-        raw: nextRaw || entry.raw
-      }
-    })
-    dispatch({
-      type: 'LIST_LOADED',
-      payload: {
-        key: listKey,
-        items: updated,
-        cursor: list.cursor,
-        topId: list.topId,
-        meta: { data: list.data },
-        keepHasNew: true
-      }
-    })
-  }, [dispatch, list, listKey])
 
   const handleMarkRead = useCallback((targetItem) => {
     if (!list?.key) return
@@ -286,6 +231,8 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
         virtualizationThreshold={100}
         overscan={4}
         getItemId={getListItemId}
+        onEndReached={showLanguageSearch ? undefined : loadMore}
+        endReachedThreshold={0.8}
         renderItem={(it) => {
           const itemId = getListItemId(it)
           const isUnread = itemId ? unreadIdSet.has(itemId) : false
@@ -299,7 +246,6 @@ export default function Timeline ({ listKey = 'discover', renderMode, isActive =
               onQuote={onQuote}
               onSelect={onSelectPost ? ((selected) => onSelectPost(selected || it)) : undefined}
               onViewMedia={onViewMedia}
-              onEngagementChange={showLanguageSearch ? undefined : handleEngagementChange}
             />
           )
         }}
