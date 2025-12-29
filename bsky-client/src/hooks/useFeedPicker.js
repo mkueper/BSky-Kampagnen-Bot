@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTimelineDispatch, useTimelineState } from '../context/TimelineContext.jsx'
 import {
   fetchFeeds,
+  fetchDiscoverFeeds,
   pinFeed as pinFeedRequest,
   unpinFeed as unpinFeedRequest,
   reorderPinnedFeeds as reorderPinnedFeedsRequest
@@ -21,6 +22,10 @@ export function useFeedPicker () {
   const lastUpdatedRef = useRef(feedPicker?.lastUpdatedAt || 0)
   const pinnedFeeds = feedPicker?.pinned || []
   const savedFeeds = feedPicker?.saved || []
+  const discoverFeeds = Array.isArray(feedPicker?.discover) ? feedPicker.discover : []
+  const discoverCursor = feedPicker?.discoverCursor || null
+  const discoverHasMore = Boolean(feedPicker?.discoverHasMore)
+  const discoverLoadingMore = Boolean(feedPicker?.discoverLoadingMore)
 
   const updateState = useCallback((patch) => {
     dispatch({ type: 'SET_FEED_PICKER_STATE', payload: patch })
@@ -30,16 +35,31 @@ export function useFeedPicker () {
     lastUpdatedRef.current = feedPicker?.lastUpdatedAt || 0
   }, [feedPicker?.lastUpdatedAt])
 
-  const refreshFeeds = useCallback(async ({ force = false } = {}) => {
+  const refreshFeeds = useCallback(async ({ force = false, loadDiscover = false } = {}) => {
     if (!force && lastUpdatedRef.current) return
     updateState({ loading: true, error: '', action: { refreshing: true } })
     try {
       const data = await fetchFeeds()
+      let discoverItems = null
+      let nextDiscoverCursor = null
+      if (loadDiscover) {
+        const discoverResponse = await fetchDiscoverFeeds().catch(() => ({ items: [], cursor: null }))
+        discoverItems = Array.isArray(discoverResponse?.items) ? discoverResponse.items : []
+        nextDiscoverCursor = discoverResponse?.cursor || null
+      }
       updateState({
         loading: false,
         error: '',
         pinned: Array.isArray(data?.pinned) ? data.pinned : [],
         saved: Array.isArray(data?.saved) ? data.saved : [],
+        ...(discoverItems !== null
+          ? {
+              discover: discoverItems,
+              discoverCursor: nextDiscoverCursor,
+              discoverHasMore: Boolean(nextDiscoverCursor),
+              discoverLoadingMore: false
+            }
+          : {}),
         errors: Array.isArray(data?.errors) ? data.errors : [],
         lastUpdatedAt: Date.now(),
         action: { refreshing: false }
@@ -55,7 +75,11 @@ export function useFeedPicker () {
 
   const pinFeed = useCallback(async (feedUri) => {
     if (!feedUri) return
-    updateState({ action: { pinning: feedUri } })
+    const previousDiscover = discoverFeeds
+    const nextDiscover = previousDiscover.filter(
+      (feed) => (feed?.feedUri || feed?.value) !== feedUri
+    )
+    updateState({ action: { pinning: feedUri }, discover: nextDiscover })
     try {
       const data = await pinFeedRequest({ feedUri })
       const lists = normalizeFeedLists(data, { pinned: pinnedFeeds, saved: savedFeeds })
@@ -68,12 +92,46 @@ export function useFeedPicker () {
     } catch (error) {
       updateState({
         error: error?.message || 'Feed konnte nicht angepinnt werden.',
+        discover: previousDiscover,
         action: { pinning: '' }
       })
     } finally {
       updateState({ action: { pinning: '' } })
     }
-  }, [pinnedFeeds, savedFeeds, updateState])
+  }, [discoverFeeds, pinnedFeeds, savedFeeds, updateState])
+
+  const loadMoreDiscover = useCallback(async () => {
+    if (discoverLoadingMore || !discoverHasMore || !discoverCursor) return
+    updateState({ discoverLoadingMore: true })
+    try {
+      const response = await fetchDiscoverFeeds({ cursor: discoverCursor })
+      const items = Array.isArray(response?.items) ? response.items : []
+      const nextCursor = response?.cursor || null
+      const seen = new Set(
+        discoverFeeds
+          .map((entry) => entry?.feedUri || entry?.value)
+          .filter(Boolean)
+      )
+      const merged = [
+        ...discoverFeeds,
+        ...items.filter((entry) => {
+          const key = entry?.feedUri || entry?.value
+          if (!key || seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+      ]
+      updateState({
+        discover: merged,
+        discoverCursor: nextCursor,
+        discoverHasMore: Boolean(nextCursor),
+        discoverLoadingMore: false
+      })
+    } catch (error) {
+      console.warn('loadMoreDiscover failed', error)
+      updateState({ discoverLoadingMore: false })
+    }
+  }, [discoverCursor, discoverFeeds, discoverHasMore, discoverLoadingMore, updateState])
 
   const unpinFeed = useCallback(async (feedUri) => {
     if (!feedUri) return
@@ -132,6 +190,7 @@ export function useFeedPicker () {
     pinFeed,
     unpinFeed,
     reorderPinnedFeeds,
+    loadMoreDiscover,
     openFeedManager,
     closeFeedManager
   }

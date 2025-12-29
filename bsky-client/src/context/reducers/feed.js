@@ -4,6 +4,10 @@ export const feedInitialState = {
     error: '',
     pinned: [],
     saved: [],
+    discover: [],
+    discoverCursor: null,
+    discoverHasMore: true,
+    discoverLoadingMore: false,
     errors: [],
     lastUpdatedAt: 0,
     action: {

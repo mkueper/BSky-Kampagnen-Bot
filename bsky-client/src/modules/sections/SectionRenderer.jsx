@@ -1,8 +1,9 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import NotificationCardSkeleton from '../notifications/NotificationCardSkeleton.jsx'
 import SavedFeed from '../bookmarks/SavedFeed.jsx'
 import BlockListView from '../settings/BlockListView.jsx'
 import FeedManager from '../layout/FeedManager.jsx'
+import { Button } from '../shared/index.js'
 import {
   ChatListViewLazy,
   NotificationsLazy,
@@ -13,7 +14,7 @@ import {
 import { useSectionActivity } from '../service/SectionActivityContext.jsx'
 import { useFeedPicker } from '../../hooks/useFeedPicker.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { LayersIcon, ChevronRightIcon } from '@radix-ui/react-icons'
+import { LayersIcon, ChevronRightIcon, ListBulletIcon, ClockIcon, MagnifyingGlassIcon, PinLeftIcon } from '@radix-ui/react-icons'
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
@@ -88,12 +89,13 @@ function FeedsSection () {
     pinFeed,
     unpinFeed,
     reorderPinnedFeeds,
+    loadMoreDiscover,
     closeFeedManager
   } = useFeedPicker()
   const [activeTab, setActiveTab] = useState('mine')
 
   useEffect(() => {
-    refreshFeeds({ force: true })
+    refreshFeeds({ force: true, loadDiscover: true })
   }, [refreshFeeds])
 
   const tabs = [
@@ -116,12 +118,60 @@ function FeedsSection () {
       id: feed.id || feed.feedUri || feed.value,
       label: feed.displayName || feed.feedUri || feed.value || t('layout.feeds.feedFallback', 'Feed'),
       avatar: feed.avatar || null,
-      status: feed.status || null
+      status: feed.status || null,
+      type: feed.type || 'feed',
+      value: feed.value || ''
     }))
 
   const allRows = feedRows
 
   const handleFeedRowClick = () => {}
+  const [discoverQuery, setDiscoverQuery] = useState('')
+  const resolveFeedIcon = (feed) => {
+    if (feed.type === 'timeline') {
+      return feed.value === 'latest' ? ClockIcon : ListBulletIcon
+    }
+    if (feed.type === 'list') return ListBulletIcon
+    const label = String(feed.label || '').toLowerCase()
+    if (label.includes('latest')) return ClockIcon
+    if (label.includes('following')) return ListBulletIcon
+    return LayersIcon
+  }
+  const discoverFeeds = Array.isArray(feedPicker?.discover) ? feedPicker.discover : []
+  const discoverHasMore = Boolean(feedPicker?.discoverHasMore)
+  const discoverLoadingMore = Boolean(feedPicker?.discoverLoadingMore)
+  const discoverSentinelRef = useRef(null)
+  const pinnedFeedUris = new Set(
+    (Array.isArray(feedPicker?.pinned) ? feedPicker.pinned : [])
+      .map((entry) => entry?.feedUri || entry?.value)
+      .filter(Boolean)
+  )
+  const normalizedQuery = discoverQuery.trim().toLowerCase()
+  const visibleDiscoverFeeds = discoverFeeds.filter((feed) => {
+    const feedUri = feed?.feedUri || feed?.value || ''
+    if (feedUri && pinnedFeedUris.has(feedUri)) return false
+    if (!normalizedQuery) return true
+    const label = String(feed?.displayName || feed?.label || '').toLowerCase()
+    const description = String(feed?.description || '').toLowerCase()
+    const creator = String(feed?.creator?.handle || '').toLowerCase()
+    return label.includes(normalizedQuery)
+      || description.includes(normalizedQuery)
+      || creator.includes(normalizedQuery)
+  })
+
+  useEffect(() => {
+    if (activeTab !== 'discover') return
+    const sentinel = discoverSentinelRef.current
+    if (!sentinel || !discoverHasMore || discoverLoadingMore) return
+    // Discover lädt weitere Vorschläge per Infinite Scroll nach.
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        loadMoreDiscover?.()
+      }
+    }, { rootMargin: '200px' })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [activeTab, discoverHasMore, discoverLoadingMore, loadMoreDiscover])
 
   return (
     <div className='space-y-6'>
@@ -181,7 +231,10 @@ function FeedsSection () {
                         />
                       ) : (
                         <div className='flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background-subtle text-primary'>
-                          <LayersIcon className='h-4 w-4' />
+                          {(() => {
+                            const Icon = resolveFeedIcon(feed)
+                            return <Icon className='h-4 w-4' />
+                          })()}
                         </div>
                       )}
                       <span className={`text-sm font-semibold ${feed.status === 'error' ? 'text-amber-700' : 'text-foreground'}`}>
@@ -201,8 +254,103 @@ function FeedsSection () {
               </div>
             </div>
           ) : (
-            <div className='rounded-3xl border border-border bg-background p-6 text-sm text-foreground-muted shadow-soft'>
-              {t('layout.feeds.discoverEmpty', 'Noch keine Empfehlungen verfügbar.')}
+            <div className='space-y-4'>
+              <div className='flex items-center gap-4 rounded-3xl border border-border bg-background p-4 shadow-soft'>
+                <div className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                  <MagnifyingGlassIcon className='h-5 w-5' />
+                </div>
+                <div>
+                  <p className='text-base font-semibold text-foreground'>
+                    {t('layout.feeds.discoverTitle', 'Entdecke neue Feeds')}
+                  </p>
+                  <p className='text-sm text-foreground-muted'>
+                    {t('layout.feeds.discoverDescription', 'Finde Feeds aus der Community und pinne deine Favoriten.')}
+                  </p>
+                </div>
+              </div>
+              <div className='relative'>
+                <MagnifyingGlassIcon className='pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted' />
+                <input
+                  type='search'
+                  value={discoverQuery}
+                  onChange={(event) => setDiscoverQuery(event.target.value)}
+                  placeholder={t('layout.feeds.discoverSearch', 'Feeds durchsuchen')}
+                  className='h-11 w-full rounded-2xl border border-border bg-background px-11 text-sm text-foreground placeholder:text-foreground-muted shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+                />
+              </div>
+              <div className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
+                {visibleDiscoverFeeds.length === 0 ? (
+                  <p className='px-4 py-6 text-sm text-foreground-muted'>
+                    {t('layout.feeds.discoverEmpty', 'Noch keine Empfehlungen verfügbar.')}
+                  </p>
+                ) : (
+                  <div className='divide-y divide-border'>
+                    {visibleDiscoverFeeds.map((feed) => {
+                      const feedUri = feed.feedUri || feed.value || ''
+                      const isPinned = Boolean(feed.pinned)
+                      return (
+                        <div key={feed.id || feedUri} className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
+                          <div className='flex items-start gap-3'>
+                            {feed.avatar ? (
+                              <img
+                                src={feed.avatar}
+                                alt=''
+                                className='h-12 w-12 rounded-xl border border-border object-cover'
+                              />
+                            ) : (
+                              <div className='flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background-subtle text-primary'>
+                                <LayersIcon className='h-5 w-5' />
+                              </div>
+                            )}
+                            <div>
+                              <p className='text-sm font-semibold text-foreground'>
+                                {feed.displayName || feed.label || t('layout.feeds.feedFallback', 'Feed')}
+                              </p>
+                              {feed.creator?.handle ? (
+                                <p className='text-xs text-foreground-muted'>
+                                  {t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle })}
+                                </p>
+                              ) : null}
+                              {feed.description ? (
+                                <p className='mt-2 text-sm text-foreground-muted'>{feed.description}</p>
+                              ) : null}
+                              {feed.likeCount != null ? (
+                                <p className='mt-2 text-xs text-foreground-muted'>
+                                  {t('layout.feeds.likes', '{count} Likes', { count: feed.likeCount })}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-end'>
+                            <Button
+                              type='button'
+                              variant='primary'
+                              size='pill'
+                              disabled={!feedUri}
+                              className='min-w-[160px] h-7 justify-center whitespace-nowrap'
+                              onClick={() => {
+                                if (!feedUri || isPinned) return
+                                pinFeed?.(feedUri)
+                              }}
+                            >
+                              {!isPinned ? <PinLeftIcon className='h-4 w-4' aria-hidden='true' /> : null}
+                              {isPinned
+                                ? t('layout.feeds.attached', 'Angeheftet')
+                                : t('layout.feeds.attach', 'Feed anheften')}
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div ref={discoverSentinelRef} aria-hidden='true' className='h-6' />
+                    {discoverLoadingMore ? (
+                      <p className='px-4 py-3 text-xs text-foreground-muted'>
+                        {t('common.status.autoLoading', 'Weitere Ergebnisse werden automatisch geladen…')}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -227,6 +375,8 @@ function FeedsSection () {
 }
 
 export function SectionRenderer () {
+  const { t } = useTranslation()
+  const { feedPicker } = useFeedPicker()
   const {
     section,
     notificationTab,
@@ -234,7 +384,12 @@ export function SectionRenderer () {
     timelineLanguageFilter,
     timelineListKey
   } = useSectionActivity()
+  const feedPickerInitializing = !feedPicker?.lastUpdatedAt
+    && (feedPicker?.loading || feedPicker?.action?.refreshing)
   if (section === 'home') {
+    if (feedPickerInitializing) {
+      return <SectionFallback label={t('layout.timeline.pinnedLoading', 'Gepinnte Feeds werden geladen…')} />
+    }
     return (
       <TimelineSection
         listKey={timelineListKey}

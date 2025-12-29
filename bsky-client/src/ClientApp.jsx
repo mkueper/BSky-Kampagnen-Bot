@@ -132,6 +132,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const location = useLocation()
   const navigate = useNavigate()
   const previousSectionRef = useRef(section)
+  const initialHomeRefreshDoneRef = useRef(false)
   const [logoutPending, setLogoutPending] = useState(false)
   const pushSectionRoute = useCallback((nextSection) => {
     const targetPath = SECTION_ROUTE_MAP[nextSection] || '/'
@@ -217,16 +218,6 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       }
     }
   }, [findTimelineTabByKey])
-
-  useEffect(() => {
-    if (pinnedTabs.length === 0) return
-    const isActivePinned = pinnedTabs.some((tab) => tab.id === activeListKey)
-    if (isActivePinned) return
-    const nextTab = pinnedTabs[0]
-    if (!nextTab) return
-    timelineKeyRef.current = nextTab.id
-    timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: nextTab.id })
-  }, [activeListKey, pinnedTabs, timelineDispatch])
 
   const getNotificationListMeta = useCallback((key) => {
     const filter = key === 'notifs:mentions' ? 'mentions' : 'all'
@@ -503,6 +494,22 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     uiDispatch
   ])
 
+  useEffect(() => {
+    if (pinnedTabs.length === 0) return
+    const isActivePinned = pinnedTabs.some((tab) => tab.id === activeListKey)
+    if (!isActivePinned) {
+      const nextTab = pinnedTabs[0]
+      if (!nextTab) return
+      timelineKeyRef.current = nextTab.id
+      timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: nextTab.id })
+    }
+    if (section !== 'home' || initialHomeRefreshDoneRef.current) return
+    const activePinned = pinnedTabs.find((tab) => tab.id === (timelineKeyRef.current || activeListKey)) || pinnedTabs[0]
+    if (!activePinned) return
+    initialHomeRefreshDoneRef.current = true
+    refreshListByKey(activePinned.id, { scrollAfter: true })
+  }, [activeListKey, pinnedTabs, refreshListByKey, section, timelineDispatch])
+
   const toggleFeedMenu = useCallback(() => {
     setFeedMenuOpen((prev) => !prev)
   }, [])
@@ -514,6 +521,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     const prevId = previousAccountIdRef.current
     if (!activeAccountId || prevId === activeAccountId) return
     previousAccountIdRef.current = activeAccountId
+    initialHomeRefreshDoneRef.current = false
 
     closeFeedMenu()
     if (threadState.active) {
@@ -573,6 +581,12 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   }, [refreshFeedPicker])
 
   useEffect(() => {
+    if (!me?.did) return
+    if (feedPicker?.lastUpdatedAt) return
+    refreshFeedPicker({ force: true })
+  }, [feedPicker?.lastUpdatedAt, me?.did, refreshFeedPicker])
+
+  useEffect(() => {
     const previousSection = previousSectionRef.current
     if (
       section === 'notifications' &&
@@ -586,12 +600,14 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       section === 'home' &&
       previousSection !== 'home'
     ) {
-      if (!timelineList || !timelineList.loaded) {
-        refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
+      if (feedPicker?.lastUpdatedAt && pinnedTabs.length > 0) {
+        if (!timelineList || !timelineList.loaded) {
+          refreshListByKey(timelineKeyRef.current, { scrollAfter: true })
+        }
       }
     }
     previousSectionRef.current = section
-  }, [section, refreshListByKey, notificationListKey, notificationList, timelineList])
+  }, [feedPicker?.lastUpdatedAt, pinnedTabs.length, section, refreshListByKey, notificationListKey, notificationList, timelineList])
 
   const buildCompositeListKey = useCallback((sectionName, listKeyValue) => {
     return `${sectionName || ''}:${listKeyValue || ''}`

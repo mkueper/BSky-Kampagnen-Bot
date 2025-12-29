@@ -527,6 +527,32 @@ async function loadFeedMetadata (agent, feedUri, metaCache) {
   }
 }
 
+function mapPopularFeedGeneratorView (view) {
+  if (!view) return null
+  const uri = view.uri || ''
+  return {
+    id: uri,
+    type: 'feed',
+    value: uri,
+    feedUri: uri,
+    pinned: false,
+    displayName: view.displayName || view.name || 'Feed',
+    description: view.description || '',
+    avatar: view.avatar || null,
+    creator: view.creator
+      ? {
+          did: view.creator.did || '',
+          handle: view.creator.handle || '',
+          displayName: view.creator.displayName || view.creator.handle || ''
+        }
+      : null,
+    likeCount: view.likeCount ?? null,
+    isOnline: true,
+    isValid: true,
+    status: 'ok'
+  }
+}
+
 async function loadListMetadata (agent, listUri, metaCache) {
   const cacheKey = listUri || ''
   if (cacheKey && metaCache.has(cacheKey)) {
@@ -2438,6 +2464,27 @@ export async function fetchProfileLikes ({ actor, cursor, limit } = {}) {
 
 export async function fetchFeeds () {
   return fetchFeedsDirect()
+}
+
+export async function fetchDiscoverFeeds ({ limit = 50, cursor } = {}) {
+  const agent = assertActiveAgent()
+  const safeLimit = clampNumber(limit, 1, 100, 50)
+  try {
+    const params = { limit: safeLimit }
+    if (cursor) params.cursor = cursor
+    const res = await agent.app.bsky.unspecced.getPopularFeedGenerators(params)
+    const data = res?.data ?? res ?? {}
+    const feeds = Array.isArray(data?.feeds) ? data.feeds : []
+    return {
+      items: feeds
+      .map((entry) => mapPopularFeedGeneratorView(entry))
+      .filter(Boolean),
+      cursor: data?.cursor || null
+    }
+  } catch (error) {
+    console.warn('fetchDiscoverFeeds failed', error)
+    return { items: [], cursor: null }
+  }
 }
 
 export async function pinFeed ({ feedUri }) {
