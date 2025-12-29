@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, forwardRef } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import { useTranslation } from '../../i18n/I18nProvider.jsx';
 import './HorizontalScrollContainer.css';
 
 const SCROLL_STEP = 180;
@@ -53,6 +54,7 @@ const HorizontalScrollContainer = forwardRef(function HorizontalScrollContainer(
   const innerRef = useRef(null);
   const scrollRef = forwardedRef ?? innerRef;
   const { left, right } = useScrollIndicators(scrollRef);
+  const { t } = useTranslation();
 
   const scrollByStep = (direction) => {
     const el = scrollRef.current;
@@ -66,36 +68,44 @@ const HorizontalScrollContainer = forwardRef(function HorizontalScrollContainer(
 
   return (
     <div
-      className={`relative ${className}`}
+      className={`grid grid-cols-[auto,1fr,auto] items-center gap-2 ${className}`}
       data-component="HorizontalScrollContainer"
       {...rest}
     >
-      {left ? (
-        <button
-          type="button"
-          aria-label="Vorherige Inhalte anzeigen"
-          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 shadow-md ring-1 ring-border hover:bg-background"
-          onClick={() => scrollByStep(-1)}
-        >
-          <ChevronLeftIcon className="h-5 w-5" />
-        </button>
-      ) : null}
-      {right ? (
-        <button
-          type="button"
-          aria-label="Weitere Inhalte anzeigen"
-          className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 shadow-md ring-1 ring-border hover:bg-background"
-          onClick={() => scrollByStep(1)}
-        >
-          <ChevronRightIcon className="h-5 w-5" />
-        </button>
-      ) : null}
+      <div className="flex items-center justify-center">
+        {left ? (
+          <button
+            type="button"
+            aria-label={t('layout.timeline.scrollPrev', 'Vorherige Inhalte anzeigen')}
+            className="rounded-full bg-background/80 p-1.5 shadow-md ring-1 ring-border hover:bg-background"
+            onClick={() => scrollByStep(-1)}
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+        ) : null}
+      </div>
       <div
         ref={scrollRef}
-        className="no-scrollbar flex items-center gap-3 overflow-x-auto px-6"
-        style={{ scrollBehavior: 'smooth' }}
+        className="no-scrollbar min-w-0 flex items-center gap-3 overflow-x-auto"
+        style={{
+          scrollBehavior: 'smooth',
+          scrollPaddingLeft: '0.5rem',
+          scrollPaddingRight: '0.5rem',
+        }}
       >
         {children}
+      </div>
+      <div className="flex items-center justify-center">
+        {right ? (
+          <button
+            type="button"
+            aria-label={t('layout.timeline.scrollNext', 'Weitere Inhalte anzeigen')}
+            className="rounded-full bg-background/80 p-1.5 shadow-md ring-1 ring-border hover:bg-background"
+            onClick={() => scrollByStep(1)}
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        ) : null}
       </div>
     </div>
   );

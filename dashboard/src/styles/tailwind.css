@@ -107,19 +107,21 @@
   }
 
   .skeet-history-title {
-    @apply text-[11px] uppercase tracking-[0.3em] text-foreground-subtle;
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .skeet-history-counts {
+    @apply mt-1 flex flex-col gap-1;
+  }
+
+  .skeet-history-count {
+    @apply text-xs text-foreground-muted;
   }
 
   .skeet-history-toggle {
-    @apply flex w-full items-center justify-between gap-3 text-left;
-  }
-
-  .skeet-history-toggle-action {
-    @apply text-[11px] uppercase tracking-[0.3em] text-foreground-subtle;
-  }
-
-  .skeet-history-summary {
-    @apply mt-1 text-xs text-foreground-muted;
+    @apply mt-2 inline-flex items-center justify-center rounded-md border border-border-muted
+      bg-background-subtle px-3 py-1.5 text-xs font-medium text-foreground
+      hover:bg-background-elevated;
   }
 
   .skeet-history-body {

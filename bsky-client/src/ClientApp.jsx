@@ -40,14 +40,6 @@ import {
 import { SectionRenderer } from './modules/sections/SectionRenderer.jsx'
 import { ClientServiceOrchestrator } from './modules/service/ClientServiceOrchestrator.jsx'
 
-const STATIC_TIMELINE_TABS = [
-  { id: 'discover', labelKey: 'layout.timeline.tabs.discover', fallback: 'Discover', type: 'official', value: 'discover', origin: 'official' },
-  { id: 'following', labelKey: 'layout.timeline.tabs.following', fallback: 'Following', type: 'timeline', value: 'following', origin: 'official' },
-  { id: 'friends-popular', labelKey: 'layout.timeline.tabs.friendsPopular', fallback: 'Popular with Friends', type: 'feed', value: 'friends-popular', feedUri: null, origin: 'official' },
-  { id: 'mutuals', labelKey: 'layout.timeline.tabs.mutuals', fallback: 'Mutuals', type: 'feed', value: 'mutuals', feedUri: null, origin: 'official' },
-  { id: 'best-of-follows', labelKey: 'layout.timeline.tabs.bestOfFollows', fallback: 'Best of Follows', type: 'feed', value: 'best-of-follows', feedUri: null, origin: 'official' }
-]
-
 const SECTION_ROUTE_MAP = {
   home: '/',
   search: '/search',
@@ -168,43 +160,38 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
 
-  const officialTabs = useMemo(() => {
-    return STATIC_TIMELINE_TABS.map((tab) => ({
-      ...tab,
-      label: t(tab.labelKey, tab.fallback)
-    }))
-  }, [t])
-
   const pinnedTabs = useMemo(() => {
     const fallbackLabel = t('layout.timeline.feedFallback', 'Feed')
-    return (feedPicker?.pinned || [])
-      .filter((entry) => entry.type === 'feed')
-      .map((entry) => {
-        const listState = lists?.[entry.id]
-        return {
-          id: entry.id,
-          label: entry.displayName || entry.feedUri || fallbackLabel,
-          feedUri: entry.feedUri || entry.value,
-          value: entry.feedUri || entry.value,
-          type: 'feed',
-          pinned: true,
-          origin: 'pinned',
-          hasNew: Boolean(listState?.hasNew)
-        }
+    const entries = Array.isArray(feedPicker?.pinned) ? feedPicker.pinned : []
+    const seen = new Set()
+    const tabs = []
+    entries.forEach((entry) => {
+      if (!entry) return
+      if (entry.status === 'error' || entry.isValid === false) return
+      const type = entry.type || 'feed'
+      const value = entry.value || entry.feedUri || ''
+      const feedUri = type === 'timeline' ? null : (entry.feedUri || entry.value || null)
+      const tabId = type === 'timeline' ? value : (feedUri || value || entry.id)
+      if (!tabId) return
+      const dedupeKey = `${type}:${tabId}`
+      if (seen.has(dedupeKey)) return
+      seen.add(dedupeKey)
+      const listState = lists?.[tabId]
+      tabs.push({
+        id: tabId,
+        label: entry.displayName || entry.feedUri || entry.value || fallbackLabel,
+        feedUri,
+        value,
+        type,
+        pinned: true,
+        origin: 'pinned',
+        hasNew: Boolean(listState?.hasNew)
       })
+    })
+    return tabs
   }, [feedPicker?.pinned, lists, t])
 
-  const timelineTabs = useMemo(() => {
-    return officialTabs.map((tab) => {
-      const listState = lists?.[tab.id]
-      return {
-        ...tab,
-        hasNew: Boolean(listState?.hasNew)
-      }
-    })
-  }, [officialTabs, lists])
-
-  const allTimelineTabs = useMemo(() => [...timelineTabs, ...pinnedTabs], [timelineTabs, pinnedTabs])
+  const allTimelineTabs = useMemo(() => pinnedTabs, [pinnedTabs])
 
   const findTimelineTabByKey = useCallback((key) => {
     return allTimelineTabs.find((tab) => tab?.id === key)
@@ -213,6 +200,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const getTimelineListMeta = useCallback((keyOrTab) => {
     const tabInfo = typeof keyOrTab === 'string' ? findTimelineTabByKey(keyOrTab) : keyOrTab
     if (!tabInfo) return null
+    const tabValue = tabInfo.value || tabInfo.id
+    const feedUri = tabInfo.feedUri || null
+    const tabParam = feedUri ? null : (tabValue || tabInfo.id)
     return {
       key: tabInfo.id,
       kind: 'timeline',
@@ -222,11 +212,21 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       supportsRefresh: true,
       data: {
         type: 'timeline',
-        tab: tabInfo.origin === 'pinned' ? null : (tabInfo.value || tabInfo.id),
-        feedUri: tabInfo.feedUri || null
+        tab: tabParam,
+        feedUri
       }
     }
   }, [findTimelineTabByKey])
+
+  useEffect(() => {
+    if (pinnedTabs.length === 0) return
+    const isActivePinned = pinnedTabs.some((tab) => tab.id === activeListKey)
+    if (isActivePinned) return
+    const nextTab = pinnedTabs[0]
+    if (!nextTab) return
+    timelineKeyRef.current = nextTab.id
+    timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: nextTab.id })
+  }, [activeListKey, pinnedTabs, timelineDispatch])
 
   const getNotificationListMeta = useCallback((key) => {
     const filter = key === 'notifs:mentions' ? 'mentions' : 'all'
@@ -818,7 +818,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     section,
     threadState.active,
     threadState.loading,
-    timelineTabs,
+    allTimelineTabs,
     handleTimelineTabSelect,
     reloadThread,
     closeThread,

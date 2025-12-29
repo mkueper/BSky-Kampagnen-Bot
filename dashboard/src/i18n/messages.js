@@ -334,7 +334,19 @@ const messages = {
           summaryReposts: 'Reposts',
           reactionsErrorPrefix: 'Fehler: ',
           sentAtPrefix: 'Gesendet am ',
-          platformLikesReposts: 'Likes {likes} · Reposts {reposts}'
+          platformLikesReposts: 'Likes {likes} · Reposts {reposts}',
+          history: {
+            title: 'Sendehistorie',
+            success: 'Erfolgreich: {count}',
+            failed: 'Fehlgeschlagen: {count}',
+            loading: 'Lade Sendehistorie...',
+            error: 'Sendehistorie konnte nicht geladen werden.',
+            ariaToggle: 'Sendehistorie {action}',
+            toggle: {
+              show: 'Anzeigen',
+              hide: 'Ausblenden'
+            }
+          }
         },
         deleted: {
           emptyTitle: 'Keine gelöschten Posts.',
@@ -1285,7 +1297,19 @@ const messages = {
           summaryReposts: 'Reposts',
           reactionsErrorPrefix: 'Error: ',
           sentAtPrefix: 'Sent on ',
-          platformLikesReposts: 'Likes {likes} · Reposts {reposts}'
+          platformLikesReposts: 'Likes {likes} · Reposts {reposts}',
+          history: {
+            title: 'Send history',
+            success: 'Successful: {count}',
+            failed: 'Failed: {count}',
+            loading: 'Loading send history...',
+            error: 'Send history could not be loaded.',
+            ariaToggle: 'Send history {action}',
+            toggle: {
+              show: 'Show',
+              hide: 'Hide'
+            }
+          }
         },
         deleted: {
           emptyTitle: 'No deleted posts.',

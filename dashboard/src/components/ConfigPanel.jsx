@@ -1042,7 +1042,7 @@ export default function ConfigPanel () {
 
             <form onSubmit={handleGeneralSubmit} className='space-y-6'>
               <div className='grid gap-4 md:grid-cols-2'>
-                <div className='space-y-2'>
+                <div className='relative space-y-2 focus-within:z-20'>
                   <label
                     htmlFor='general-locale'
                     className='text-sm font-semibold text-foreground'

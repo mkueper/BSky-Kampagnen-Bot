@@ -9,6 +9,7 @@ import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import SkeetHistoryPanel from '../../src/components/skeets/SkeetHistoryPanel.jsx'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 import { useSkeetHistory } from '../../src/hooks/useSkeetHistory.js'
 
 vi.mock('../../src/hooks/useSkeetHistory.js', () => ({
@@ -16,6 +17,8 @@ vi.mock('../../src/hooks/useSkeetHistory.js', () => ({
 }))
 
 describe('SkeetHistoryPanel', () => {
+  const renderWithI18n = (ui) => render(<I18nProvider>{ui}</I18nProvider>)
+
   beforeEach(() => {
     useSkeetHistory.mockReturnValue({
       data: [],
@@ -25,7 +28,7 @@ describe('SkeetHistoryPanel', () => {
   })
 
   it('rendert nichts wenn repeat none ist', () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <SkeetHistoryPanel skeetId={123} repeat='none' />
     )
     expect(container).toBeEmptyDOMElement()
@@ -38,7 +41,7 @@ describe('SkeetHistoryPanel', () => {
       isLoading: true,
       isError: false
     })
-    render(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
+    renderWithI18n(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
     fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(screen.getByText(/Lade Sendehistorie/i)).toBeInTheDocument()
   })
@@ -49,7 +52,7 @@ describe('SkeetHistoryPanel', () => {
       isLoading: false,
       isError: true
     })
-    render(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
+    renderWithI18n(<SkeetHistoryPanel skeetId={1} repeat='daily' />)
     fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(
       screen.getByText(/Sendehistorie konnte nicht geladen werden/i)
@@ -71,11 +74,11 @@ describe('SkeetHistoryPanel', () => {
       isLoading: false,
       isError: false
     })
-    const { container } = render(<SkeetHistoryPanel skeetId={1} repeat='weekly' />)
+    const { container } = renderWithI18n(<SkeetHistoryPanel skeetId={1} repeat='weekly' />)
     fireEvent.click(screen.getByRole('button', { name: /Sendehistorie/i }))
     expect(container.querySelectorAll('.skeet-history-item')).toHaveLength(entries.length)
-    expect(screen.getByText('Erfolgreich')).toBeInTheDocument()
-    expect(screen.getByText('Fehlgeschlagen')).toBeInTheDocument()
+    expect(screen.getByText(/Erfolgreich:/i)).toBeInTheDocument()
+    expect(screen.getByText(/Fehlgeschlagen:/i)).toBeInTheDocument()
     expect(screen.getByText('API down')).toBeInTheDocument()
   })
 })

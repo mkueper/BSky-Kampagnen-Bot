@@ -53,6 +53,7 @@ export function TimelineHeader ({
   showLanguageFilter = true
 }) {
   const menuRef = useRef(null)
+  const scrollContainerRef = useRef(null)
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -67,6 +68,21 @@ export function TimelineHeader ({
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [feedMenuOpen, onCloseFeedMenu])
 
+  useEffect(() => {
+    if (!timelineTab || !scrollContainerRef.current) return
+    const container = scrollContainerRef.current
+    const escapeSelectorValue = (value) => {
+      if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+        return CSS.escape(value)
+      }
+      return String(value).replace(/["\\#.:]/g, '\\$&')
+    }
+    const selector = `[data-tab="${escapeSelectorValue(timelineTab)}"]`
+    const target = container.querySelector(selector)
+    if (!target || typeof target.scrollIntoView !== 'function') return
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [tabs, timelineTab])
+
   const availableLanguageOptions = (languageOptions && languageOptions.length)
     ? languageOptions
     : [
@@ -79,7 +95,7 @@ export function TimelineHeader ({
 
   return (
     <div className='relative flex items-center gap-2' data-component='BskyTimelineHeaderContent' ref={menuRef}>
-      <HorizontalScrollContainer className='flex-1 min-w-0'>
+      <HorizontalScrollContainer ref={scrollContainerRef} className='flex-1 min-w-0'>
         {tabs.map(tab => {
           const isActive = timelineTab === tab.id
           const showBadge = tab.hasNew
@@ -105,9 +121,6 @@ export function TimelineHeader ({
                       aria-label={t('layout.timeline.newItems', 'Neue Elemente')}
                     />
                   </span>
-                ) : null}
-                {tab.pinned ? (
-                  <span className='text-xs font-semibold uppercase tracking-wide text-primary'>Pin</span>
                 ) : null}
               </span>
             </button>

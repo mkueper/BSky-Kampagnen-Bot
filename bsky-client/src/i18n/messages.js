@@ -146,6 +146,8 @@ const messages = {
         pinnedFeeds: 'Gepinnte Feeds',
         noPins: 'Noch keine Pins vorhanden.',
         feedManagerHint: 'Feed-Manager über die Seitenleiste öffnen.',
+        scrollPrev: 'Vorherige Inhalte anzeigen',
+        scrollNext: 'Weitere Inhalte anzeigen',
         feedFallback: 'Feed',
         languageFilterLabel: 'Sprachfilter',
         language: {
@@ -1368,6 +1370,8 @@ const messages = {
         pinnedFeeds: 'Pinned feeds',
         noPins: 'No pins yet.',
         feedManagerHint: 'Open the feed manager via the sidebar.',
+        scrollPrev: 'Show previous items',
+        scrollNext: 'Show more items',
         feedFallback: 'Feed',
         languageFilterLabel: 'Language filter',
         language: {

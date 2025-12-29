@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 import { useSkeetHistory } from '../../hooks/useSkeetHistory.js'
 import SkeetHistoryTimeline from './SkeetHistoryTimeline.jsx'
 
 export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const shouldRender = Boolean(skeetId) && repeat !== 'none'
   const { data, isLoading, isError } = useSkeetHistory(skeetId, {
@@ -25,33 +27,58 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
     return null
   }
 
-  const summaryLabel = isLoading
-    ? 'Lade...'
-    : `Erfolgreich ${successCount} / Fehlgeschlagen ${failedCount}`
-
   const toggleLabel = isOpen ? 'Ausblenden' : 'Anzeigen'
   const historyId = `skeet-history-${skeetId || 'unknown'}`
+  const toggleText = t(
+    `posts.lists.published.history.toggle.${isOpen ? 'hide' : 'show'}`,
+    toggleLabel
+  )
 
   return (
     <section className='skeet-history' aria-live='polite'>
+      <p className='skeet-history-title'>
+        {t('posts.lists.published.history.title', 'Sendehistorie')}
+      </p>
+      <div className='skeet-history-counts'>
+        <p className='skeet-history-count'>
+          {t(
+            'posts.lists.published.history.success',
+            'Erfolgreich: {count}',
+            { count: successCount }
+          )}
+        </p>
+        <p className='skeet-history-count'>
+          {t(
+            'posts.lists.published.history.failed',
+            'Fehlgeschlagen: {count}',
+            { count: failedCount }
+          )}
+        </p>
+      </div>
       <button
         type='button'
         className='skeet-history-toggle'
         aria-expanded={isOpen}
         aria-controls={historyId}
+        aria-label={t('posts.lists.published.history.ariaToggle', 'Sendehistorie {action}', { action: toggleText })}
         onClick={() => setIsOpen((prev) => !prev)}
       >
-        <span className='skeet-history-title'>Sendehistorie</span>
-        <span className='skeet-history-toggle-action'>{toggleLabel}</span>
+        {toggleText}
       </button>
-      <p className='skeet-history-summary'>{summaryLabel}</p>
       {isOpen ? (
         <div id={historyId} className='skeet-history-body'>
           {isLoading ? (
-            <p className='skeet-history-empty'>Lade Sendehistorie...</p>
+            <p className='skeet-history-empty'>
+              {t('posts.lists.published.history.loading', 'Lade Sendehistorie...')}
+            </p>
           ) : null}
           {isError ? (
-            <p className='skeet-history-error-text'>Sendehistorie konnte nicht geladen werden.</p>
+            <p className='skeet-history-error-text'>
+              {t(
+                'posts.lists.published.history.error',
+                'Sendehistorie konnte nicht geladen werden.'
+              )}
+            </p>
           ) : null}
           {!isLoading && !isError ? (
             <SkeetHistoryTimeline history={historyItems} showTitle={false} />
