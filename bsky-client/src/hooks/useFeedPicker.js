@@ -22,6 +22,9 @@ export function useFeedPicker () {
   const lastUpdatedRef = useRef(feedPicker?.lastUpdatedAt || 0)
   const pinnedFeeds = feedPicker?.pinned || []
   const savedFeeds = feedPicker?.saved || []
+  const draftPinned = Array.isArray(feedPicker?.draft?.pinned) ? feedPicker.draft.pinned : []
+  const draftSaved = Array.isArray(feedPicker?.draft?.saved) ? feedPicker.draft.saved : []
+  const draftDirty = Boolean(feedPicker?.draft?.dirty)
   const discoverFeeds = Array.isArray(feedPicker?.discover) ? feedPicker.discover : []
   const discoverCursor = feedPicker?.discoverCursor || null
   const discoverHasMore = Boolean(feedPicker?.discoverHasMore)
@@ -62,7 +65,8 @@ export function useFeedPicker () {
           : {}),
         errors: Array.isArray(data?.errors) ? data.errors : [],
         lastUpdatedAt: Date.now(),
-        action: { refreshing: false }
+        action: { refreshing: false },
+        ...(draftDirty ? {} : { draft: { pinned: Array.isArray(data?.pinned) ? data.pinned : [], saved: Array.isArray(data?.saved) ? data.saved : [], dirty: false } })
       })
     } catch (error) {
       updateState({
@@ -71,7 +75,100 @@ export function useFeedPicker () {
         action: { refreshing: false }
       })
     }
+  }, [draftDirty, updateState])
+
+  const initFeedManagerDraft = useCallback(() => {
+    updateState({
+      draft: {
+        pinned: [...pinnedFeeds],
+        saved: [...savedFeeds],
+        dirty: false
+      }
+    })
+  }, [pinnedFeeds, savedFeeds, updateState])
+
+  const setDraftState = useCallback((nextPinned, nextSaved) => {
+    updateState({
+      draft: {
+        pinned: Array.isArray(nextPinned) ? nextPinned : [],
+        saved: Array.isArray(nextSaved) ? nextSaved : [],
+        dirty: true
+      }
+    })
   }, [updateState])
+
+  const pinFeedDraft = useCallback((feed) => {
+    if (!feed) return
+    const feedUri = feed.feedUri || feed.value
+    if (!feedUri) return
+    const alreadyPinned = draftPinned.some((entry) => (entry.feedUri || entry.value) === feedUri)
+    if (alreadyPinned) return
+    const nextPinned = [...draftPinned, { ...feed, pinned: true }]
+    const nextSaved = draftSaved.filter((entry) => (entry.feedUri || entry.value) !== feedUri)
+    setDraftState(nextPinned, nextSaved)
+  }, [draftPinned, draftSaved, setDraftState])
+
+  const unpinFeedDraft = useCallback((feed) => {
+    if (!feed) return
+    const feedUri = feed.feedUri || feed.value
+    if (!feedUri) return
+    const nextPinned = draftPinned.filter((entry) => (entry.feedUri || entry.value) !== feedUri)
+    const alreadySaved = draftSaved.some((entry) => (entry.feedUri || entry.value) === feedUri)
+    const nextSaved = alreadySaved ? draftSaved : [...draftSaved, { ...feed, pinned: false }]
+    setDraftState(nextPinned, nextSaved)
+  }, [draftPinned, draftSaved, setDraftState])
+
+  const reorderPinnedDraft = useCallback((nextPinned) => {
+    if (!Array.isArray(nextPinned)) return
+    setDraftState(nextPinned, draftSaved)
+  }, [draftSaved, setDraftState])
+
+  const saveFeedManagerDraft = useCallback(async () => {
+    if (!draftDirty) return
+    updateState({ action: { savingOrder: true }, error: '' })
+    try {
+      const originalPinned = pinnedFeeds || []
+      const originalSaved = savedFeeds || []
+      const originalPinnedKeys = new Set(originalPinned.map((entry) => entry.feedUri || entry.value).filter(Boolean))
+      const draftPinnedKeys = new Set(draftPinned.map((entry) => entry.feedUri || entry.value).filter(Boolean))
+      const toPin = draftPinned.filter((entry) => {
+        const key = entry.feedUri || entry.value
+        return key && !originalPinnedKeys.has(key)
+      })
+      const toUnpin = originalPinned.filter((entry) => {
+        const key = entry.feedUri || entry.value
+        return key && !draftPinnedKeys.has(key)
+      })
+
+      for (const entry of toPin) {
+        await pinFeedRequest({ feedUri: entry.feedUri || entry.value })
+      }
+      for (const entry of toUnpin) {
+        await unpinFeedRequest({ feedUri: entry.feedUri || entry.value })
+      }
+
+      const order = draftPinned.map((entry) => entry.id).filter(Boolean)
+      if (order.length > 0) {
+        await reorderPinnedFeedsRequest({ order })
+      }
+
+      const data = await fetchFeeds()
+      const lists = normalizeFeedLists(data, { pinned: originalPinned, saved: originalSaved })
+      updateState({
+        pinned: lists.pinned,
+        saved: lists.saved,
+        errors: lists.errors,
+        lastUpdatedAt: Date.now(),
+        action: { savingOrder: false },
+        draft: { pinned: lists.pinned, saved: lists.saved, dirty: false }
+      })
+    } catch (error) {
+      updateState({
+        error: error?.message || 'Änderungen konnten nicht gespeichert werden.',
+        action: { savingOrder: false }
+      })
+    }
+  }, [draftDirty, draftPinned, pinnedFeeds, savedFeeds, updateState])
 
   const pinFeed = useCallback(async (feedUri) => {
     if (!feedUri) return
@@ -176,20 +273,29 @@ export function useFeedPicker () {
   }, [pinnedFeeds, savedFeeds, updateState])
 
   const openFeedManager = useCallback(() => {
+    initFeedManagerDraft()
     dispatch({ type: 'SET_FEED_MANAGER_OPEN', payload: true })
-  }, [dispatch])
+  }, [dispatch, initFeedManagerDraft])
 
   const closeFeedManager = useCallback(() => {
     dispatch({ type: 'SET_FEED_MANAGER_OPEN', payload: false })
-  }, [dispatch])
+    updateState({ draft: { pinned: [], saved: [], dirty: false } })
+  }, [dispatch, updateState])
 
   return {
     feedPicker,
     feedManagerOpen,
+    draftPinned,
+    draftSaved,
+    draftDirty,
     refreshFeeds,
     pinFeed,
     unpinFeed,
     reorderPinnedFeeds,
+    pinFeedDraft,
+    unpinFeedDraft,
+    reorderPinnedDraft,
+    saveFeedManagerDraft,
     loadMoreDiscover,
     openFeedManager,
     closeFeedManager

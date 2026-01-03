@@ -1,267 +1,225 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { Button, Card } from '../shared/index.js'
+import { ArrowDownIcon, ArrowUpIcon, DrawingPinFilledIcon, DrawingPinIcon, LayersIcon } from '@radix-ui/react-icons'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
-function FeedCard ({ feed, actionState, onPin, onUnpin, onMove }) {
+const ACTION_BUTTON_CLASS = 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-foreground transition hover:bg-background-subtle disabled:pointer-events-none disabled:opacity-60'
+
+function FeedRow ({ feed, actions }) {
   const { t } = useTranslation()
-  const feedUri = feed.feedUri || feed.value
-  const isPinned = Boolean(feed.pinned)
-  const pinning = actionState?.pinning === feedUri
-  const unpinning = actionState?.unpinning === feedUri
-  const disabled = Boolean(actionState?.savingOrder)
+  const label = feed.displayName || t('layout.feeds.feedFallback', 'Feed')
+  const creatorHandle = feed.creator?.handle ? t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle }) : ''
+  const showError = feed.status === 'error'
+
   return (
-    <Card background='subtle' padding='p-4' className='text-sm'>
-      <div className='flex items-start justify-between gap-3'>
+    <div className='flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
+      <div className='flex items-center gap-4'>
+        {feed.avatar ? (
+          <img
+            src={feed.avatar}
+            alt=''
+            className='h-12 w-12 rounded-xl border border-border object-cover'
+          />
+        ) : (
+          <div className='flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background-subtle text-primary'>
+            <LayersIcon className='h-6 w-6' />
+          </div>
+        )}
         <div>
-          <p className='text-base font-semibold text-foreground'>
-            {feed.displayName || t('layout.feeds.feedFallback', 'Feed')}
+          <p className={`text-base font-semibold ${showError ? 'text-amber-700' : 'text-foreground'}`}>
+            {showError ? t('layout.feeds.feedErrorLabel', 'Feed nicht geladen') : label}
           </p>
-          {feed.creator?.handle ? (
-            <p className='text-xs text-foreground-muted'>
-              {t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle })}
-            </p>
+          {creatorHandle ? (
+            <p className='text-sm text-foreground-muted'>{creatorHandle}</p>
           ) : null}
         </div>
-        <div className='flex flex-wrap items-center gap-2'>
-          {isPinned ? (
-            <>
-              <Button
-                type='button'
-                variant='secondary'
-                size='pill'
-                disabled={disabled || pinning || unpinning}
-                onClick={onUnpin ? () => onUnpin(feedUri) : undefined}
-              >
-                {unpinning
-                  ? t('layout.feeds.unpinning', 'Entferne...')
-                  : t('layout.feeds.unpin', 'Unpin')}
-              </Button>
-              <Button
-                type='button'
-                variant='ghost'
-                size='pill'
-                disabled={disabled || pinning || unpinning}
-                onClick={onMove ? () => onMove(-1) : undefined}
-                aria-label={t('layout.feeds.moveUp', 'Nach oben verschieben')}
-              >
-                {t('layout.feeds.moveUpShort', 'Up')}
-              </Button>
-              <Button
-                type='button'
-                variant='ghost'
-                size='pill'
-                disabled={disabled || pinning || unpinning}
-                onClick={onMove ? () => onMove(1) : undefined}
-                aria-label={t('layout.feeds.moveDown', 'Nach unten verschieben')}
-              >
-                {t('layout.feeds.moveDownShort', 'Down')}
-              </Button>
-            </>
-          ) : (
-            <Button
-              type='button'
-              variant='primary'
-              size='pill'
-              disabled={pinning || unpinning}
-              onClick={onPin ? () => onPin(feedUri) : undefined}
-            >
-              {pinning
-                ? t('layout.feeds.pinning', 'Pinne...')
-                : t('layout.feeds.pin', 'Pin')}
-            </Button>
-          )}
-        </div>
       </div>
-      {feed.description ? (
-        <p className='mt-2 text-foreground'>{feed.description}</p>
-      ) : null}
-      <div className='mt-2 flex flex-wrap gap-4 text-xs text-foreground-muted'>
-        {feed.likeCount != null ? (
-          <span>{t('layout.feeds.likes', '{count} Likes', { count: feed.likeCount })}</span>
-        ) : null}
-        {feed.status === 'error'
-          ? <span className='text-amber-600'>{t('layout.feeds.loadError', 'Fehler beim Laden')}</span>
-          : null}
+      <div className='flex flex-wrap items-center justify-end gap-2'>
+        {actions}
       </div>
-    </Card>
+    </div>
   )
 }
 
-FeedCard.propTypes = {
+FeedRow.propTypes = {
   feed: PropTypes.shape({
-    id: PropTypes.string,
-    displayName: PropTypes.string,
-    description: PropTypes.string,
+    avatar: PropTypes.string,
     creator: PropTypes.shape({
       handle: PropTypes.string
     }),
-    likeCount: PropTypes.number,
-    feedUri: PropTypes.string,
-    value: PropTypes.string,
-    pinned: PropTypes.bool,
+    displayName: PropTypes.string,
     status: PropTypes.string
   }).isRequired,
-  actionState: PropTypes.object,
-  onPin: PropTypes.func,
-  onUnpin: PropTypes.func,
-  onMove: PropTypes.func
+  actions: PropTypes.node
 }
 
 export default function FeedManager ({
-  variant = 'modal',
-  showHeader = true,
-  dataComponent = 'BskyFeedManager',
   open,
   loading,
   error,
   feeds,
-  onClose,
   onRefresh,
   onPin,
   onUnpin,
   onReorder
 }) {
   const { t } = useTranslation()
-  const pinned = feeds?.pinned || []
-  const saved = feeds?.saved || []
+  const draftPinned = Array.isArray(feeds?.draft?.pinned) ? feeds.draft.pinned : null
+  const draftSaved = Array.isArray(feeds?.draft?.saved) ? feeds.draft.saved : null
+  const pinned = draftPinned ?? (feeds?.pinned || [])
+  const saved = draftSaved ?? (feeds?.saved || [])
   const errors = feeds?.errors || []
   const actionState = feeds?.action || {}
   const managerErrors = useMemo(() => errors.filter(Boolean), [errors])
+  useEffect(() => {
+    if (!open) return
+    onRefresh?.()
+  }, [open, onRefresh])
 
   if (!open) return null
-  const isPage = variant === 'page'
-  const isPane = variant === 'pane'
 
-  const handleMove = (delta, id) => {
-    const index = pinned.findIndex((entry) => entry.id === id)
+  const handleMove = (delta, key) => {
+    const index = pinned.findIndex((entry) => (entry.id || entry.feedUri || entry.value) === key)
     if (index < 0) return
     const nextIndex = index + delta
     if (nextIndex < 0 || nextIndex >= pinned.length) return
-    const order = pinned.map((entry) => entry.id)
-    const [removed] = order.splice(index, 1)
-    order.splice(nextIndex, 0, removed)
-    onReorder?.(order)
+    const nextPinned = [...pinned]
+    const [removed] = nextPinned.splice(index, 1)
+    nextPinned.splice(nextIndex, 0, removed)
+    onReorder?.(nextPinned)
   }
 
   return (
-    <div
-      className={(isPage || isPane) ? 'w-full' : 'fixed inset-0 z-[120] flex items-center justify-center'}
-      data-component={dataComponent || undefined}
-      data-variant={variant}
-    >
-      {(!isPage && !isPane) ? (
-        <div className='absolute inset-0 bg-black/50 backdrop-blur-sm' onClick={onClose} aria-hidden='true' />
+    <div className='space-y-6' data-component='BskyFeedManager'>
+      {error ? (
+        <p className='rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700'>{error}</p>
       ) : null}
-      <div
-        className={isPage
-          ? 'w-full max-w-[960px] space-y-6 rounded-3xl border border-border bg-background p-6 shadow-soft'
-          : isPane
-              ? 'w-full space-y-6 rounded-3xl border border-border bg-background p-4 shadow-soft'
-              : 'relative z-10 w-[min(960px,94vw)] max-h-[92vh] overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl'}
-      >
-        {showHeader ? (
-          <div className='flex items-center justify-between gap-3'>
-            <div>
-              <h2 className='text-xl font-semibold text-foreground'>{t('layout.feeds.managerTitle', 'Feed-Manager')}</h2>
-              <p className='text-sm text-foreground-muted'>
-                {t('layout.feeds.managerDescription', 'Gepinnte Feeds erscheinen als Tabs in der Timeline.')}
-              </p>
-            </div>
-            <div className='flex items-center gap-2'>
-              <Button variant='secondary' size='pill' onClick={onRefresh} disabled={loading}>
-                {loading
-                  ? t('layout.feeds.refreshing', 'Aktualisiere...')
-                  : t('layout.feeds.refresh', 'Aktualisieren')}
-              </Button>
-              {!isPage ? (
-                <Button variant='ghost' size='pill' onClick={onClose}>
-                  {t('layout.feeds.close', 'Schliessen')}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
 
-        {error ? (
-          <p className='mt-4 rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-700'>{error}</p>
-        ) : null}
-
-        {managerErrors.length > 0 ? (
-          <div className='mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 space-y-1'>
-            {managerErrors.map((entry, idx) => (
-              <p key={entry?.feedUri || idx}>
-                {entry?.message || t('layout.feeds.feedError', 'Feed konnte nicht geladen werden.')}
-              </p>
-            ))}
-          </div>
-        ) : null}
-
-        <section className='mt-6 space-y-3'>
-          <div className='flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-foreground'>
-              {t('layout.feeds.pinnedTitle', 'Gepinnte Feeds')}
-            </h3>
-            {pinned.length > 1 ? (
-              <p className='text-xs text-foreground-muted'>
-                {t('layout.feeds.pinnedHint', 'Reihenfolge via Pfeile anpassen.')}
-              </p>
-            ) : null}
-          </div>
-          {pinned.length === 0 ? (
-            <p className='text-sm text-foreground-muted'>
-              {t('layout.feeds.pinnedEmpty', 'Noch keine Feeds angepinnt.')}
+      {managerErrors.length > 0 ? (
+        <div className='rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 space-y-1'>
+          {managerErrors.map((entry, idx) => (
+            <p key={entry?.feedUri || idx}>
+              {entry?.message || t('layout.feeds.feedError', 'Feed konnte nicht geladen werden.')}
             </p>
-          ) : (
-            <div className='space-y-3'>
-              {pinned.map((feed) => (
-                <FeedCard
-                  key={feed.id}
-                  feed={feed}
-                  actionState={actionState}
-                  onUnpin={onUnpin}
-                  onMove={(delta) => handleMove(delta, feed.id)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
+          ))}
+        </div>
+      ) : null}
 
-        <section className='mt-8 space-y-3'>
-          <div className='flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-foreground'>
-              {t('layout.feeds.savedTitle', 'Gespeicherte Feeds')}
-            </h3>
+      <section className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
+        <div className='flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3'>
+          <h3 className='text-base font-semibold text-foreground'>
+            {t('layout.feeds.pinnedTitle', 'Gepinnte Feeds')}
+          </h3>
+          {pinned.length > 1 ? (
             <p className='text-xs text-foreground-muted'>
-              {t('layout.feeds.savedHint', 'Pinne Feeds, um sie oben anzuzeigen.')}
+              {t('layout.feeds.pinnedHint', 'Reihenfolge via Pfeile anpassen.')}
             </p>
-          </div>
-          {saved.length === 0 ? (
-            <p className='text-sm text-foreground-muted'>
-              {t('layout.feeds.savedEmpty', 'Keine weiteren gespeicherten Feeds vorhanden.')}
-            </p>
-          ) : (
-            <div className='space-y-3'>
-              {saved.map((feed) => (
-                <FeedCard
-                  key={feed.id}
+          ) : null}
+        </div>
+        {pinned.length === 0 ? (
+          <p className='px-4 py-4 text-sm text-foreground-muted'>
+            {t('layout.feeds.pinnedEmpty', 'Noch keine Feeds angepinnt.')}
+          </p>
+        ) : (
+          <div className='divide-y divide-border'>
+            {pinned.map((feed, index) => {
+              const feedUri = feed.feedUri || feed.value
+              const feedKey = feed.id || feedUri
+              const pinning = actionState?.pinning === feedUri
+              const unpinning = actionState?.unpinning === feedUri
+              const disabled = Boolean(actionState?.savingOrder)
+              const canMoveUp = index > 0
+              const canMoveDown = index < pinned.length - 1
+              return (
+                <FeedRow
+                  key={feedKey}
                   feed={feed}
-                  actionState={actionState}
-                  onPin={onPin}
+                  actions={(
+                    <>
+                      <button
+                        type='button'
+                        className={ACTION_BUTTON_CLASS}
+                        onClick={() => handleMove(-1, feedKey)}
+                        disabled={!canMoveUp || disabled || pinning || unpinning}
+                        aria-label={t('layout.feeds.moveUp', 'Nach oben verschieben')}
+                      >
+                        <ArrowUpIcon className='h-5 w-5' aria-hidden='true' />
+                      </button>
+                      <button
+                        type='button'
+                        className={ACTION_BUTTON_CLASS}
+                        onClick={() => handleMove(1, feedKey)}
+                        disabled={!canMoveDown || disabled || pinning || unpinning}
+                        aria-label={t('layout.feeds.moveDown', 'Nach unten verschieben')}
+                      >
+                        <ArrowDownIcon className='h-5 w-5' aria-hidden='true' />
+                      </button>
+                      <button
+                        type='button'
+                        className={ACTION_BUTTON_CLASS}
+                        onClick={onUnpin ? () => onUnpin(feed) : undefined}
+                        disabled={disabled || pinning || unpinning}
+                        aria-label={t('layout.feeds.unpin', 'Unpin')}
+                        title={t('layout.feeds.unpin', 'Unpin')}
+                      >
+                        <DrawingPinFilledIcon className='h-5 w-5 text-primary' aria-hidden='true' />
+                      </button>
+                    </>
+                  )}
                 />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
+        <div className='flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3'>
+          <h3 className='text-base font-semibold text-foreground'>
+            {t('layout.feeds.savedTitle', 'Gespeicherte Feeds')}
+          </h3>
+          <p className='text-xs text-foreground-muted'>
+            {t('layout.feeds.savedHint', 'Pinne Feeds, um sie oben anzuzeigen.')}
+          </p>
+        </div>
+        {saved.length === 0 ? (
+          <p className='px-4 py-4 text-sm text-foreground-muted'>
+            {t('layout.feeds.savedEmpty', 'Keine weiteren gespeicherten Feeds vorhanden.')}
+          </p>
+        ) : (
+          <div className='divide-y divide-border'>
+            {saved.map((feed) => {
+              const feedUri = feed.feedUri || feed.value
+              const feedKey = feed.id || feedUri
+              const pinning = actionState?.pinning === feedUri
+              const unpinning = actionState?.unpinning === feedUri
+              return (
+                <FeedRow
+                  key={feedKey}
+                  feed={feed}
+                  actions={(
+                    <button
+                      type='button'
+                      className={ACTION_BUTTON_CLASS}
+                      onClick={onPin ? () => onPin(feed) : undefined}
+                      disabled={pinning || unpinning || loading}
+                      aria-label={t('layout.feeds.attach', 'Anheften')}
+                      title={t('layout.feeds.attach', 'Anheften')}
+                    >
+                      <DrawingPinIcon className='h-5 w-5' aria-hidden='true' />
+                    </button>
+                  )}
+                />
+              )
+            })}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
 
 FeedManager.propTypes = {
-  variant: PropTypes.oneOf(['modal', 'page', 'pane']),
-  showHeader: PropTypes.bool,
-  dataComponent: PropTypes.string,
   open: PropTypes.bool,
   loading: PropTypes.bool,
   error: PropTypes.string,
@@ -271,19 +229,15 @@ FeedManager.propTypes = {
     errors: PropTypes.array,
     action: PropTypes.object
   }),
-  onClose: PropTypes.func.isRequired,
-  onRefresh: PropTypes.func.isRequired,
-  onPin: PropTypes.func.isRequired,
-  onUnpin: PropTypes.func.isRequired,
+  onRefresh: PropTypes.func,
+  onPin: PropTypes.func,
+  onUnpin: PropTypes.func,
   onReorder: PropTypes.func
 }
 
 FeedManager.defaultProps = {
-  variant: 'modal',
-  showHeader: true,
   open: false,
   loading: false,
   error: '',
-  feeds: { pinned: [], saved: [], errors: [], action: {} },
-  onReorder: undefined
+  feeds: { pinned: [], saved: [], errors: [], action: {} }
 }

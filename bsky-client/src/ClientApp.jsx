@@ -20,7 +20,7 @@ import { BskyClientLayout } from './modules/layout/index.js'
 import { Modals } from './modules/layout/Modals.jsx'
 import { TimelineHeader, ThreadHeader } from './modules/layout/HeaderContent.jsx'
 import { Button } from '@bsky-kampagnen-bot/shared-ui'
-import { MixerHorizontalIcon } from '@radix-ui/react-icons'
+import { ArrowLeftIcon, MixerHorizontalIcon } from '@radix-ui/react-icons'
 import { ThreadView } from './modules/timeline/index.js'
 import { useUIState, useUIDispatch } from './context/UIContext.jsx'
 import { useThreadDispatch } from './context/ThreadContext.jsx'
@@ -31,6 +31,7 @@ import { useBskyAuth } from './modules/auth/AuthContext.jsx'
 import LoginView from './modules/login/LoginView.jsx'
 import ChatHeader from './modules/chat/ChatHeader.jsx'
 import { useClientConfig } from './hooks/useClientConfig.js'
+import { BACK_BUTTON_CLASS } from './modules/shared/backButtonClass.js'
 import {
   SearchViewLazy,
   ProfileViewerPaneLazy,
@@ -156,7 +157,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     feedManagerOpen,
     refreshFeeds: refreshFeedPicker,
     openFeedManager,
-    closeFeedManager
+    closeFeedManager,
+    saveFeedManagerDraft,
+    draftDirty
   } = useFeedPicker()
   const [feedMenuOpen, setFeedMenuOpen] = useState(false)
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
@@ -874,6 +877,33 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       )
     }
     if (section === 'feeds') {
+      if (feedManagerOpen) {
+        return (
+          <div className='flex flex-wrap items-center justify-between gap-3'>
+            <div className='flex items-center gap-3'>
+              <button
+                type='button'
+                className={BACK_BUTTON_CLASS}
+                onClick={closeFeedManager}
+                aria-label={t('layout.feeds.close', 'Schliessen')}
+              >
+                <ArrowLeftIcon className='h-4 w-4' />
+              </button>
+              <p className='text-base font-semibold text-foreground'>{t('layout.feeds.headerTitle', 'Feeds')}</p>
+            </div>
+            <Button
+              variant='secondary'
+              size='pill'
+              onClick={saveFeedManagerDraft}
+              disabled={!draftDirty || feedPicker?.action?.savingOrder}
+            >
+              {feedPicker?.action?.savingOrder
+                ? t('layout.feeds.savingChanges', 'Speichert...')
+                : t('layout.feeds.saveChanges', 'Änderungen speichern')}
+            </Button>
+          </div>
+        )
+      }
       return (
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <p className='text-base font-semibold text-foreground'>{t('layout.feeds.headerTitle', 'Feeds')}</p>
@@ -908,7 +938,11 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     handleStartNewChat,
     handleOpenNotificationSettings,
     handleToggleFeedManager,
-    feedManagerOpen
+    feedManagerOpen,
+    closeFeedManager,
+    saveFeedManagerDraft,
+    draftDirty,
+    feedPicker?.action?.savingOrder
   ])
 
   const topBlock = section === 'notifications' ? (

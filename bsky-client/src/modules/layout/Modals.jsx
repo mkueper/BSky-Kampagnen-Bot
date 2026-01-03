@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useComposerDispatch, useComposerState } from '../../context/ComposerContext.jsx';
-import { useAppState } from '../../context/AppContext.jsx';
 import { useTimelineDispatch } from '../../context/TimelineContext.jsx';
 import { useUIDispatch, useUIState } from '../../context/UIContext.jsx';
 import { useMediaLightbox } from '../../hooks/useMediaLightbox';
 import { useComposer } from '../../hooks/useComposer';
-import { useFeedPicker } from '../../hooks/useFeedPicker';
 import { useClientConfig } from '../../hooks/useClientConfig.js'
 import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { Button, MediaLightbox, publishPost } from '../shared';
@@ -14,7 +12,6 @@ import { Composer, ComposeModal } from '../composer';
 import ReplyPreviewCard from '../composer/ReplyPreviewCard.jsx'
 import { ThreadComposer } from '@bsky-kampagnen-bot/shared-ui'
 import { buildReplyContext, buildReplyInfo } from '../composer/replyUtils.js'
-import FeedManager from './FeedManager.jsx';
 import AuthorThreadUnrollModal from '../timeline/AuthorThreadUnrollModal.jsx';
 import { useTranslation } from '../../i18n/I18nProvider.jsx';
 import LoginView from '../login/LoginView.jsx'
@@ -59,19 +56,9 @@ export function Modals() {
   const timelineDispatch = useTimelineDispatch()
   const composerDispatch = useComposerDispatch()
   const uiDispatch = useUIDispatch()
-  const { section } = useAppState()
   const { clientConfig } = useClientConfig()
   const { closeComposer, setQuoteTarget, setThreadSource, setThreadAppendNumbering, setComposeMode } = useComposer();
   const { addAccount, cancelAddAccount } = useBskyAuth()
-  const {
-    feedPicker,
-    feedManagerOpen,
-    refreshFeeds,
-    pinFeed,
-    unpinFeed,
-    reorderPinnedFeeds,
-    closeFeedManager
-  } = useFeedPicker();
   const { t } = useTranslation();
   const [threadSending, setThreadSending] = useState(false)
   const [threadError, setThreadError] = useState('')
@@ -183,12 +170,6 @@ export function Modals() {
     setThreadMediaDraft(Array.isArray(media) ? media : [])
     setComposeMode('thread')
   }, [setComposeMode, setThreadSource])
-
-  useEffect(() => {
-    if (feedManagerOpen) {
-      refreshFeeds({ force: true });
-    }
-  }, [feedManagerOpen, refreshFeeds]);
 
   useEffect(() => {
     if (!composeOpen) {
@@ -346,19 +327,7 @@ export function Modals() {
         />
       ) : null}
 
-      {feedManagerOpen && section !== 'feeds' ? (
-        <FeedManager
-          open={feedManagerOpen}
-          loading={feedPicker.loading}
-          error={feedPicker.error}
-          feeds={feedPicker}
-          onClose={closeFeedManager}
-          onRefresh={() => refreshFeeds({ force: true })}
-          onPin={pinFeed}
-          onUnpin={unpinFeed}
-          onReorder={reorderPinnedFeeds}
-        />
-      ) : null}
+
       <AuthorThreadUnrollModal />
 
       <LoginView

@@ -90,10 +90,10 @@ function FeedsSection () {
     feedManagerOpen,
     refreshFeeds,
     pinFeed,
-    unpinFeed,
-    reorderPinnedFeeds,
-    loadMoreDiscover,
-    closeFeedManager
+    pinFeedDraft,
+    unpinFeedDraft,
+    reorderPinnedDraft,
+    loadMoreDiscover
   } = useFeedPicker()
   const [activeTab, setActiveTab] = useState('mine')
   const [selectedFeed, setSelectedFeed] = useState(null)
@@ -107,6 +107,10 @@ function FeedsSection () {
 
   useEffect(() => {
     refreshFeeds({ force: true, loadDiscover: true })
+  }, [refreshFeeds])
+
+  const refreshFeedManager = useCallback(() => {
+    refreshFeeds({ force: true })
   }, [refreshFeeds])
 
   const tabs = [
@@ -296,7 +300,20 @@ function FeedsSection () {
     )
   }
 
-  return (
+  const managerContent = (
+    <FeedManager
+      open
+      loading={feedPicker.loading}
+      error={feedPicker.error}
+      feeds={feedPicker}
+      onRefresh={refreshFeedManager}
+      onPin={pinFeedDraft}
+      onUnpin={unpinFeedDraft}
+      onReorder={reorderPinnedDraft}
+    />
+  )
+
+  const feedsContent = (
     <div className='space-y-6'>
       <div className='rounded-2xl border border-border bg-background-elevated/70 px-3 py-2 shadow-soft'>
         <div className='flex flex-wrap items-center gap-2'>
@@ -318,187 +335,172 @@ function FeedsSection () {
         </div>
       </div>
 
-      <div className={feedManagerOpen ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]' : ''}>
-        <div className='space-y-6'>
-          {activeTab === 'mine' ? (
-            <div className='space-y-4'>
-              <div className='flex items-center gap-4 rounded-3xl border border-border bg-background p-4 shadow-soft'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary'>
-                  <LayersIcon className='h-5 w-5' />
-                </div>
-                <div>
-                  <p className='text-base font-semibold text-foreground'>
-                    {t('layout.feeds.mineTitle', 'Meine Feeds')}
-                  </p>
-                  <p className='text-sm text-foreground-muted'>
-                    {t('layout.feeds.mineDescription', 'Alle deine gespeicherten Feeds an einem Ort.')}
-                  </p>
-                </div>
+      <div className='space-y-6'>
+        {activeTab === 'mine' ? (
+          <div className='space-y-4'>
+            <div className='flex items-center gap-4 rounded-3xl border border-border bg-background p-4 shadow-soft'>
+              <div className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                <LayersIcon className='h-5 w-5' />
               </div>
-              <div className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
-                {allRows.map((feed, idx) => (
-                  <button
-                    key={feed.id || idx}
-                    type='button'
-                    onClick={() => openFeedFromMine(feed)}
-                    className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition ${
-                      idx === allRows.length - 1 ? '' : 'border-b border-border'
-                    } hover:bg-background-subtle/70`}
-                  >
-                    <div className='flex items-center gap-3'>
-                      {feed.avatar ? (
-                        <img
-                          src={feed.avatar}
-                          alt=''
-                          className='h-9 w-9 rounded-lg border border-border object-cover'
-                        />
-                      ) : (
-                        <div className='flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background-subtle text-primary'>
-                          {(() => {
-                            const Icon = resolveFeedIcon(feed)
-                            return <Icon className='h-4 w-4' />
-                          })()}
-                        </div>
-                      )}
-                      <span className={`text-sm font-semibold ${feed.status === 'error' ? 'text-amber-700' : 'text-foreground'}`}>
-                        {feed.status === 'error'
-                          ? t('layout.feeds.feedErrorLabel', 'Feed nicht geladen')
-                          : feed.label}
-                      </span>
-                    </div>
-                    <ChevronRightIcon className='h-5 w-5 text-foreground-muted' aria-hidden='true' />
-                  </button>
-                ))}
-                {allRows.length === 0 ? (
-                  <p className='px-4 py-6 text-sm text-foreground-muted'>
-                    {t('layout.feeds.mineEmpty', 'Noch keine Feeds vorhanden.')}
-                  </p>
-                ) : null}
+              <div>
+                <p className='text-base font-semibold text-foreground'>
+                  {t('layout.feeds.mineTitle', 'Meine Feeds')}
+                </p>
+                <p className='text-sm text-foreground-muted'>
+                  {t('layout.feeds.mineDescription', 'Alle deine gespeicherten Feeds an einem Ort.')}
+                </p>
               </div>
             </div>
-          ) : (
-            <div className='space-y-4'>
-              <div className='flex items-center gap-4 rounded-3xl border border-border bg-background p-4 shadow-soft'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary'>
-                  <MagnifyingGlassIcon className='h-5 w-5' />
-                </div>
-                <div>
-                  <p className='text-base font-semibold text-foreground'>
-                    {t('layout.feeds.discoverTitle', 'Entdecke neue Feeds')}
-                  </p>
-                  <p className='text-sm text-foreground-muted'>
-                    {t('layout.feeds.discoverDescription', 'Finde Feeds aus der Community und pinne deine Favoriten.')}
-                  </p>
-                </div>
-              </div>
-              <div className='relative'>
-                <MagnifyingGlassIcon className='pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted' />
-                <input
-                  type='search'
-                  value={discoverQuery}
-                  onChange={(event) => setDiscoverQuery(event.target.value)}
-                  placeholder={t('layout.feeds.discoverSearch', 'Feeds durchsuchen')}
-                  className='h-11 w-full rounded-2xl border border-border bg-background px-11 text-sm text-foreground placeholder:text-foreground-muted shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
-                />
-              </div>
-              <div className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
-                {visibleDiscoverFeeds.length === 0 ? (
-                  <p className='px-4 py-6 text-sm text-foreground-muted'>
-                    {t('layout.feeds.discoverEmpty', 'Noch keine Empfehlungen verfügbar.')}
-                  </p>
-                ) : (
-	                  <div className='divide-y divide-border'>
-	                    {visibleDiscoverFeeds.map((feed) => {
-	                      const feedUri = feed.feedUri || feed.value || ''
-	                      const isPinned = Boolean(feed.pinned)
-	                      return (
-	                        <div key={feed.id || feedUri} className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
-	                          <button
-	                            type='button'
-	                            onClick={() => openFeedFromDiscover(feed)}
-	                            className='flex items-start gap-3 text-left transition hover:opacity-95'
-	                          >
-	                            {feed.avatar ? (
-	                              <img
-	                                src={feed.avatar}
-	                                alt=''
-	                                className='h-12 w-12 rounded-xl border border-border object-cover'
-	                              />
-	                            ) : (
-	                              <div className='flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background-subtle text-primary'>
-	                                <LayersIcon className='h-5 w-5' />
-	                              </div>
-	                            )}
-	                            <div>
-	                              <p className='text-sm font-semibold text-foreground'>
-	                                {feed.displayName || feed.label || t('layout.feeds.feedFallback', 'Feed')}
-	                              </p>
-	                              {feed.creator?.handle ? (
-	                                <p className='text-xs text-foreground-muted'>
-	                                  {t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle })}
-	                                </p>
-	                              ) : null}
-	                              {feed.description ? (
-	                                <p className='mt-2 text-sm text-foreground-muted'>{feed.description}</p>
-	                              ) : null}
-	                              {feed.likeCount != null ? (
-	                                <p className='mt-2 text-xs text-foreground-muted'>
-	                                  {t('layout.feeds.likes', '{count} Likes', { count: feed.likeCount })}
-	                                </p>
-	                              ) : null}
-	                            </div>
-	                          </button>
-	                          <div className='flex items-center justify-end'>
-                            <Button
-                              type='button'
-                              variant='primary'
-                              size='pill'
-                              disabled={!feedUri}
-                              className='min-w-[160px] h-9 justify-center whitespace-nowrap'
-                              onClick={() => {
-                                if (!feedUri || isPinned) return
-                                pinFeed?.(feedUri)
-                              }}
-                            >
-                              {!isPinned ? <DrawingPinIcon className='h-4 w-4' aria-hidden='true' /> : null}
-                              {isPinned
-                                ? t('layout.feeds.attached', 'Angeheftet')
-                                : t('layout.feeds.attach', 'Anheften')}
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    <div ref={discoverSentinelRef} aria-hidden='true' className='h-6' />
-                    {discoverLoadingMore ? (
-                      <p className='px-4 py-3 text-xs text-foreground-muted'>
-                        {t('common.status.autoLoading', 'Weitere Ergebnisse werden automatisch geladen…')}
-                      </p>
-                    ) : null}
+            <div className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
+              {allRows.map((feed, idx) => (
+                <button
+                  key={feed.id || idx}
+                  type='button'
+                  onClick={() => openFeedFromMine(feed)}
+                  className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition ${
+                    idx === allRows.length - 1 ? '' : 'border-b border-border'
+                  } hover:bg-background-subtle/70`}
+                >
+                  <div className='flex items-center gap-3'>
+                    {feed.avatar ? (
+                      <img
+                        src={feed.avatar}
+                        alt=''
+                        className='h-9 w-9 rounded-lg border border-border object-cover'
+                      />
+                    ) : (
+                      <div className='flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background-subtle text-primary'>
+                        {(() => {
+                          const Icon = resolveFeedIcon(feed)
+                          return <Icon className='h-4 w-4' />
+                        })()}
+                      </div>
+                    )}
+                    <span className={`text-sm font-semibold ${feed.status === 'error' ? 'text-amber-700' : 'text-foreground'}`}>
+                      {feed.status === 'error'
+                        ? t('layout.feeds.feedErrorLabel', 'Feed nicht geladen')
+                        : feed.label}
+                    </span>
                   </div>
-                )}
+                  <ChevronRightIcon className='h-5 w-5 text-foreground-muted' aria-hidden='true' />
+                </button>
+              ))}
+              {allRows.length === 0 ? (
+                <p className='px-4 py-6 text-sm text-foreground-muted'>
+                  {t('layout.feeds.mineEmpty', 'Noch keine Feeds vorhanden.')}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div className='space-y-4'>
+            <div className='flex items-center gap-4 rounded-3xl border border-border bg-background p-4 shadow-soft'>
+              <div className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                <MagnifyingGlassIcon className='h-5 w-5' />
+              </div>
+              <div>
+                <p className='text-base font-semibold text-foreground'>
+                  {t('layout.feeds.discoverTitle', 'Entdecke neue Feeds')}
+                </p>
+                <p className='text-sm text-foreground-muted'>
+                  {t('layout.feeds.discoverDescription', 'Finde Feeds aus der Community und pinne deine Favoriten.')}
+                </p>
               </div>
             </div>
-          )}
-        </div>
-        {feedManagerOpen ? (
-          <FeedManager
-            variant='pane'
-            dataComponent={null}
-            open
-            loading={feedPicker.loading}
-            error={feedPicker.error}
-            feeds={feedPicker}
-            onClose={closeFeedManager}
-            onRefresh={() => refreshFeeds({ force: true })}
-            onPin={pinFeed}
-            onUnpin={unpinFeed}
-            onReorder={reorderPinnedFeeds}
-          />
-        ) : null}
+            <div className='relative'>
+              <MagnifyingGlassIcon className='pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-muted' />
+              <input
+                type='search'
+                value={discoverQuery}
+                onChange={(event) => setDiscoverQuery(event.target.value)}
+                placeholder={t('layout.feeds.discoverSearch', 'Feeds durchsuchen')}
+                className='h-11 w-full rounded-2xl border border-border bg-background px-11 text-sm text-foreground placeholder:text-foreground-muted shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/70'
+              />
+            </div>
+            <div className='overflow-hidden rounded-3xl border border-border bg-background shadow-soft'>
+              {visibleDiscoverFeeds.length === 0 ? (
+                <p className='px-4 py-6 text-sm text-foreground-muted'>
+                  {t('layout.feeds.discoverEmpty', 'Noch keine Empfehlungen verfügbar.')}
+                </p>
+              ) : (
+                <div className='divide-y divide-border'>
+                  {visibleDiscoverFeeds.map((feed) => {
+                    const feedUri = feed.feedUri || feed.value || ''
+                    const isPinned = Boolean(feed.pinned)
+                    return (
+                      <div key={feed.id || feedUri} className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
+                        <button
+                          type='button'
+                          onClick={() => openFeedFromDiscover(feed)}
+                          className='flex items-start gap-3 text-left transition hover:opacity-95'
+                        >
+                          {feed.avatar ? (
+                            <img
+                              src={feed.avatar}
+                              alt=''
+                              className='h-12 w-12 rounded-xl border border-border object-cover'
+                            />
+                          ) : (
+                            <div className='flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-background-subtle text-primary'>
+                              <LayersIcon className='h-5 w-5' />
+                            </div>
+                          )}
+                          <div>
+                            <p className='text-sm font-semibold text-foreground'>
+                              {feed.displayName || feed.label || t('layout.feeds.feedFallback', 'Feed')}
+                            </p>
+                            {feed.creator?.handle ? (
+                              <p className='text-xs text-foreground-muted'>
+                                {t('layout.feeds.byCreator', 'von @{handle}', { handle: feed.creator.handle })}
+                              </p>
+                            ) : null}
+                            {feed.description ? (
+                              <p className='mt-2 text-sm text-foreground-muted'>{feed.description}</p>
+                            ) : null}
+                            {feed.likeCount != null ? (
+                              <p className='mt-2 text-xs text-foreground-muted'>
+                                {t('layout.feeds.likes', '{count} Likes', { count: feed.likeCount })}
+                              </p>
+                            ) : null}
+                          </div>
+                        </button>
+                        <div className='flex items-center justify-end'>
+                          <Button
+                            type='button'
+                            variant='primary'
+                            size='pill'
+                            disabled={!feedUri}
+                            className='min-w-[160px] h-9 justify-center whitespace-nowrap'
+                            onClick={() => {
+                              if (!feedUri || isPinned) return
+                              pinFeed?.(feedUri)
+                            }}
+                          >
+                            {!isPinned ? <DrawingPinIcon className='h-4 w-4' aria-hidden='true' /> : null}
+                            {isPinned
+                              ? t('layout.feeds.attached', 'Angeheftet')
+                              : t('layout.feeds.attach', 'Anheften')}
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div ref={discoverSentinelRef} aria-hidden='true' className='h-6' />
+                  {discoverLoadingMore ? (
+                    <p className='px-4 py-3 text-xs text-foreground-muted'>
+                      {t('common.status.autoLoading', 'Weitere Ergebnisse werden automatisch geladen…')}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
+
+  return feedManagerOpen ? managerContent : feedsContent
 }
 
 export function SectionRenderer () {

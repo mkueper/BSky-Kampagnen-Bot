@@ -15,7 +15,6 @@ const OFFICIAL_FEEDS = [
   { id: 'mutuals', label: 'Mutuals', type: 'feed', value: OFFICIAL_FEED_GENERATORS.mutuals, feedUri: OFFICIAL_FEED_GENERATORS.mutuals },
   { id: 'best-of-follows', label: 'Best of Follows', type: 'feed', value: OFFICIAL_FEED_GENERATORS['best-of-follows'], feedUri: OFFICIAL_FEED_GENERATORS['best-of-follows'] }
 ]
-const TIMELINE_FOLLOWING_VALUE = 'following'
 
 const TIMELINE_TAB_CONFIG = {
   following: { type: 'timeline' },
@@ -746,8 +745,6 @@ function orderSavedFeeds (savedFeeds = [], pinnedOrder = []) {
     orderedPinned.push(entry)
     seen.add(entry.id)
   }
-  const following = pinned.find((entry) => entry.type === 'timeline' && entry.value === TIMELINE_FOLLOWING_VALUE)
-  addPinned(following)
   pinnedOrder.forEach((id) => {
     const entry = typeof id === 'string' ? pinnedMap.get(id) : null
     if (entry) addPinned(entry)

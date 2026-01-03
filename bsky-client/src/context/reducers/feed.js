@@ -10,6 +10,11 @@ export const feedInitialState = {
     discoverLoadingMore: false,
     errors: [],
     lastUpdatedAt: 0,
+    draft: {
+      pinned: [],
+      saved: [],
+      dirty: false
+    },
     action: {
       pinning: '',
       unpinning: '',
@@ -24,10 +29,14 @@ export function feedReducer(state, action) {
   switch (action.type) {
     case 'SET_FEED_PICKER_STATE': {
       const payload = action.payload || {};
-      const { action: actionPatch, ...rest } = payload;
+      const { action: actionPatch, draft: draftPatch, ...rest } = payload;
       const nextFeedPicker = {
         ...state.feedPicker,
         ...rest,
+        draft: {
+          ...state.feedPicker.draft,
+          ...(draftPatch || {})
+        },
         action: {
           ...state.feedPicker.action,
           ...(actionPatch || {})
