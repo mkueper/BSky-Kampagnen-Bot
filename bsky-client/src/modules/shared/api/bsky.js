@@ -151,6 +151,14 @@ function buildChatServiceUrl (nsid, params) {
   if (params && typeof params === 'object') {
     for (const [key, value] of Object.entries(params)) {
       if (value === undefined || value === null) continue
+      if (Array.isArray(value)) {
+        for (const entry of value) {
+          if (entry === undefined || entry === null) continue
+          const serialized = typeof entry === 'string' ? entry : String(entry)
+          if (serialized) url.searchParams.append(key, serialized)
+        }
+        continue
+      }
       const serialized = typeof value === 'string' ? value : String(value)
       if (serialized) url.searchParams.set(key, serialized)
     }
@@ -990,6 +998,165 @@ async function fetchChatMessagesDirect ({ convoId, cursor, limit } = {}) {
   }
 }
 
+async function fetchChatConversationForMembersDirect ({ members } = {}) {
+  const normalized = Array.isArray(members)
+    ? members.map((member) => (typeof member === 'string' ? member.trim() : '')).filter(Boolean)
+    : []
+  const uniqueMembers = Array.from(new Set(normalized)).slice(0, 10)
+  if (!uniqueMembers.length) {
+    throw new Error('members ist erforderlich.')
+  }
+  const agent = assertActiveAgent()
+  const convoApi = agent.chat?.bsky?.convo
+  const params = { members: uniqueMembers }
+  let data
+  try {
+    data = await executeChatRequest(
+      convoApi?.getConvoForMembers ? () => convoApi.getConvoForMembers(params, { headers: CHAT_SERVICE_HEADERS }) : null,
+      { nsid: 'chat.bsky.convo.getConvoForMembers', httpMethod: 'GET', params }
+    )
+  } catch (error) {
+    throw transformChatApiError(error)
+  }
+  const convo = data?.convo
+    ? mapConversationEntry(data.convo, { context: `chat:members:${uniqueMembers.join(',')}`, currentDid: agent.session?.did })
+    : null
+  return { conversation: convo }
+}
+
+async function sendFeedInteractionsDirect ({ interactions } = {}) {
+  const agent = assertActiveAgent()
+  const entries = Array.isArray(interactions)
+    ? interactions
+        .map((entry) => ({
+          item: typeof entry?.item === 'string' ? entry.item : null,
+          event: typeof entry?.event === 'string' ? entry.event : null,
+          feedContext: typeof entry?.feedContext === 'string' ? entry.feedContext : undefined,
+          reqId: typeof entry?.reqId === 'string' ? entry.reqId : undefined
+        }))
+        .filter((entry) => entry.item && entry.event)
+    : []
+  if (!entries.length) return { ok: false }
+  const payload = { interactions: entries }
+  const feedApi = agent.app?.bsky?.feed
+  if (!feedApi?.sendInteractions) {
+    throw new Error('Feed-Interaktionen werden vom Client nicht unterstützt.')
+  }
+  const res = await feedApi.sendInteractions(payload)
+  return res?.data ?? res ?? { ok: true }
+}
+
+async function muteThreadDirect ({ rootUri } = {}) {
+  const root = ensureAtUri(rootUri, 'root')
+  const agent = assertActiveAgent()
+  const graphApi = agent.app?.bsky?.graph
+  if (!graphApi?.muteThread) {
+    throw new Error('Thread-Stummschaltung nicht unterstützt.')
+  }
+  const res = await graphApi.muteThread({ root })
+  return res?.data ?? res ?? { success: true }
+}
+
+async function addMutedWordDirect ({ value, targets } = {}) {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    throw new Error('Wort erforderlich')
+  }
+  const targetList = Array.isArray(targets) && targets.length > 0 ? targets : ['content']
+  return updateActorPreferencesDirect((preferences) => {
+    const type = 'app.bsky.actor.defs#mutedWordsPref'
+    return upsertPreference(preferences, type, (current) => {
+      const items = Array.isArray(current?.items) ? current.items.slice() : []
+      const exists = items.some((entry) => String(entry?.value || '').toLowerCase() === normalized.toLowerCase())
+      if (!exists) {
+        items.push({ value: normalized, targets: targetList })
+      }
+      return { $type: type, items }
+    })
+  })
+}
+
+async function hidePostDirect ({ uri } = {}) {
+  const targetUri = ensureAtUri(uri, 'uri')
+  return updateActorPreferencesDirect((preferences) => {
+    const type = 'app.bsky.actor.defs#hiddenPostsPref'
+    return upsertPreference(preferences, type, (current) => {
+      const items = Array.isArray(current?.items) ? current.items.slice() : []
+      if (!items.includes(targetUri)) {
+        items.push(targetUri)
+      }
+      return { $type: type, items }
+    })
+  })
+}
+
+async function hideReplyForAllDirect ({ rootUri, replyUri } = {}) {
+  const root = ensureAtUri(rootUri, 'root')
+  const reply = ensureAtUri(replyUri, 'reply')
+  const agent = assertActiveAgent()
+  const repo = ensureAtUri(agent?.session?.did, 'repo')
+  const rkey = extractRecordKey(root)
+  let existing = null
+  try {
+    const res = await agent.com.atproto.repo.getRecord({
+      repo,
+      collection: 'app.bsky.feed.threadgate',
+      rkey
+    })
+    existing = res?.data?.value || res?.value || res?.record || null
+  } catch (error) {
+    const status = Number(error?.status ?? error?.statusCode)
+    if (status !== 404) throw error
+  }
+  const hiddenReplies = Array.isArray(existing?.hiddenReplies) ? existing.hiddenReplies.slice() : []
+  if (!hiddenReplies.includes(reply)) {
+    hiddenReplies.push(reply)
+  }
+  const record = {
+    post: root,
+    createdAt: existing?.createdAt || new Date().toISOString()
+  }
+  if (Array.isArray(existing?.allow)) {
+    record.allow = existing.allow
+  }
+  if (hiddenReplies.length > 0) {
+    record.hiddenReplies = hiddenReplies
+  }
+  const res = await agent.com.atproto.repo.putRecord({
+    repo,
+    collection: 'app.bsky.feed.threadgate',
+    rkey,
+    record
+  })
+  return res?.data ?? res ?? { hiddenReplies }
+}
+
+async function reportPostDirect ({ uri, cid, reasonType, reason } = {}) {
+  const targetUri = ensureAtUri(uri, 'uri')
+  const targetCid = ensureCid(cid)
+  const type = typeof reasonType === 'string' ? reasonType : ''
+  if (!type) {
+    throw new Error('reasonType erforderlich')
+  }
+  const agent = assertActiveAgent()
+  const moderationApi = agent.com?.atproto?.moderation
+  if (!moderationApi?.createReport) {
+    throw new Error('Report-API nicht verfügbar.')
+  }
+  const payload = {
+    reasonType: type,
+    subject: {
+      uri: targetUri,
+      cid: targetCid
+    }
+  }
+  if (typeof reason === 'string' && reason.trim()) {
+    payload.reason = reason.trim()
+  }
+  const res = await moderationApi.createReport(payload)
+  return res?.data ?? res ?? { success: true }
+}
+
 async function sendChatMessageDirect ({ convoId, text }) {
   if (!convoId) {
     throw new Error('conversationId ist erforderlich.')
@@ -1368,6 +1535,42 @@ async function resolveAgentPreferences (agent) {
   }
   const res = await agent.app.bsky.actor.getPreferences()
   return res?.data || res
+}
+
+function extractPreferencesList (prefs) {
+  if (Array.isArray(prefs?.preferences)) return prefs.preferences
+  if (Array.isArray(prefs)) return prefs
+  return []
+}
+
+function upsertPreference (preferences, prefType, buildNext) {
+  const list = Array.isArray(preferences) ? preferences.slice() : []
+  const index = list.findIndex((entry) => entry?.$type === prefType)
+  const current = index >= 0 ? list[index] : null
+  const next = buildNext(current)
+  if (!next) {
+    if (index >= 0) list.splice(index, 1)
+    return list
+  }
+  if (index >= 0) {
+    list[index] = next
+    return list
+  }
+  list.push(next)
+  return list
+}
+
+async function updateActorPreferencesDirect (updatePreferences) {
+  const agent = assertActiveAgent()
+  const actorApi = agent.app?.bsky?.actor
+  if (!actorApi?.putPreferences) {
+    throw new Error('Preferences API nicht verfügbar.')
+  }
+  const current = await resolveAgentPreferences(agent)
+  const list = extractPreferencesList(current)
+  const next = typeof updatePreferences === 'function' ? updatePreferences(list) : list
+  await actorApi.putPreferences({ preferences: next })
+  return { preferences: next }
 }
 
 async function fetchNotificationPreferencesDirect () {
@@ -2101,8 +2304,36 @@ export async function fetchChatMessages ({ convoId, cursor, limit } = {}) {
   return fetchChatMessagesDirect({ convoId, cursor, limit })
 }
 
+export async function fetchChatConversationForMembers ({ members } = {}) {
+  return fetchChatConversationForMembersDirect({ members })
+}
+
 export async function sendChatMessage ({ convoId, text }) {
   return sendChatMessageDirect({ convoId, text })
+}
+
+export async function sendFeedInteractions ({ interactions } = {}) {
+  return sendFeedInteractionsDirect({ interactions })
+}
+
+export async function muteThread ({ rootUri } = {}) {
+  return muteThreadDirect({ rootUri })
+}
+
+export async function addMutedWord ({ value, targets } = {}) {
+  return addMutedWordDirect({ value, targets })
+}
+
+export async function hidePost ({ uri } = {}) {
+  return hidePostDirect({ uri })
+}
+
+export async function hideReplyForAll ({ rootUri, replyUri } = {}) {
+  return hideReplyForAllDirect({ rootUri, replyUri })
+}
+
+export async function reportPost ({ uri, cid, reasonType, reason } = {}) {
+  return reportPostDirect({ uri, cid, reasonType, reason })
 }
 
 export async function updateChatReadState ({ convoId, messageId } = {}) {

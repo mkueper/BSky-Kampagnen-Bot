@@ -20,6 +20,9 @@ import PostInteractionSettingsModal from '../composer/PostInteractionSettingsMod
 import ClientSettingsModal from '../settings/ClientSettingsModal.jsx'
 import { fetchLinkPreviewMetadata } from '../composer/linkPreviewService.js'
 import NotificationSettingsModal from '../notifications/NotificationSettingsModal.jsx'
+import ShareToChatModal from '../chat/ShareToChatModal.jsx'
+import EmbedPostModal from '../timeline/EmbedPostModal.jsx'
+import ReportPostModal from '../shared/ReportPostModal.jsx'
 
 const THREAD_MEDIA_MAX_PER_SEGMENT = 4
 const THREAD_MEDIA_MAX_BYTES = 8 * 1024 * 1024
@@ -51,7 +54,7 @@ function buildThreadReplyContext (root, parent) {
 
 export function Modals() {
   const { composeOpen, replyTarget, quoteTarget, confirmDiscard, composeMode, threadSource, threadAppendNumbering } = useComposerState();
-  const { clientSettingsOpen, notificationsSettingsOpen } = useUIState();
+  const { clientSettingsOpen, notificationsSettingsOpen, shareToChat, embedPost, reportPost } = useUIState();
   const { mediaLightbox, closeMediaPreview, navigateMediaPreview } = useMediaLightbox();
   const timelineDispatch = useTimelineDispatch()
   const composerDispatch = useComposerDispatch()
@@ -363,6 +366,23 @@ export function Modals() {
         open={Boolean(notificationsSettingsOpen)}
         onClose={handleCloseNotificationSettings}
         onProfileOpen={handleNotificationProfileOpen}
+      />
+      <ShareToChatModal
+        open={Boolean(shareToChat?.open)}
+        item={shareToChat?.item}
+        shareUrl={shareToChat?.shareUrl || ''}
+        onClose={() => uiDispatch({ type: 'CLOSE_SHARE_TO_CHAT' })}
+      />
+      <EmbedPostModal
+        open={Boolean(embedPost?.open)}
+        item={embedPost?.item}
+        shareUrl={embedPost?.shareUrl || ''}
+        onClose={() => uiDispatch({ type: 'CLOSE_EMBED_POST' })}
+      />
+      <ReportPostModal
+        open={Boolean(reportPost?.open)}
+        subject={reportPost?.subject}
+        onClose={() => uiDispatch({ type: 'CLOSE_REPORT_POST' })}
       />
 
     </>

@@ -17,7 +17,26 @@ const DEFAULT_HASHTAG_STATE = {
 const DEFAULT_CHAT_VIEWER = {
   open: false,
   convoId: null,
-  conversation: null
+  conversation: null,
+  prefillText: '',
+  prefillKey: null
+}
+
+const DEFAULT_SHARE_TO_CHAT = {
+  open: false,
+  item: null,
+  shareUrl: ''
+}
+
+const DEFAULT_EMBED_POST = {
+  open: false,
+  item: null,
+  shareUrl: ''
+}
+
+const DEFAULT_REPORT_POST = {
+  open: false,
+  subject: null
 }
 
 const QUOTE_REPOST_STORAGE_KEY = 'bsky.quoteReposts'
@@ -42,7 +61,10 @@ const initialUIState = {
   hashtagSearch: { ...DEFAULT_HASHTAG_STATE },
   chatViewer: { ...DEFAULT_CHAT_VIEWER },
   chatUnreadCount: 0,
-  clientSettingsOpen: false
+  clientSettingsOpen: false,
+  shareToChat: { ...DEFAULT_SHARE_TO_CHAT },
+  embedPost: { ...DEFAULT_EMBED_POST },
+  reportPost: { ...DEFAULT_REPORT_POST }
 }
 
 function uiReducer(state, action) {
@@ -133,12 +155,16 @@ function uiReducer(state, action) {
         ? payload.conversationId
         : (conversation?.id || null)
       if (!convoId) return state
+      const prefillText = typeof payload.prefillText === 'string' ? payload.prefillText : ''
+      const prefillKey = payload.prefillKey || null
       return {
         ...state,
         chatViewer: {
           open: true,
           convoId,
-          conversation
+          conversation,
+          prefillText,
+          prefillKey
         },
         profileViewer: state.profileViewer?.open ? { ...defaultProfileViewerState } : state.profileViewer,
         hashtagSearch: {
@@ -151,6 +177,58 @@ function uiReducer(state, action) {
       return {
         ...state,
         chatViewer: { ...DEFAULT_CHAT_VIEWER }
+      }
+    }
+    case 'OPEN_SHARE_TO_CHAT': {
+      const payload = action.payload || {}
+      return {
+        ...state,
+        shareToChat: {
+          open: true,
+          item: payload.item || null,
+          shareUrl: typeof payload.shareUrl === 'string' ? payload.shareUrl : ''
+        }
+      }
+    }
+    case 'CLOSE_SHARE_TO_CHAT': {
+      return {
+        ...state,
+        shareToChat: { ...DEFAULT_SHARE_TO_CHAT }
+      }
+    }
+    case 'OPEN_EMBED_POST': {
+      const payload = action.payload || {}
+      return {
+        ...state,
+        embedPost: {
+          open: true,
+          item: payload.item || null,
+          shareUrl: typeof payload.shareUrl === 'string' ? payload.shareUrl : ''
+        }
+      }
+    }
+    case 'CLOSE_EMBED_POST': {
+      return {
+        ...state,
+        embedPost: { ...DEFAULT_EMBED_POST }
+      }
+    }
+    case 'OPEN_REPORT_POST': {
+      const payload = action.payload || {}
+      const subject = payload.subject && typeof payload.subject === 'object' ? payload.subject : null
+      if (!subject?.uri || !subject?.cid) return state
+      return {
+        ...state,
+        reportPost: {
+          open: true,
+          subject
+        }
+      }
+    }
+    case 'CLOSE_REPORT_POST': {
+      return {
+        ...state,
+        reportPost: { ...DEFAULT_REPORT_POST }
       }
     }
     case 'PATCH_CHAT_VIEWER_SNAPSHOT': {

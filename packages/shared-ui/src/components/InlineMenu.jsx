@@ -62,7 +62,7 @@ InlineMenuContent.propTypes = {
   style: PropTypes.object
 }
 
-export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = false, variant = 'default' }) {
+export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = false, variant = 'default', title }) {
   const variantStyles = {
     default: {
       container: 'text-foreground hover:bg-background-subtle/80 dark:hover:bg-primary/10 hover:shadow-sm',
@@ -83,6 +83,7 @@ export function InlineMenuItem ({ icon: Icon, children, onSelect, disabled = fal
       type='button'
       onClick={onSelect}
       disabled={disabled}
+      title={title}
       className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${currentVariant.container}`}
     >
       {Icon ? <Icon className={`h-4 w-4 ${currentVariant.icon}`} /> : null}
@@ -96,7 +97,8 @@ InlineMenuItem.propTypes = {
   children: PropTypes.node,
   onSelect: PropTypes.func,
   disabled: PropTypes.bool,
-  variant: PropTypes.oneOf(['default', 'destructive', 'warning'])
+  variant: PropTypes.oneOf(['default', 'destructive', 'warning']),
+  title: PropTypes.string
 }
 
 export function InlineMenu ({ open, onOpenChange, children }) {

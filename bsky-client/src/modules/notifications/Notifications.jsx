@@ -41,7 +41,12 @@ import {
   InlineMenuContent,
   InlineMenuItem,
   ConfirmDialog,
-  useConfirmDialog
+  useConfirmDialog,
+  sendFeedInteractions,
+  muteThread,
+  addMutedWord,
+  hidePost,
+  hideReplyForAll
 } from '../shared'
 import { parseAspectRatioValue } from '../shared/utils/media.js'
 import NotificationCardSkeleton from './NotificationCardSkeleton.jsx'
@@ -465,7 +470,7 @@ function extractQuotedPost (subject) {
   }
 }
 
-export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false }) {
+export const NotificationCard = memo(function NotificationCard ({ item, onSelectItem, onSelectSubject, onReply, onQuote, onMarkRead, onViewMedia, inlineVideoEnabled = false, activeTab = 'all' }) {
   const timelineDispatch = useTimelineDispatch()
   const uiDispatch = useUIDispatch()
   const { quoteReposts } = useUIState()
@@ -712,6 +717,144 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
     window.setTimeout(() => setMenuActionError(''), 3200)
   }, [])
 
+  const resolveFeedbackError = useCallback((error, fallbackKey, fallbackDefault) => {
+    const status = Number(error?.status ?? error?.statusCode)
+    const code = String(error?.error || error?.data?.error || '').toLowerCase()
+    if (status === 404 || code === 'xrpcnotsupported') {
+      return t('skeet.actions.feedbackUnavailable', 'Feedback derzeit nicht verfügbar.')
+    }
+    return error?.message || t(fallbackKey, fallbackDefault)
+  }, [t])
+
+  const resolveThreadRootUri = useCallback(() => {
+    return (
+      record?.reply?.root?.uri ||
+      item?.raw?.post?.record?.reply?.root?.uri ||
+      actionUri ||
+      null
+    )
+  }, [actionUri, item?.raw?.post?.record?.reply?.root?.uri, record?.reply?.root?.uri])
+  const rootDid = useMemo(() => {
+    const rootUri = resolveThreadRootUri()
+    if (!rootUri || typeof rootUri !== 'string') return null
+    if (!rootUri.startsWith('at://')) return null
+    const parts = rootUri.slice(5).split('/')
+    return parts[0] || null
+  }, [resolveThreadRootUri])
+  const canHideReplyAll = Boolean(session?.did && rootDid && session.did === rootDid)
+
+  const handleMuteThread = useCallback(async () => {
+    const rootUri = resolveThreadRootUri()
+    if (!rootUri) return
+    try {
+      await muteThread({ rootUri })
+      setFeedbackMessage(t('skeet.actions.muteThreadSuccess', 'Thread stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteThreadError', 'Thread konnte nicht stummgeschaltet werden.'))
+    }
+  }, [muteThread, resolveThreadRootUri, showMenuError, t])
+
+  const handleMuteWords = useCallback(async () => {
+    const promptLabel = t('skeet.actions.muteWordsPrompt', 'Wort oder #Tag eingeben')
+    const input = window.prompt(promptLabel, '')
+    const value = String(input || '').trim()
+    if (!value) return
+    const isTag = value.startsWith('#')
+    const normalized = isTag ? value.slice(1).trim() : value
+    if (!normalized) return
+    const targets = isTag ? ['tag'] : ['content']
+    try {
+      await addMutedWord({ value: normalized, targets })
+      setFeedbackMessage(t('skeet.actions.muteWordsSuccess', 'Wort oder Tag wurde stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteWordsError', 'Wort oder Tag konnte nicht stummgeschaltet werden.'))
+    }
+  }, [addMutedWord, showMenuError, t])
+
+  const handleHidePost = useCallback(async () => {
+    if (!actionUri) return
+    try {
+      await hidePost({ uri: actionUri })
+      setFeedbackMessage(t('skeet.actions.hidePostSuccess', 'Post ausgeblendet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.hidePostError', 'Post konnte nicht ausgeblendet werden.'))
+    }
+  }, [actionUri, hidePost, showMenuError, t])
+
+  const handleHideReply = useCallback(async () => {
+    if (!actionUri) return
+    try {
+      await hidePost({ uri: actionUri })
+      setFeedbackMessage(t('skeet.actions.hideReplySuccess', 'Antwort ausgeblendet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.hideReplyError', 'Antwort konnte nicht ausgeblendet werden.'))
+    }
+  }, [actionUri, hidePost, showMenuError, t])
+
+  const handleHideReplyAll = useCallback(async () => {
+    const rootUri = resolveThreadRootUri()
+    if (!rootUri || !actionUri || !canHideReplyAll) return
+    try {
+      await hideReplyForAll({ rootUri, replyUri: actionUri })
+      setFeedbackMessage(t('skeet.actions.hideReplyAllSuccess', 'Antwort für alle ausgeblendet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.hideReplyAllError', 'Antwort konnte nicht ausgeblendet werden.'))
+    }
+  }, [actionUri, canHideReplyAll, hideReplyForAll, resolveThreadRootUri, showMenuError, t])
+
+  const handleReportPost = useCallback(() => {
+    if (!actionUri || !actionCid) return
+    uiDispatch({
+      type: 'OPEN_REPORT_POST',
+      payload: { subject: { uri: actionUri, cid: actionCid, author: actionAuthor || null } }
+    })
+  }, [actionAuthor, actionCid, actionUri, uiDispatch])
+
+  const handleRequestMore = useCallback(async () => {
+    if (!actionUri) return
+    try {
+      await sendFeedInteractions({
+        interactions: [
+          {
+            item: actionUri,
+            event: 'app.bsky.feed.defs#requestMore',
+            feedContext: item?.raw?.feedContext,
+            reqId: item?.raw?.reqId
+          }
+        ]
+      })
+      setFeedbackMessage(t('skeet.actions.showMoreSuccess', 'Danke! Wir zeigen dir mehr davon.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(resolveFeedbackError(error, 'skeet.actions.showMoreError', 'Feedback konnte nicht gesendet werden.'))
+    }
+  }, [actionUri, item?.raw?.feedContext, item?.raw?.reqId, resolveFeedbackError, sendFeedInteractions, showMenuError, t])
+
+  const handleRequestLess = useCallback(async () => {
+    if (!actionUri) return
+    try {
+      await sendFeedInteractions({
+        interactions: [
+          {
+            item: actionUri,
+            event: 'app.bsky.feed.defs#requestLess',
+            feedContext: item?.raw?.feedContext,
+            reqId: item?.raw?.reqId
+          }
+        ]
+      })
+      setFeedbackMessage(t('skeet.actions.showLessSuccess', 'Alles klar. Wir zeigen dir weniger davon.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(resolveFeedbackError(error, 'skeet.actions.showLessError', 'Feedback konnte nicht gesendet werden.'))
+    }
+  }, [actionUri, item?.raw?.feedContext, item?.raw?.reqId, resolveFeedbackError, sendFeedInteractions, showMenuError, t])
+
   const openExternalTranslate = useCallback(() => {
     if (!allowFallback) {
       showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
@@ -893,6 +1036,61 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
       }
     ]
 
+    if (activeTab === 'mentions') {
+      return [
+        ...base,
+        {
+          key: 'mute-thread',
+          label: t('skeet.actions.muteThread', 'Thread stummschalten'),
+          icon: SpeakerOffIcon,
+          action: handleMuteThread
+        },
+        {
+          key: 'mute-words',
+          label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
+          icon: MixerVerticalIcon,
+          action: handleMuteWords
+        },
+        {
+          key: 'hide-reply',
+          label: t('skeet.actions.hideReply', 'Antwort für mich ausblenden'),
+          icon: EyeClosedIcon,
+          action: handleHideReply
+        },
+        {
+          key: 'hide-reply-all',
+          label: t('skeet.actions.hideReplyAll', 'Antwort für alle ausblenden'),
+          icon: EyeClosedIcon,
+          action: handleHideReplyAll,
+          disabled: !canHideReplyAll,
+          title: !canHideReplyAll
+            ? t('skeet.actions.hideReplyAllDisabled', 'Nur für eigene Threads verfügbar.')
+            : undefined
+        },
+        {
+          key: 'mute-account',
+          label: t('skeet.actions.muteAccount', 'Account stummschalten'),
+          icon: SpeakerModerateIcon,
+          action: handleMuteAccount,
+          disabled: mutingAccount
+        },
+        {
+          key: 'block-account',
+          label: t('skeet.actions.blockAccount', 'Account blockieren'),
+          icon: ScissorsIcon,
+          action: handleBlockAccount,
+          disabled: blockingAccount,
+          variant: 'destructive'
+        },
+        {
+          key: 'report-post',
+          label: t('skeet.actions.reportPost', 'Post melden'),
+          icon: ExclamationTriangleIcon,
+          action: handleReportPost
+        }
+      ]
+    }
+
     if (isOwnPost) {
       return [
         ...base,
@@ -927,36 +1125,36 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         key: 'show-more',
         label: t('skeet.actions.showMore', 'Mehr davon anzeigen'),
         icon: FaceIcon,
-        action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')),
-        disabled: true
+        action: handleRequestMore,
+        disabled: false
       },
       {
         key: 'show-less',
         label: t('skeet.actions.showLess', 'Weniger davon anzeigen'),
         icon: FaceIcon,
-        action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')),
-        disabled: true
+        action: handleRequestLess,
+        disabled: false
       },
       {
         key: 'mute-thread',
         label: t('skeet.actions.muteThread', 'Thread stummschalten'),
         icon: SpeakerOffIcon,
-        action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')),
-        disabled: true
+        action: handleMuteThread,
+        disabled: false
       },
       {
         key: 'mute-words',
         label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
         icon: MixerVerticalIcon,
-        action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')),
-        disabled: true
+        action: handleMuteWords,
+        disabled: false
       },
       {
         key: 'hide-post',
         label: t('skeet.actions.hidePost', 'Post für mich ausblenden'),
         icon: EyeClosedIcon,
-        action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')),
-        disabled: true
+        action: handleHidePost,
+        disabled: false
       },
       {
         key: 'mute-account',
@@ -977,11 +1175,11 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
         key: 'report-post',
         label: t('skeet.actions.reportPost', 'Post melden'),
         icon: ExclamationTriangleIcon,
-        action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')),
-        disabled: true
+        action: handleReportPost,
+        disabled: false
       }
     ]
-  }, [blockingAccount, copyToClipboard, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleMuteAccount, isOwnPost, mutingAccount, recordText, showPlaceholder, t])
+  }, [activeTab, blockingAccount, canHideReplyAll, copyToClipboard, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleHidePost, handleHideReply, handleHideReplyAll, handleMuteAccount, handleMuteThread, handleMuteWords, handleReportPost, handleRequestLess, handleRequestMore, isOwnPost, mutingAccount, recordText, t])
 
   const handleToggleLike = useCallback(async () => {
     clearError()
@@ -1486,7 +1684,12 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                       onSelect={(event) => {
                         event?.preventDefault?.()
                         handleActiveRead()
-                        showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
+                        if (actionUri) {
+                          uiDispatch({
+                            type: 'OPEN_SHARE_TO_CHAT',
+                            payload: { item: { uri: actionUri }, shareUrl }
+                          })
+                        }
                         setShareMenuOpen(false)
                       }}
                     >
@@ -1497,7 +1700,12 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                       onSelect={(event) => {
                         event?.preventDefault?.()
                         handleActiveRead()
-                        showPlaceholder(t('skeet.share.embed', 'Embed'))
+                        if (actionUri) {
+                          uiDispatch({
+                            type: 'OPEN_EMBED_POST',
+                            payload: { item: { uri: actionUri }, shareUrl }
+                          })
+                        }
                         setShareMenuOpen(false)
                       }}
                     >
@@ -1556,6 +1764,7 @@ export const NotificationCard = memo(function NotificationCard ({ item, onSelect
                           icon={Icon}
                           disabled={entry.disabled}
                           variant={entry.variant || 'default'}
+                          title={entry.title}
                           onSelect={(event) => {
                             event?.preventDefault?.()
                             if (entry.disabled) return
@@ -2370,6 +2579,7 @@ export default function Notifications ({ activeTab = 'all', listKey = 'notifs:al
             onMarkRead={handleMarkRead}
             onViewMedia={onViewMedia}
             inlineVideoEnabled={inlineVideoEnabled}
+            activeTab={activeTab}
           />
         )}
       />

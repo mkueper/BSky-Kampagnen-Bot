@@ -30,6 +30,10 @@ import { useUIState, useUIDispatch } from '../../context/UIContext.jsx'
 import {
   useBskyEngagement,
   deletePost,
+  sendFeedInteractions,
+  muteThread,
+  addMutedWord,
+  hidePost,
   RichText,
   RepostMenuButton,
   ProfilePreviewTrigger,
@@ -968,6 +972,114 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
     window.setTimeout(() => setMenuActionError(''), 3200)
   }, [])
 
+  const resolveThreadRootUri = useCallback(() => {
+    return (
+      item?.raw?.post?.record?.reply?.root?.uri ||
+      item?.record?.reply?.root?.uri ||
+      item?.reply?.root?.uri ||
+      item?.uri ||
+      null
+    )
+  }, [item?.raw?.post?.record?.reply?.root?.uri, item?.record?.reply?.root?.uri, item?.reply?.root?.uri, item?.uri])
+
+  const resolveFeedbackError = useCallback((error, fallbackKey, fallbackDefault) => {
+    const status = Number(error?.status ?? error?.statusCode)
+    const code = String(error?.error || error?.data?.error || '').toLowerCase()
+    if (status === 404 || code === 'xrpcnotsupported') {
+      return t('skeet.actions.feedbackUnavailable', 'Feedback derzeit nicht verfügbar.')
+    }
+    return error?.message || t(fallbackKey, fallbackDefault)
+  }, [t])
+
+  const handleMuteThread = useCallback(async () => {
+    const rootUri = resolveThreadRootUri()
+    if (!rootUri) return
+    try {
+      await muteThread({ rootUri })
+      setFeedbackMessage(t('skeet.actions.muteThreadSuccess', 'Thread stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteThreadError', 'Thread konnte nicht stummgeschaltet werden.'))
+    }
+  }, [muteThread, resolveThreadRootUri, showMenuError, t])
+
+  const handleMuteWords = useCallback(async () => {
+    const promptLabel = t('skeet.actions.muteWordsPrompt', 'Wort oder #Tag eingeben')
+    const input = window.prompt(promptLabel, '')
+    const value = String(input || '').trim()
+    if (!value) return
+    const isTag = value.startsWith('#')
+    const normalized = isTag ? value.slice(1).trim() : value
+    if (!normalized) return
+    const targets = isTag ? ['tag'] : ['content']
+    try {
+      await addMutedWord({ value: normalized, targets })
+      setFeedbackMessage(t('skeet.actions.muteWordsSuccess', 'Wort oder Tag wurde stummgeschaltet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.muteWordsError', 'Wort oder Tag konnte nicht stummgeschaltet werden.'))
+    }
+  }, [addMutedWord, showMenuError, t])
+
+  const handleHidePost = useCallback(async () => {
+    if (!item?.uri) return
+    try {
+      await hidePost({ uri: item.uri })
+      setFeedbackMessage(t('skeet.actions.hidePostSuccess', 'Post ausgeblendet.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(error?.message || t('skeet.actions.hidePostError', 'Post konnte nicht ausgeblendet werden.'))
+    }
+  }, [hidePost, item?.uri, showMenuError, t])
+
+  const handleReportPost = useCallback(() => {
+    if (!item?.uri || !item?.cid) return
+    uiDispatch({
+      type: 'OPEN_REPORT_POST',
+      payload: { subject: { uri: item.uri, cid: item.cid, author: item.author || null } }
+    })
+  }, [item?.author, item?.cid, item?.uri, uiDispatch])
+
+  const handleRequestMore = useCallback(async () => {
+    if (!item?.uri) return
+    try {
+      await sendFeedInteractions({
+        interactions: [
+          {
+            item: item.uri,
+            event: 'app.bsky.feed.defs#requestMore',
+            feedContext: item?.raw?.feedContext,
+            reqId: item?.raw?.reqId
+          }
+        ]
+      })
+      setFeedbackMessage(t('skeet.actions.showMoreSuccess', 'Danke! Wir zeigen dir mehr davon.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(resolveFeedbackError(error, 'skeet.actions.showMoreError', 'Feedback konnte nicht gesendet werden.'))
+    }
+  }, [item?.raw?.feedContext, item?.raw?.reqId, item?.uri, resolveFeedbackError, sendFeedInteractions, showMenuError, t])
+
+  const handleRequestLess = useCallback(async () => {
+    if (!item?.uri) return
+    try {
+      await sendFeedInteractions({
+        interactions: [
+          {
+            item: item.uri,
+            event: 'app.bsky.feed.defs#requestLess',
+            feedContext: item?.raw?.feedContext,
+            reqId: item?.raw?.reqId
+          }
+        ]
+      })
+      setFeedbackMessage(t('skeet.actions.showLessSuccess', 'Alles klar. Wir zeigen dir weniger davon.'))
+      window.setTimeout(() => setFeedbackMessage(''), 2400)
+    } catch (error) {
+      showMenuError(resolveFeedbackError(error, 'skeet.actions.showLessError', 'Feedback konnte nicht gesendet werden.'))
+    }
+  }, [item?.raw?.feedContext, item?.raw?.reqId, item?.uri, resolveFeedbackError, sendFeedInteractions, showMenuError, t])
+
   const openExternalTranslate = useCallback(() => {
     if (!allowFallback) {
       showPlaceholder(t('skeet.actions.translate', 'Übersetzen'))
@@ -1185,36 +1297,36 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         key: 'show-more',
         label: t('skeet.actions.showMore', 'Mehr davon anzeigen'),
         icon: FaceIcon,
-        action: () => showPlaceholder(t('skeet.actions.showMore', 'Mehr davon anzeigen')),
-        disabled: true
+        action: handleRequestMore,
+        disabled: false
       },
       {
         key: 'show-less',
         label: t('skeet.actions.showLess', 'Weniger davon anzeigen'),
         icon: FaceIcon,
-        action: () => showPlaceholder(t('skeet.actions.showLess', 'Weniger davon anzeigen')),
-        disabled: true
+        action: handleRequestLess,
+        disabled: false
       },
       {
         key: 'mute-thread',
         label: t('skeet.actions.muteThread', 'Thread stummschalten'),
         icon: SpeakerOffIcon,
-        action: () => showPlaceholder(t('skeet.actions.muteThread', 'Thread stummschalten')),
-        disabled: true
+        action: handleMuteThread,
+        disabled: false
       },
       {
         key: 'mute-words',
         label: t('skeet.actions.muteWords', 'Wörter und Tags stummschalten'),
         icon: MixerVerticalIcon,
-        action: () => showPlaceholder(t('skeet.actions.muteWords', 'Wörter und Tags stummschalten')),
-        disabled: true
+        action: handleMuteWords,
+        disabled: false
       },
       {
         key: 'hide-post',
         label: t('skeet.actions.hidePost', 'Post für mich ausblenden'),
         icon: EyeClosedIcon,
-        action: () => showPlaceholder(t('skeet.actions.hidePost', 'Post für mich ausblenden')),
-        disabled: true
+        action: handleHidePost,
+        disabled: false
       },
       {
         key: 'mute-account',
@@ -1235,11 +1347,11 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
         key: 'report-post',
         label: t('skeet.actions.reportPost', 'Post melden'),
         icon: ExclamationTriangleIcon,
-        action: () => showPlaceholder(t('skeet.actions.reportPost', 'Post melden')),
-        disabled: true
+        action: handleReportPost,
+        disabled: false
       }
     ]
-  }, [blockingAccount, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleMuteAccount, isOwnPost, mutingAccount, showPlaceholder, t, text, copyToClipboard])
+  }, [blockingAccount, copyToClipboard, deletingPost, handleBlockAccount, handleDeleteOwnPost, handleHidePost, handleMuteAccount, handleMuteThread, handleMuteWords, handleReportPost, handleRequestLess, handleRequestMore, isOwnPost, mutingAccount, t, text])
 
   const handleProfileClick = (event) => {
     event.preventDefault()
@@ -1985,7 +2097,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       onSelect={(event) => {
                         event?.preventDefault?.()
                         handleMarkRead()
-                        showPlaceholder(t('skeet.share.directMessage', 'Direktnachricht'))
+                        uiDispatch({
+                          type: 'OPEN_SHARE_TO_CHAT',
+                          payload: { item, shareUrl }
+                        })
                         setShareMenuOpen(false)
                       }}
                     >
@@ -1996,7 +2111,10 @@ export default function SkeetItem({ item, variant = 'card', onReply, onQuote, on
                       onSelect={(event) => {
                         event?.preventDefault?.()
                         handleMarkRead()
-                        showPlaceholder(t('skeet.share.embed', 'Embed'))
+                        uiDispatch({
+                          type: 'OPEN_EMBED_POST',
+                          payload: { item, shareUrl }
+                        })
                         setShareMenuOpen(false)
                       }}
                     >

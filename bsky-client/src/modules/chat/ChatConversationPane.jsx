@@ -30,6 +30,9 @@ export default function ChatConversationPane ({ registerLayoutHeader, renderHead
   const autoScrollRef = useRef(true)
   const initialScrollCompleteRef = useRef(false)
   const lastReadMessageIdRef = useRef(null)
+  const prefillAppliedRef = useRef(null)
+  const prefillText = typeof chatViewer?.prefillText === 'string' ? chatViewer.prefillText : ''
+  const prefillKey = chatViewer?.prefillKey || null
   const scrollToBottom = useCallback(() => {
     if (!listRef.current) return
     listRef.current.scrollTop = listRef.current.scrollHeight
@@ -121,6 +124,14 @@ export default function ChatConversationPane ({ registerLayoutHeader, renderHead
     autoScrollRef.current = true
     initialScrollCompleteRef.current = false
   }, [chatViewer?.open, convoId])
+
+  useEffect(() => {
+    if (!chatViewer?.open || !convoId || !prefillText) return
+    const key = prefillKey || `${convoId}:${prefillText}`
+    if (prefillAppliedRef.current === key) return
+    setDraft(prefillText)
+    prefillAppliedRef.current = key
+  }, [chatViewer?.open, convoId, prefillKey, prefillText])
 
   useEffect(() => {
     if (!chatViewer?.open) return
