@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { ArrowLeftIcon } from '@radix-ui/react-icons'
 import { HorizontalScrollContainer } from './index.js'
 import { Button } from '../shared/index.js'
+import { BACK_BUTTON_CLASS } from '../shared/backButtonClass.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title, actions = null }) {
@@ -13,7 +14,7 @@ export const ThreadHeader = React.memo(function ThreadHeader ({ onClose, title, 
       <div className='flex items-center gap-3'>
         <button
           type='button'
-          className='inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle/70 dark:hover:bg-primary/10 hover:shadow-sm'
+          className={BACK_BUTTON_CLASS}
           onClick={onClose}
           aria-label={t('layout.thread.back', 'Zurück zur Timeline')}
         >

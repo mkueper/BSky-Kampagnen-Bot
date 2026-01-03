@@ -1,0 +1,1 @@
+export const BACK_BUTTON_CLASS = 'inline-flex items-center justify-center rounded-full border border-border px-3 py-2 text-sm text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm'

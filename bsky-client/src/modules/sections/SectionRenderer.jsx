@@ -12,10 +12,11 @@ import {
   ProfileViewLazy,
   SettingsViewLazy
 } from './lazySections.jsx'
+import { BACK_BUTTON_CLASS } from '../shared/backButtonClass.js'
 import { useSectionActivity } from '../service/SectionActivityContext.jsx'
 import { useFeedPicker } from '../../hooks/useFeedPicker.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { LayersIcon, ChevronRightIcon, ListBulletIcon, ClockIcon, MagnifyingGlassIcon, PinLeftIcon, ArrowLeftIcon, DrawingPinIcon, DrawingPinFilledIcon } from '@radix-ui/react-icons'
+import { LayersIcon, ChevronRightIcon, ListBulletIcon, ClockIcon, MagnifyingGlassIcon, ArrowLeftIcon, DrawingPinIcon, DrawingPinFilledIcon } from '@radix-ui/react-icons'
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
@@ -258,7 +259,7 @@ function FeedsSection () {
       ? t('layout.feeds.backToDiscover', 'Zurück zu Entdecke neue Feeds')
       : t('layout.feeds.backToMine', 'Zurück zu Meine Feeds')
     const headerPillClassName = 'rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out border border-border bg-background-subtle text-foreground shadow-soft'
-    const backButtonClassName = 'inline-flex items-center justify-center rounded-full border border-border bg-background-subtle px-3 py-2 text-sm text-foreground shadow-soft'
+    const backButtonClassName = BACK_BUTTON_CLASS
     const feedIsPinned = Boolean(selectedFeed.feedUri && pinnedFeedUris.has(selectedFeed.feedUri))
     const pinnedLabel = feedIsPinned
       ? t('layout.feeds.attached', 'Angeheftet')
@@ -459,10 +460,10 @@ function FeedsSection () {
                                 pinFeed?.(feedUri)
                               }}
                             >
-                              {!isPinned ? <PinLeftIcon className='h-4 w-4' aria-hidden='true' /> : null}
+                              {!isPinned ? <DrawingPinIcon className='h-4 w-4' aria-hidden='true' /> : null}
                               {isPinned
                                 ? t('layout.feeds.attached', 'Angeheftet')
-                                : t('layout.feeds.attach', 'Feed anheften')}
+                                : t('layout.feeds.attach', 'Anheften')}
                             </Button>
                           </div>
                         </div>

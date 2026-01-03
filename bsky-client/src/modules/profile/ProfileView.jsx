@@ -30,6 +30,7 @@ import {
   ExclamationTriangleIcon
 } from '@radix-ui/react-icons'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { BACK_BUTTON_CLASS } from '../shared/backButtonClass.js'
 
 const numberFormatter = new Intl.NumberFormat('de-DE')
 const PROFILE_SCROLL_CONTAINER_ID = 'bsky-profile-scroll-container'
@@ -113,10 +114,10 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
               <button
                 type='button'
                 onClick={onBack}
-              className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-lg backdrop-blur-sm transition hover:border-foreground/70'
+                className={BACK_BUTTON_CLASS}
                 aria-label={t('profile.actions.back', 'Zurück')}
               >
-                <ArrowLeftIcon className='h-5 w-5' />
+                <ArrowLeftIcon className='h-4 w-4' />
               </button>
             </div>
             )
@@ -599,7 +600,7 @@ export default function ProfileView ({
               <button
                 type='button'
                 onClick={handleClose}
-                className='inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-foreground/70'
+                className={BACK_BUTTON_CLASS}
                 aria-label={t('profile.actions.back', 'Zurück')}
               >
                 <ArrowLeftIcon className='h-4 w-4' />
