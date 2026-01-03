@@ -20,6 +20,43 @@ const TRANSLATION_FALLBACK_OPTIONS = [
   { value: 'none', labelKey: 'clientSettings.translation.fallback.none', fallback: 'Kein Fallback' }
 ]
 
+const isPrivateHost = (hostname) => {
+  if (!hostname || typeof hostname !== 'string') return false
+  const normalized = hostname.trim().toLowerCase()
+  if (!normalized) return false
+  if (normalized === 'localhost') return true
+  if (normalized === '127.0.0.1' || normalized === '0.0.0.0') return true
+  if (normalized.startsWith('192.168.')) return true
+  if (normalized.startsWith('10.')) return true
+  if (normalized.startsWith('172.')) {
+    const parts = normalized.split('.')
+    const second = Number(parts[1])
+    if (parts.length >= 2 && Number.isFinite(second) && second >= 16 && second <= 31) {
+      return true
+    }
+  }
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true
+  return false
+}
+
+const normalizeTranslateEndpoint = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') return null
+  try {
+    const parsed = new URL(rawUrl)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null
+    if (!isPrivateHost(parsed.hostname)) return null
+    const trimmedPath = (parsed.pathname || '/').replace(/\/+$/, '')
+    const hasTranslateSuffix = trimmedPath.toLowerCase().endsWith('/translate')
+    const basePath = hasTranslateSuffix
+      ? (trimmedPath || '/translate')
+      : `${trimmedPath || ''}/translate`
+    const finalPath = basePath.startsWith('/') ? basePath : `/${basePath}`
+    return `${parsed.origin}${finalPath}`
+  } catch {
+    return null
+  }
+}
+
 function buildLocalConfig (config = {}) {
   const gifs = config?.gifs || {}
   const unroll = config?.unroll || {}
@@ -69,6 +106,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
   const [localConfig, setLocalConfig] = useState(() => buildLocalConfig(clientConfig))
   const [activeTab, setActiveTab] = useState(CLIENT_SETTING_TABS[0].id)
   const [newVideoHost, setNewVideoHost] = useState('')
+  const [translationCheck, setTranslationCheck] = useState({ status: 'idle', message: '' })
   const portalRoot = useMemo(() => getPortalRoot(), [])
 
   useEffect(() => {
@@ -76,8 +114,71 @@ export default function ClientSettingsModal ({ open, onClose }) {
       setLocalConfig(buildLocalConfig(clientConfig))
       setActiveTab(CLIENT_SETTING_TABS[0].id)
       setNewVideoHost('')
+      setTranslationCheck({ status: 'idle', message: '' })
     }
   }, [open, clientConfig])
+
+  useEffect(() => {
+    if (!open) return
+    if (!localConfig.translation.enabled) {
+      setTranslationCheck({ status: 'idle', message: '' })
+      return
+    }
+    const rawBase = localConfig.translation.baseUrl?.trim() || ''
+    if (!rawBase) {
+      setTranslationCheck({ status: 'idle', message: '' })
+      return
+    }
+    const endpoint = normalizeTranslateEndpoint(rawBase)
+    if (!endpoint) {
+      setTranslationCheck({
+        status: 'invalid',
+        message: t('clientSettings.translation.status.invalid', 'Ungültige oder nicht lokale Server-URL.')
+      })
+      return
+    }
+    let ignore = false
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => {
+      setTranslationCheck({
+        status: 'checking',
+        message: t('clientSettings.translation.status.checking', 'Server wird geprüft…')
+      })
+      const detectUrl = endpoint.replace(/\/translate$/i, '/detect')
+      fetch(detectUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({ q: 'Hallo' }),
+        signal: controller.signal
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('Check failed')
+          if (!ignore) {
+            setTranslationCheck({
+              status: 'valid',
+              message: t('clientSettings.translation.status.valid', 'Server erreichbar.')
+            })
+          }
+        })
+        .catch((error) => {
+          if (error?.name === 'AbortError') return
+          if (!ignore) {
+            setTranslationCheck({
+              status: 'error',
+              message: t('clientSettings.translation.status.error', 'Server nicht erreichbar.')
+            })
+          }
+        })
+    }, 600)
+    return () => {
+      ignore = true
+      controller.abort()
+      window.clearTimeout(timeout)
+    }
+  }, [localConfig.translation.baseUrl, localConfig.translation.enabled, open, t])
 
   const hasChanges = useMemo(() => {
     const savedLocale = clientConfig?.locale || 'de'
@@ -130,6 +231,13 @@ export default function ClientSettingsModal ({ open, onClose }) {
     const current = TRANSLATION_FALLBACK_OPTIONS.find(opt => opt.value === fallbackValue) || TRANSLATION_FALLBACK_OPTIONS[0]
     return t(current.labelKey, current.fallback)
   }, [localConfig.translation.fallbackService, t])
+  const translationCheckBlocksSave = useMemo(() => {
+    const base = localConfig.translation.baseUrl?.trim() || ''
+    if (!localConfig.translation.enabled || !base) return false
+    return translationCheck.status === 'invalid' ||
+      translationCheck.status === 'error' ||
+      translationCheck.status === 'checking'
+  }, [localConfig.translation.baseUrl, localConfig.translation.enabled, translationCheck.status])
 
   if (!open) return null
 
@@ -475,6 +583,11 @@ export default function ClientSettingsModal ({ open, onClose }) {
                         'Nur lokale oder private Endpunkte werden akzeptiert. Der Pfad /translate wird automatisch ergänzt.'
                       )}
                     </p>
+                    {translationCheck.message ? (
+                      <p className='text-xs text-foreground-muted'>
+                        {translationCheck.message}
+                      </p>
+                    ) : null}
                   </div>
                   <div className='space-y-2'>
                     <label className='block text-sm font-medium text-foreground'>
@@ -809,7 +922,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
           <Button variant='ghost' onClick={handleClose}>
             {t('compose.cancel', 'Abbrechen')}
           </Button>
-          <Button variant='primary' onClick={handleSave} disabled={!hasChanges}>
+          <Button variant='primary' onClick={handleSave} disabled={!hasChanges || translationCheckBlocksSave}>
             {t('clientSettings.save', 'Speichern')}
           </Button>
         </div>
