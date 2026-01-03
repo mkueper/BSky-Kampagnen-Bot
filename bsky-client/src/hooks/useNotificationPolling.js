@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import { fetchNotificationPollingSnapshot, fetchUnreadNotificationsCount } from '../modules/shared'
 import { BLUESKY_NOTIFICATION_POLL_MS } from '../config/blueskyIntervals.js'
 import { useTimelineState, useTimelineDispatch } from '../context/TimelineContext.jsx'
+import { useUIDispatch } from '../context/UIContext.jsx'
 
 const NOTIFICATION_POLL_SWR_KEY = 'bsky:notification-poll'
 export const NOTIFICATION_UNREAD_SWR_KEY = 'bsky:notification-unread'
@@ -29,7 +30,8 @@ function isNotificationsDebugEnabled () {
 
 export function useNotificationPolling ({ active = false, keepBadgeFresh = false } = {}) {
   const { lists } = useTimelineState()
-  const dispatch = useTimelineDispatch()
+  const timelineDispatch = useTimelineDispatch()
+  const uiDispatch = useUIDispatch()
   const listsRef = useRef(lists)
   const debugEnabledRef = useRef(false)
   const lastLogRef = useRef({ unreadCount: null, allTopId: null, mentionsTopId: null })
@@ -64,12 +66,12 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
   useEffect(() => {
     if (!unreadEnabled) return
     if (typeof unreadData?.unreadCount === 'number') {
-      dispatch({
+      uiDispatch({
         type: 'SET_NOTIFICATIONS_UNREAD',
         payload: Math.max(0, unreadData.unreadCount)
       })
     }
-  }, [dispatch, unreadData, unreadEnabled])
+  }, [uiDispatch, unreadData, unreadEnabled])
 
   useEffect(() => {
     if (!active) return undefined
@@ -130,10 +132,10 @@ export function useNotificationPolling ({ active = false, keepBadgeFresh = false
     }
 
     if (shouldMarkAllHasNew) {
-      dispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:all' })
+      timelineDispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:all' })
     }
     if (shouldMarkMentionsHasNew) {
-      dispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:mentions' })
+      timelineDispatch({ type: 'LIST_MARK_HAS_NEW', payload: 'notifs:mentions' })
     }
-  }, [dispatch, snapshotData, unreadData, active])
+  }, [timelineDispatch, snapshotData, unreadData, active])
 }

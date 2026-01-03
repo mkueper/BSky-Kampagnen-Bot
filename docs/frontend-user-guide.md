@@ -137,7 +137,7 @@ Der Tab **Konfiguration** enthält drei Bereiche:
 ## 8. Bluesky Direkt-Client
 
 - **Timeline-Tabs:** Discover, Following, Popular with Friends, Mutuals, Best of Follows. Ein erneuter Klick auf einen aktiven Tab lädt den Feed neu.
-- **Composer:** Modal-Fenster zum sofortigen Posten (inkl. Reply-Funktion). Medien-Uploads und ALT-Texte funktionieren analog zum Kampagnen-Planer.
+- **Composer:** Modal-Fenster zum sofortigen Posten (inkl. Reply-Funktion). Medien-Uploads und ALT-Texte funktionieren analog zum Kampagnen-Planer. Ab mehr als 300 Zeichen erscheint der Button „In Thread umwandeln“, um den Entwurf direkt in den Thread-Composer zu uebernehmen.
 - **Aktionen:** Like/Unlike, Repost/Unrepost direkt aus der Timeline.
 - **Einschränkungen:** Einige Sektionen (Suche, Benachrichtigungen, Chat, Feeds, Listen) sind derzeit Platzhalter – das Layout ist vorbereitet, Funktionalität folgt später.
 - **Übersetzungen:** Der Translate-Button öffnet (noch) einen lokalen oder privaten Übersetzungsdienst wie LibreTranslate. Die Übersetzungsfunktion ist in der aktuellen Phase ausschließlich für lokale oder private Übersetzungsdienste vorgesehen. Öffentliche Endpunkte sind bewusst ausgeschlossen.

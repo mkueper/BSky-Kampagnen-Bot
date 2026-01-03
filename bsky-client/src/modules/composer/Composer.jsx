@@ -593,7 +593,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
     })
   }, [onConvertToThread, pendingMedia, text])
 
-  const canRequestThread = Boolean(reply && typeof onConvertToThread === 'function')
+  const canRequestThread = Boolean(
+    typeof onConvertToThread === 'function' &&
+    text.length > 300
+  )
   const convertButtonTitle = t('compose.thread.convertHint', 'Antwort in einen Thread umwandeln, um mehrere Posts zu senden.')
 
   return (

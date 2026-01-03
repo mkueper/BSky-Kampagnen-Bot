@@ -17,10 +17,8 @@ Die Tabelle listet alle Markdown-Dateien im Repository (ohne `node_modules` und 
 | README.md | backend/src/api/controllers/README.md | Doc |
 | README.md | backend/src/core/services/README.md | Doc |
 | README.md | backend/src/data/models/README.md | Doc |
-| AGENTS.md | bsky-client/.codex/AGENTS.md | Doc |
 | Handbuch.md | bsky-client/Handbuch.md | Doc |
 | changelog-unreleased.md | changelog-unreleased.md | Doc |
-| AGENTS.md | codex/AGENTS.md | Doc |
 | README.md | dashboard/README.md | Doc |
 | Agent.md | docs/Agent.md | Doc |
 | DOCS.md | docs/DOCS.md | Doc |

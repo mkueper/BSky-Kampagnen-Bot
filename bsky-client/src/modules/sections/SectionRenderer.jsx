@@ -15,7 +15,7 @@ import {
 import { useSectionActivity } from '../service/SectionActivityContext.jsx'
 import { useFeedPicker } from '../../hooks/useFeedPicker.js'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { LayersIcon, ChevronRightIcon, ListBulletIcon, ClockIcon, MagnifyingGlassIcon, PinLeftIcon, ArrowLeftIcon } from '@radix-ui/react-icons'
+import { LayersIcon, ChevronRightIcon, ListBulletIcon, ClockIcon, MagnifyingGlassIcon, PinLeftIcon, ArrowLeftIcon, DrawingPinIcon, DrawingPinFilledIcon } from '@radix-ui/react-icons'
 
 const NotificationsFallback = () => (
   <div className='space-y-3' data-component='BskyNotifications' data-state='loading'>
@@ -258,17 +258,19 @@ function FeedsSection () {
       ? t('layout.feeds.backToDiscover', 'Zurück zu Entdecke neue Feeds')
       : t('layout.feeds.backToMine', 'Zurück zu Meine Feeds')
     const headerPillClassName = 'rounded-2xl px-3 py-1 text-xs font-medium whitespace-nowrap sm:text-sm transform transition-all duration-150 ease-out border border-border bg-background-subtle text-foreground shadow-soft'
+    const backButtonClassName = 'inline-flex items-center justify-center rounded-full border border-border bg-background-subtle px-3 py-2 text-sm text-foreground shadow-soft'
     const feedIsPinned = Boolean(selectedFeed.feedUri && pinnedFeedUris.has(selectedFeed.feedUri))
     const pinnedLabel = feedIsPinned
       ? t('layout.feeds.attached', 'Angeheftet')
       : t('layout.feeds.notAttached', 'Nicht angeheftet')
+    const PinStatusIcon = feedIsPinned ? DrawingPinFilledIcon : DrawingPinIcon
     return (
       <div className='space-y-6'>
         <div className='rounded-2xl border border-border bg-background-elevated/70 px-3 py-2 shadow-soft' data-component='BskyFeedPreviewHeader'>
           <div className='flex flex-wrap items-center gap-2'>
             <button
               type='button'
-              className={`inline-flex items-center justify-center gap-2 ${headerPillClassName}`}
+              className={backButtonClassName}
               onClick={closeSelectedFeed}
               aria-label={backLabel}
             >
@@ -277,18 +279,12 @@ function FeedsSection () {
             <span className={`min-w-0 flex-1 truncate ${headerPillClassName} cursor-default`} aria-current='page'>
               {selectedFeed.label}
             </span>
-            <div className='ml-auto'>
-              <Button
-                type='button'
-                size='pill'
-                variant={feedIsPinned ? 'secondary' : 'outline'}
-                className='h-9 whitespace-nowrap'
-                disabled
-                aria-label={pinnedLabel}
-              >
-                <PinLeftIcon className='h-4 w-4' aria-hidden='true' />
-                {pinnedLabel}
-              </Button>
+            <div className='ml-auto inline-flex items-center' aria-label={pinnedLabel}>
+              <PinStatusIcon
+                className={`h-6 w-6 ${feedIsPinned ? 'text-primary' : 'text-foreground-muted'}`}
+                aria-hidden='true'
+              />
+              <span className='sr-only'>{pinnedLabel}</span>
             </div>
           </div>
         </div>
