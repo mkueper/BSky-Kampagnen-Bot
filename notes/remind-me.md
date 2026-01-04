@@ -31,4 +31,5 @@
 16. [Beobachten] Beim Starten des Clienten werden in Home die gepinnten Timelines manchmal nicht angezeigt
 17. [Beobachten] Logik fuer pluralisierte Texte absichern.
 18. Refresh bei Mitteilungen springt nicht an den Anfang der Liste.
-19. 
+19. Session-Timeout über die Client-Konfiguration zugänglich machen. Grenzen 6 bis 168 Stunden.
+20. 

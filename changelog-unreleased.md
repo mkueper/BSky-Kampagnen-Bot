@@ -19,6 +19,13 @@
 ### Backend
 
 - **Feature:** `scheduledPlannedAt` ergänzt, trennt geplante Uhrzeit von `scheduledAt` (tatsächlicher Ausführungstermin) inkl. Migration/Import/Export-Anpassung.
+- **Improvement:** Client-URLs werden in `Settings` persistiert (Credentials-API, Settings-Service); keine `.env`-Fallbacks für diese Werte.
+- **Fix:** Wiederholungswert `0` wird serverseitig konsistent zu „keine Wiederholung“ normalisiert (API + Import).
+
+### Dashboard
+
+- **Improvement:** Session-Dauer ist in „Allgemein“ konfigurierbar, inklusive Validierung im ConfigPanel.
+- **Fix:** Post-Editor normalisiert Wiederholungswert `0` beim Laden bestehender Posts.
 
 ### Shared UI
 

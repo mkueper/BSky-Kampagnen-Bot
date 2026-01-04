@@ -4,6 +4,7 @@
  */
 const fs = require('fs')
 const path = require('path')
+const settingsService = require('@core/services/settingsService')
 
 function resolveEnvPath () {
   const p = process.env.ENV_PATH || process.env.DOTENV_PATH || process.env.DOTENV_CONFIG_PATH
@@ -70,17 +71,18 @@ function validateClientUrl (value) {
 
 async function getCredentials (req, res) {
   try {
+    const { values: clientApps } = await settingsService.getClientAppSettings().catch(() => ({ values: {} }))
     res.json({
       bluesky: {
         serverUrl: process.env.BLUESKY_SERVER_URL || 'https://bsky.social',
         identifier: process.env.BLUESKY_IDENTIFIER || '',
         hasAppPassword: Boolean(process.env.BLUESKY_APP_PASSWORD),
-        clientApp: process.env.BLUESKY_CLIENT_APP || ''
+        clientApp: clientApps?.bluesky || ''
       },
       mastodon: {
         apiUrl: process.env.MASTODON_API_URL || 'https://mastodon.social',
         hasAccessToken: Boolean(process.env.MASTODON_ACCESS_TOKEN),
-        clientApp: process.env.MASTODON_CLIENT_APP || ''
+        clientApp: clientApps?.mastodon || ''
       },
       tenor: {
         // Nur Zustand exponieren, Key selbst bleibt verborgen
@@ -135,15 +137,6 @@ async function updateCredentials (req, res) {
     if (entries.BLUESKY_APP_PASSWORD) map.set('BLUESKY_APP_PASSWORD', entries.BLUESKY_APP_PASSWORD)
     if (entries.MASTODON_ACCESS_TOKEN) map.set('MASTODON_ACCESS_TOKEN', entries.MASTODON_ACCESS_TOKEN)
     if (entries.TENOR_API_KEY) map.set('TENOR_API_KEY', entries.TENOR_API_KEY)
-    if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')) {
-      if (entries.BLUESKY_CLIENT_APP) map.set('BLUESKY_CLIENT_APP', entries.BLUESKY_CLIENT_APP)
-      else map.delete('BLUESKY_CLIENT_APP')
-    }
-    if (Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) {
-      if (entries.MASTODON_CLIENT_APP) map.set('MASTODON_CLIENT_APP', entries.MASTODON_CLIENT_APP)
-      else map.delete('MASTODON_CLIENT_APP')
-    }
-
     writeEnvFileMap(envPath, map)
 
     // Laufzeit-ENV aktualisieren (wirkt ohne Neustart)
@@ -153,10 +146,17 @@ async function updateCredentials (req, res) {
     if (map.has('MASTODON_API_URL')) process.env.MASTODON_API_URL = map.get('MASTODON_API_URL')
     if (map.has('MASTODON_ACCESS_TOKEN')) process.env.MASTODON_ACCESS_TOKEN = map.get('MASTODON_ACCESS_TOKEN')
     if (map.has('TENOR_API_KEY')) process.env.TENOR_API_KEY = map.get('TENOR_API_KEY')
-    if (map.has('BLUESKY_CLIENT_APP')) process.env.BLUESKY_CLIENT_APP = map.get('BLUESKY_CLIENT_APP')
-    else if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')) delete process.env.BLUESKY_CLIENT_APP
-    if (map.has('MASTODON_CLIENT_APP')) process.env.MASTODON_CLIENT_APP = map.get('MASTODON_CLIENT_APP')
-    else if (Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) delete process.env.MASTODON_CLIENT_APP
+    if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp') ||
+      Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) {
+      await settingsService.saveClientAppSettings({
+        bluesky: Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')
+          ? entries.BLUESKY_CLIENT_APP
+          : undefined,
+        mastodon: Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')
+          ? entries.MASTODON_CLIENT_APP
+          : undefined
+      })
+    }
 
     res.json({ ok: true })
   } catch (error) {

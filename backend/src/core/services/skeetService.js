@@ -274,8 +274,18 @@ function parseOptionalDate(value) {
   return parsed;
 }
 
+function normalizeRepeatValue(value) {
+  if (value == null || value === '' || value === 0 || value === '0' || value === false) {
+    return 'none';
+  }
+  if (value === 'daily' || value === 'weekly' || value === 'monthly' || value === 'none') {
+    return value;
+  }
+  return 'none';
+}
+
 function normalizeRepeatFields(payload, existing) {
-  const repeat = payload.repeat ?? existing?.repeat ?? 'none';
+  const repeat = normalizeRepeatValue(payload.repeat ?? existing?.repeat ?? 'none');
   let repeatDayOfWeek = null;
   let repeatDayOfMonth = null;
    let repeatDaysOfWeek = null;

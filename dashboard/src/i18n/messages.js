@@ -674,9 +674,11 @@ const messages = {
           'Basis-Einstellungen für Sprache und Zeitzone des Kampagnen‑Tools.',
         labels: {
           locale: 'Anzeigesprache',
-          timeZone: 'Standard-Zeitzone'
+          timeZone: 'Standard-Zeitzone',
+          sessionTtl: 'Session-Dauer (Stunden)'
         },
         localeHint: 'Steuert die Anzeigesprache des Kampagnen‑Tools.',
+        sessionTtlHint: 'Gilt nur auf diesem Gerät (6 bis 168 Stunden).',
         timeZoneHint:
           'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).',
         toastTitle: 'Allgemeine Einstellungen',
@@ -1593,9 +1595,11 @@ const messages = {
           'Base settings for language and time zone of the campaign tool.',
         labels: {
           locale: 'Display language',
-          timeZone: 'Default time zone'
+          timeZone: 'Default time zone',
+          sessionTtl: 'Session duration (hours)'
         },
         localeHint: 'Controls the display language of the campaign tool.',
+        sessionTtlHint: 'Applies only on this device (6 to 168 hours).',
         timeZoneHint:
           'Example: Europe/Berlin or UTC (IANA time zone).',
         toastTitle: 'General settings',

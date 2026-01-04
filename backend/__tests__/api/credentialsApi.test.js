@@ -2,8 +2,10 @@ import 'module-alias/register'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
+import { vi } from 'vitest'
 
 const creds = require('@api/controllers/credentialsController')
+const settingsService = require('@core/services/settingsService')
 
 const TMP_DIR = path.join(process.cwd(), 'tests', '.tmp_env')
 const ENV_FILE = path.join(TMP_DIR, 'test.env')
@@ -80,10 +82,16 @@ describe('credentialsController', () => {
         return { json: (o) => { payload = o } }
       }
     }
+    const saveSpy = vi.spyOn(settingsService, 'saveClientAppSettings').mockResolvedValue({
+      values: { bluesky: 'http://192.168.1.20:5173', mastodon: '' }
+    })
     await creds.updateCredentials(req, res)
     expect(statusCode).toBe(200)
     expect(payload?.ok).toBe(true)
-    const text = fs.readFileSync(ENV_FILE, 'utf8')
-    expect(text).toMatch(/BLUESKY_CLIENT_APP=http:\/\/192\.168\.1\.20:5173/)
+    expect(saveSpy).toHaveBeenCalledWith({
+      bluesky: 'http://192.168.1.20:5173',
+      mastodon: undefined
+    })
+    saveSpy.mockRestore()
   })
 })

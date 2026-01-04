@@ -32,6 +32,11 @@ const CLIENT_KEYS = {
   heartbeatMs: "POLL_HEARTBEAT_MS",
 };
 
+const CLIENT_APP_KEYS = {
+  bluesky: "CLIENT_URL_BLUESKY",
+  mastodon: "CLIENT_URL_MASTODON",
+};
+
 function defaults() {
   return {
     scheduleTime: config.SCHEDULE_TIME,
@@ -228,6 +233,8 @@ module.exports = {
   getPostingConfig,
   getGeneralSettings,
   saveGeneralSettings,
+  getClientAppSettings,
+  saveClientAppSettings,
 };
 
 // --- Client-Polling: Lesen/Speichern --------------------------------------
@@ -278,6 +285,34 @@ async function getClientPollingSettings() {
   );
 
   return { values, defaults, overrides };
+}
+
+// --- Client-App-URLs: Lesen/Speichern -------------------------------------
+
+async function getClientAppSettings() {
+  const map = await getSettingsMap(Object.values(CLIENT_APP_KEYS));
+  const values = {
+    bluesky: map[CLIENT_APP_KEYS.bluesky] || "",
+    mastodon: map[CLIENT_APP_KEYS.mastodon] || "",
+  };
+  const overrides = {
+    bluesky: map[CLIENT_APP_KEYS.bluesky] ?? null,
+    mastodon: map[CLIENT_APP_KEYS.mastodon] ?? null,
+  };
+  return { values, overrides };
+}
+
+async function saveClientAppSettings(payload = {}) {
+  const { values } = await getClientAppSettings();
+  const next = {
+    bluesky: payload.bluesky ?? values.bluesky,
+    mastodon: payload.mastodon ?? values.mastodon,
+  };
+  await Promise.all([
+    setSetting(CLIENT_APP_KEYS.bluesky, next.bluesky, ""),
+    setSetting(CLIENT_APP_KEYS.mastodon, next.mastodon, ""),
+  ]);
+  return getClientAppSettings();
 }
 
 function validateClientPollingInput(v) {

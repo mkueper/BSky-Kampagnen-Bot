@@ -62,6 +62,16 @@ function normalizeImportPayload(body) {
   return [];
 }
 
+function normalizeRepeatValue(value) {
+  if (value == null || value === '' || value === 0 || value === '0' || value === false) {
+    return 'none';
+  }
+  if (value === 'daily' || value === 'weekly' || value === 'monthly' || value === 'none') {
+    return value;
+  }
+  return 'none';
+}
+
 async function importPlannedSkeets(body) {
   const entries = normalizeImportPayload(body);
   if (entries.length === 0) {
@@ -75,11 +85,12 @@ async function importPlannedSkeets(body) {
       throw new Error(`Eintrag ${index + 1}: Ungültige Struktur.`);
     }
 
+    const normalizedRepeat = normalizeRepeatValue(item.repeat);
     const payload = {
       content: item.content,
       scheduledAt: item.scheduledAt ?? item.scheduledPlannedAt,
       scheduledPlannedAt: item.scheduledPlannedAt ?? null,
-      repeat: item.repeat,
+      repeat: normalizedRepeat,
       repeatDayOfWeek: item.repeatDayOfWeek,
       repeatDayOfMonth: item.repeatDayOfMonth,
       threadId: item.threadId,

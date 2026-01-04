@@ -69,6 +69,10 @@ export default function ConfigPanel () {
   const [saving, setSaving] = useState(false)
 
   // Allgemeine Einstellungen (Zeitzone)
+  const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
+  const SESSION_TTL_MIN_HOURS = 6
+  const SESSION_TTL_MAX_HOURS = 168
+  const SESSION_TTL_DEFAULT_HOURS = 12
   const [generalValues, setGeneralValues] = useState({
     timeZone: '',
     locale: 'de'
@@ -79,6 +83,14 @@ export default function ConfigPanel () {
   const [generalDefaults, setGeneralDefaults] = useState(generalValues)
   const [generalLoading, setGeneralLoading] = useState(true)
   const [generalSaving, setGeneralSaving] = useState(false)
+  const [sessionTtlInput, setSessionTtlInput] = useState(() => {
+    if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
+    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
+    const parsed = Number(stored)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    return String(clamped)
+  })
 
   // Client-Polling Abschnitt
   const [pollValues, setPollValues] = useState({
@@ -208,6 +220,23 @@ export default function ConfigPanel () {
         String(generalInitialValues.locale ?? '')
     )
   }, [generalValues, generalInitialValues])
+
+  const onSessionTtlChange = (event) => {
+    const nextValue = event.target.value
+    if (nextValue === '' || /^\d+$/.test(nextValue)) {
+      setSessionTtlInput(nextValue)
+    }
+  }
+
+  const normalizeSessionTtl = () => {
+    const parsed = Number(sessionTtlInput)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    setSessionTtlInput(String(clamped))
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SESSION_TTL_STORAGE_KEY, String(clamped))
+    }
+  }
 
   useEffect(() => {
     let ignore = false
@@ -1131,6 +1160,36 @@ export default function ConfigPanel () {
                     favoriteTimeZones={['Europe/Berlin', 'UTC']}
                   />
                 </div>
+
+                <div className='space-y-2'>
+                  <label
+                    htmlFor='general-session-ttl'
+                    className='text-sm font-semibold text-foreground'
+                  >
+                    {t(
+                      'config.general.labels.sessionTtl',
+                      'Session-Dauer (Stunden)'
+                    )}
+                  </label>
+                  <input
+                    id='general-session-ttl'
+                    type='number'
+                    min={SESSION_TTL_MIN_HOURS}
+                    max={SESSION_TTL_MAX_HOURS}
+                    step='1'
+                    inputMode='numeric'
+                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                    value={sessionTtlInput}
+                    onChange={onSessionTtlChange}
+                    onBlur={normalizeSessionTtl}
+                  />
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'config.general.sessionTtlHint',
+                      'Gilt nur auf diesem Gerät (6 bis 168 Stunden).'
+                    )}
+                  </p>
+                </div>
               </div>
 
               <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
@@ -1836,10 +1895,6 @@ function CredentialsSection () {
   const toast = useToast()
   const { t } = useTranslation()
   const [infoOpen, setInfoOpen] = useState(false)
-  const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
-  const SESSION_TTL_MIN_HOURS = 6
-  const SESSION_TTL_MAX_HOURS = 168
-  const SESSION_TTL_DEFAULT_HOURS = 12
   const [values, setValues] = useState({
     blueskyServerUrl: '',
     blueskyIdentifier: '',
@@ -1861,14 +1916,6 @@ function CredentialsSection () {
   const [hasSecret, setHasSecret] = useState({
     bsky: false,
     masto: false
-  })
-  const [sessionTtlInput, setSessionTtlInput] = useState(() => {
-    if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
-    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
-    const parsed = Number(stored)
-    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
-    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
-    return String(clamped)
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1975,22 +2022,6 @@ function CredentialsSection () {
   const clearClientUrl = key => () => {
     setValues(current => ({ ...current, [key]: '' }))
     setClientUrlErrors(current => ({ ...current, [key]: '' }))
-  }
-  const onSessionTtlChange = (event) => {
-    const nextValue = event.target.value
-    if (nextValue === '' || /^\d+$/.test(nextValue)) {
-      setSessionTtlInput(nextValue)
-    }
-  }
-
-  const normalizeSessionTtl = () => {
-    const parsed = Number(sessionTtlInput)
-    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
-    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
-    setSessionTtlInput(String(clamped))
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SESSION_TTL_STORAGE_KEY, String(clamped))
-    }
   }
 
   const hasCredentialChanges = useMemo(() => {
@@ -2274,31 +2305,6 @@ function CredentialsSection () {
                     {t(
                       'config.credentials.bluesky.appPasswordHint',
                       'Leer lassen, um das bestehende Passwort zu behalten.'
-                    )}
-                  </p>
-                </label>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.bluesky.sessionTtlLabel',
-                      'Session-Dauer (Stunden)'
-                    )}
-                  </span>
-                  <input
-                    type='number'
-                    min={SESSION_TTL_MIN_HOURS}
-                    max={SESSION_TTL_MAX_HOURS}
-                    step='1'
-                    inputMode='numeric'
-                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    value={sessionTtlInput}
-                    onChange={onSessionTtlChange}
-                    onBlur={normalizeSessionTtl}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.bluesky.sessionTtlHint',
-                      'Gilt nur auf diesem Geraet (6 bis 168 Stunden).'
                     )}
                   </p>
                 </label>

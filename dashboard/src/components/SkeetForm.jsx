@@ -68,6 +68,16 @@ function resolveMaxLength (selectedPlatforms) {
   return Math.min(...limits)
 }
 
+function normalizeRepeatValue (value) {
+  if (value == null || value === '' || value === 0 || value === '0' || value === false) {
+    return 'none'
+  }
+  if (value === 'daily' || value === 'weekly' || value === 'monthly' || value === 'none') {
+    return value
+  }
+  return 'none'
+}
+
 /**
  * Formular zum Erstellen oder Bearbeiten eines Skeets.
  *
@@ -307,16 +317,17 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
 
   useEffect(() => {
     if (editingSkeet) {
+      const normalizedRepeat = normalizeRepeatValue(editingSkeet.repeat)
       setContent(editingSkeet.content ?? '')
-      setRepeat(editingSkeet.repeat ?? 'none')
+      setRepeat(normalizedRepeat)
       setTargetPlatforms(
         Array.isArray(editingSkeet.targetPlatforms) &&
           editingSkeet.targetPlatforms.length > 0
           ? editingSkeet.targetPlatforms
           : defaultPlatformFallback
       )
-      setRepeat(editingSkeet.repeat ?? 'none')
-      if (editingSkeet.repeat === 'weekly') {
+      setRepeat(normalizedRepeat)
+      if (normalizedRepeat === 'weekly') {
         let rawDays = []
         if (
           Array.isArray(editingSkeet.repeatDaysOfWeek) &&
@@ -352,7 +363,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         setRepeatDaysOfWeek([])
       }
       setRepeatDayOfMonth(
-        editingSkeet.repeat === 'monthly' &&
+        normalizedRepeat === 'monthly' &&
           editingSkeet.repeatDayOfMonth != null
           ? Number(editingSkeet.repeatDayOfMonth)
           : null
