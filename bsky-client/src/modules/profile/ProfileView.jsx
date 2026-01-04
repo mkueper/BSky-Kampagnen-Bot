@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useAppDispatch } from '../../context/AppContext'
 import { useUIState } from '../../context/UIContext.jsx'
+import { useBskyAuth } from '../auth/AuthContext.jsx'
 import { fetchProfile } from '../shared/api/bsky'
 import {
   Card,
@@ -15,6 +16,8 @@ import {
 import { muteActor as apiMuteActor, unmuteActor as apiUnmuteActor, blockActor as apiBlockActor, unblockActor as apiUnblockActor } from '../shared/api/bsky'
 import ProfilePosts from './ProfilePosts.jsx'
 import ProfileMetaSkeleton from './ProfileMetaSkeleton.jsx'
+import EditProfileModal from './EditProfileModal.jsx'
+import ProfileNotificationsModal from './ProfileNotificationsModal.jsx'
 import {
   ArrowLeftIcon,
   ChatBubbleIcon,
@@ -42,7 +45,7 @@ function formatNumber (value) {
 }
 
 // This is a simplified view. We can reuse/enhance the ProfileCard from ProfilePreview later.
-function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false, onToggleMute, onToggleBlock }) {
+function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false, onToggleMute, onToggleBlock, onEditProfile, onOpenNotifications }) {
   const { t } = useTranslation()
   const relationBadges = useMemo(() => {
     const next = []
@@ -82,16 +85,20 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
   const menuItems = useMemo(() => {
     const muted = Boolean(profile?.viewer?.muted)
     const blocking = Boolean(profile?.viewer?.blocking)
-    return [
-      { label: t('profile.menu.copyLink', 'Link zum Profil kopieren'), icon: Link2Icon, onSelect: copyProfileLink, disabled: !baseProfileUrl },
-      { label: t('profile.menu.searchPosts', 'Posts durchsuchen'), icon: MagnifyingGlassIcon, disabled: true },
-      { label: t('profile.menu.addStarterPack', 'Zu Startpaketen hinzufügen'), icon: RocketIcon, disabled: true },
-      { label: t('profile.menu.addToList', 'Zu Listen hinzufügen'), icon: ListBulletIcon, disabled: true, dividerAfter: true },
-      { label: muted ? t('profile.menu.unmute', 'Stummschaltung aufheben') : t('profile.menu.mute', 'Account stummschalten'), icon: SpeakerModerateIcon, onSelect: onToggleMute, disabled: !onToggleMute },
-      { label: blocking ? t('profile.menu.unblock', 'Blockierung aufheben') : t('profile.menu.block', 'Account blockieren'), icon: CrossCircledIcon, onSelect: onToggleBlock, disabled: !onToggleBlock },
-      { label: t('profile.menu.report', 'Account melden'), icon: ExclamationTriangleIcon, disabled: true }
+    const items = [
+      { id: 'copyLink', label: t('profile.menu.copyLink', 'Link zum Profil kopieren'), icon: Link2Icon, onSelect: copyProfileLink, disabled: !baseProfileUrl },
+      { id: 'searchPosts', label: t('profile.menu.searchPosts', 'Posts durchsuchen'), icon: MagnifyingGlassIcon, disabled: true },
+      { id: 'addStarterPack', label: t('profile.menu.addStarterPack', 'Zu Startpaketen hinzufügen'), icon: RocketIcon, disabled: true },
+      { id: 'addToList', label: t('profile.menu.addToList', 'Zu Listen hinzufügen'), icon: ListBulletIcon, disabled: true, dividerAfter: true },
+      { id: 'mute', label: muted ? t('profile.menu.unmute', 'Stummschaltung aufheben') : t('profile.menu.mute', 'Account stummschalten'), icon: SpeakerModerateIcon, onSelect: onToggleMute, disabled: !onToggleMute },
+      { id: 'block', label: blocking ? t('profile.menu.unblock', 'Blockierung aufheben') : t('profile.menu.block', 'Account blockieren'), icon: CrossCircledIcon, onSelect: onToggleBlock, disabled: !onToggleBlock },
+      { id: 'report', label: t('profile.menu.report', 'Account melden'), icon: ExclamationTriangleIcon, disabled: true }
     ]
-  }, [baseProfileUrl, copyProfileLink, profile, onToggleMute, onToggleBlock, t])
+    if (isOwnProfile) {
+      return items.filter((item) => !['mute', 'block', 'report'].includes(item.id))
+    }
+    return items
+  }, [baseProfileUrl, copyProfileLink, isOwnProfile, profile, onToggleMute, onToggleBlock, t])
 
   const isFollowing = Boolean(profile.viewer?.following)
   const followLabel = isFollowing ? t('profile.follow.following', 'Gefolgt') : t('profile.follow.follow', 'Folgen')
@@ -127,7 +134,8 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
             <>
               <button
                 type='button'
-                disabled
+                onClick={onEditProfile}
+                disabled={!onEditProfile}
                 className='inline-flex items-center rounded-full border border-border/70 bg-background/80 px-4 py-1.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:border-foreground/70'
               >
                 {t('profile.actions.editProfile', 'Profil bearbeiten')}
@@ -143,9 +151,10 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
             <>
               <button
                 type='button'
-                disabled
+                onClick={onOpenNotifications}
+                disabled={!onOpenNotifications}
                 aria-label={t('profile.actions.notificationsLabel', 'Benachrichtigungen verwalten')}
-                title={t('profile.actions.notificationsTitle', 'Benachrichtigungen (bald verfügbar)')}
+                title={t('profile.actions.notificationsTitle', 'Benachrichtigungen verwalten')}
                 className={circleButtonClass}
               >
                 <BellIcon className='h-4 w-4' />
@@ -220,7 +229,11 @@ function ProfileMeta ({ profile, onBack, isOwnProfile = false, tabsStuck = false
           {labelsCount > 0 ? (
             <div className='inline-flex items-center gap-2 rounded-full bg-background-subtle px-3 py-0.5 text-xs text-foreground'>
               <InfoCircledIcon className='h-4 w-4 text-foreground-muted' aria-hidden='true' />
-              <span>{t('profile.labels.assigned', labelsCount === 1 ? '1 Kennzeichnung wurde diesem Account zugeordnet' : '{count} Kennzeichnungen wurden diesem Account zugeordnet', { count: labelsCount })}</span>
+              <span>
+                {labelsCount === 1
+                  ? t('profile.labels.assignedOne', '{count} Kennzeichnung wurde diesem Account zugeordnet', { count: labelsCount })
+                  : t('profile.labels.assignedOther', '{count} Kennzeichnungen wurden diesem Account zugeordnet', { count: labelsCount })}
+              </span>
             </div>
           ) : null}
           <div className='flex flex-wrap gap-x-6 gap-y-3 text-sm text-foreground-muted'>
@@ -355,6 +368,7 @@ export default function ProfileView ({
   showHeroBackButton = true
 }) {
   const { t } = useTranslation()
+  const auth = useBskyAuth()
   const { profileActor, me } = useUIState()
   const dispatch = useAppDispatch()
   const actor = (actorOverride || profileActor || '').trim()
@@ -363,6 +377,8 @@ export default function ProfileView ({
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
   const [tabsStuck, setTabsStuck] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const containerRef = useRef(null)
   const tabsWrapperRef = useRef(null)
   const tabsSentinelRef = useRef(null)
@@ -432,9 +448,51 @@ export default function ProfileView ({
   }, [actor])
 
   const isOwnProfile = useMemo(() => {
-    if (!profile || !me) return false
-    return me.did === profile.did
-  }, [me, profile])
+    if (!profile) return false
+    const resolvedMe = me || auth?.profile || null
+    if (!resolvedMe) return false
+    const profileDid = profile.did || ''
+    const meDid = resolvedMe.did || ''
+    if (profileDid && meDid) return profileDid === meDid
+    const profileHandle = String(profile.handle || '').replace(/^@/, '').toLowerCase()
+    const meHandle = String(resolvedMe.handle || '').replace(/^@/, '').toLowerCase()
+    return Boolean(profileHandle && meHandle && profileHandle === meHandle)
+  }, [auth?.profile, me, profile])
+
+  useEffect(() => {
+    if (!isOwnProfile) {
+      setEditProfileOpen(false)
+    }
+  }, [isOwnProfile])
+
+  const handleOpenEditProfile = useCallback(() => {
+    if (!isOwnProfile) return
+    setEditProfileOpen(true)
+  }, [isOwnProfile])
+
+  const handleProfileSaved = useCallback((nextProfile) => {
+    if (!nextProfile) return
+    setProfile(nextProfile)
+  }, [])
+
+  const handleOpenNotifications = useCallback(() => {
+    if (!profile || !profile.did) return
+    setNotificationsOpen(true)
+  }, [profile])
+
+  const handleNotificationsSaved = useCallback((activitySubscription) => {
+    if (!activitySubscription) return
+    setProfile((current) => {
+      if (!current) return current
+      return {
+        ...current,
+        viewer: {
+          ...(current.viewer || {}),
+          activitySubscription
+        }
+      }
+    })
+  }, [])
   const isBlockedBy = Boolean(profile?.viewer?.blockedBy)
   const isBlocking = Boolean(profile?.viewer?.blocking)
   const isInteractionBlocked = isBlockedBy || isBlocking
@@ -590,6 +648,8 @@ export default function ProfileView ({
           tabsStuck={tabsStuck}
           onToggleMute={toggleMute}
           onToggleBlock={toggleBlock}
+          onEditProfile={isOwnProfile ? handleOpenEditProfile : null}
+          onOpenNotifications={!isOwnProfile ? handleOpenNotifications : null}
         />
       </div>
       <div ref={tabsSentinelRef} aria-hidden='true' className='h-1 w-full' />
@@ -651,6 +711,18 @@ export default function ProfileView ({
           />
         )
       })()}
+      <EditProfileModal
+        open={editProfileOpen}
+        profile={profile}
+        onClose={() => setEditProfileOpen(false)}
+        onSaved={handleProfileSaved}
+      />
+      <ProfileNotificationsModal
+        open={notificationsOpen}
+        profile={profile}
+        onClose={() => setNotificationsOpen(false)}
+        onSaved={handleNotificationsSaved}
+      />
       <ScrollTopButton
         containerId={PROFILE_SCROLL_CONTAINER_ID}
         position='bottom-left'

@@ -353,3 +353,6 @@ Die in `docs/konventionen/api-konventionen.md` beschriebenen Soll-Konventionen (
 - Die API geht davon aus, dass Scheduler und Datenbank konsistent arbeiten. Bei manuellen Änderungen immer die Baseline-Migration (`migrations/00000000000000-baseline-rebuild.js`) berücksichtigen.
 - Viele Endpunkte geben zusätzlich Metadaten zurück (z. B. `platformResults`, `metadata`). Felder können Strings oder bereits geparste Objekte sein – die Frontend-Hooks normalisieren sie entsprechend.
 - Das in `docs/konventionen/api-konventionen.md` beschriebene Response-Schema `{ data, meta, error }` ist aktuell noch nicht durchgängig implementiert; insbesondere Skeet-/Thread-/Engagement-Routen liefern weiterhin „flache“ JSON-Strukturen und sollen mittelfristig auf das Zielschema umgestellt werden.
+
+## Profil bearbeiten
+- Entfernen von Avatar/Banner wird nun ueber "Avatar entfernen" bzw. "Banner entfernen" im Edit-Modal unterstuetzt (setzt den jeweiligen Wert auf null im Profil-Record).

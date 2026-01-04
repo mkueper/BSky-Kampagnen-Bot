@@ -2282,6 +2282,45 @@ export async function updateActivitySubscription ({ subject, activitySubscriptio
   return updateActivitySubscriptionDirect({ subject, activitySubscription })
 }
 
+export async function followActor ({ actor } = {}) {
+  const subject = normalizeActor(actor)
+  const agent = assertActiveAgent()
+  const repo = agent.session?.did
+  if (!repo) {
+    throw new Error('Keine aktive Session verfügbar, um zu folgen.')
+  }
+  const record = {
+    $type: 'app.bsky.graph.follow',
+    subject,
+    createdAt: new Date().toISOString()
+  }
+  const res = await agent.com.atproto.repo.createRecord({
+    repo,
+    collection: 'app.bsky.graph.follow',
+    record
+  })
+  return res?.data ?? res ?? null
+}
+
+export async function unfollowActor ({ uri } = {}) {
+  const targetUri = ensureAtUri(uri, 'uri')
+  const agent = assertActiveAgent()
+  const repo = agent.session?.did
+  if (!repo) {
+    throw new Error('Keine aktive Session verfügbar, um zu entfolgen.')
+  }
+  const rkey = extractRecordKey(targetUri)
+  if (!rkey) {
+    throw new Error('rkey erforderlich, um zu entfolgen.')
+  }
+  const res = await agent.com.atproto.repo.deleteRecord({
+    repo,
+    collection: 'app.bsky.graph.follow',
+    rkey
+  })
+  return res?.data ?? res ?? null
+}
+
 export async function fetchThread(uri) {
   const direct = await fetchThreadDirect(uri)
   if (direct) return direct
@@ -2602,7 +2641,8 @@ async function searchActorsDirect ({ query, cursor, limit } = {}) {
       handle: actor?.handle || '',
       displayName: actor?.displayName || actor?.handle || '',
       avatar: actor?.avatar || null,
-      description: actor?.description || ''
+      description: actor?.description || '',
+      viewer: actor?.viewer || null
     }))
     .filter((entry) => entry.did || entry.handle)
   return {
@@ -2635,6 +2675,59 @@ export async function fetchProfile (actor) {
     console.warn('fetchProfile failed', error)
     throw error
   }
+}
+
+export async function uploadProfileImage (file) {
+  if (!file) throw new Error('Datei erforderlich.')
+  const agent = assertActiveAgent()
+  const encoding = typeof file.type === 'string' && file.type ? file.type : 'image/jpeg'
+  const res = await agent.uploadBlob(file, { encoding })
+  const blob = res?.data?.blob || res?.blob || null
+  if (!blob) throw new Error('Bild konnte nicht hochgeladen werden.')
+  return blob
+}
+
+export async function updateProfileRecord ({ displayName, description, avatarBlob, bannerBlob, avatarRemoved = false, bannerRemoved = false } = {}) {
+  const agent = assertActiveAgent()
+  const repo = agent.session?.did
+  if (!repo) {
+    throw new Error('Keine aktive Session verfügbar, um das Profil zu speichern.')
+  }
+  const collection = 'app.bsky.actor.profile'
+  const rkey = 'self'
+  let existingRecord = null
+  try {
+    const res = await agent.com.atproto.repo.getRecord({ repo, collection, rkey })
+    existingRecord = res?.data?.value || res?.value || null
+  } catch (error) {
+    if (Number(error?.status) !== 404) {
+      console.warn('updateProfileRecord: getRecord fehlgeschlagen', error)
+    }
+  }
+  const baseRecord = existingRecord && typeof existingRecord === 'object' ? existingRecord : {}
+  const record = {
+    ...baseRecord,
+    $type: 'app.bsky.actor.profile'
+  }
+  if (displayName !== undefined) record.displayName = displayName
+  if (description !== undefined) record.description = description
+  if (avatarBlob) {
+    record.avatar = avatarBlob
+  } else if (avatarRemoved) {
+    record.avatar = null
+  }
+  if (bannerBlob) {
+    record.banner = bannerBlob
+  } else if (bannerRemoved) {
+    record.banner = null
+  }
+  const res = await agent.com.atproto.repo.putRecord({
+    repo,
+    collection,
+    rkey,
+    record
+  })
+  return res?.data ?? res ?? null
 }
 
 export async function fetchProfileFeed ({ actor, cursor, limit, filter } = {}) {

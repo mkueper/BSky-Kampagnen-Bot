@@ -1,13 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react'
-import { Card, RichText, ActorProfileLink } from '../shared'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Card, RichText, ActorProfileLink, Button } from '../shared'
 import SkeetItem from '../timeline/SkeetItem'
 import { useThread } from '../../hooks/useThread'
 import { useComposer } from '../../hooks/useComposer'
 import { useMediaLightbox } from '../../hooks/useMediaLightbox'
 import { useSearchContext } from './SearchContext.jsx'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
-import { Cross1Icon } from '@radix-ui/react-icons'
-import { useOptionalAppDispatch } from '../../context/AppContext'
+import { Cross1Icon, CheckIcon, PlusIcon } from '@radix-ui/react-icons'
+import { useUIDispatch } from '../../context/UIContext.jsx'
+import { followActor, unfollowActor } from '../shared/api/bsky.js'
 
 export default function SearchView () {
   const {
@@ -29,12 +30,14 @@ export default function SearchView () {
     hasQuery,
     activeTab
   } = useSearchContext()
-  const dispatch = useOptionalAppDispatch()
+  const dispatch = useUIDispatch()
   const { selectThreadFromItem: onSelectPost } = useThread()
   const { openReplyComposer: onReply, openQuoteComposer: onQuote } = useComposer()
   const { openMediaPreview: onViewMedia } = useMediaLightbox()
   const loadMoreTriggerRef = useRef(null)
   const { t, locale } = useTranslation()
+  const [followOverrides, setFollowOverrides] = useState({})
+  const [followPending, setFollowPending] = useState({})
 
   const isPostsTab = activeTab === 'top' || activeTab === 'latest'
 
@@ -127,7 +130,21 @@ export default function SearchView () {
       <ul className='space-y-3'>
         {items.map((person) => (
           <li key={person.did || person.handle}>
-            <Card padding='p-4' className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+            {(() => {
+              const key = person.did || person.handle
+              const overrideExists = Object.prototype.hasOwnProperty.call(followOverrides, key)
+              const overrideValue = overrideExists ? followOverrides[key] : undefined
+              const currentFollowing = overrideExists
+                ? overrideValue
+                : (person?.viewer?.following || null)
+              const isFollowing = Boolean(currentFollowing)
+              const isPending = Boolean(followPending[key])
+              return (
+            <Card
+              padding='p-4'
+              onClick={() => openProfileViewer(person, { remember: true })}
+              className='flex cursor-pointer flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'
+            >
               <div className='flex items-start gap-3'>
                 {person.avatar ? (
                   <img src={person.avatar} alt='' className='h-14 w-14 rounded-full border border-border object-cover' />
@@ -154,19 +171,70 @@ export default function SearchView () {
                   ) : null}
                 </div>
               </div>
-              <button
-                type='button'
-                onClick={() => openProfileViewer(person, { remember: true })}
-                className='inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60'
+              <Button
+                variant={isFollowing ? 'secondary' : 'primary'}
+                size='pill'
+                onClick={(event) => {
+                  event.stopPropagation()
+                  if (!key || followPending[key]) return
+                  const nextPending = { ...followPending, [key]: true }
+                  setFollowPending(nextPending)
+                  if (currentFollowing) {
+                    unfollowActor({ uri: currentFollowing })
+                      .then(() => {
+                        setFollowOverrides((prev) => ({ ...prev, [key]: null }))
+                      })
+                      .catch(() => {
+                        /* ignore */
+                      })
+                      .finally(() => {
+                        setFollowPending((prev) => {
+                          const next = { ...prev }
+                          delete next[key]
+                          return next
+                        })
+                      })
+                    return
+                  }
+                  followActor({ actor: person.did || person.handle })
+                    .then((res) => {
+                      const uri = res?.uri || res?.data?.uri || null
+                      setFollowOverrides((prev) => ({ ...prev, [key]: uri || null }))
+                    })
+                    .catch(() => {
+                      /* ignore */
+                    })
+                    .finally(() => {
+                      setFollowPending((prev) => {
+                        const next = { ...prev }
+                        delete next[key]
+                        return next
+                      })
+                    })
+                }}
+                aria-busy={isPending || undefined}
+                className='w-full shrink-0 sm:w-44'
               >
-                {t('common.actions.viewProfile', 'Profil ansehen')}
-              </button>
+                {isFollowing ? (
+                  <>
+                    <CheckIcon className='h-4 w-4' />
+                    {t('search.people.following', 'Folge ich')}
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className='h-4 w-4' />
+                    {t('search.people.follow', 'Folgen')}
+                  </>
+                )}
+              </Button>
             </Card>
+              )
+            })()}
           </li>
         ))}
       </ul>
     )
-  }, [activeTab, items, openProfileViewer, t])
+  }, [activeTab, followOverrides, followPending, items, openProfileViewer, t])
 
   const recentProfilesContent = useMemo(() => {
     const hasProfiles = recentProfileEntries.length > 0

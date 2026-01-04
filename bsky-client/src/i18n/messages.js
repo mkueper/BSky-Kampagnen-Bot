@@ -206,15 +206,35 @@ const messages = {
       actions: {
         back: 'Zurück',
         notificationsLabel: 'Benachrichtigungen verwalten',
-        notificationsTitle: 'Benachrichtigungen (bald verfügbar)',
+        notificationsTitle: 'Benachrichtigungen verwalten',
         messageLabel: 'Nachricht senden',
         messageTitle: 'Nachricht (bald verfügbar)',
         editProfile: 'Profil bearbeiten',
         moreLabel: 'Weitere Aktionen',
         moreTitle: 'Aktionen'
       },
+      editModal: {
+        title: 'Profil bearbeiten',
+        cancel: 'Abbrechen',
+        save: 'Speichern',
+        saving: 'Speichern…',
+        saveHint: 'Speichern (bald verfügbar)',
+        saveError: 'Profil konnte nicht gespeichert werden.',
+        displayName: 'Anzeigename',
+        description: 'Beschreibung',
+        changeBanner: 'Banner bearbeiten',
+        changeAvatar: 'Avatar bearbeiten',
+        uploadFromFile: 'Von Datei hochladen',
+        removeAvatar: 'Avatar entfernen',
+        removeBanner: 'Banner entfernen',
+        discardTitle: 'Änderungen verwerfen?',
+        discardDescription: 'Du hast ungespeicherte Änderungen. Möchtest du diese verwerfen?',
+        discardConfirm: 'Verwerfen',
+        discardCancel: 'Abbrechen'
+      },
       labels: {
-        assigned: '{count, plural, one {# Kennzeichnung wurde diesem Account zugeordnet} other {# Kennzeichnungen wurden diesem Account zugeordnet}}'
+        assignedOne: '{count} Kennzeichnung wurde diesem Account zugeordnet',
+        assignedOther: '{count} Kennzeichnungen wurden diesem Account zugeordnet'
       },
       hidden: {
         heading: 'Beiträge ausgeblendet',
@@ -351,6 +371,11 @@ const messages = {
         top: 'Top',
         latest: 'Neueste',
         people: 'Personen'
+      },
+      people: {
+        follow: 'Folgen',
+        following: 'Folge ich',
+        followHint: 'Folgen (bald verfügbar)'
       },
       prefixes: {
         title: 'Such-Prefixe',
@@ -983,6 +1008,11 @@ const messages = {
         top: 'Top',
         latest: 'Latest',
         people: 'People'
+      },
+      people: {
+        follow: 'Follow',
+        following: 'Following',
+        followHint: 'Follow (coming soon)'
       },
       prefixes: {
         title: 'Search prefixes',
@@ -1744,12 +1774,31 @@ const messages = {
       actions: {
         back: 'Back',
         notificationsLabel: 'Manage notifications',
-        notificationsTitle: 'Notifications (coming soon)',
+        notificationsTitle: 'Manage notifications',
         messageLabel: 'Send message',
         messageTitle: 'Message (coming soon)',
         editProfile: 'Edit profile',
         moreLabel: 'More actions',
         moreTitle: 'Actions'
+      },
+      editModal: {
+        title: 'Edit profile',
+        cancel: 'Cancel',
+        save: 'Save',
+        saving: 'Saving…',
+        saveHint: 'Save (coming soon)',
+        saveError: 'Profile could not be saved.',
+        displayName: 'Display name',
+        description: 'Description',
+        changeBanner: 'Edit banner',
+        changeAvatar: 'Edit avatar',
+        uploadFromFile: 'Upload from file',
+        removeAvatar: 'Remove avatar',
+        removeBanner: 'Remove banner',
+        discardTitle: 'Discard changes?',
+        discardDescription: 'You have unsaved changes. Do you want to discard them?',
+        discardConfirm: 'Discard',
+        discardCancel: 'Cancel'
       },
       labels: {
         assigned: '{count, plural, one {# label assigned to this account} other {# labels assigned to this account}}'

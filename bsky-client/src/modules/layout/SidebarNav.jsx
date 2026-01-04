@@ -118,6 +118,7 @@ export default function SidebarNav ({
   const accountDetailsClassName = showFullLabels ? 'flex min-w-0 flex-col leading-tight' : 'hidden lg:flex min-w-0 flex-col leading-tight'
   const accountMenuSide = 'bottom'
   const accountMenuSideOffset = 8
+  const profileActor = activeAccount?.actor || activeAccount?.did || activeAccount?.handle || null
   const handleProfileClick = () => {
     setAccountMenuOpen(false)
     if (!activeAccount) return
@@ -318,7 +319,14 @@ export default function SidebarNav ({
               <button
                 key={item.id}
                 type='button'
-                onClick={() => !disabled && onSelect(item.id)}
+                onClick={() => {
+                  if (disabled) return
+                  if (item.id === 'profile' && profileActor) {
+                    onSelect(item.id, profileActor)
+                    return
+                  }
+                  onSelect(item.id)
+                }}
                 disabled={disabled}
                 aria-current={isActive ? 'page' : undefined}
                 aria-disabled={disabled || undefined}

@@ -1,40 +1,30 @@
 1. Datum (TT.MM.JJJJ)
-29.12.2025
+03.01.2026
 
 2. Status (aktueller Stand, keine ToDos)
-- Code-Splitting für bsky-client erweitert: `manualChunks` greift jetzt in der aktiven Vite-Config (`bsky-client/vite.config.js`), große Vendor-Pakete sind ausgelagert; `tzdb`-Chunk-Regel entfernt.
-- HLS-Playback bleibt lazy: `hls.js` wird nur bei HLS-Quellen geladen; Import ist gecached (`InlineVideoPlayer`, `MediaLightbox`).
-- Search-Imports konsolidiert: `SearchProvider`/`SearchHeader` laufen über `modules/search/index.js`, um sporadische Context-Duplikate im Dev-Server zu vermeiden.
-- Tests (Vitest, gesamte Repo) liefen erfolgreich; bekannte Warnungen (`@atproto/lex-data` Ponyfills, Backend-Logging `EACCES`) bestehen.
-- Discover-Feeds laden jetzt nur noch beim Öffnen des Feeds-Menüs; beim App-Start werden nur Pins/Saved geladen.
-- Home wartet initial auf geladene Pins, bevor die Timeline gerendert wird.
-- Start-Refresh ist auf genau einen initialen Timeline-Refresh begrenzt (keine Mehrfach-Neuaufladungen/Top-Post-Sprünge).
-- Infinite Scroll für Discover-Vorschläge ist aktiv; Button „Feed anheften“ ist breiter und zeigt ein Pin-Icon.
+- Share-Menü in Timeline/Mitteilungen nutzt Modals (DM + Embed); DM öffnet Chat mit Prefill und Online-Suche (debounced).
+- Feed-Feedback „Mehr/Weniger davon anzeigen“ sendet Interactions; bei fehlender API wird sauberer Hinweis angezeigt.
+- Erwähnungen-Menü ist bsky-konform; „Antwort für alle ausblenden“ bleibt sichtbar, ist aber deaktiviert ohne Root-Rechte (Tooltip hinzugefügt).
+- Moderationsaktionen verfügbar: Thread stummschalten, Wörter/Tags stummschalten (Prompt), Post für mich ausblenden, Antwort für mich/alle ausblenden (Threadgate), Post melden (Report-Modal).
 
 3. Startpunkt (kurze Einleitung für die nächste Session)
-Chunking ist deutlich granularer (neuer Bundle-Report liegt vor). Zusätzlich prüfen wir das Startverhalten der Home-Timeline und ob Pins/Discover-Ladung stabil bleiben. Als Nächstes können wir entscheiden, ob weitere Splits (z. B. `hls`-Warnung tolerieren oder Limit anheben) sinnvoll sind und ob der sporadische Search-Context-Fehler weiter beobachtet werden muss.
+Der Client ist funktional gleichgezogen mit bsky.app in den Menüs für Timeline und Mitteilungen. Als Nächstes können wir UX-Feinschliff (Tooltip/Prompt ersetzen) oder Menü-Angleichung zwischen Timeline und Erwähnungen prüfen.
 
 4. Nächste Schritte (konkrete, umsetzbare ToDos)
-1) Optional: neuen Bundle-Report prüfen und entscheiden, ob die `hls`-Warnung bestehen bleiben soll oder ob ein höheres `chunkSizeWarningLimit` nötig ist.
-2) Beobachte, ob der sporadische `useSearchContext`-Fehler im Dev-Server erneut auftritt.
-3) Verhalten beim ersten Start im UI testen (Pins laden, keine Mehrfach-Refreshes).
-4) Prüfen, ob Discover-Vorschläge erst beim Öffnen des Feeds-Menüs geladen werden.
+1) Prüfen, ob das Timeline-Menü exakt an das bsky.app-Menü angepasst werden soll (Einträge + Reihenfolge).
+2) Prompt für „Wörter/Tags stummschalten“ durch ein kleines Modal ersetzen (optional).
+3) Echte UI für „Post melden“ weiter verfeinern (z. B. Reason-Descriptions, Erfolgstext, Close-Handling).
 
 5. ToDos nach Priorität, sofern bekannt durchnummerieren, sonst anhängen
-1) Provider-Split weiter vorbereiten: kleineres `AppContext`-Refactoring, damit Dispatches nur betroffene Reducer treffen.
-2) UI-Service-Logik weiter auslagern: z. B. `SectionRenderer` oder neue Section-Komponenten, damit sie selbst keine Hooks aktivieren, sondern gezielt Services triggern.
-3) Startverhalten im Client verifizieren und Feedback notieren.
-4) Falls noch Flackern vorhanden: Refresh-Guards weiter schärfen.
+1) Menüangleichung Timeline vs. Erwähnungen final entscheiden und umsetzen.
+2) Modal für „Wörter/Tags stummschalten“ statt Prompt.
+3) Report-Modal weiter an bsky.app anlehnen.
 
 6. Abschluss-Check (prüfbare Kriterien, optional)
-- `manualChunks` wirken in `bsky-client/vite.config.js` (neue Vendor-Chunks im Build sichtbar).
-- HLS wird nur bei `.m3u8` geladen und der Import wird gecached (kein mehrfacher Load).
-- Tests wurden zuletzt vollständig durchlaufen.
-- Home lädt genau einmal und zeigt danach stabil die Timeline.
-- Pins erscheinen zuverlässig ohne mehrfaches Neuzeichnen.
-- Discover lädt erst beim Öffnen des Feeds-Menüs.
+- Share/Embed/DM funktionieren in Timeline und Mitteilungen.
+- „Mehr/Weniger davon anzeigen“ sendet Feedback oder zeigt sauberen Hinweis bei fehlender API.
+- „Antwort für alle ausblenden“ ist nur bei eigenen Threads aktiv (sonst deaktiviert mit Tooltip).
 
 7. Offene Fragen (Punkte, die nicht automatisch abgearbeitet werden sollen)
-- Brauchen neue Feeds/Listen irgendwann doch neben UI-Tab-Polling auch Hintergrund-Logik, oder bleibt die Badge-Only-Strategie ausreichend?
-- Gibt es zusätzliche Bedingungen, wann Discover vorab geladen werden darf?
-- Soll der initiale Ladehinweis für Pins angepasst werden?
+- Soll das „Mehr Optionen“-Menü in der Timeline vollständig an bsky.app angeglichen werden?
+- Wollen wir das Prompt für „Wörter/Tags stummschalten“ durch ein eigenes Modal ersetzen?
