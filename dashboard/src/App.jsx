@@ -1055,7 +1055,7 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'about') {
     content = (
-      <Card padding='p-6 lg:p-10'>
+      <Card padding='p-6 lg:p-10' className='flex h-full min-h-0 flex-col'>
         <Suspense
           fallback={
             <p className='text-sm text-foreground-muted'>

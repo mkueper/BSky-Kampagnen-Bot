@@ -1270,9 +1270,9 @@ function ThreadForm ({
           </div>
         </div>
 
-        <aside className='space-y-4'>
+        <aside className='flex flex-col gap-4 lg:max-h-[calc(100vh-18rem)] lg:min-h-0 lg:overflow-hidden'>
           <div
-            className={`rounded-3xl border border-border ${theme.panelBg} p-5 shadow-soft`}
+            className={`shrink-0 rounded-3xl border border-border ${theme.panelBg} p-5 shadow-soft`}
           >
             <div className='flex items-center justify-between'>
               <h3 className='text-base font-semibold text-foreground'>
@@ -1382,7 +1382,7 @@ function ThreadForm ({
           </div>
 
           <div
-            className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}
+            className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:min-h-0 lg:flex-1 lg:overflow-hidden`}
           >
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2'>

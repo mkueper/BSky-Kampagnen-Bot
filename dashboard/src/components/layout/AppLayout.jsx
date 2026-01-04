@@ -362,7 +362,9 @@ function AppLayout ({
             } overflow-y-auto`}
             style={{ scrollbarGutter: 'stable' }}
           >
-            <main className='space-y-8 pb-6 md:pb-8'>{children}</main>
+            <main className='flex h-full min-h-0 flex-col space-y-8 pb-6 md:pb-8'>
+              {children}
+            </main>
           </div>
           {showScrollTop ? <ScrollTopButton position='bottom-left' /> : null}
         </div>
