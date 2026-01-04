@@ -11,6 +11,9 @@ vi.mock('../../../src/context/UIContext', () => ({
   useUIState: () => ({ profileActor: null, me: null }),
   useUIDispatch: () => dispatchMock
 }))
+vi.mock('../../../src/modules/auth/AuthContext.jsx', () => ({
+  useBskyAuth: () => ({ profile: null })
+}))
 vi.mock('../../../src/modules/profile/ProfilePosts.jsx', () => ({
   __esModule: true,
   default: () => null

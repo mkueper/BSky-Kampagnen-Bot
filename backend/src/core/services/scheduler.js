@@ -78,6 +78,10 @@ function getTargetPlatforms(skeet) {
   return normalized.length > 0 ? normalized : ["bluesky"];
 }
 
+function isRepeatNoneValue(value) {
+  return !value || value === "none" || value === 0 || value === "0";
+}
+
 async function runWithConcurrency(items, handler, limit = SCHEDULER_CONCURRENCY) {
   const total = Array.isArray(items) ? items.length : 0;
   const stats = { total, succeeded: 0, failed: 0 };
@@ -297,6 +301,12 @@ function resolveRepeatReferenceDate(skeet) {
       return anchor;
     }
   }
+  if (skeet.scheduledPlannedAt) {
+    const planned = new Date(skeet.scheduledPlannedAt);
+    if (!Number.isNaN(planned.getTime())) {
+      return planned;
+    }
+  }
   if (skeet.scheduledAt) {
     const scheduled = new Date(skeet.scheduledAt);
     if (!Number.isNaN(scheduled.getTime())) {
@@ -330,7 +340,7 @@ function __setSchedulerRandomOffsetForTests(value) {
 }
 
 function calculateNextScheduledAt(skeet) {
-  if (!skeet.repeat || skeet.repeat === "none") {
+  if (isRepeatNoneValue(skeet?.repeat)) {
     return null;
   }
 
@@ -350,7 +360,7 @@ function calculateNextScheduledAt(skeet) {
 
 /**
  * Berechnet den nächsten Wiederholungstermin nach einem frei wählbaren
- * Bezugszeitpunkt. Nutzt den ursprünglich geplanten `scheduledAt`‑Wert als
+ * Bezugszeitpunkt. Nutzt den ursprünglich geplanten `scheduledPlannedAt`‑Wert als
  * Startpunkt und iteriert so lange vorwärts, bis ein Termin in der Zukunft
  * (>= fromDate) gefunden wurde.
  *
@@ -367,7 +377,7 @@ function getNextScheduledAt(skeet, fromDate = new Date()) {
   // Differenz in Tagen ab scheduledAt/fromDate), um die Schleife weiter
   // zu vereinfachen. Die aktuelle Iteration ist auf 366 Schritte begrenzt
   // und funktional korrekt, aber nicht optimal.
-  if (!skeet || !skeet.repeat || skeet.repeat === "none") {
+  if (!skeet || isRepeatNoneValue(skeet.repeat)) {
     return null;
   }
 
@@ -377,7 +387,7 @@ function getNextScheduledAt(skeet, fromDate = new Date()) {
     return null;
   }
 
-  const baseRaw = skeet.repeatAnchorAt || skeet.scheduledAt || from;
+  const baseRaw = skeet.repeatAnchorAt || skeet.scheduledPlannedAt || skeet.scheduledAt || from;
   const base =
     baseRaw instanceof Date ? new Date(baseRaw.getTime()) : new Date(baseRaw);
   if (Number.isNaN(base.getTime())) {
@@ -510,7 +520,17 @@ async function dispatchSkeet(skeet) {
     return;
   }
 
-  if (current.repeat === "none" && current.postUri) {
+  const isRepeatNone = isRepeatNoneValue(current.repeat);
+
+  if (isRepeatNone && current.postUri) {
+    if (current.status !== "sent" || current.scheduledAt) {
+      await current.update({
+        status: "sent",
+        scheduledAt: null,
+        pendingReason: null,
+        repeatAnchorAt: null,
+      });
+    }
     return;
   }
 
@@ -521,7 +541,7 @@ async function dispatchSkeet(skeet) {
   const successOrder = [];
 
   for (const platformId of targetPlatforms) {
-    if (current.repeat === "none" && results[platformId]?.status === "sent") {
+    if (isRepeatNone && results[platformId]?.status === "sent") {
       continue;
     }
 
@@ -634,7 +654,7 @@ async function dispatchSkeet(skeet) {
   if (successOrder.length > 0) {
     const primary = successOrder.find((entry) => entry.platformId === "bluesky") ?? successOrder[0];
     if (primary) {
-      if (current.repeat === "none") {
+      if (isRepeatNone) {
         if (allSent) {
           updates.postUri = primary.uri;
           updates.postedAt = primary.postedAt;
@@ -646,7 +666,7 @@ async function dispatchSkeet(skeet) {
     }
   }
 
-  if (current.repeat === "none") {
+  if (isRepeatNone) {
     if (allSent) {
       updates.scheduledAt = null;
       updates.status = "sent";
@@ -675,6 +695,7 @@ async function dispatchSkeet(skeet) {
     }
     if (nextAnchor) {
       updates.repeatAnchorAt = nextAnchor;
+      updates.scheduledPlannedAt = nextAnchor;
       updates.scheduledAt = randomizedNextRun || nextAnchor;
     } else {
       metadata.retryAttempt = Number(metadata.retryAttempt || 0) + 1;
@@ -682,14 +703,17 @@ async function dispatchSkeet(skeet) {
       updates.scheduledAt = new Date(Date.now() + delay);
       metadata.lastRetryDelayMs = delay;
       metadata.nextRetryAt = updates.scheduledAt.toISOString();
-      updates.repeatAnchorAt = current.repeatAnchorAt || current.scheduledAt || null;
+      updates.repeatAnchorAt =
+        current.repeatAnchorAt || current.scheduledPlannedAt || current.scheduledAt || null;
+      updates.scheduledPlannedAt =
+        current.scheduledPlannedAt || current.repeatAnchorAt || current.scheduledAt || null;
     }
   }
 
   await current.update(updates);
   try {
     // UI informieren (Statuswechsel von geplant -> veröffentlicht/verschoben)
-    const status = current.repeat === 'none'
+    const status = isRepeatNone
       ? (allSent ? 'published' : 'scheduled')
       : 'scheduled';
     events.emit('skeet:updated', { id: current.id, status });
@@ -709,7 +733,10 @@ async function processDueSkeets(now = new Date()) {
       status: "scheduled",
       scheduledAt: { [Op.ne]: null, [Op.lte]: now },
       isThreadPost: false,
-      [Op.or]: [{ repeat: "none", postUri: null }, { repeat: { [Op.ne]: "none" } }],
+      [Op.or]: [
+        { repeat: { [Op.in]: ["none", "0", 0, null] }, postUri: null },
+        { repeat: { [Op.notIn]: ["none", "0", 0] } },
+      ],
     },
     order: [["scheduledAt", "ASC"]],
     limit: MAX_BATCH_SIZE,
@@ -763,13 +790,16 @@ async function processDueSkeets(now = new Date()) {
             postedAt: nowDate,
           };
 
-          if (current.repeat === "none") {
+          if (isRepeatNoneValue(current.repeat)) {
             updates.scheduledAt = null;
             updates.status = "sent";
             updates.pendingReason = null;
           } else {
             const nextAnchor = calculateNextScheduledAt(current);
-            updates.repeatAnchorAt = nextAnchor || current.repeatAnchorAt || current.scheduledAt || null;
+            updates.repeatAnchorAt =
+              nextAnchor || current.repeatAnchorAt || current.scheduledPlannedAt || current.scheduledAt || null;
+            updates.scheduledPlannedAt =
+              nextAnchor || current.scheduledPlannedAt || current.repeatAnchorAt || current.scheduledAt || null;
             updates.scheduledAt = nextAnchor ? (applyRandomOffset(nextAnchor) || nextAnchor) : null;
             if (current.status !== "scheduled") {
               updates.status = "scheduled";

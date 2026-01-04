@@ -289,6 +289,13 @@ function useProvideSearchContext () {
     setQuery(trimmed)
   }, [draftQuery, rememberSearch])
 
+  const resetSearch = useCallback(() => {
+    setDraftQuery('')
+    setQuery('')
+    setActiveTab('top')
+    setErrorMessage('')
+  }, [])
+
   const loadMore = useCallback(async () => {
     if (!hasQuery || !hasMore || loading || loadingMore) return
     await setSize(size + 1)
@@ -423,7 +430,8 @@ function useProvideSearchContext () {
     applyPrefixSuggestion,
     advancedPrefixes: advancedPrefixEntries,
     loadMore,
-    handleEngagementChange
+    handleEngagementChange,
+    resetSearch
   }
 }
 

@@ -365,7 +365,8 @@ const messages = {
         title: 'Suche',
         placeholder: 'Nach Posts oder Personen suchen…',
         submit: 'Suchen',
-        clear: 'Eingabe löschen'
+        clear: 'Eingabe löschen',
+        cancel: 'Abbrechen'
       },
       tabs: {
         top: 'Top',
@@ -1002,7 +1003,8 @@ const messages = {
         title: 'Search',
         placeholder: 'Search posts or people…',
         submit: 'Search',
-        clear: 'Clear search'
+        clear: 'Clear search',
+        cancel: 'Cancel'
       },
       tabs: {
         top: 'Top',

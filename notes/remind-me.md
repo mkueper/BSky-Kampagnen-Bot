@@ -21,8 +21,14 @@
     - Bei aktivierter Option muss der "Senden" Button in den Composern deaktiviert sein, so lange nicht alle Medien einen ALT-text haben.
 12. [Erledigt] Den Hinweistext "Übersetzung eingefügt" können wir uns eigentlich sparen, weil wir ihn beim Schließen wieder wegnehmen sollten.
 13. [Erledigt] Den Schließen Button innerhalb einer Übersetzung sollten wir entfernen und bei erneuuten Klick auf das Übersetzen Icon schließen-
-14. Der Button Sendehistorie im Dashboard, Posts bersicht ist zu lang und sollte sich optisch in das UI.md einfgen. Der Text sollte  nicht breit geschrieben sein und einfach nur Sendehistorie heißen. Der Aufbau sollte ungefährt so sein:
+14. [Erledigt ]Der Button Sendehistorie im Dashboard, Posts bersicht ist zu lang und sollte sich optisch in das UI.md einfgen. Der Text sollte  nicht breit geschrieben sein und einfach nur Sendehistorie heißen. Der Aufbau sollte ungefährt so sein:
     Ueberschrift "Sendehistorie"
     "Erfolgreich: {count}"
     "Fehlgeschlagen: {count}"
     Button "Anzeigen/Verbergen"
+---
+15. Nach einem Refresh auf Mitteilungen Mitteilungen wird nicht zuverlässig an den Anfang der Liste gesprungen.
+16. [Beobachten] Beim Starten des Clienten werden in Home die gepinnten Timelines manchmal nicht angezeigt
+17. [Beobachten] Logik fuer pluralisierte Texte absichern.
+18. Refresh bei Mitteilungen springt nicht an den Anfang der Liste.
+19. 

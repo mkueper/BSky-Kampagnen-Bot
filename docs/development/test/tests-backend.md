@@ -346,7 +346,7 @@ Neue Tests sollten durch Hinzufügen eines weiteren Abschnitts im selben Format 
 - `addDaysKeepingTime` MUSS Tage im UTC-Kontext hinzufügen, ohne die Uhrzeit zu verschieben.
 - `computeNextWeekly` MUSS den nächsten Termin für einen gewünschten Wochentag berechnen und bei Gleichheit zur nächsten Woche weiterrollen.
 - `computeNextMonthly` MUSS bei ungültigen Tageszahlen in den nächsten Monat wechseln und auf den letzten vorhandenen Tag klemmen (z.B. 31. → 28./29.).
-- `calculateNextScheduledAt` MUSS für `repeat=daily|weekly|monthly` den nächsten Ausführungstermin auf Basis von `scheduledAt` berechnen.
+- `calculateNextScheduledAt` MUSS für `repeat=daily|weekly|monthly` den nächsten Ausführungstermin auf Basis von `scheduledPlannedAt`/`repeatAnchorAt` berechnen.
 - `getNextScheduledAt` MUSS für tägliche, wöchentliche und monatliche Wiederholungen den ersten zukünftigen Termin nach einem gegebenen Referenz-Zeitpunkt liefern und bei unbekannten `repeat`-Werten `null` zurückgeben.
 
 **Konzept-Abgleich:** offen
@@ -410,7 +410,7 @@ Neue Tests sollten durch Hinzufügen eines weiteren Abschnitts im selben Format 
 
 **Anforderungen (aus Implementierung):**
 - Prüft, wie geplante Skeets in „pending“ überführt bzw. dort aktualisiert werden.
-- Stellt sicher, dass Statusübergänge und `scheduledAt`-Updates konsistent sind.
+- Stellt sicher, dass Statusübergänge sowie Updates an `scheduledAt` und `scheduledPlannedAt` konsistent sind.
 
 **Konzept-Abgleich:** offen
 

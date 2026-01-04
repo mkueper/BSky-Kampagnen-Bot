@@ -346,9 +346,21 @@ function buildSkeetAttributes(payload, existing = null) {
   const normalizedPlatforms = ensureTargetPlatforms(normalizedList);
 
   const hasScheduledAtInput = Object.prototype.hasOwnProperty.call(payload, 'scheduledAt');
+  const hasScheduledPlannedAtInput = Object.prototype.hasOwnProperty.call(payload, 'scheduledPlannedAt');
+  let plannedAt;
+  if (hasScheduledPlannedAtInput) {
+    plannedAt = parseOptionalDate(payload.scheduledPlannedAt);
+  } else if (hasScheduledAtInput) {
+    plannedAt = parseOptionalDate(payload.scheduledAt);
+  } else {
+    plannedAt = existing?.scheduledPlannedAt ?? existing?.scheduledAt ?? null;
+  }
+
   let scheduledAt;
   if (hasScheduledAtInput) {
     scheduledAt = parseOptionalDate(payload.scheduledAt);
+  } else if (hasScheduledPlannedAtInput) {
+    scheduledAt = plannedAt;
   } else {
     scheduledAt = existing?.scheduledAt ?? null;
   }
@@ -372,19 +384,27 @@ function buildSkeetAttributes(payload, existing = null) {
 
   if (repeat === 'none') {
     attributes.scheduledAt = scheduledAt;
+    attributes.scheduledPlannedAt = plannedAt ?? scheduledAt ?? null;
     attributes.postUri = null;
     attributes.postedAt = null;
     attributes.repeatAnchorAt = null;
   } else {
+    if (plannedAt) {
+      attributes.scheduledPlannedAt = plannedAt;
+    } else if (existing?.scheduledPlannedAt) {
+      attributes.scheduledPlannedAt = existing.scheduledPlannedAt;
+    }
     if (scheduledAt) {
       attributes.scheduledAt = scheduledAt;
     } else if (existing?.scheduledAt) {
       attributes.scheduledAt = existing.scheduledAt;
     }
-    if (hasScheduledAtInput) {
-      attributes.repeatAnchorAt = scheduledAt || null;
+    if (hasScheduledAtInput || hasScheduledPlannedAtInput) {
+      attributes.repeatAnchorAt = plannedAt || null;
     } else if (existing?.repeatAnchorAt) {
       attributes.repeatAnchorAt = existing.repeatAnchorAt;
+    } else if (attributes.scheduledPlannedAt) {
+      attributes.repeatAnchorAt = attributes.scheduledPlannedAt;
     } else if (attributes.scheduledAt) {
       attributes.repeatAnchorAt = attributes.scheduledAt;
     }
@@ -821,6 +841,7 @@ async function discardPendingSkeet(id) {
     pendingReason: null,
     scheduledAt: schedulerService.applyRandomOffset(nextAt) || nextAt,
     repeatAnchorAt: nextAt,
+    scheduledPlannedAt: nextAt,
   });
   emitSkeetEvent('skeet:updated', { id: skeet.id, status: 'scheduled' });
   return skeet;

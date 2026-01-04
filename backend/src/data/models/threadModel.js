@@ -26,6 +26,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: null,
       },
+      scheduledPlannedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
+      },
       status: {
         type: DataTypes.STRING,
         allowNull: false,

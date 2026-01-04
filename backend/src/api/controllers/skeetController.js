@@ -37,6 +37,7 @@ async function getSkeets(req, res) {
  * Body (JSON):
  * - content: string (erforderlich)
  * - scheduledAt?: string | Date | null (bei repeat='none' erforderlich)
+ * - scheduledPlannedAt?: string | Date | null (optional, geplante Basiszeit)
  * - repeat?: 'none' | 'daily' | 'weekly' | 'monthly'
  * - repeatDayOfWeek?: 0..6 (bei weekly erforderlich)
  * - repeatDayOfMonth?: 1..31 (bei monthly erforderlich)

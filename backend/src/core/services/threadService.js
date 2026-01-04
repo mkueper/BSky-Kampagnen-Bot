@@ -237,6 +237,7 @@ async function createThread(payload = {}) {
   const {
     title = null,
     scheduledAt = null,
+    scheduledPlannedAt = null,
     status = "draft",
     targetPlatforms = ["bluesky"],
     appendNumbering = true,
@@ -249,12 +250,15 @@ async function createThread(payload = {}) {
   const safeMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
 
   return sequelize.transaction(async (transaction) => {
+    const parsedScheduledAt = parseOptionalDate(scheduledAt ?? scheduledPlannedAt);
+    const parsedScheduledPlannedAt = parseOptionalDate(scheduledPlannedAt ?? scheduledAt);
     const thread = await Thread.create(
       {
         title,
         // Wichtig: Datum parsebar machen (lokale Eingaben von <input type="datetime-local">
         // werden hier in echte Date-Objekte umgewandelt, DB speichert in UTC.)
-        scheduledAt: parseOptionalDate(scheduledAt),
+        scheduledAt: parsedScheduledAt,
+        scheduledPlannedAt: parsedScheduledPlannedAt,
         status,
         targetPlatforms: normalizedPlatforms,
         appendNumbering,
@@ -349,6 +353,7 @@ async function updateThread(id, payload = {}) {
   const {
     title = undefined,
     scheduledAt = undefined,
+    scheduledPlannedAt = undefined,
     status = undefined,
     targetPlatforms = undefined,
     appendNumbering = undefined,
@@ -374,14 +379,21 @@ async function updateThread(id, payload = {}) {
   const normalizedSkeets = shouldReplaceSkeets ? normalizeSkeets(skeets, nextAppendNumbering) : null;
 
   return sequelize.transaction(async (transaction) => {
+    const nextScheduledAt =
+      scheduledAt === undefined
+        ? thread.scheduledAt
+        : parseOptionalDate(scheduledAt);
+    const nextScheduledPlannedAt =
+      scheduledPlannedAt === undefined
+        ? (scheduledAt === undefined ? thread.scheduledPlannedAt : nextScheduledAt)
+        : parseOptionalDate(scheduledPlannedAt);
+
     await thread.update(
       {
         title: title === undefined ? thread.title : title,
         // Nur ändern, wenn Feld explizit vorhanden ist; dann robust parsen.
-        scheduledAt:
-          scheduledAt === undefined
-            ? thread.scheduledAt
-            : parseOptionalDate(scheduledAt),
+        scheduledAt: nextScheduledAt,
+        scheduledPlannedAt: nextScheduledPlannedAt,
         status: status === undefined ? thread.status : status,
         targetPlatforms: nextTargetPlatforms,
         appendNumbering: nextAppendNumbering,

@@ -19,6 +19,8 @@ import SearchHeader from '../../src/modules/search/SearchHeader.jsx'
 import { SearchProvider } from '../../src/modules/search/SearchContext.jsx'
 import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
 
+const dispatchMock = vi.fn()
+
 const { searchBskyMock, selectThreadFromItemMock } = vi.hoisted(() => ({
   searchBskyMock: vi.fn(),
   selectThreadFromItemMock: vi.fn()
@@ -33,6 +35,11 @@ vi.mock('../../src/modules/shared', () => ({
   InlineMenuTrigger: ({ children }) => <>{children}</>,
   InlineMenuContent: ({ children }) => <div>{children}</div>,
   searchBsky: searchBskyMock
+}))
+
+vi.mock('../../src/context/UIContext', () => ({
+  useUIState: () => ({ profileActor: null, me: null }),
+  useUIDispatch: () => dispatchMock
 }))
 
 vi.mock('../../src/modules/timeline/SkeetItem.jsx', () => ({

@@ -24,6 +24,9 @@ async function exportPlannedSkeets({ includeMedia = true } = {}) {
     skeets: skeets.map((entry) => ({
       content: entry.content,
       scheduledAt: entry.scheduledAt ? new Date(entry.scheduledAt).toISOString() : null,
+      scheduledPlannedAt: entry.scheduledPlannedAt
+        ? new Date(entry.scheduledPlannedAt).toISOString()
+        : (entry.scheduledAt ? new Date(entry.scheduledAt).toISOString() : null),
       repeat: entry.repeat,
       repeatDayOfWeek: entry.repeatDayOfWeek,
       repeatDayOfMonth: entry.repeatDayOfMonth,
@@ -74,7 +77,8 @@ async function importPlannedSkeets(body) {
 
     const payload = {
       content: item.content,
-      scheduledAt: item.scheduledAt,
+      scheduledAt: item.scheduledAt ?? item.scheduledPlannedAt,
+      scheduledPlannedAt: item.scheduledPlannedAt ?? null,
       repeat: item.repeat,
       repeatDayOfWeek: item.repeatDayOfWeek,
       repeatDayOfMonth: item.repeatDayOfMonth,
@@ -141,9 +145,13 @@ async function exportThreads(options = {}) {
     }
 
     const scheduledAtValue = thread.scheduledAt ? new Date(thread.scheduledAt) : null;
+    const scheduledPlannedAtValue = thread.scheduledPlannedAt
+      ? new Date(thread.scheduledPlannedAt)
+      : scheduledAtValue;
     return {
       title: thread.title || null,
       scheduledAt: scheduledAtValue ? scheduledAtValue.toISOString() : null,
+      scheduledPlannedAt: scheduledPlannedAtValue ? scheduledPlannedAtValue.toISOString() : null,
       status: thread.status,
       targetPlatforms: Array.isArray(thread.targetPlatforms) && thread.targetPlatforms.length
         ? thread.targetPlatforms
@@ -254,7 +262,8 @@ async function importThreads(body) {
 
     const payload = {
       title: entry.title ?? null,
-      scheduledAt: entry.scheduledAt ?? null,
+      scheduledAt: entry.scheduledAt ?? entry.scheduledPlannedAt ?? null,
+      scheduledPlannedAt: entry.scheduledPlannedAt ?? null,
       status: entry.status ?? 'draft',
       targetPlatforms: entry.targetPlatforms,
       appendNumbering,

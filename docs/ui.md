@@ -221,7 +221,7 @@ verwendet, damit die Terminologie mit der Original-Bluesky-Oberfläche kompatibe
 - Der neue Regler **„Zufallsversatz (± Minuten)“** im Tab „Scheduler & Retry“ ergänzt die bestehenden Felder Cron/Retry/Grace. `0` bedeutet „kein Versatz“.
 - Der Wert wirkt global: Jeder wiederkehrende Post erhält beim nächsten Turnus einen zufälligen Versatz im Bereich `[-offset, +offset]`. Ein Offset von `5` ergibt also Abweichungen zwischen −5 und +5 Minuten.
 - Die Eingabe ist auf maximal 120 Minuten begrenzt. Bei höheren Eingaben zeigt die UI eine Validierungsmeldung, das Backend antwortet mit `SETTINGS_SCHEDULER_INVALID_RANDOM_OFFSET`.
-- Die UI zeigt weiterhin den tatsächlichen nächsten Ausführungstermin (`scheduledAt`), der den Versatz bereits enthält. Der Basiswert (`repeatAnchorAt`) bleibt davon unberührt, damit Serien nicht langfristig „driften“.
+- Die UI zeigt weiterhin den tatsächlichen nächsten Ausführungstermin (`scheduledAt`), der den Versatz bereits enthält. Der geplante Basiswert wird in `scheduledPlannedAt` gehalten; `repeatAnchorAt` bleibt die driftfreie Referenz für Wiederholungen.
 
 ## Beispiele
 

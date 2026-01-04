@@ -29,7 +29,7 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 
 ### Threads (`Threads`)
 - **Primärschlüssel:** `id` (INTEGER, auto increment)
-- **Felder:** `title`, `scheduledAt`, `status` (`draft|scheduled|publishing|published|failed|deleted`), `targetPlatforms` (JSON), `appendNumbering`, `metadata` (JSON-Objekt).
+- **Felder:** `title`, `scheduledAt`, `scheduledPlannedAt`, `status` (`draft|scheduled|publishing|published|failed|deleted`), `targetPlatforms` (JSON), `appendNumbering`, `metadata` (JSON-Objekt).
 - **Timestamps:** `createdAt`, `updatedAt`
 - **Relationen:** `Thread.hasMany(ThreadSkeet, { as: "segments" })`, `Thread.hasMany(Skeet, { as: "scheduledSkeets" })`
 
@@ -43,8 +43,8 @@ Dieser Leitfaden fasst das aktuelle Schema, die wichtigsten Tabellen und bewähr
 - **Anwendung:** Dateien liegen im Upload-Verzeichnis (`UPLOAD_DIR`, Standard `data/medien`). Reihenfolge wird über `order` gesteuert.
 
 ### Skeets (`Skeets`)
-- **Felder:** `content`, `scheduledAt`, `repeatAnchorAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
-- `repeatAnchorAt` hält die driftfreie Basiszeit für wiederkehrende Skeets fest; `scheduledAt` speichert den tatsächlichen Ausführungszeitpunkt (inkl. Zufallsversatz).
+- **Felder:** `content`, `scheduledAt`, `scheduledPlannedAt`, `repeatAnchorAt`, `postUri`, `likesCount`, `repostsCount`, `postedAt`, `repeat`, `repeatDayOfWeek`, `repeatDayOfMonth`, `threadId`, `isThreadPost`, `targetPlatforms` (JSON), `platformResults` (JSON).
+- `scheduledPlannedAt` hält die geplante Uhrzeit (ohne Jitter); `scheduledAt` speichert den tatsächlichen Ausführungszeitpunkt (inkl. Zufallsversatz). `repeatAnchorAt` bleibt die driftfreie Basiszeit für wiederkehrende Skeets.
 - **Soft-Delete:** `paranoid: true` → `deletedAt`.
 - **Indices:** auf `scheduledAt`, `threadId`, `deletedAt`.
 - **Validierungen:** Pflichttermin bei `repeat = 'none'`, Wiederholungswerte bei `weekly`/`monthly`, gültige Plattformen.

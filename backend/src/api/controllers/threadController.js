@@ -66,6 +66,7 @@ async function getThread(req, res) {
  * Body (JSON):
  * - title?: string | null
  * - scheduledAt?: string | Date | null  (lokal/ISO; wird serverseitig validiert/geparst)
+ * - scheduledPlannedAt?: string | Date | null  (optional, geplante Basiszeit)
  * - status?: 'draft' | 'scheduled' | ... (Default: 'draft')
  * - targetPlatforms?: string[] (Default: ['bluesky'])
  * - appendNumbering?: boolean (Default: true)

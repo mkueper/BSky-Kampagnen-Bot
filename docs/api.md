@@ -173,7 +173,8 @@ Aktuell gelten u. a. folgende Codes:
 
 - **POST `/api/skeets`**  
   Legt einen Skeet an. Felder (Auszug):  
-  `content`, `scheduledAt` (ISO), `repeat` (`none|daily|weekly|monthly`), `repeatDayOfWeek`, `repeatDayOfMonth`, `targetPlatforms` (z. B. `["bluesky","mastodon"]`).
+  `content`, `scheduledAt` (ISO), `scheduledPlannedAt` (ISO, optional), `repeat` (`none|daily|weekly|monthly`), `repeatDayOfWeek`, `repeatDayOfMonth`, `targetPlatforms` (z. B. `["bluesky","mastodon"]`).  
+  Hinweis: `scheduledPlannedAt` hält die geplante Basiszeit (ohne Jitter), `scheduledAt` ist der tatsächliche Ausführungstermin.
 
 - **PATCH `/api/skeets/:id`**  
   Teilaktualisierung (gleiches Payload-Schema wie beim Anlegen).
@@ -222,6 +223,7 @@ Aktuell gelten u. a. folgende Codes:
   {
     "title": "Launch-Plan",
     "scheduledAt": "2025-01-31T10:00:00Z",
+    "scheduledPlannedAt": "2025-01-31T10:00:00Z",
     "targetPlatforms": ["bluesky"],
     "appendNumbering": true,
     "segments": [

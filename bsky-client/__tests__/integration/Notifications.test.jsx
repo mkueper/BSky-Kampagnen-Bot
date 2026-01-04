@@ -158,7 +158,13 @@ vi.mock('../../src/modules/shared', () => {
     InlineMenuItem: ({ children, onSelect, ...props }) => (
       <button type='button' onClick={onSelect} {...props}>{children}</button>
     ),
+    InlineVideoPlayer: ({ children }) => <div>{children}</div>,
     deletePost: vi.fn(async () => ({ success: true })),
+    sendFeedInteractions: vi.fn(async () => ({ ok: true })),
+    muteThread: vi.fn(async () => ({ ok: true })),
+    addMutedWord: vi.fn(async () => ({ ok: true })),
+    hidePost: vi.fn(async () => ({ ok: true })),
+    hideReplyForAll: vi.fn(async () => ({ ok: true })),
     ConfirmDialog: () => null,
     useConfirmDialog: () => ({
       dialog: { open: false },

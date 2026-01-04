@@ -50,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: null,
       },
       scheduledAt: { type: DataTypes.DATE, allowNull: true }, // <= jetzt nullable
+      scheduledPlannedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
       repeatAnchorAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
       postUri: { type: DataTypes.STRING },
       likesCount: { type: DataTypes.INTEGER, defaultValue: 0 },

@@ -9,9 +9,11 @@ export default function SearchHeader () {
     draftQuery,
     setDraftQuery,
     submitSearch,
+    resetSearch,
     availableTabs,
     activeTab,
     setActiveTab,
+    hasQuery,
     prefixSuggestions,
     showPrefixSuggestions,
     activePrefixHint,
@@ -20,8 +22,10 @@ export default function SearchHeader () {
   } = useSearchContext()
   const { t } = useTranslation()
   const inputRef = useRef(null)
+  const formRef = useRef(null)
   const suggestionListId = useId()
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
+  const [isFocused, setIsFocused] = useState(false)
 
   const handleApplySuggestion = useCallback((entry) => {
     if (!entry) return
@@ -76,6 +80,23 @@ export default function SearchHeader () {
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [draftQuery, setDraftQuery])
 
+  const handleCancelSearch = useCallback(() => {
+    resetSearch()
+    setActiveSuggestionIndex(-1)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [resetSearch])
+
+  const handleFocusIn = useCallback(() => {
+    setIsFocused(true)
+  }, [])
+
+  const handleFocusOut = useCallback((event) => {
+    if (formRef.current?.contains(event.relatedTarget)) return
+    setIsFocused(false)
+  }, [])
+
+  const showCancelButton = hasQuery && isFocused
+
   return (
     <div className='space-y-4' data-component='BskySearchHeader'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
@@ -83,8 +104,11 @@ export default function SearchHeader () {
       </div>
 
       <form
+        ref={formRef}
         className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4'
         onSubmit={submitSearch}
+        onFocusCapture={handleFocusIn}
+        onBlurCapture={handleFocusOut}
       >
         <div className='relative flex-1'>
           <div className='flex w-full items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2 shadow-soft'>
@@ -157,9 +181,15 @@ export default function SearchHeader () {
             </div>
           )}
         </div>
-        <Button type='submit' variant='primary' size='pill' disabled={!draftQuery.trim()}>
-          {t('search.header.submit', 'Suchen')}
-        </Button>
+        {showCancelButton ? (
+          <Button type='button' variant='secondary' size='pill' onClick={handleCancelSearch} className='h-9 min-w-[8.5rem] justify-center'>
+            {t('search.header.cancel', 'Abbrechen')}
+          </Button>
+        ) : (
+          <Button type='submit' variant='primary' size='pill' disabled={!draftQuery.trim() || hasQuery} className='h-9 min-w-[8.5rem] justify-center'>
+            {t('search.header.submit', 'Suchen')}
+          </Button>
+        )}
       </form>
 
       <div className='flex flex-wrap gap-2'>
