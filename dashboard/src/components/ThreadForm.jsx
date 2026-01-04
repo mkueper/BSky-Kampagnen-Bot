@@ -68,9 +68,10 @@ const PLATFORM_OPTIONS = [
   { id: 'bluesky', label: 'Bluesky', limit: 300 },
   { id: 'mastodon', label: 'Mastodon', limit: 500 }
 ]
+const MAX_THREAD_SEGMENTS = 25
 const THREAD_BREAK_MARKER = '---'
 
-function computeLimit (selectedPlatforms) {
+function computeLimit(selectedPlatforms) {
   if (!selectedPlatforms.length) {
     return null
   }
@@ -86,7 +87,7 @@ function computeLimit (selectedPlatforms) {
   )
 }
 
-function ThreadForm ({
+function ThreadForm({
   initialThread = null,
   loading = false,
   onThreadSaved,
@@ -204,13 +205,13 @@ function ThreadForm ({
         }
         const sourceValue =
           typeof thread?.metadata?.source === 'string' &&
-          thread.metadata.source.trim().length
+            thread.metadata.source.trim().length
             ? thread.metadata.source
             : Array.isArray(thread.segments)
-            ? thread.segments
+              ? thread.segments
                 .map(segment => segment?.content || '')
                 .join('\n---\n')
-            : ''
+              : ''
         setSource(sourceValue)
       } else {
         setThreadId(null)
@@ -307,6 +308,11 @@ function ThreadForm ({
     [source, limit, appendNumbering]
   )
   const isEditMode = Boolean(threadId)
+  const exceedsMaxSegments = totalSegments > MAX_THREAD_SEGMENTS
+  const visiblePreviewSegments = useMemo(
+    () => previewSegments.slice(0, MAX_THREAD_SEGMENTS),
+    [previewSegments]
+  )
   const lastPreviewIndexRef = useRef(null)
   const skipNextPreviewScrollRef = useRef(false)
 
@@ -490,10 +496,10 @@ function ThreadForm ({
             const data = await res.json().catch(() => ({}))
             throw new Error(
               data.error ||
-                t(
-                  'threads.form.media.uploadErrorExistingFallback',
-                  'Upload fehlgeschlagen.'
-                )
+              t(
+                'threads.form.media.uploadErrorExistingFallback',
+                'Upload fehlgeschlagen.'
+              )
             )
           }
           toast.success({
@@ -549,11 +555,11 @@ function ThreadForm ({
             const data = await res.json().catch(() => ({}))
             const error = new Error(
               data.message ||
-                data.error ||
-                t(
-                  'threads.form.media.uploadTempErrorFallback',
-                  'Temporärer Upload fehlgeschlagen.'
-                )
+              data.error ||
+              t(
+                'threads.form.media.uploadTempErrorFallback',
+                'Temporärer Upload fehlgeschlagen.'
+              )
             )
             if (typeof data.code === 'string') {
               error.code = data.code
@@ -672,7 +678,7 @@ function ThreadForm ({
         if (!res.ok)
           throw new Error(
             (await res.json().catch(() => ({}))).error ||
-              'Löschen fehlgeschlagen'
+            'Löschen fehlgeschlagen'
           )
         setRemovedMedia(s => ({ ...s, [item.id]: true }))
         toast.success({ title: 'Bild entfernt' })
@@ -720,9 +726,8 @@ function ThreadForm ({
 
     const needsPrefixNl = selectionStart > 0 && prevChar !== '\n'
     const needsSuffixNl = nextChar !== '\n'
-    const separator = `${needsPrefixNl ? '\n' : ''}---${
-      needsSuffixNl ? '\n' : ''
-    }`
+    const separator = `${needsPrefixNl ? '\n' : ''}---${needsSuffixNl ? '\n' : ''
+      }`
 
     const nextValue = `${before}${separator}${after}`
     skipNextPreviewScrollRef.current = true
@@ -753,6 +758,9 @@ function ThreadForm ({
   }
 
   const hasValidationIssues = useMemo(() => {
+    if (exceedsMaxSegments) {
+      return true
+    }
     if (!targetPlatforms.length) {
       return true
     }
@@ -764,11 +772,7 @@ function ThreadForm ({
       if (textMissingButMediaPresent) return false
       return noText || segment.exceedsLimit
     })
-  }, [
-    previewSegments,
-    targetPlatforms.length,
-    getMediaCount
-  ])
+  }, [exceedsMaxSegments, previewSegments, targetPlatforms.length, getMediaCount])
 
   const hasAnySegmentContentOrMedia = useMemo(() => {
     return previewSegments.some(segment => {
@@ -789,16 +793,27 @@ function ThreadForm ({
     )
   }
 
-  async function doSubmitThread () {
+  async function doSubmitThread() {
+    if (exceedsMaxSegments) {
+      toast.error({
+        title: t('threads.form.limit.title', 'Zu viele Posts im Thread'),
+        description: t(
+          'threads.form.limit.description',
+          'Maximal {max} Posts pro Thread erlaubt. Bitte kürzen.',
+          { max: MAX_THREAD_SEGMENTS }
+        )
+      })
+      return
+    }
     const status = scheduledAt ? 'scheduled' : 'draft'
     const scheduledPlannedAt = scheduledAt ? scheduledAt : null
     const scheduledValue =
       scheduledPlannedAt && applyJitter && jitterAvailable
         ? applyRandomOffsetToLocalDateTime({
-            localDateTime: scheduledPlannedAt,
-            timeZone,
-            offsetMinutes: randomOffsetMinutes
-          })
+          localDateTime: scheduledPlannedAt,
+          timeZone,
+          offsetMinutes: randomOffsetMinutes
+        })
         : scheduledPlannedAt
     const titleCandidate = previewSegments[0]?.raw || ''
     const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
@@ -839,9 +854,9 @@ function ThreadForm ({
         const data = await res.json().catch(() => ({}))
         throw new Error(
           data.error ||
-            (isEditMode
-              ? 'Thread konnte nicht aktualisiert werden.'
-              : 'Thread konnte nicht gespeichert werden.')
+          (isEditMode
+            ? 'Thread konnte nicht aktualisiert werden.'
+            : 'Thread konnte nicht gespeichert werden.')
         )
       }
 
@@ -880,9 +895,9 @@ function ThreadForm ({
       toast.error({
         title: isEditMode
           ? t(
-              'threads.form.saveErrorUpdateTitle',
-              'Aktualisierung fehlgeschlagen'
-            )
+            'threads.form.saveErrorUpdateTitle',
+            'Aktualisierung fehlgeschlagen'
+          )
           : t('threads.form.saveErrorCreateTitle', 'Speichern fehlgeschlagen'),
         description:
           error?.message ||
@@ -896,8 +911,19 @@ function ThreadForm ({
     }
   }
 
-  async function doSendNowThread () {
+  async function doSendNowThread() {
     if (saving || loading || sending) return
+    if (exceedsMaxSegments) {
+      toast.error({
+        title: t('threads.form.limit.title', 'Zu viele Posts im Thread'),
+        description: t(
+          'threads.form.limit.description',
+          'Maximal {max} Posts pro Thread erlaubt. Bitte kürzen.',
+          { max: MAX_THREAD_SEGMENTS }
+        )
+      })
+      return
+    }
     if (hasValidationIssues || !hasAnySegmentContentOrMedia) {
       toast.error({
         title: t(
@@ -942,10 +968,10 @@ function ThreadForm ({
           const data = await resCreate.json().catch(() => ({}))
           throw new Error(
             data.error ||
-              t(
-                'threads.form.sendNow.createErrorFallback',
-                'Thread konnte nicht erstellt werden.'
-              )
+            t(
+              'threads.form.sendNow.createErrorFallback',
+              'Thread konnte nicht erstellt werden.'
+            )
           )
         }
         const created = await resCreate.json()
@@ -967,10 +993,10 @@ function ThreadForm ({
         const data = await resPub.json().catch(() => ({}))
         throw new Error(
           data.error ||
-            t(
-              'threads.form.sendNow.publishErrorFallback',
-              'Direktveröffentlichung fehlgeschlagen.'
-            )
+          t(
+            'threads.form.sendNow.publishErrorFallback',
+            'Direktveröffentlichung fehlgeschlagen.'
+          )
         )
       }
       const published = await resPub.json()
@@ -1015,6 +1041,17 @@ function ThreadForm ({
   const handleSubmit = async event => {
     event.preventDefault()
     if (saving || loading || sending) return
+    if (exceedsMaxSegments) {
+      toast.error({
+        title: t('threads.form.limit.title', 'Zu viele Posts im Thread'),
+        description: t(
+          'threads.form.limit.description',
+          'Maximal {max} Posts pro Thread erlaubt. Bitte kürzen.',
+          { max: MAX_THREAD_SEGMENTS }
+        )
+      })
+      return
+    }
 
     // If there is only one segment, suggest creating a single Post instead
     if (totalSegments === 1) {
@@ -1074,20 +1111,31 @@ function ThreadForm ({
                 )}
               </p>
             </header>
-
-            <textarea
-              ref={textareaRef}
-              value={source}
-              onChange={event => setSource(event.target.value)}
-              onKeyDown={handleKeyDown}
-              onClick={scrollPreviewToActiveSegment}
-              onKeyUp={scrollPreviewToActiveSegment}
-              className='mt-4 h-64 w-full rounded-2xl border border-border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-              placeholder={t(
-                'threads.form.source.placeholder',
-                'Beispiel:\nIntro zum Thread...\n---\nWeiterer Post...'
-              )}
-            />
+            <div
+              className={`mt-4 mb-4 rounded-2xl border border-transparent ${
+                exceedsMaxSegments
+                  ? 'ring-4 ring-destructive/80 ring-offset-4 ring-offset-background'
+                  : ''
+              }`}
+            >
+              <textarea
+                ref={textareaRef}
+                value={source}
+                onChange={event => setSource(event.target.value)}
+                onKeyDown={handleKeyDown}
+                onClick={scrollPreviewToActiveSegment}
+                onKeyUp={scrollPreviewToActiveSegment}
+                className={`h-64 w-full rounded-2xl border bg-background-subtle p-4 font-mono text-sm text-foreground shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                  exceedsMaxSegments
+                    ? 'border-transparent focus:border-transparent'
+                    : 'border-border focus:border-primary'
+                }`}
+                placeholder={t(
+                  'threads.form.source.placeholder',
+                  'Beispiel:\nIntro zum Thread...\n---\nWeiterer Post...'
+                )}
+              />
+            </div>
             {/* Toolbar unter der Textarea */}
             <div className='mt-2 flex items-center gap-2'>
               <button
@@ -1192,9 +1240,9 @@ function ThreadForm ({
                   )}{' '}
                   {scheduledDate === todayDate
                     ? t(
-                        'threads.form.schedule.todayHint',
-                        'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
-                      )
+                      'threads.form.schedule.todayHint',
+                      'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
+                    )
                     : null}
                 </p>
               </div>
@@ -1262,15 +1310,15 @@ function ThreadForm ({
                       ? t('threads.form.submitUpdateBusy', 'Aktualisieren…')
                       : t('threads.form.submitCreateBusy', 'Planen…')
                     : isEditMode
-                    ? t('threads.form.submitUpdate', 'Thread aktualisieren')
-                    : t('threads.form.submitCreate', 'Planen')}
+                      ? t('threads.form.submitUpdate', 'Thread aktualisieren')
+                      : t('threads.form.submitCreate', 'Planen')}
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
-        <aside className='flex flex-col gap-4 lg:max-h-[calc(100vh-18rem)] lg:min-h-0 lg:overflow-hidden'>
+        <aside className='flex flex-col gap-4 lg:max-h-[calc(100vh-16rem)] lg:min-h-0 lg:overflow-hidden'>
           <div
             className={`shrink-0 rounded-3xl border border-border ${theme.panelBg} p-5 shadow-soft`}
           >
@@ -1299,22 +1347,21 @@ function ThreadForm ({
                         option.id === 'mastodon' && !mastodonConfigured
                       const title = disabled
                         ? t(
-                            'threads.form.platforms.mastodonDisabledTitle',
-                            'Mastodon-Zugang nicht konfiguriert'
-                          )
+                          'threads.form.platforms.mastodonDisabledTitle',
+                          'Mastodon-Zugang nicht konfiguriert'
+                        )
                         : t(
-                            'threads.form.platforms.optionTitle',
-                            '{label} ({limit})',
-                            { label: option.label, limit: option.limit }
-                          )
+                          'threads.form.platforms.optionTitle',
+                          '{label} ({limit})',
+                          { label: option.label, limit: option.limit }
+                        )
                       return (
                         <label
                           key={option.id}
-                          className={`inline-flex items-center gap-2 text-sm font-medium ${
-                            disabled
+                          className={`inline-flex items-center gap-2 text-sm font-medium ${disabled
                               ? 'text-foreground-muted'
                               : 'text-foreground'
-                          }`}
+                            }`}
                           title={title}
                           aria-disabled={disabled || undefined}
                         >
@@ -1372,7 +1419,7 @@ function ThreadForm ({
                     <span>
                       {t(
                         'threads.form.numbering.label',
-                        'Automatische Nummerierung (`1/x`) anhängen'
+                        'Automatisch nummerieren'
                       )}
                     </span>
                   </label>
@@ -1403,19 +1450,34 @@ function ThreadForm ({
                   {t('threads.form.infoButtonLabel', 'Info')}
                 </button>
               </div>
-              <span className='text-xs uppercase tracking-[0.2em] text-foreground-muted'>
+              <span
+                className={`text-xs uppercase tracking-[0.2em] ${
+                  exceedsMaxSegments
+                    ? 'text-destructive'
+                    : 'text-foreground-muted'
+                }`}
+              >
                 {t('threads.form.preview.counter', '{count} Post{suffix}', {
                   count: totalSegments,
                   suffix: totalSegments !== 1 ? 's' : ''
                 })}
               </span>
             </div>
+            {exceedsMaxSegments ? (
+              <p className='mt-2 text-xs text-destructive'>
+                {t(
+                  'threads.form.limit.previewHint',
+                  'Maximal {max} Posts pro Thread. Nur die ersten {max} werden angezeigt.',
+                  { max: MAX_THREAD_SEGMENTS }
+                )}
+              </p>
+            ) : null}
 
             <div
               ref={previewContainerRef}
               className='mt-4 flex-1 space-y-4 overflow-y-auto pr-2 scrollbar-preview lg:min-h-0 lg:pr-3'
             >
-              {previewSegments.map((segment, index) => {
+              {visiblePreviewSegments.map((segment, index) => {
                 return (
                   <article
                     key={segment.id}
@@ -1435,14 +1497,13 @@ function ThreadForm ({
                       </span>
                       <div className='flex items-center gap-2'>
                         <span
-                          className={`font-medium ${
-                            segment.exceedsLimit
+                          className={`font-medium ${segment.exceedsLimit
                               ? 'text-destructive'
                               : segment.characterCount >
                                 (limit ? limit * 0.9 : Infinity)
-                              ? 'text-amber-500'
-                              : 'text-foreground-muted'
-                          }`}
+                                ? 'text-amber-500'
+                                : 'text-foreground-muted'
+                            }`}
                         >
                           {segment.characterCount}
                           {limit ? ` / ${limit}` : null}
@@ -1734,6 +1795,13 @@ function ThreadForm ({
                   'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
                 )}
               </p>
+              <p>
+                {t(
+                  'threads.form.infoPreview.body5',
+                  'Pro Thread sind maximal {max} Posts erlaubt. Segmente ab {overflow} werden nicht angezeigt. Ein roter Rahmen am Eingabefeld signalisiert das Überschreiten.',
+                  { max: MAX_THREAD_SEGMENTS, overflow: MAX_THREAD_SEGMENTS + 1 }
+                )}
+              </p>
             </>
           }
         />
@@ -1763,10 +1831,10 @@ function ThreadForm ({
                 if (!res.ok) {
                   throw new Error(
                     (await res.json().catch(() => ({}))).error ||
-                      t(
-                        'threads.form.media.altSaveErrorFallback',
-                        'Alt‑Text konnte nicht gespeichert werden.'
-                      )
+                    t(
+                      'threads.form.media.altSaveErrorFallback',
+                      'Alt‑Text konnte nicht gespeichert werden.'
+                    )
                   )
                 }
                 setEditedMediaAlt(s => ({ ...s, [item.id]: newAlt }))

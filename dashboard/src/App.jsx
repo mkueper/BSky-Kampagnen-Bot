@@ -1055,7 +1055,7 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'about') {
     content = (
-      <Card padding='p-6 lg:p-10' className='flex h-full min-h-0 flex-col'>
+      <Card className='flex h-full min-h-0 flex-col'>
         <Suspense
           fallback={
             <p className='text-sm text-foreground-muted'>
@@ -1072,7 +1072,7 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'skeets-plan') {
     content = (
-      <Card padding='p-6 lg:p-10'>
+      <Card>
         <Suspense
           fallback={
             <p className='text-sm text-foreground-muted'>
@@ -1094,7 +1094,7 @@ function DashboardApp ({ onLogout }) {
     )
   } else if (activeView === 'threads-plan') {
     content = (
-      <Card padding='p-6 lg:p-10'>
+      <Card>
         <Suspense
           fallback={
             <p className='text-sm text-foreground-muted'>

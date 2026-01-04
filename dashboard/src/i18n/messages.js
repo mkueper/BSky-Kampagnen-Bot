@@ -422,7 +422,7 @@ const messages = {
           mastodon: 'Mastodon'
         },
         numbering: {
-          label: 'Automatische Nummerierung (`1/x`) anhängen'
+          label: 'Automatisch nummerieren'
         },
         schedule: {
           label: 'Geplanter Versand',
@@ -507,7 +507,7 @@ const messages = {
           body3:
             'Medien können pro Post in der Vorschau hinzugefügt werden. Maximal {max} Bilder pro Post.',
           body4:
-            'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+            'Automatisch nummerieren kann im Formular ein- oder ausgeschaltet werden.'
         },
         infoPreview: {
           title: 'Hinweis: Vorschau',
@@ -518,7 +518,9 @@ const messages = {
           body3:
             'Der Zähler zeigt die aktuelle Zeichenanzahl je Post im Verhältnis zum Limit der ausgewählten Plattformen.',
           body4:
-            'Die automatische Nummerierung (1/x) kann im Formular ein- oder ausgeschaltet werden.'
+            'Automatisch nummerieren kann im Formular ein- oder ausgeschaltet werden.',
+          body5:
+            'Pro Thread sind maximal {max} Posts erlaubt. Segmente ab {overflow} werden nicht angezeigt. Ein roter Rahmen am Eingabefeld signalisiert das Überschreiten.'
         },
         singleSegment: {
           title: 'Nur ein Segment erkannt',
@@ -1393,7 +1395,7 @@ const messages = {
           mastodon: 'Mastodon'
         },
         numbering: {
-          label: 'Append automatic numbering (`1/x`)'
+          label: 'Automatically number'
         },
         schedule: {
           label: 'Scheduled send',
@@ -1434,6 +1436,32 @@ const messages = {
             'The image file could not be uploaded.',
           addImageTitle: 'Add image',
           addGifTitle: 'Add GIF'
+        },
+        infoButtonLabel: 'Info',
+        infoButtonTitle: 'Show hint',
+        infoSource: {
+          title: 'Hint: Thread content',
+          body1:
+            'The entire thread is entered in one field. --- can be used as a separator, alternatively CTRL+Enter.',
+          body2:
+            'Longer sections are split automatically where possible. The character limit follows the selected platforms (the smallest value applies).',
+          body3:
+            'Media can be added per post in the preview. Maximum {max} images per post.',
+          body4:
+            'Automatically number can be toggled in the form.'
+        },
+        infoPreview: {
+          title: 'Hint: Preview',
+          body1:
+            'Each section becomes a post. Use the buttons in the preview to add images or GIFs per post.',
+          body2:
+            'Images are uploaded when saving (max. {max} per post).',
+          body3:
+            'The counter shows the current character count relative to the selected platform limit.',
+          body4:
+            'Automatically number can be toggled in the form.',
+          body5:
+            'Threads are limited to {max} posts. Segments from {overflow} onward are not shown. A red outline around the input indicates the limit is exceeded.'
         }
       },
       activityExtra: {

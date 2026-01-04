@@ -20,7 +20,7 @@ const Card = forwardRef(function Card (
   {
     as: Tag = 'article',
     background = 'default',
-    padding = 'p-5',
+    padding = 'p-4',
     hover = false,
     compact = false,
     className = '',
