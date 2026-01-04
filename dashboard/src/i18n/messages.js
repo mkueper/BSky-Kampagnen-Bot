@@ -249,9 +249,13 @@ const messages = {
         date: {
           label: 'Geplantes Datum'
         },
+        jitter: {
+          label: 'Jitter nutzen',
+          disabledHint: 'Jitter ist in den Einstellungen deaktiviert.'
+        },
         cancel: 'Abbrechen',
         submitUpdate: 'Post aktualisieren',
-        submitCreate: 'Planen',
+        submitCreate: 'Posten',
         sendNow: {
           buttonBusy: 'Senden…',
           buttonDefault: 'Sofort senden',
@@ -425,13 +429,16 @@ const messages = {
           hint: 'Standard: morgen um 09:00 Uhr.',
           todayHint: 'Heute nur Zeiten ab der aktuellen Uhrzeit wählbar.'
         },
+        jitter: {
+          label: 'Jitter nutzen',
+          disabledHint: 'Jitter ist in den Einstellungen deaktiviert.'
+        },
         emoji: {
           insertAria: 'Emoji einfügen',
           insertTitle: 'Emoji einfügen (Ctrl+.)'
         },
         actions: {
-          cancel: 'Abbrechen',
-          reset: 'Formular zurücksetzen'
+          cancel: 'Abbrechen'
         },
         submitUpdateBusy: 'Aktualisieren…',
         submitCreateBusy: 'Planen…',
@@ -1213,9 +1220,13 @@ const messages = {
         date: {
           label: 'Scheduled date'
         },
+        jitter: {
+          label: 'Use jitter',
+          disabledHint: 'Jitter is disabled in settings.'
+        },
         cancel: 'Cancel',
         submitUpdate: 'Update post',
-        submitCreate: 'Schedule',
+        submitCreate: 'Post',
         sendNow: {
           buttonBusy: 'Sending…',
           buttonDefault: 'Send now',
@@ -1388,13 +1399,16 @@ const messages = {
           label: 'Scheduled send',
           hint: 'Default: tomorrow at 09:00'
         },
+        jitter: {
+          label: 'Use jitter',
+          disabledHint: 'Jitter is disabled in settings.'
+        },
         emoji: {
           insertAria: 'Insert emoji',
           insertTitle: 'Insert emoji (Ctrl+.)'
         },
         actions: {
-          cancel: 'Cancel',
-          reset: 'Reset form'
+          cancel: 'Cancel'
         },
         submitUpdateBusy: 'Updating…',
         submitCreateBusy: 'Scheduling…',

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, ConfirmDialog, InlineField, InfoDialog, MediaDialog, SegmentMediaGrid } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
+import { useSchedulerSettings } from '../hooks/useSchedulerSettings'
 import { weekdayOrder, weekdayLabel } from '../utils/weekday'
 import { GifPicker, EmojiPicker } from '@kampagnen-bot/media-pickers'
 import { ImageIcon, FaceIcon } from '@radix-ui/react-icons'
@@ -14,7 +15,7 @@ import {
   getInputPartsFromUtc,
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
-import { clampTimeToNowForToday } from '../utils/scheduling'
+import { applyRandomOffsetToLocalDateTime, clampTimeToNowForToday } from '../utils/scheduling'
 import {
   buildSegmentMediaItems,
   countSegmentMedia
@@ -74,7 +75,7 @@ function resolveMaxLength (selectedPlatforms) {
  * @param {Object|null} editingSkeet Aktueller Datensatz beim Bearbeiten, sonst null.
  * @param {Function} onCancelEdit   Wird beim Abbrechen aufgerufen (z. B. Tab-Wechsel).
  */
-function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }) {
+function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
   const { t } = useTranslation()
   const { config: clientConfig } = useClientConfig()
   const timeZone = resolvePreferredTimeZone(clientConfig?.timeZone)
@@ -154,6 +155,9 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   const [infoPreviewOpen, setInfoPreviewOpen] = useState(false)
   const [sendNowConfirmOpen, setSendNowConfirmOpen] = useState(false)
   const [sendingNow, setSendingNow] = useState(false)
+  const { randomOffsetMinutes, loading: schedulerLoading } = useSchedulerSettings()
+  const jitterAvailable = Number(randomOffsetMinutes) > 0
+  const [applyJitter, setApplyJitter] = useState(false)
   const existingSegments = useMemo(() => {
     if (!Array.isArray(editingSkeet?.media)) return []
     return [{ sequence: 0, media: editingSkeet.media }]
@@ -285,8 +289,8 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     }
   }
 
-  function resetToDefaults () {
-    setContent((typeof initialContent === 'string' && initialContent.length) ? initialContent : '')
+  function resetToDefaults ({ focus = false } = {}) {
+    setContent('')
     setTargetPlatforms(defaultPlatformFallback)
     setRepeat('none')
     setRepeatDayOfMonth(null)
@@ -294,6 +298,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
     const defaults = getDefaultDateParts(timeZone) ?? { date: '', time: '' }
     setScheduledDate(defaults.date)
     setScheduledTime(defaults.time)
+    if (focus) {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus()
+      })
+    }
   }
 
   useEffect(() => {
@@ -361,9 +370,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
   }, [editingSkeet, timeZone])
 
   useEffect(() => {
-    if (editingSkeet?.scheduledAt) {
+    const plannedValue = editingSkeet?.scheduledPlannedAt || editingSkeet?.scheduledAt
+    if (plannedValue) {
       const rawParts =
-        getInputPartsFromUtc(editingSkeet.scheduledAt, timeZone) ??
+        getInputPartsFromUtc(plannedValue, timeZone) ??
         (getDefaultDateParts(timeZone) || { date: '', time: '' })
       const clamped = clampTimeToNowForToday({
         date: rawParts.date,
@@ -379,6 +389,32 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       setScheduledTime(defaults.time)
     }
   }, [editingSkeet, timeZone, todayDate, nowTime])
+
+  useEffect(() => {
+    if (!editingSkeet) {
+      setApplyJitter(false)
+      return
+    }
+    const planned = editingSkeet?.scheduledPlannedAt
+    const actual = editingSkeet?.scheduledAt
+    if (!planned || !actual) {
+      setApplyJitter(false)
+      return
+    }
+    const plannedTime = new Date(planned).getTime()
+    const actualTime = new Date(actual).getTime()
+    if (Number.isNaN(plannedTime) || Number.isNaN(actualTime)) {
+      setApplyJitter(false)
+      return
+    }
+    setApplyJitter(plannedTime !== actualTime)
+  }, [editingSkeet])
+
+  useEffect(() => {
+    if (!jitterAvailable && !schedulerLoading) {
+      setApplyJitter(false)
+    }
+  }, [jitterAvailable, schedulerLoading])
   
   // Mastodon deaktivieren, wenn keine Zugangsdaten vorhanden
   useEffect(() => {
@@ -499,9 +535,20 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
       return
     }
 
+    const scheduledPlannedAt = scheduledDateTimeString
+    const scheduledActualAt =
+      repeat === 'none' && applyJitter && jitterAvailable
+        ? applyRandomOffsetToLocalDateTime({
+            localDateTime: scheduledPlannedAt,
+            timeZone,
+            offsetMinutes: randomOffsetMinutes
+          })
+        : scheduledPlannedAt
+
     const payload = {
       content,
-      scheduledAt: scheduledDateTimeString,
+      scheduledAt: scheduledActualAt,
+      scheduledPlannedAt,
       repeat,
       repeatDaysOfWeek,
       repeatDayOfMonth,
@@ -524,9 +571,11 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
     if (res.ok) {
       if (!isEditing) {
-        resetToDefaults()
+        resetToDefaults({ focus: true })
       }
-      if (onSkeetSaved) onSkeetSaved()
+      if (onSkeetSaved) {
+        onSkeetSaved({ mode: isEditing ? 'edit' : 'create', id: editingSkeet?.id ?? null })
+      }
       toast.success({
         title: isEditing
           ? t('posts.form.saveSuccessUpdateTitle', 'Post aktualisiert')
@@ -567,52 +616,79 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
             )}
           </p>
         </div>
-        <div
-          className='flex flex-wrap items-center gap-2'
-          role='group'
-          aria-label={t(
-            'posts.form.platforms.groupLabel',
-            'Plattformen wählen'
-          )}
-        >
-          {['bluesky', 'mastodon'].map(platform => {
-            const isActive = targetPlatforms.includes(platform)
-            const disabled = platform === 'mastodon' && !mastodonConfigured
-            const title = disabled
-              ? t(
-                  'posts.form.platforms.mastodonDisabledTitle',
-                  'Mastodon-Zugang nicht konfiguriert'
-                )
-              : undefined
-            return (
-              <label
-                key={platform}
-                className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'border-primary bg-primary/10 text-primary shadow-soft'
-                    : 'border-border text-foreground-muted hover:border-primary/50'
-                }`}
-                aria-disabled={disabled || undefined}
-                title={title}
-              >
+        <div className='space-y-2'>
+          <div
+            className='flex flex-wrap items-center gap-4'
+            role='group'
+            aria-label={t(
+              'posts.form.platforms.groupLabel',
+              'Plattformen wählen'
+            )}
+          >
+            {['bluesky', 'mastodon'].map(platform => {
+              const isActive = targetPlatforms.includes(platform)
+              const disabled = platform === 'mastodon' && !mastodonConfigured
+              const title = disabled
+                ? t(
+                    'posts.form.platforms.mastodonDisabledTitle',
+                    'Mastodon-Zugang nicht konfiguriert'
+                  )
+                : undefined
+              return (
+                <label
+                  key={platform}
+                  className={`inline-flex items-center gap-2 text-sm font-medium ${
+                    disabled
+                      ? 'text-foreground-muted'
+                      : 'text-foreground'
+                  }`}
+                  aria-disabled={disabled || undefined}
+                  title={title}
+                >
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-border'
+                    checked={isActive && !disabled}
+                    disabled={disabled}
+                    onChange={() => togglePlatform(platform)}
+                  />
+                  <span className='capitalize'>
+                    {platform === 'bluesky'
+                      ? t('posts.form.platforms.bluesky', 'Bluesky')
+                      : t('posts.form.platforms.mastodon', 'Mastodon')}
+                    <span className='ml-1 text-xs text-foreground-muted'>
+                      ({PLATFORM_LIMITS[platform]})
+                    </span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+          {repeat === 'none' && (
+            <div className='space-y-2'>
+              <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
                 <input
                   type='checkbox'
-                  className='sr-only'
-                  checked={isActive && !disabled}
-                  disabled={disabled}
-                  onChange={() => togglePlatform(platform)}
+                  className='h-4 w-4 rounded border-border'
+                  checked={applyJitter && jitterAvailable}
+                  disabled={!jitterAvailable || !scheduledDateTimeString}
+                  onChange={() => {
+                    if (!jitterAvailable || !scheduledDateTimeString) return
+                    setApplyJitter(prev => !prev)
+                  }}
                 />
-                <span className='capitalize'>
-                  {platform === 'bluesky'
-                    ? t('posts.form.platforms.bluesky', 'Bluesky')
-                    : t('posts.form.platforms.mastodon', 'Mastodon')}
-                  <span className='ml-1 text-xs text-foreground-muted'>
-                    ({PLATFORM_LIMITS[platform]})
-                  </span>
-                </span>
+                <span>{t('posts.form.jitter.label', 'Jitter nutzen')}</span>
               </label>
-            )
-          })}
+              {!jitterAvailable && !schedulerLoading ? (
+                <p className='text-xs text-foreground-muted'>
+                  {t(
+                    'posts.form.jitter.disabledHint',
+                    'Jitter ist in den Einstellungen deaktiviert.'
+                  )}
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1078,6 +1154,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
           </p>
         )}
 
+
         {repeat === 'weekly' && (
           <div className='space-y-2'>
             <label className='text-sm font-semibold text-foreground'>
@@ -1147,6 +1224,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
 
       </div>
       <div className='flex flex-wrap justify-end gap-3'>
+        {isEditing && (
+          <Button
+            type='button'
+            variant='secondary'
+            onClick={() => onCancelEdit && onCancelEdit()}
+            className='min-w-[8rem]'
+          >
+            {t('posts.form.cancel', 'Abbrechen')}
+          </Button>
+        )}
         <Button
           type='button'
           variant='neutral'
@@ -1159,16 +1246,6 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit, initialContent }
         >
           {t('posts.form.sendNow.buttonDefault', 'Sofort senden')}
         </Button>
-        {isEditing && (
-          <Button
-            type='button'
-            variant='secondary'
-            onClick={() => onCancelEdit && onCancelEdit()}
-            className='min-w-[8rem]'
-          >
-            {t('posts.form.cancel', 'Abbrechen')}
-          </Button>
-        )}
         <Button
           type='submit'
           variant='primary'

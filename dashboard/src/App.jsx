@@ -685,23 +685,29 @@ function DashboardApp ({ onLogout }) {
     [editingThreadId, navigate, toast]
   )
 
-  const handleFormSaved = async () => {
-    const editedId = editingSkeet?.id ?? null
-    setEditingSkeet(null)
-    try { setSkeetDraftContent('') } catch (e) { console.error(e); }
-    // Zuerst in die Übersicht wechseln, dann gezielt refreshen
-    navigate('skeets-overview')
-    setActiveDashboardTab('planned')
-    if (editedId) {
-      setHighlightedSkeetId(editedId)
+  const handleFormSaved = async ({ mode = 'create', id = null } = {}) => {
+    const isEdit = mode === 'edit'
+    if (isEdit) {
+      setEditingSkeet(null)
+      // Zuerst in die Übersicht wechseln, dann gezielt refreshen
+      navigate('skeets-overview')
+      setActiveDashboardTab('planned')
+      if (id) {
+        setHighlightedSkeetId(id)
+      }
+    } else {
+      try { setSkeetDraftContent('') } catch (e) { console.error(e); }
     }
     await new Promise(r => setTimeout(r, 0))
     await refreshSkeetsNow({ force: true })
   }
 
-  const handleThreadSaved = async () => {
-    setEditingThreadId(null)
-    navigate('threads-overview')
+  const handleThreadSaved = async ({ mode = 'create' } = {}) => {
+    const isEdit = mode === 'edit'
+    if (isEdit) {
+      setEditingThreadId(null)
+      navigate('threads-overview')
+    }
     await new Promise(r => setTimeout(r, 0))
     await refreshThreadsNow({ force: true })
   }

@@ -5,6 +5,31 @@
 
 # ---
 
+## 2026-01-04
+
+### Client
+
+- **Feature:** Standalone-Auth mit direkter Bluesky-API, Multi-Account-Login/-Wechsel und konsolidiertem Account-Menü (inkl. Nutzung im Profil).
+- **Feature:** Profil-Bearbeitung als Modal (Avatar/Banner hochladen oder entfernen) sowie Benachrichtigungs-Abos für Posts/Antworten.
+- **Feature:** Suche erweitert: lokalisierte Prefix-Hints, interner Profil-Viewer inkl. Profilverlauf, Follow/Unfollow-Buttons in der Personenliste.
+- **Feature:** Share-/Report-/Moderationsaktionen im Post-Menü integriert (Thread stummschalten, Wörter/Tags stummschalten, Post/Antwort ausblenden).
+- **Improvement:** Composer & Threads konsolidiert (Footer-Aktionen, Link-Paste mit Preview, einheitliche Feldhöhen, Overlay-Verhalten stabilisiert).
+- **Improvement:** Feeds-Handling verbessert (Feed-Manager mit Draft/Custom-Ordering, Feed-Picker vorhydratisiert, Feeds-Timeline-Overlay & Performance).
+
+### Backend
+
+- **Feature:** `scheduledPlannedAt` ergänzt, trennt geplante Uhrzeit von `scheduledAt` (tatsächlicher Ausführungstermin) inkl. Migration/Import/Export-Anpassung.
+
+### Shared UI
+
+- **Improvement:** InlineMenu rendert portalled und verhält sich konsistenter über Layouts hinweg.
+
+### Infrastruktur & CI
+
+- **Improvement:** Electron-Skripte für Linux/Windows ergänzt; CI holt Media-Picker-Submodule zuverlässig.
+
+# ---
+
 ## 2025-12-12
 
 ### Client & Backend

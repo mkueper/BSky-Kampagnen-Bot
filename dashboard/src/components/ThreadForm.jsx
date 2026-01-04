@@ -11,6 +11,7 @@ import {
 import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useClientConfig } from '../hooks/useClientConfig'
+import { useSchedulerSettings } from '../hooks/useSchedulerSettings'
 import {
   splitThread,
   buildSegmentMediaItems,
@@ -23,7 +24,7 @@ import {
   getDefaultDateParts,
   resolvePreferredTimeZone
 } from '../utils/zonedDate'
-import { clampTimeToNowForToday } from '../utils/scheduling'
+import { applyRandomOffsetToLocalDateTime, clampTimeToNowForToday } from '../utils/scheduling'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
@@ -133,6 +134,9 @@ function ThreadForm ({
   const previewContainerRef = useRef(null)
   const previewSegmentRefs = useRef([])
   const toast = useToast()
+  const { randomOffsetMinutes, loading: schedulerLoading } = useSchedulerSettings()
+  const jitterAvailable = Number(randomOffsetMinutes) > 0
+  const [applyJitter, setApplyJitter] = useState(false)
   const tenorAvailable = Boolean(clientConfig?.gifs?.tenorAvailable)
   const imagePolicy = clientConfig?.images || {
     maxCount: 4,
@@ -171,7 +175,8 @@ function ThreadForm ({
   )
 
   const restoreFromThread = useCallback(
-    thread => {
+    (thread, options = {}) => {
+      const { focus = false } = options
       if (thread && thread.id) {
         setThreadId(thread.id)
         setTargetPlatforms(
@@ -180,11 +185,23 @@ function ThreadForm ({
             : defaultPlatformFallback
         )
         setAppendNumbering(Boolean(thread.appendNumbering ?? true))
+        const plannedValue = thread.scheduledPlannedAt || thread.scheduledAt
         setScheduledAt(
-          thread.scheduledAt
-            ? formatDateTimeLocal(thread.scheduledAt, timeZone)
+          plannedValue
+            ? formatDateTimeLocal(plannedValue, timeZone)
             : ''
         )
+        if (thread.scheduledPlannedAt && thread.scheduledAt) {
+          const plannedTime = new Date(thread.scheduledPlannedAt).getTime()
+          const actualTime = new Date(thread.scheduledAt).getTime()
+          if (Number.isNaN(plannedTime) || Number.isNaN(actualTime)) {
+            setApplyJitter(false)
+          } else {
+            setApplyJitter(plannedTime !== actualTime)
+          }
+        } else {
+          setApplyJitter(false)
+        }
         const sourceValue =
           typeof thread?.metadata?.source === 'string' &&
           thread.metadata.source.trim().length
@@ -200,7 +217,13 @@ function ThreadForm ({
         setTargetPlatforms(defaultPlatformFallback)
         setAppendNumbering(true)
         setScheduledAt(defaultScheduledAt)
+        setApplyJitter(false)
         setSource('')
+        if (focus) {
+          requestAnimationFrame(() => {
+            textareaRef.current?.focus()
+          })
+        }
       }
     },
     [defaultScheduledAt, timeZone]
@@ -226,6 +249,12 @@ function ThreadForm ({
     }
     scheduledDefaultRef.current = defaultScheduledAt
   }, [defaultScheduledAt, scheduledAt, threadId])
+
+  useEffect(() => {
+    if (!jitterAvailable && !schedulerLoading) {
+      setApplyJitter(false)
+    }
+  }, [jitterAvailable, schedulerLoading])
 
   useEffect(() => {
     if (!scheduledAt) {
@@ -762,13 +791,22 @@ function ThreadForm ({
 
   async function doSubmitThread () {
     const status = scheduledAt ? 'scheduled' : 'draft'
-    const scheduledValue = scheduledAt ? scheduledAt : null
+    const scheduledPlannedAt = scheduledAt ? scheduledAt : null
+    const scheduledValue =
+      scheduledPlannedAt && applyJitter && jitterAvailable
+        ? applyRandomOffsetToLocalDateTime({
+            localDateTime: scheduledPlannedAt,
+            timeZone,
+            offsetMinutes: randomOffsetMinutes
+          })
+        : scheduledPlannedAt
     const titleCandidate = previewSegments[0]?.raw || ''
     const normalizedTitle = titleCandidate.trim().slice(0, 120) || null
 
     const payload = {
       title: normalizedTitle,
       scheduledAt: scheduledValue,
+      scheduledPlannedAt,
       status,
       targetPlatforms,
       appendNumbering,
@@ -825,7 +863,7 @@ function ThreadForm ({
 
       if (typeof onThreadSaved === 'function') {
         try {
-          onThreadSaved(thread)
+          onThreadSaved({ mode: isEditMode ? 'edit' : 'create', thread })
         } catch (callbackError) {
           console.error(
             'onThreadSaved Callback hat einen Fehler ausgelöst:',
@@ -835,7 +873,7 @@ function ThreadForm ({
       }
 
       if (!isEditMode) {
-        restoreFromThread(null)
+        restoreFromThread(null, { focus: true })
       }
     } catch (error) {
       console.error('Thread konnte nicht gespeichert werden:', error)
@@ -956,7 +994,7 @@ function ThreadForm ({
         }
       }
       if (!isEditMode) {
-        restoreFromThread(null)
+        restoreFromThread(null, { focus: true })
       }
     } catch (e) {
       console.error('Sofort senden fehlgeschlagen:', e)
@@ -1071,68 +1109,6 @@ function ThreadForm ({
             </div>
 
             <div className='mt-4 space-y-3'>
-              <fieldset className='space-y-2'>
-                <legend className='text-sm font-semibold'>
-                  {t('threads.form.platforms.legend', 'Zielplattformen')}
-                </legend>
-                <div
-                  className='flex flex-wrap items-center gap-2'
-                  role='group'
-                  aria-label={t(
-                    'threads.form.platforms.groupLabel',
-                    'Zielplattformen wählen'
-                  )}
-                >
-                  {PLATFORM_OPTIONS.map(option => {
-                    const isActive = targetPlatforms.includes(option.id)
-                    const disabled =
-                      option.id === 'mastodon' && !mastodonConfigured
-                    const title = disabled
-                      ? t(
-                          'threads.form.platforms.mastodonDisabledTitle',
-                          'Mastodon-Zugang nicht konfiguriert'
-                        )
-                      : t(
-                          'threads.form.platforms.optionTitle',
-                          '{label} ({limit})',
-                          { label: option.label, limit: option.limit }
-                        )
-                    return (
-                      <label
-                        key={option.id}
-                        className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                          isActive
-                            ? 'border-primary bg-primary/10 text-primary shadow-soft'
-                            : 'border-border text-foreground-muted hover:border-primary/50'
-                        } ${
-                          disabled
-                            ? ''
-                            : ''
-                        }`}
-                        title={title}
-                        aria-disabled={disabled || undefined}
-                      >
-                        <input
-                          type='checkbox'
-                          className='sr-only'
-                          checked={isActive && !disabled}
-                          disabled={disabled}
-                          onChange={() => handleTogglePlatform(option.id)}
-                        />
-                        <span className='capitalize'>
-                          {option.id === 'bluesky'
-                            ? t('threads.form.platforms.bluesky', 'Bluesky')
-                            : t('threads.form.platforms.mastodon', 'Mastodon')}
-                          <span className='ml-1 text-xs text-foreground-muted'>
-                            ({option.limit})
-                          </span>
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </fieldset>
-
               <div className='space-y-3'>
                 <div className='grid gap-4 md:grid-cols-2'>
                   <InlineField
@@ -1224,6 +1200,17 @@ function ThreadForm ({
               </div>
 
               <div className='flex flex-wrap items-center gap-2'>
+                {isEditMode && typeof onCancel === 'function' ? (
+                  <Button
+                    type='button'
+                    variant='secondary'
+                    onClick={onCancel}
+                    disabled={saving}
+                    className='min-w-[8rem]'
+                  >
+                    {t('threads.form.actions.cancel', 'Abbrechen')}
+                  </Button>
+                ) : null}
                 <Button
                   type='button'
                   variant='neutral'
@@ -1265,32 +1252,6 @@ function ThreadForm ({
                     : t('threads.form.sendNow.buttonDefault', 'Sofort senden')}
                 </Button>
                 <Button
-                  type='button'
-                  variant='secondary'
-                  onClick={() => {
-                    if (isEditMode && initialThread) {
-                      restoreFromThread(initialThread)
-                    } else {
-                      restoreFromThread(null)
-                    }
-                  }}
-                  disabled={saving || sending}
-                  className='min-w-[8rem]'
-                >
-                  {t('threads.form.actions.reset', 'Formular zurücksetzen')}
-                </Button>
-                {isEditMode && typeof onCancel === 'function' ? (
-                  <Button
-                    type='button'
-                    variant='secondary'
-                    onClick={onCancel}
-                    disabled={saving}
-                    className='min-w-[8rem]'
-                  >
-                    {t('threads.form.actions.cancel', 'Abbrechen')}
-                  </Button>
-                ) : null}
-                <Button
                   type='submit'
                   variant='primary'
                   disabled={hasValidationIssues || saving || loading}
@@ -1310,6 +1271,116 @@ function ThreadForm ({
         </div>
 
         <aside className='space-y-4'>
+          <div
+            className={`rounded-3xl border border-border ${theme.panelBg} p-5 shadow-soft`}
+          >
+            <div className='flex items-center justify-between'>
+              <h3 className='text-base font-semibold text-foreground'>
+                {t('threads.form.options.heading', 'Optionen')}
+              </h3>
+            </div>
+            <div className='mt-4 space-y-4'>
+              <fieldset className='space-y-2'>
+                <legend className='text-sm font-semibold'>
+                  {t('threads.form.platforms.legend', 'Zielplattformen')}
+                </legend>
+                <div className='space-y-2'>
+                  <div
+                    className='flex flex-wrap items-center gap-4'
+                    role='group'
+                    aria-label={t(
+                      'threads.form.platforms.groupLabel',
+                      'Zielplattformen wählen'
+                    )}
+                  >
+                    {PLATFORM_OPTIONS.map(option => {
+                      const isActive = targetPlatforms.includes(option.id)
+                      const disabled =
+                        option.id === 'mastodon' && !mastodonConfigured
+                      const title = disabled
+                        ? t(
+                            'threads.form.platforms.mastodonDisabledTitle',
+                            'Mastodon-Zugang nicht konfiguriert'
+                          )
+                        : t(
+                            'threads.form.platforms.optionTitle',
+                            '{label} ({limit})',
+                            { label: option.label, limit: option.limit }
+                          )
+                      return (
+                        <label
+                          key={option.id}
+                          className={`inline-flex items-center gap-2 text-sm font-medium ${
+                            disabled
+                              ? 'text-foreground-muted'
+                              : 'text-foreground'
+                          }`}
+                          title={title}
+                          aria-disabled={disabled || undefined}
+                        >
+                          <input
+                            type='checkbox'
+                            className='h-4 w-4 rounded border-border'
+                            checked={isActive && !disabled}
+                            disabled={disabled}
+                            onChange={() => handleTogglePlatform(option.id)}
+                          />
+                          <span className='capitalize'>
+                            {option.id === 'bluesky'
+                              ? t('threads.form.platforms.bluesky', 'Bluesky')
+                              : t('threads.form.platforms.mastodon', 'Mastodon')}
+                            <span className='ml-1 text-xs text-foreground-muted'>
+                              ({option.limit})
+                            </span>
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <div className='space-y-2'>
+                    <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
+                      <input
+                        type='checkbox'
+                        className='h-4 w-4 rounded border-border'
+                        checked={applyJitter && jitterAvailable}
+                        disabled={!jitterAvailable || !scheduledAt}
+                        onChange={() => {
+                          if (!jitterAvailable || !scheduledAt) return
+                          setApplyJitter(prev => !prev)
+                        }}
+                      />
+                      <span>
+                        {t('threads.form.jitter.label', 'Jitter nutzen')}
+                      </span>
+                    </label>
+                    {!jitterAvailable && !schedulerLoading ? (
+                      <p className='text-xs text-foreground-muted'>
+                        {t(
+                          'threads.form.jitter.disabledHint',
+                          'Jitter ist in den Einstellungen deaktiviert.'
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                  <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
+                    <input
+                      type='checkbox'
+                      className='h-4 w-4 rounded border-border'
+                      checked={appendNumbering}
+                      onChange={event => setAppendNumbering(event.target.checked)}
+                    />
+                    <span>
+                      {t(
+                        'threads.form.numbering.label',
+                        'Automatische Nummerierung (`1/x`) anhängen'
+                      )}
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+
           <div
             className={`flex flex-col rounded-3xl border border-border ${theme.panelBg} p-6 shadow-soft lg:max-h-[calc(100vh-4rem)] lg:overflow-hidden`}
           >
@@ -1339,19 +1410,6 @@ function ThreadForm ({
                 })}
               </span>
             </div>
-
-            <label className='mt-4 flex items-center gap-3 text-sm font-medium'>
-              <input
-                type='checkbox'
-                className='rounded border-border text-primary focus:ring-primary'
-                checked={appendNumbering}
-                onChange={event => setAppendNumbering(event.target.checked)}
-              />
-              {t(
-                'threads.form.numbering.label',
-                'Automatische Nummerierung (`1/x`) anhängen'
-              )}
-            </label>
 
             <div
               ref={previewContainerRef}
