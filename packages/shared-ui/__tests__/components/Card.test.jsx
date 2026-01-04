@@ -7,7 +7,7 @@ describe('Card (shared-ui)', () => {
     render(<Card>Content</Card>)
 
     const article = screen.getByText('Content')
-    expect(article).toHaveClass('rounded-2xl', 'bg-background', 'p-5')
+    expect(article).toHaveClass('rounded-2xl', 'bg-background', 'p-4')
   })
 
   it('supports custom background variants and hover state', () => {

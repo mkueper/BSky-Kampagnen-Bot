@@ -7,5 +7,5 @@
 3. [Erledigt] Der Composer soll beim Planen noch eine Combobox "Jitter nutzen" erhalten
 4. [Erweiterung] Filtern der geplanten Posts nach Hashtag/Suchbegriffen im Text
 5. [Beobachten] Zurueckgezogene Posts werden aktuell nicht separat in der Datenbank gekennzeichnet; spaeter klaeren, ob Status/Logik ergaenzt werden soll.
-6. Eine Vorlage, wie eine Import-Datei auszusehen hat erstellen
+6. [Erledigt] Eine Vorlage, wie eine Import-Datei auszusehen hat erstellen
 7. 
