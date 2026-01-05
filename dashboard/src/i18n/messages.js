@@ -255,7 +255,7 @@ const messages = {
         },
         cancel: 'Abbrechen',
         submitUpdate: 'Post aktualisieren',
-        submitCreate: 'Posten',
+        submitCreate: 'Planen',
         sendNow: {
           buttonBusy: 'Senden…',
           buttonDefault: 'Sofort senden',
@@ -1230,7 +1230,7 @@ const messages = {
         },
         cancel: 'Cancel',
         submitUpdate: 'Update post',
-        submitCreate: 'Post',
+        submitCreate: 'Schedule',
         sendNow: {
           buttonBusy: 'Sending…',
           buttonDefault: 'Send now',

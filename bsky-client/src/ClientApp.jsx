@@ -657,7 +657,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       previousSection !== 'notifications'
     ) {
       if (!notificationList || !notificationList.loaded) {
-        refreshListByKey(notificationListKey)
+        refreshListByKey(notificationListKey, { scrollAfter: true })
       }
     }
     if (
@@ -765,24 +765,17 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     setNotificationTab((prev) => {
       if (prev === tabId) {
         const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
+        const targetList = lists?.[key]
+        const shouldScrollAfter = Boolean(targetList?.hasNew)
         skipScrollRestoreRef.current = true
         clearSavedScrollPosition('notifications', key)
-        refreshListByKey(key, { scrollAfter: true, clearUnreadOnRefresh: true })
+        refreshListByKey(key, { scrollAfter: shouldScrollAfter, clearUnreadOnRefresh: true })
         return prev
       }
       const key = tabId === 'mentions' ? 'notifs:mentions' : 'notifs:all'
-      const targetList = lists?.[key]
-      const canRestore = canRestoreListState(targetList)
-      if (!canRestore) {
-        skipScrollRestoreRef.current = true
-        if (targetList?.hasNew) {
-          clearSavedScrollPosition('notifications', key)
-        }
-        refreshListByKey(key, { scrollAfter: true })
-      } else {
-        const restored = applySavedScrollPosition('notifications', key)
-        skipScrollRestoreRef.current = !restored
-      }
+      skipScrollRestoreRef.current = true
+      clearSavedScrollPosition('notifications', key)
+      refreshListByKey(key, { scrollAfter: true })
       return tabId
     })
   }, [lists, refreshListByKey, clearSavedScrollPosition, applySavedScrollPosition])
@@ -1026,7 +1019,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
             clearSavedScrollPosition('notifications', notificationListKey)
             refreshListByKey(notificationListKey, { scrollAfter: true })
           } else {
-            refreshListByKey(notificationListKey)
+            refreshListByKey(notificationListKey, { scrollAfter: true })
           }
         } else {
           const restored = applySavedScrollPosition('notifications', notificationListKey)

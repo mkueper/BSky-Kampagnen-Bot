@@ -4,7 +4,7 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-24.12.2025
+05.01.2026
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
@@ -13,6 +13,9 @@
 - Composer, Medien-Rendering und Profile-Pane unterstützen jetzt reservierte Layouts (keine Sprünge beim Bild-Laden) sowie kontextsensitive Hover/Badges in Sidebar/Nav-Bar.
 - Suche: Präfix-Auswahl läuft per Hints direkt im Eingabefeld, Keyboard-Navigation/Enter fügt Prefixe zuverlässig ein und der klare „Eingabe löschen“-Button ist immer zugänglich.
 - Notification-Badges werden konstant aktualisiert, auch wenn die Notifications-Sektion nicht aktiv ist; `useNotificationPolling` trennt Badge-Counts von Snapshot-/Has-New-Abrufen und der Service-Orchestrator hält die Hook-Flags konsistent (`ClientServiceOrchestrator`, `docs/code-review-bsky-client.md`).
+- `AppContext` ist in Sub-Provider (`Timeline`, `Composer`, `Thread`, `UI`) aufgeteilt; `guardedDispatch` bleibt gezielt und globaler State ist schlanker.
+- `SectionRenderer` startet kein Polling mehr, die Service-Logik läuft zentral im `ClientServiceOrchestrator`.
+- Die Action-Dispatch-Matrix in `docs/code-review-bsky-client.md` ist gepflegt; Tests decken Badge- vs. Snapshot-Polling-Flows ab.
 - Testsuite und Pre-Commit-Lint/Build laufen regelmäßig durch; bekannte Warnungen (`AppProvider`-Dispatch, `@atproto/lex-data` Ponyfills, Backend-Logging `EACCES`, Chunk-Size-Meldung beim `vite build`) sind dokumentiert.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
@@ -21,12 +24,7 @@ Badge-Polling ist abgekoppelt, der Service-Layer steuert Hooks zentral, und die 
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-1. Provider-Split weiter vorbereiten:
-   - `AppContext` so aufteilen, dass jeder Sub-Provider (`Timeline`, `Composer`, `Thread`, `UI`) nur seinen Teilzustand exponiert und `guardedDispatch` gezielt ausgelöst wird.
-2. UI-Service-Entkopplung vorantreiben:
-   - `SectionRenderer` bzw. neue Sections dürfen keine Polling-Hooks mehr starten; stattdessen sollen sie ausschließlich über den `ClientServiceOrchestrator` kontrollierte Flags erhalten.
-3. Dokumentation & Tests:
-   - Halte die Action-Dispatch-Matrix in `docs/code-review-bsky-client.md` aktuell und ergänze ggf. Tests, die die Badge- vs. Snapshot-Polling-Flows unterscheiden.
+Derzeit keine offenen Schritte definiert.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
