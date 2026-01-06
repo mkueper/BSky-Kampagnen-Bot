@@ -145,7 +145,10 @@ function ThreadDashboardView ({
                     size='icon'
                     onClick={() => setPublishedSortOrder('desc')}
                     aria-pressed={publishedSortOrder === 'desc'}
-                    title='Neu zuerst'
+                    title={t(
+                      'threads.activity.toolbar.sortNewFirst',
+                      'Neu zuerst'
+                    )}
                   >
                     <ArrowDownIcon className='h-4 w-4' />
                   </Button>
@@ -156,7 +159,10 @@ function ThreadDashboardView ({
                     size='icon'
                     onClick={() => setPublishedSortOrder('asc')}
                     aria-pressed={publishedSortOrder === 'asc'}
-                    title='Alt zuerst'
+                    title={t(
+                      'threads.activity.toolbar.sortOldFirst',
+                      'Alt zuerst'
+                    )}
                   >
                     <ArrowUpIcon className='h-4 w-4' />
                   </Button>

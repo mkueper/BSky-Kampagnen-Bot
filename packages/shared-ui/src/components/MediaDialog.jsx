@@ -5,6 +5,32 @@ import Modal from './Modal.jsx'
 import { compressImage } from '../utils/compressImage.js'
 
 const defaultAllowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const defaultLabels = {
+  selectFile: 'Select file',
+  allowedHint: (allowed, max) => `Allowed: ${allowed} · Max ${max}`,
+  invalidType: 'Unsupported file type.',
+  maxSize: (max) => `Maximum ${max} allowed.`,
+  altRequired: 'Alt text is required.',
+  altTooLong: 'Alt text is too long (max 2000 chars).',
+  prepareError: 'Image could not be prepared.',
+  noPreview: 'No preview',
+  previewAlt: 'Preview',
+  editAltAria: 'Edit alt text',
+  altLabel: 'Alt text',
+  altRequiredSuffix: '(required)',
+  altHintWithInitial: 'Adjust the existing alt text if needed.',
+  altHintDefault: 'Briefly describe what is shown in the image or video.',
+  altPlaceholder: 'Descriptive alt text',
+  cancelLabel: 'Cancel',
+  confirmLabel: 'Confirm'
+}
+
+function mergeLabels (labels) {
+  return {
+    ...defaultLabels,
+    ...(labels || {})
+  }
+}
 
 function humanSize (bytes) {
   if (!Number.isFinite(bytes)) return ''
@@ -26,11 +52,13 @@ export default function MediaDialog ({
   requireAltText = false,
   maxBytes = 8 * 1024 * 1024,
   allowedMimes = defaultAllowedMimes,
+  labels,
   initialAlt = '',
   previewSrc = null,
   onConfirm = undefined,
   onClose = undefined
 }) {
+  const mergedLabels = mergeLabels(labels)
   const [file, setFile] = useState(null)
   const [alt, setAlt] = useState('')
   const [error, setError] = useState(null)
@@ -64,11 +92,11 @@ export default function MediaDialog ({
   const validate = (selectedFile) => {
     if (mode === 'upload') {
       if (!selectedFile) return ''
-      if (!allowedMimes.includes(selectedFile.type)) return 'Nicht unterstützter Dateityp.'
-      if (selectedFile.size > maxBytes) return `Maximal ${humanSize(maxBytes)} erlaubt.`
+      if (!allowedMimes.includes(selectedFile.type)) return mergedLabels.invalidType
+      if (selectedFile.size > maxBytes) return mergedLabels.maxSize(humanSize(maxBytes))
     }
-    if (requireAltText && !alt.trim()) return 'Alt-Text ist erforderlich.'
-    if ((alt?.length || 0) > 2000) return 'Alt-Text ist zu lang (max. 2000 Zeichen).'
+    if (requireAltText && !alt.trim()) return mergedLabels.altRequired
+    if ((alt?.length || 0) > 2000) return mergedLabels.altTooLong
     return null
   }
 
@@ -84,8 +112,8 @@ export default function MediaDialog ({
       actions={(
         <>
           {validationMsg ? <span className='text-sm text-destructive mr-auto'>{validationMsg}</span> : null}
-          <Button variant='secondary' onClick={onClose}>Abbrechen</Button>
-          <Button variant='primary' disabled={disabled} onClick={() => onConfirm?.(file, alt)}>Übernehmen</Button>
+          <Button variant='secondary' onClick={onClose}>{mergedLabels.cancelLabel}</Button>
+          <Button variant='primary' disabled={disabled} onClick={() => onConfirm?.(file, alt)}>{mergedLabels.confirmLabel}</Button>
         </>
       )}
     >
@@ -97,7 +125,7 @@ export default function MediaDialog ({
               className='inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground hover:bg-background-elevated'
               onClick={() => inputRef.current?.click()}
             >
-              Datei auswählen
+              {mergedLabels.selectFile}
             </button>
             <input
               ref={inputRef}
@@ -110,7 +138,7 @@ export default function MediaDialog ({
                   const selected = event.target.files?.[0] || null
                   if (!selected) { setFile(null); return }
                   if (!allowedMimes.includes(selected.type)) {
-                    setError('Nicht unterstützter Dateityp.')
+                    setError(mergedLabels.invalidType)
                     setFile(null)
                     return
                   }
@@ -131,12 +159,15 @@ export default function MediaDialog ({
                   const wrapped = new File([blob], `${baseName}${extension}`, { type })
                   setFile(wrapped)
                 } catch (err) {
-                  setError(err?.message || 'Bild konnte nicht vorbereitet werden.')
+                  setError(err?.message || mergedLabels.prepareError)
                 }
               }}
             />
             <p className='mt-1 text-xs text-foreground-muted'>
-              Erlaubt: {allowedMimes.join(', ')} · Max {humanSize(maxBytes)}
+              {mergedLabels.allowedHint(
+                allowedMimes.join(', '),
+                humanSize(maxBytes)
+              )}
             </p>
           </div>
         ) : null}
@@ -148,7 +179,7 @@ export default function MediaDialog ({
                   type='button'
                   className='rounded-full bg-black/70 px-2 py-1 text-xs text-white hover:bg-black'
                   onClick={() => altRef.current?.focus({ preventScroll: true })}
-                  aria-label='Alt-Text bearbeiten'
+                  aria-label={mergedLabels.editAltAria}
                 >
                   ALT
                 </button>
@@ -157,13 +188,13 @@ export default function MediaDialog ({
             {(previewUrl || (mode === 'alt' && previewSrc)) ? (
               <img
                 src={previewUrl || previewSrc}
-                alt='Vorschau'
+                alt={mergedLabels.previewAlt}
                 onLoad={() => setLoaded(true)}
                 className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-150 ${loaded ? 'opacity-100' : 'opacity-0'}`}
               />
             ) : (
               <div className='absolute inset-0 flex items-center justify-center text-xs text-foreground-muted'>
-                Keine Vorschau
+                {mergedLabels.noPreview}
               </div>
             )}
           </div>
@@ -171,14 +202,17 @@ export default function MediaDialog ({
         <div>
           <div className='flex items-baseline justify-between gap-3'>
             <label className='text-sm font-medium text-foreground'>
-              Alt-Text {requireAltText ? <span className='text-destructive'>(Pflicht)</span> : null}
+              {mergedLabels.altLabel}{' '}
+              {requireAltText
+                ? <span className='text-destructive'>{mergedLabels.altRequiredSuffix}</span>
+                : null}
             </label>
             <span className='text-xs text-foreground-muted tabular-nums'>{altLength}/2000</span>
           </div>
           <p className='mt-1 text-xs text-foreground-muted'>
             {hasInitialAlt
-              ? 'Passe den vorhandenen Alt-Text bei Bedarf an.'
-              : 'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'}
+              ? mergedLabels.altHintWithInitial
+              : mergedLabels.altHintDefault}
           </p>
           <textarea
             ref={altRef}
@@ -187,7 +221,7 @@ export default function MediaDialog ({
             value={alt}
             onChange={(event) => setAlt(event.target.value)}
             className='mt-1 w-full resize-y rounded-xl border border-border bg-background-subtle px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-            placeholder='Beschreibender Alt-Text'
+            placeholder={mergedLabels.altPlaceholder}
           />
         </div>
         {error ? <p className='text-sm text-destructive'>{error}</p> : null}
@@ -204,6 +238,7 @@ MediaDialog.propTypes = {
   requireAltText: PropTypes.bool,
   maxBytes: PropTypes.number,
   allowedMimes: PropTypes.arrayOf(PropTypes.string),
+  labels: PropTypes.object,
   initialAlt: PropTypes.string,
   previewSrc: PropTypes.string,
   onConfirm: PropTypes.func,

@@ -1,3 +1,5 @@
+import { useTranslation } from '../i18n/I18nProvider.jsx'
+
 function LinkPreviewCard ({
   preview,
   url,
@@ -6,6 +8,7 @@ function LinkPreviewCard ({
   disabled = false,
   disabledReason = ''
 }) {
+  const { t } = useTranslation()
   if (!url) return null
 
   const domain = preview?.domain || (() => {
@@ -42,7 +45,9 @@ function LinkPreviewCard ({
           <p className='text-xs uppercase tracking-wide text-foreground-subtle'>{domain}</p>
         ) : null}
         {loading ? (
-          <p className='text-xs text-foreground-subtle'>Vorschau wird geladen …</p>
+          <p className='text-xs text-foreground-subtle'>
+            {t('posts.form.preview.loading', 'Vorschau wird geladen …')}
+          </p>
         ) : null}
         {error ? (
           <p className='text-xs text-destructive'>{error}</p>

@@ -2,18 +2,25 @@ import React from 'react'
 import LinkifiedText from './LinkifiedText'
 import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'
-
-const DEFAULT_DISABLED_REASON = 'Link-Vorschauen stehen nur zur Verfügung, wenn keine Medien angehängt sind.'
-const DEFAULT_UNAVAILABLE_PREVIEW_MESSAGE =
-  'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+import { useTranslation } from '../i18n/I18nProvider.jsx'
 
 function ContentWithLinkPreview ({
   content,
   className = '',
   mediaCount = 0,
   disablePreview = false,
-  disableReason = DEFAULT_DISABLED_REASON
+  disableReason = ''
 }) {
+  const { t } = useTranslation()
+  const defaultDisableReason = t(
+    'posts.form.previewDisabledReason',
+    'Link-Vorschauen stehen nur zur Verfügung, wenn keine Medien angehängt sind.'
+  )
+  const unavailableMessage = t(
+    'posts.form.preview.unavailableStandalone',
+    'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
+  )
+  const resolvedDisableReason = disableReason || defaultDisableReason
   const previewDisabled = disablePreview || mediaCount > 0
   const {
     previewUrl,
@@ -22,14 +29,17 @@ function ContentWithLinkPreview ({
     error
   } = useLinkPreview(content, {
     enabled: !previewDisabled,
-    unavailableMessage: DEFAULT_UNAVAILABLE_PREVIEW_MESSAGE
+    unavailableMessage
   })
 
   return (
     <>
       <LinkifiedText
         text={content}
-        placeholder='(kein Inhalt)'
+        placeholder={t(
+          'posts.form.preview.emptyPlaceholder',
+          '(kein Inhalt)'
+        )}
         className={className}
       />
       <LinkPreviewCard
@@ -38,7 +48,7 @@ function ContentWithLinkPreview ({
         loading={loading}
         error={error}
         disabled={previewDisabled}
-        disabledReason={previewDisabled ? disableReason : ''}
+        disabledReason={previewDisabled ? resolvedDisableReason : ''}
       />
     </>
   )

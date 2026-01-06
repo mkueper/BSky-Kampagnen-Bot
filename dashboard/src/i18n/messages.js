@@ -194,6 +194,8 @@ const messages = {
         preview: {
           label: 'Vorschau',
           infoAria: 'Hinweis zur Vorschau anzeigen',
+          emptyPlaceholder: '(kein Inhalt)',
+          loading: 'Vorschau wird geladen …',
           unavailableStandalone:
             'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
         },
@@ -344,11 +346,19 @@ const messages = {
             success: 'Erfolgreich: {count}',
             failed: 'Fehlgeschlagen: {count}',
             loading: 'Lade Sendehistorie...',
+            empty: 'Noch keine Sendehistorie vorhanden.',
             error: 'Sendehistorie konnte nicht geladen werden.',
             ariaToggle: 'Sendehistorie {action}',
             toggle: {
               show: 'Anzeigen',
               hide: 'Ausblenden'
+            },
+            status: {
+              success: 'Erfolgreich',
+              failed: 'Fehlgeschlagen',
+              skipped: 'Übersprungen',
+              pending: 'Ausstehend',
+              fallback: 'Aktualisiert'
             }
           }
         },
@@ -363,6 +373,7 @@ const messages = {
       }
     },
     threads: {
+      loading: 'Thread wird geladen…',
       activity: {
         title: 'Thread Aktivität',
         description:
@@ -677,6 +688,8 @@ const messages = {
           timeZone: 'Standard-Zeitzone',
           sessionTtl: 'Session-Dauer (Stunden)'
         },
+        localeOptionDe: 'Deutsch',
+        localeOptionEn: 'English',
         localeHint: 'Steuert die Anzeigesprache des Kampagnen‑Tools.',
         sessionTtlHint: 'Gilt nur auf diesem Gerät (6 bis 168 Stunden).',
         timeZoneHint:
@@ -900,6 +913,9 @@ const messages = {
         infoHint:
           'In der Praxis sollten Zugangsdaten zuerst eingerichtet und getestet werden, bevor Scheduler‑ und Polling‑Einstellungen angepasst werden.',
         infoAria: 'Hinweis zu Zugangsdaten anzeigen',
+        bskyServicePlaceholder: 'https://bsky.social',
+        bskyHandlePlaceholder: 'handle.bsky.social',
+        mastodonServicePlaceholder: 'https://mastodon.social',
         required: {
           heading: 'Zugangsdaten erforderlich',
           body:
@@ -969,17 +985,52 @@ const messages = {
         tagline: 'Control Center',
         appName: 'Kampagnen‑Tool',
         close: 'Navigation schließen',
+        collapse: 'Navigation einklappen',
         open: 'Navigation öffnen',
         restore: 'Navigation einblenden'
       }
     },
     common: {
+      placeholderDash: '-',
+      platformLabel: 'Plattform',
       errors: {
         unknown: 'Unbekannter Fehler'
       },
       actions: {
         ok: 'OK',
         cancel: 'Abbrechen'
+      },
+      mediaDialog: {
+        selectFile: 'Datei auswählen',
+        allowedHint: 'Erlaubt: {allowed} · Max {max}',
+        invalidType: 'Nicht unterstützter Dateityp.',
+        maxSize: 'Maximal {max} erlaubt.',
+        altRequired: 'Alt-Text ist erforderlich.',
+        altTooLong: 'Alt-Text ist zu lang (max. 2000 Zeichen).',
+        prepareError: 'Bild konnte nicht vorbereitet werden.',
+        noPreview: 'Keine Vorschau',
+        previewAlt: 'Vorschau',
+        editAltAria: 'Alt-Text bearbeiten',
+        altLabel: 'Alt-Text',
+        altRequiredSuffix: '(Pflicht)',
+        altHintWithInitial: 'Passe den vorhandenen Alt-Text bei Bedarf an.',
+        altHintDefault: 'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.',
+        altPlaceholder: 'Beschreibender Alt-Text',
+        cancel: 'Abbrechen',
+        confirm: 'Übernehmen'
+      },
+      gifPicker: {
+        title: 'GIF suchen (Tenor)',
+        searchPlaceholder: 'Suchbegriff',
+        searchButton: 'Suchen',
+        closeButton: 'Schließen',
+        imageAlt: 'GIF',
+        emptyFeatured: 'Keine GIFs verfügbar.',
+        emptySearch: 'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.',
+        loadingMore: 'Weitere GIFs werden geladen…',
+        loadMoreHint: 'Scroll weiter nach unten, um mehr GIFs zu laden.',
+        errorPrefix: 'Fehler',
+        footerEmpty: 'Keine weiteren GIFs verfügbar.'
       }
     }
   },
@@ -1169,7 +1220,10 @@ const messages = {
         },
         preview: {
           heading: 'Preview',
+          label: 'Preview',
           infoAria: 'Show hint for preview',
+          emptyPlaceholder: '(no content)',
+          loading: 'Loading preview …',
           unavailableStandalone: 'Link preview is not available in standalone mode yet.'
         },
         infoButtonLabel: 'Info',
@@ -1318,11 +1372,19 @@ const messages = {
             success: 'Successful: {count}',
             failed: 'Failed: {count}',
             loading: 'Loading send history...',
+            empty: 'No send history yet.',
             error: 'Send history could not be loaded.',
             ariaToggle: 'Send history {action}',
             toggle: {
               show: 'Show',
               hide: 'Hide'
+            },
+            status: {
+              success: 'Successful',
+              failed: 'Failed',
+              skipped: 'Skipped',
+              pending: 'Pending',
+              fallback: 'Updated'
             }
           }
         },
@@ -1337,6 +1399,7 @@ const messages = {
       }
     },
     threads: {
+      loading: 'Loading thread…',
       activity: {
         title: 'Thread activity',
         description:
@@ -1598,6 +1661,8 @@ const messages = {
           timeZone: 'Default time zone',
           sessionTtl: 'Session duration (hours)'
         },
+        localeOptionDe: 'German',
+        localeOptionEn: 'English',
         localeHint: 'Controls the display language of the campaign tool.',
         sessionTtlHint: 'Applies only on this device (6 to 168 hours).',
         timeZoneHint:
@@ -1816,6 +1881,9 @@ const messages = {
         infoHint:
           'In practice, credentials should be set up and tested first before adjusting scheduler and polling settings.',
         infoAria: 'Show hint for credentials',
+        bskyServicePlaceholder: 'https://bsky.social',
+        bskyHandlePlaceholder: 'handle.bsky.social',
+        mastodonServicePlaceholder: 'https://mastodon.social',
         required: {
           heading: 'Credentials required',
           body:
@@ -1910,17 +1978,52 @@ const messages = {
         tagline: 'Control Center',
         appName: 'Campaign Tool',
         close: 'Close navigation',
+        collapse: 'Collapse navigation',
         open: 'Open navigation',
         restore: 'Show navigation'
       }
     },
     common: {
+      placeholderDash: '-',
+      platformLabel: 'Platform',
       errors: {
         unknown: 'Unknown error'
       },
       actions: {
         ok: 'OK',
         cancel: 'Cancel'
+      },
+      mediaDialog: {
+        selectFile: 'Select file',
+        allowedHint: 'Allowed: {allowed} · Max {max}',
+        invalidType: 'Unsupported file type.',
+        maxSize: 'Maximum {max} allowed.',
+        altRequired: 'Alt text is required.',
+        altTooLong: 'Alt text is too long (max 2000 chars).',
+        prepareError: 'Image could not be prepared.',
+        noPreview: 'No preview',
+        previewAlt: 'Preview',
+        editAltAria: 'Edit alt text',
+        altLabel: 'Alt text',
+        altRequiredSuffix: '(required)',
+        altHintWithInitial: 'Adjust the existing alt text if needed.',
+        altHintDefault: 'Briefly describe what is shown in the image or video.',
+        altPlaceholder: 'Descriptive alt text',
+        cancel: 'Cancel',
+        confirm: 'Confirm'
+      },
+      gifPicker: {
+        title: 'Search GIFs (Tenor)',
+        searchPlaceholder: 'Search term',
+        searchButton: 'Search',
+        closeButton: 'Close',
+        imageAlt: 'GIF',
+        emptyFeatured: 'No GIFs available.',
+        emptySearch: 'No GIFs found. Please try another search term.',
+        loadingMore: 'Loading more GIFs…',
+        loadMoreHint: 'Scroll down to load more GIFs.',
+        errorPrefix: 'Error',
+        footerEmpty: 'No more GIFs available.'
       }
     }
   }

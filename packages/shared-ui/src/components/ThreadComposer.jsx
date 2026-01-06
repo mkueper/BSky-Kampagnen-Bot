@@ -63,7 +63,11 @@ const defaultLabels = {
   previewPlaceholder: 'Additional posts will appear here once your thread grows.',
   mediaCounter: (count, max) => `Media ${count}/${max}`,
   addImageTitle: 'Add image',
+  addImageLabel: 'Image',
   addGifTitle: 'Add GIF',
+  addGifLabel: 'GIF',
+  emojiButtonTitle: 'Insert emoji',
+  emojiButtonAria: 'Insert emoji',
   gifUnavailable: 'GIF picker unavailable',
   addImageModalTitle: 'Add media',
   addGifLimitReached: (max) => `Maximum ${max} media items per post reached.`,
@@ -73,6 +77,25 @@ const defaultLabels = {
   altEditTitle: 'Edit alt text',
   altRequired: 'Add alt text for all media.',
   threadLimitWarning: (limit) => `Maximum ${limit} posts per thread.`,
+  mediaDialog: {
+    selectFile: 'Select file',
+    allowedHint: (allowed, max) => `Allowed: ${allowed} · Max ${max}`,
+    invalidType: 'Unsupported file type.',
+    maxSize: (max) => `Maximum ${max} allowed.`,
+    altRequired: 'Alt text is required.',
+    altTooLong: 'Alt text is too long (max 2000 chars).',
+    prepareError: 'Image could not be prepared.',
+    noPreview: 'No preview',
+    editAltAria: 'Edit alt text',
+    altLabel: 'Alt text',
+    altRequiredSuffix: '(required)',
+    altHintWithInitial: 'Adjust the existing alt text if needed.',
+    altHintDefault: 'Briefly describe what is shown in the image or video.',
+    altPlaceholder: 'Descriptive alt text',
+    cancelLabel: 'Cancel',
+    confirmLabel: 'Confirm'
+  },
+  gifPickerLabels: null
 }
 
 function findFirstUrl(text = '') {
@@ -899,8 +922,8 @@ export default function ThreadComposer({
                 ref={emojiButtonRef}
                 type='button'
                 className='inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background-subtle text-foreground shadow-soft transition hover:border-primary/60 hover:text-primary'
-                title='Emoji einfügen'
-                aria-label='Emoji einfügen'
+                title={mergedLabels.emojiButtonTitle}
+                aria-label={mergedLabels.emojiButtonAria}
                 onClick={() => setEmojiPickerOpen((open) => !open)}
                 disabled={disabled}
               >
@@ -984,7 +1007,7 @@ export default function ThreadComposer({
                           }
                         >
                           <ImageIcon className='h-4 w-4' aria-hidden='true' />
-                          <span>Bild</span>
+                          <span>{mergedLabels.addImageLabel}</span>
                         </button>
                         {gifPickerEnabled ? (
                           <button
@@ -1004,7 +1027,7 @@ export default function ThreadComposer({
                             aria-label={mergedLabels.addGifTitle}
                           >
                             <VideoIcon className='h-4 w-4' aria-hidden='true' />
-                            <span>GIF</span>
+                            <span>{mergedLabels.addGifLabel}</span>
                           </button>
                         ) : null}
                       </div>
@@ -1112,6 +1135,7 @@ export default function ThreadComposer({
         requireAltText={mediaRequireAltText}
         maxBytes={mediaMaxBytes}
         allowedMimes={mediaAllowedMimes}
+        labels={mergedLabels.mediaDialog}
         onConfirm={(file, altText) => {
           setMediaDialog({ open: false, segmentId: null })
           if (!file && !altText) return
@@ -1130,6 +1154,7 @@ export default function ThreadComposer({
         previewSrc={altDialog.previewSrc}
         initialAlt={altDialog.initialAlt}
         requireAltText={mediaRequireAltText}
+        labels={mergedLabels.mediaDialog}
         onConfirm={handleConfirmAltDialog}
         onClose={() =>
           setAltDialog({
@@ -1150,6 +1175,7 @@ export default function ThreadComposer({
             fetcher={gifPickerFetcher || undefined}
             maxBytes={gifPickerMaxBytes}
             onPick={(payload) => handleGifPick(gifPickerState.segmentId, payload)}
+            labels={mergedLabels.gifPickerLabels || undefined}
           />
         </Suspense>
       ) : null}

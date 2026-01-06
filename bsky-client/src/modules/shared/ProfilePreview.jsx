@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card, getPortalRoot } from '@bsky-kampagnen-bot/shared-ui'
 import { fetchProfile } from './api/bsky.js'
 import { useUIState } from '../../context/UIContext.jsx'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 const profileCache = new Map()
 const numberFormatter = new Intl.NumberFormat('de-DE')
@@ -41,6 +42,7 @@ function ProfileCardSkeleton () {
 }
 
 function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
+  const { t } = useTranslation()
   const content = useMemo(() => {
     if (loading) {
       return <ProfileCardSkeleton />
@@ -49,7 +51,11 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
       return <p className='text-sm text-destructive'>{error}</p>
     }
     if (!profile) {
-      return <p className='text-sm text-foreground-muted'>Keine Profildaten gefunden.</p>
+      return (
+        <p className='text-sm text-foreground-muted'>
+          {t('profile.preview.noData', 'Keine Profildaten gefunden.')}
+        </p>
+      )
     }
     return (
       <>
@@ -71,12 +77,12 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
               <div className='mt-1 flex flex-wrap items-center gap-2'>
                 {profile.viewer?.followedBy ? (
                   <span className='inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary'>
-                    Folgt dir
+                    {t('profile.preview.followedBy', 'Folgt dir')}
                   </span>
                 ) : null}
                 {profile.viewer?.following ? (
                   <span className='inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-foreground'>
-                    Folge ich
+                    {t('profile.preview.following', 'Folge ich')}
                   </span>
                 ) : null}
               </div>
@@ -86,11 +92,15 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
         <div className='mt-3 flex gap-4 text-sm text-foreground'>
           <div>
             <span className='font-semibold text-foreground'>{formatNumber(profile.followersCount)}</span>{' '}
-            <span className='text-foreground-muted'>Follower</span>
+            <span className='text-foreground-muted'>
+              {t('profile.preview.followersLabel', 'Follower')}
+            </span>
           </div>
           <div>
             <span className='font-semibold text-foreground'>{formatNumber(profile.followsCount)}</span>{' '}
-            <span className='text-foreground-muted'>Folgt</span>
+            <span className='text-foreground-muted'>
+              {t('profile.preview.followsLabel', 'Folgt')}
+            </span>
           </div>
         </div>
         {profile.description ? (
@@ -100,14 +110,14 @@ function ProfileCard ({ profile, loading, error, onMouseEnter, onMouseLeave }) {
           <div className='mt-3 flex flex-wrap gap-2'>
             {profile.labels.slice(0, 4).map((label, index) => (
               <span key={index} className='rounded-full bg-background-subtle px-2 py-0.5 text-xs text-foreground-muted'>
-                {label?.val || label?.identifier || 'Label'}
+                {label?.val || label?.identifier || t('profile.preview.labelFallback', 'Label')}
               </span>
             ))}
           </div>
         ) : null}
       </>
     )
-  }, [profile, loading, error])
+  }, [profile, loading, error, t])
 
   return (
     <Card

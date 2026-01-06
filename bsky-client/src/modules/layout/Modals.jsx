@@ -111,12 +111,94 @@ export function Modals() {
   const replyInfo = useMemo(() => buildReplyInfo(replyTarget), [replyTarget])
   const initialReplyContext = useMemo(() => buildReplyContext(replyTarget), [replyTarget])
   const threadPreviewLabels = useMemo(() => ({
+    title: t('compose.thread.title', 'Thread-Inhalt'),
+    hint: t(
+      'compose.thread.hint',
+      'CTRL+Enter fügt eine Trennlinie ein. Lange Abschnitte werden automatisch getrennt.'
+    ),
+    placeholder: t(
+      'compose.thread.placeholder',
+      'Beispiel:\nIntro...\n---\nNächster Beitrag...'
+    ),
+    numberingToggle: t('compose.thread.numberingToggle', 'Automatische Nummerierung anhängen (1/x)'),
+    previewTitle: t('compose.thread.previewTitle', 'Vorschau'),
     previewUnavailable: t('compose.previewUnavailableStandalone', 'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'),
     previewLoading: t('compose.preview.loading', 'Lade Vorschau…'),
     previewError: t('compose.preview.error', 'Link-Vorschau konnte nicht geladen werden.'),
     previewTimeout: t('compose.preview.timeout', 'Link-Vorschau hat zu lange gebraucht.'),
     previewDismissTitle: t('compose.preview.dismiss', 'Link-Vorschau entfernen'),
-    altRequired: t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.')
+    postsCounter: (count) => t('compose.thread.postsCounter', '{count} Beitrag(e)', { count }),
+    segmentLabel: (index) => t('compose.thread.segmentLabel', 'Post {index}', { index }),
+    charCount: (count, max) =>
+      max
+        ? t('compose.thread.charCount', '{count} / {max}', { count, max })
+        : t('compose.thread.charCountShort', '{count}', { count }),
+    emptySegment: t('compose.thread.emptySegment', '(kein Inhalt)'),
+    mediaCounter: (count, max) => t('compose.thread.mediaCounter', 'Medien {count}/{max}', { count, max }),
+    addImageTitle: t('compose.thread.addImageTitle', 'Bild hinzufügen'),
+    addImageLabel: t('compose.thread.addImageLabel', 'Bild'),
+    addGifTitle: t('compose.thread.addGifTitle', 'GIF hinzufügen'),
+    addGifLabel: t('compose.thread.addGifLabel', 'GIF'),
+    emojiButtonTitle: t('compose.thread.emojiTitle', 'Emoji einfügen'),
+    emojiButtonAria: t('compose.thread.emojiAria', 'Emoji einfügen'),
+    addImageModalTitle: t('compose.thread.addImageModalTitle', 'Medien hinzufügen'),
+    addGifLimitReached: (max) =>
+      t('compose.thread.addGifLimitReached', 'Maximal {max} Medien pro Post erreicht.', { max }),
+    gifTooLarge: (maxMb) => t('compose.thread.gifTooLarge', 'GIF zu groß (max. {maxMb}MB).', { maxMb }),
+    gifLoadFailed: t('compose.thread.gifLoadFailed', 'GIF konnte nicht geladen werden.'),
+    altAddTitle: t('compose.thread.altAddTitle', 'Alt-Text hinzufügen'),
+    altEditTitle: t('compose.thread.altEditTitle', 'Alt-Text bearbeiten'),
+    altRequired: t('compose.media.altRequired', 'Bitte ALT-Text für alle Medien hinzufügen.'),
+    threadLimitWarning: (limit) => t('compose.thread.limitWarning', 'Maximal {limit} Posts pro Thread.', { limit }),
+    mediaDialog: {
+      selectFile: t('compose.media.dialog.selectFile', 'Datei auswählen'),
+      allowedHint: (allowed, max) =>
+        t(
+          'compose.media.dialog.allowedHint',
+          'Erlaubt: {allowed} · Max {max}',
+          { allowed, max }
+        ),
+      invalidType: t('compose.media.dialog.invalidType', 'Nicht unterstützter Dateityp.'),
+      maxSize: (max) => t('compose.media.dialog.maxSize', 'Maximal {max} erlaubt.', { max }),
+      altRequired: t('compose.media.dialog.altRequired', 'Alt-Text ist erforderlich.'),
+      altTooLong: t(
+        'compose.media.dialog.altTooLong',
+        'Alt-Text ist zu lang (max. 2000 Zeichen).'
+      ),
+      prepareError: t(
+        'compose.media.dialog.prepareError',
+        'Bild konnte nicht vorbereitet werden.'
+      ),
+      noPreview: t('compose.media.dialog.noPreview', 'Keine Vorschau'),
+      previewAlt: t('compose.media.dialog.previewAlt', 'Vorschau'),
+      editAltAria: t('compose.media.dialog.editAltAria', 'Alt-Text bearbeiten'),
+      altLabel: t('compose.media.dialog.altLabel', 'Alt-Text'),
+      altRequiredSuffix: t('compose.media.dialog.altRequiredSuffix', '(Pflicht)'),
+      altHintWithInitial: t(
+        'compose.media.dialog.altHintWithInitial',
+        'Passe den vorhandenen Alt-Text bei Bedarf an.'
+      ),
+      altHintDefault: t(
+        'compose.media.dialog.altHintDefault',
+        'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'
+      ),
+      altPlaceholder: t('compose.media.dialog.altPlaceholder', 'Beschreibender Alt-Text'),
+      cancelLabel: t('compose.media.dialog.cancel', 'Abbrechen'),
+      confirmLabel: t('compose.media.dialog.confirm', 'Übernehmen')
+    },
+    gifPickerLabels: {
+      title: t('compose.gifPicker.title', 'GIF suchen (Tenor)'),
+      searchPlaceholder: t('compose.gifPicker.searchPlaceholder', 'Suchbegriff'),
+      searchButton: t('compose.gifPicker.searchButton', 'Suchen'),
+      closeButton: t('compose.gifPicker.closeButton', 'Schließen'),
+      imageAlt: t('compose.gifPicker.imageAlt', 'GIF'),
+      emptyFeatured: t('compose.gifPicker.emptyFeatured', 'Keine GIFs verfügbar.'),
+      emptySearch: t('compose.gifPicker.emptySearch', 'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.'),
+      loadingMore: t('compose.gifPicker.loadingMore', 'Weitere GIFs werden geladen…'),
+      loadMoreHint: t('compose.gifPicker.loadMoreHint', 'Scroll weiter nach unten, um mehr GIFs zu laden.'),
+      errorPrefix: t('compose.gifPicker.errorPrefix', 'Fehler'),
+      footerEmpty: t('compose.gifPicker.footerEmpty', 'Keine weiteren GIFs verfügbar.')
+    }
   }), [t])
 
   const effectiveComposeMode = useMemo(() => {

@@ -206,6 +206,68 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     }),
     [t]
   )
+  const mediaDialogLabels = useMemo(
+    () => ({
+      selectFile: t('common.mediaDialog.selectFile', 'Datei auswählen'),
+      allowedHint: (allowed, max) =>
+        t(
+          'common.mediaDialog.allowedHint',
+          'Erlaubt: {allowed} · Max {max}',
+          { allowed, max }
+        ),
+      invalidType: t('common.mediaDialog.invalidType', 'Nicht unterstützter Dateityp.'),
+      maxSize: (max) =>
+        t('common.mediaDialog.maxSize', 'Maximal {max} erlaubt.', { max }),
+      altRequired: t('common.mediaDialog.altRequired', 'Alt-Text ist erforderlich.'),
+      altTooLong: t(
+        'common.mediaDialog.altTooLong',
+        'Alt-Text ist zu lang (max. 2000 Zeichen).'
+      ),
+      prepareError: t(
+        'common.mediaDialog.prepareError',
+        'Bild konnte nicht vorbereitet werden.'
+      ),
+      noPreview: t('common.mediaDialog.noPreview', 'Keine Vorschau'),
+      previewAlt: t('common.mediaDialog.previewAlt', 'Vorschau'),
+      editAltAria: t('common.mediaDialog.editAltAria', 'Alt-Text bearbeiten'),
+      altLabel: t('common.mediaDialog.altLabel', 'Alt-Text'),
+      altRequiredSuffix: t('common.mediaDialog.altRequiredSuffix', '(Pflicht)'),
+      altHintWithInitial: t(
+        'common.mediaDialog.altHintWithInitial',
+        'Passe den vorhandenen Alt-Text bei Bedarf an.'
+      ),
+      altHintDefault: t(
+        'common.mediaDialog.altHintDefault',
+        'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'
+      ),
+      altPlaceholder: t('common.mediaDialog.altPlaceholder', 'Beschreibender Alt-Text'),
+      cancelLabel: t('common.mediaDialog.cancel', 'Abbrechen'),
+      confirmLabel: t('common.mediaDialog.confirm', 'Übernehmen')
+    }),
+    [t]
+  )
+  const gifPickerLabels = useMemo(
+    () => ({
+      title: t('common.gifPicker.title', 'GIF suchen (Tenor)'),
+      searchPlaceholder: t('common.gifPicker.searchPlaceholder', 'Suchbegriff'),
+      searchButton: t('common.gifPicker.searchButton', 'Suchen'),
+      closeButton: t('common.gifPicker.closeButton', 'Schließen'),
+      imageAlt: t('common.gifPicker.imageAlt', 'GIF'),
+      emptyFeatured: t('common.gifPicker.emptyFeatured', 'Keine GIFs verfügbar.'),
+      emptySearch: t(
+        'common.gifPicker.emptySearch',
+        'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.'
+      ),
+      loadingMore: t('common.gifPicker.loadingMore', 'Weitere GIFs werden geladen…'),
+      loadMoreHint: t(
+        'common.gifPicker.loadMoreHint',
+        'Scroll weiter nach unten, um mehr GIFs zu laden.'
+      ),
+      errorPrefix: t('common.gifPicker.errorPrefix', 'Fehler'),
+      footerEmpty: t('common.gifPicker.footerEmpty', 'Keine weiteren GIFs verfügbar.')
+    }),
+    [t]
+  )
   const previewBlocked = totalMediaCount > 0
   const previewDisabledReason = previewBlocked
     ? t(
@@ -952,17 +1014,20 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             {/* Mobile-Label + Info */}
             <div className='flex items-center justify-between lg:hidden'>
               <label className='text-lg font-semibold text-foreground'>
-                Vorschau
+                {t('posts.form.preview.label', 'Vorschau')}
               </label>
               <button
                 type='button'
                 className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-background-elevated'
-                aria-label='Hinweis zur Vorschau anzeigen'
+                aria-label={t(
+                  'posts.form.preview.infoAria',
+                  'Hinweis zur Vorschau anzeigen'
+                )}
                 onClick={() => setInfoPreviewOpen(true)}
-                title='Hinweis anzeigen'
+                title={t('posts.form.infoButtonTitle', 'Hinweis anzeigen')}
               >
                 <svg width='14' height='14' viewBox='0 0 15 15' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><path d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z' fill='currentColor'/><path fillRule='evenodd' clipRule='evenodd' d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z' fill='currentColor'/></svg>
-                Info
+                {t('posts.form.infoButtonLabel', 'Info')}
               </button>
             </div>
             <div
@@ -973,7 +1038,10 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
               <div className='flex-1 overflow-auto pr-2'>
                 <LinkifiedText
                   text={content}
-                  placeholder='(kein Inhalt)'
+                  placeholder={t(
+                    'posts.form.preview.emptyPlaceholder',
+                    '(kein Inhalt)'
+                  )}
                   className='whitespace-pre-wrap break-words leading-relaxed text-foreground'
                 />
                 <SegmentMediaGrid
@@ -1279,6 +1347,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
         requireAltText={Boolean(imagePolicy.requireAltText)}
         maxBytes={imagePolicy.maxBytes}
         allowedMimes={imagePolicy.allowedMimes}
+        labels={mediaDialogLabels}
         onConfirm={(file, alt) => {
           const reader = new FileReader()
           reader.onload = () => {
@@ -1303,6 +1372,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           onClose={() => setGifPicker({ open: false })}
           classNames={DASHBOARD_GIF_PICKER_CLASSES}
           styles={DASHBOARD_GIF_PICKER_STYLES}
+          labels={gifPickerLabels}
           onPick={async ({ downloadUrl }) => {
             try {
               const res = await fetch(downloadUrl)
@@ -1589,6 +1659,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}
           requireAltText={Boolean(imagePolicy.requireAltText)}
+          labels={mediaDialogLabels}
           onConfirm={async (_file, newAlt) => {
             const it = altDialog.item
             try {

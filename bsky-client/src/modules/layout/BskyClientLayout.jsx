@@ -54,7 +54,7 @@ function MobileNavBar ({
       style={{
         paddingBottom: `calc(var(--bottom-nav-safe-area, 0px) + var(--bottom-nav-gap, ${MOBILE_NAV_GAP}px))`
       }}
-      aria-label='Mobile Navigation'
+      aria-label={t('layout.nav.mobileAria', 'Mobile Navigation')}
     >
       <div
         className='pointer-events-auto mx-auto flex w-full max-w-xl items-center justify-between gap-2 rounded-full border border-border bg-background-elevated/80 px-3 py-2 shadow-soft backdrop-blur supports-[backdrop-filter]:bg-background-elevated/60'

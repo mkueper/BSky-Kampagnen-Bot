@@ -160,7 +160,7 @@ export default function SidebarNav ({
         showFullLabels ? 'w-max' : 'w-full'
       )}
       data-component='BskyPrimaryNav'
-      aria-label='Hauptnavigation'
+      aria-label={t('nav.ariaLabel', 'Hauptnavigation')}
     >
       {activeAccount ? (
         <div className='absolute left-0 right-0 top-0 z-10 w-full'>

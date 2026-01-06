@@ -474,6 +474,68 @@ function ThreadForm({
     }),
     [t]
   )
+  const mediaDialogLabels = useMemo(
+    () => ({
+      selectFile: t('common.mediaDialog.selectFile', 'Datei auswählen'),
+      allowedHint: (allowed, max) =>
+        t(
+          'common.mediaDialog.allowedHint',
+          'Erlaubt: {allowed} · Max {max}',
+          { allowed, max }
+        ),
+      invalidType: t('common.mediaDialog.invalidType', 'Nicht unterstützter Dateityp.'),
+      maxSize: (max) =>
+        t('common.mediaDialog.maxSize', 'Maximal {max} erlaubt.', { max }),
+      altRequired: t('common.mediaDialog.altRequired', 'Alt-Text ist erforderlich.'),
+      altTooLong: t(
+        'common.mediaDialog.altTooLong',
+        'Alt-Text ist zu lang (max. 2000 Zeichen).'
+      ),
+      prepareError: t(
+        'common.mediaDialog.prepareError',
+        'Bild konnte nicht vorbereitet werden.'
+      ),
+      noPreview: t('common.mediaDialog.noPreview', 'Keine Vorschau'),
+      previewAlt: t('common.mediaDialog.previewAlt', 'Vorschau'),
+      editAltAria: t('common.mediaDialog.editAltAria', 'Alt-Text bearbeiten'),
+      altLabel: t('common.mediaDialog.altLabel', 'Alt-Text'),
+      altRequiredSuffix: t('common.mediaDialog.altRequiredSuffix', '(Pflicht)'),
+      altHintWithInitial: t(
+        'common.mediaDialog.altHintWithInitial',
+        'Passe den vorhandenen Alt-Text bei Bedarf an.'
+      ),
+      altHintDefault: t(
+        'common.mediaDialog.altHintDefault',
+        'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'
+      ),
+      altPlaceholder: t('common.mediaDialog.altPlaceholder', 'Beschreibender Alt-Text'),
+      cancelLabel: t('common.mediaDialog.cancel', 'Abbrechen'),
+      confirmLabel: t('common.mediaDialog.confirm', 'Übernehmen')
+    }),
+    [t]
+  )
+  const gifPickerLabels = useMemo(
+    () => ({
+      title: t('common.gifPicker.title', 'GIF suchen (Tenor)'),
+      searchPlaceholder: t('common.gifPicker.searchPlaceholder', 'Suchbegriff'),
+      searchButton: t('common.gifPicker.searchButton', 'Suchen'),
+      closeButton: t('common.gifPicker.closeButton', 'Schließen'),
+      imageAlt: t('common.gifPicker.imageAlt', 'GIF'),
+      emptyFeatured: t('common.gifPicker.emptyFeatured', 'Keine GIFs verfügbar.'),
+      emptySearch: t(
+        'common.gifPicker.emptySearch',
+        'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.'
+      ),
+      loadingMore: t('common.gifPicker.loadingMore', 'Weitere GIFs werden geladen…'),
+      loadMoreHint: t(
+        'common.gifPicker.loadMoreHint',
+        'Scroll weiter nach unten, um mehr GIFs zu laden.'
+      ),
+      errorPrefix: t('common.gifPicker.errorPrefix', 'Fehler'),
+      footerEmpty: t('common.gifPicker.footerEmpty', 'Keine weiteren GIFs verfügbar.')
+    }),
+    [t]
+  )
   const handleUploadMedia = async (index, file, altTextOverride) => {
     if (!file) return
     try {
@@ -788,7 +850,9 @@ function ThreadForm({
   if (showLoadingState) {
     return (
       <div className='space-y-6'>
-        <p className='text-sm text-foreground-muted'>Thread wird geladen…</p>
+        <p className='text-sm text-foreground-muted'>
+          {t('threads.loading', 'Thread wird geladen…')}
+        </p>
       </div>
     )
   }
@@ -1592,6 +1656,7 @@ function ThreadForm({
         requireAltText={Boolean(imagePolicy.requireAltText)}
         maxBytes={imagePolicy.maxBytes}
         allowedMimes={imagePolicy.allowedMimes}
+        labels={mediaDialogLabels}
         onConfirm={(file, alt) => {
           const idx = mediaDialog.index
           closeMediaDialog()
@@ -1657,6 +1722,7 @@ function ThreadForm({
           onClose={() => setGifPicker({ open: false, index: null })}
           classNames={DASHBOARD_GIF_PICKER_CLASSES}
           styles={DASHBOARD_GIF_PICKER_STYLES}
+          labels={gifPickerLabels}
           onPick={async ({ downloadUrl }) => {
             try {
               const resp = await fetch(downloadUrl)
@@ -1818,6 +1884,7 @@ function ThreadForm({
           previewSrc={altDialog.item.src}
           initialAlt={altDialog.item.alt || ''}
           requireAltText={Boolean(imagePolicy.requireAltText)}
+          labels={mediaDialogLabels}
           onConfirm={async (_file, newAlt) => {
             const segIdx = altDialog.segmentIndex
             const item = altDialog.item

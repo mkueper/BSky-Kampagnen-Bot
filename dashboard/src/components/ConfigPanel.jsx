@@ -1109,8 +1109,12 @@ export default function ConfigPanel () {
                     disabled={generalLoading || generalSaving}
                     className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
                   >
-                    <option value='de'>Deutsch</option>
-                    <option value='en'>English</option>
+                    <option value='de'>
+                      {t('config.general.localeOptionDe', 'Deutsch')}
+                    </option>
+                    <option value='en'>
+                      {t('config.general.localeOptionEn', 'English')}
+                    </option>
                   </select>
                   <p className='text-xs text-foreground-muted'>
                     {t(
@@ -2281,7 +2285,10 @@ function CredentialsSection () {
                         ? 'animate-pulse ring-2 ring-destructive border-destructive'
                         : 'border-border'
                     }`}
-                    placeholder='https://bsky.social'
+                    placeholder={t(
+                      'config.credentials.bskyServicePlaceholder',
+                      'https://bsky.social'
+                    )}
                     value={values.blueskyServerUrl}
                     onChange={onChange('blueskyServerUrl')}
                   />
@@ -2300,7 +2307,10 @@ function CredentialsSection () {
                         ? 'animate-pulse ring-2 ring-destructive border-destructive'
                         : 'border-border'
                     }`}
-                    placeholder='handle.bsky.social'
+                    placeholder={t(
+                      'config.credentials.bskyHandlePlaceholder',
+                      'handle.bsky.social'
+                    )}
                     value={values.blueskyIdentifier}
                     onChange={onChange('blueskyIdentifier')}
                   />
@@ -2399,7 +2409,10 @@ function CredentialsSection () {
                   <input
                     type='url'
                     className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    placeholder='https://mastodon.social'
+                    placeholder={t(
+                      'config.credentials.mastodonServicePlaceholder',
+                      'https://mastodon.social'
+                    )}
                     value={values.mastodonApiUrl}
                     onChange={onChange('mastodonApiUrl')}
                   />

@@ -71,6 +71,11 @@ export default function BskyClientApp ({ onNavigateDashboard }) {
   } = useBskyAuth()
   const { t } = useTranslation()
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.title = t('app.title', 'BSky Client')
+  }, [t])
+
   const hasAuthenticatedContext = Boolean(authActiveAccountId || authSession)
   const shouldRunChatPolling = authStatus === 'authenticated'
   if (authStatus === 'loading' && !hasAuthenticatedContext) return null
@@ -306,6 +311,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const scrollPositionsRef = useRef(new Map())
   const scrollKeyRef = useRef(null)
   const skipScrollRestoreRef = useRef(false)
+  const notificationsScrollTopRef = useRef(false)
   const TIMELINE_ITEM_ESTIMATE = 220
   const NOTIFICATION_ITEM_ESTIMATE = 180
   const SCROLL_TOP_THRESHOLD = 1
@@ -414,6 +420,13 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
       scheduleScroll()
     }
   }, [getScrollContainer])
+
+  useEffect(() => {
+    if (section !== 'notifications') return
+    if (!notificationsScrollTopRef.current) return
+    notificationsScrollTopRef.current = false
+    scrollActiveListToTop()
+  }, [scrollActiveListToTop, section])
 
   useLayoutEffect(() => {
     const el = getScrollContainer()
@@ -1012,18 +1025,18 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
         clearSavedScrollPosition('notifications', notificationListKey)
         refreshListByKey(notificationListKey, { scrollAfter: true, clearUnreadOnRefresh: true })
       } else {
+        notificationsScrollTopRef.current = true
+        skipScrollRestoreRef.current = true
+        clearSavedScrollPosition('notifications', notificationListKey)
         const canRestoreNotifications = canRestoreListState(notificationList)
         if (!canRestoreNotifications) {
-          skipScrollRestoreRef.current = true
           if (notificationList?.hasNew) {
-            clearSavedScrollPosition('notifications', notificationListKey)
             refreshListByKey(notificationListKey, { scrollAfter: true })
           } else {
             refreshListByKey(notificationListKey, { scrollAfter: true })
           }
         } else {
-          const restored = applySavedScrollPosition('notifications', notificationListKey)
-          skipScrollRestoreRef.current = !restored
+          notificationsScrollTopRef.current = true
         }
       }
       return

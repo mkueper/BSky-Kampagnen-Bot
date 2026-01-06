@@ -46,7 +46,8 @@ const messages = {
       addAccount: 'Weiteren Account hinzufügen',
       viewProfile: 'Zum Profil',
       activeAccount: 'Aktiv',
-      noAccounts: 'Keine Accounts gefunden.'
+      noAccounts: 'Keine Accounts gefunden.',
+      ariaLabel: 'Hauptnavigation'
     },
     login: {
       heading: 'Bluesky Login',
@@ -54,6 +55,7 @@ const messages = {
       subtitleStandalone: 'Melde dich mit einem App-Passwort an. Deine Sitzung bleibt lokal im Client.',
       serviceLabel: 'Service-URL',
       identifierLabel: 'Identifier (Handle/E-Mail)',
+      identifierPlaceholder: 'name.bsky.social',
       passwordLabel: 'App-Passwort',
       passwordHelp: 'App-Passwort erstellen',
       rememberCredentials: 'Service-URL und Identifier merken',
@@ -72,8 +74,16 @@ const messages = {
       }
     },
     app: {
+      title: 'BSky Client',
       status: {
         switchAccount: 'Konto wird gewechselt…'
+      }
+    },
+    media: {
+      lightbox: {
+        close: 'Schließen',
+        prev: 'Vorheriges Bild',
+        next: 'Nächstes Bild'
       }
     },
     layout: {
@@ -81,6 +91,9 @@ const messages = {
         notifications: 'Mitteilungen',
         blocks: 'Persönliche Blockliste',
         saved: 'Gespeicherte Beiträge'
+      },
+      nav: {
+        mobileAria: 'Mobile Navigation'
       },
       feeds: {
         managerTitle: 'Feed-Manager',
@@ -171,6 +184,14 @@ const messages = {
       }
     },
     profile: {
+      preview: {
+        noData: 'Keine Profildaten gefunden.',
+        followedBy: 'Folgt dir',
+        following: 'Folge ich',
+        followersLabel: 'Follower',
+        followsLabel: 'Folgt',
+        labelFallback: 'Label'
+      },
       relation: {
         followsYou: 'Folgt dir',
         youFollow: 'Von dir gefolgt',
@@ -767,6 +788,13 @@ const messages = {
       titleQuote: 'Post zitieren',
       cancel: 'Abbrechen',
       submit: 'Posten',
+      fields: {
+        contentLabel: 'Inhalt',
+        contentPlaceholder: 'Was möchtest du posten?'
+      },
+      emoji: {
+        title: 'Emoji auswählen'
+      },
       previewUnavailableStandalone:
         'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.',
       discardTitle: 'Entwurf verwerfen',
@@ -774,6 +802,30 @@ const messages = {
         'Bist du sicher, dass du diesen Entwurf verwerfen möchtest?',
       discardConfirm: 'Verwerfen',
       thread: {
+        title: 'Thread-Inhalt',
+        hint: 'CTRL+Enter fügt eine Trennlinie ein. Lange Abschnitte werden automatisch getrennt.',
+        placeholder: 'Beispiel:\nIntro...\n---\nNächster Beitrag...',
+        numberingToggle: 'Automatische Nummerierung anhängen (1/x)',
+        previewTitle: 'Vorschau',
+        postsCounter: '{count} Beitrag(e)',
+        segmentLabel: 'Post {index}',
+        charCount: '{count} / {max}',
+        charCountShort: '{count}',
+        emptySegment: '(kein Inhalt)',
+        mediaCounter: 'Medien {count}/{max}',
+        addImageTitle: 'Bild hinzufügen',
+        addImageLabel: 'Bild',
+        addGifTitle: 'GIF hinzufügen',
+        addGifLabel: 'GIF',
+        emojiTitle: 'Emoji einfügen',
+        emojiAria: 'Emoji einfügen',
+        addImageModalTitle: 'Medien hinzufügen',
+        addGifLimitReached: 'Maximal {max} Medien pro Post erreicht.',
+        gifTooLarge: 'GIF zu groß (max. {maxMb}MB).',
+        gifLoadFailed: 'GIF konnte nicht geladen werden.',
+        altAddTitle: 'Alt-Text hinzufügen',
+        altEditTitle: 'Alt-Text bearbeiten',
+        limitWarning: 'Maximal {limit} Posts pro Thread.',
         empty: 'Thread ist leer.',
         exceedsLimit: 'Mindestens ein Segment überschreitet das Limit.',
         sendFailed: 'Thread konnte nicht gesendet werden.',
@@ -837,15 +889,63 @@ const messages = {
         authorMissing: 'Autorinformationen wurden nicht mitgeliefert.'
       },
       media: {
-        altRequired: 'Bitte ALT-Text für alle Medien hinzufügen.'
+        altRequired: 'Bitte ALT-Text für alle Medien hinzufügen.',
+        limitReachedTitle: 'Maximal {count} Medien je Post erreicht',
+        limitReachedAria: 'Medienlimit erreicht',
+        uploadTitle: 'Bild oder GIF hochladen',
+        uploadAria: 'Bild oder GIF hochladen',
+        insertGifTitle: 'GIF aus Tenor einfügen',
+        gifLabel: 'GIF',
+        altImage: 'Bild {index}',
+        removeImageTitle: 'Bild entfernen',
+        removeImageAria: 'Bild entfernen',
+        altBadge: 'ALT',
+        altAddBadge: '+ ALT',
+        altEditTitle: 'Alt-Text bearbeiten',
+        altAddTitle: 'Alt-Text bearbeiten',
+        dialog: {
+          addTitle: 'Bild hinzufügen',
+          editAltTitle: 'Alt-Text bearbeiten',
+          selectFile: 'Datei auswählen',
+          allowedHint: 'Erlaubt: {allowed} · Max {max}',
+          invalidType: 'Nicht unterstützter Dateityp.',
+          maxSize: 'Maximal {max} erlaubt.',
+          altRequired: 'Alt-Text ist erforderlich.',
+          altTooLong: 'Alt-Text ist zu lang (max. 2000 Zeichen).',
+          prepareError: 'Bild konnte nicht vorbereitet werden.',
+          noPreview: 'Keine Vorschau',
+          previewAlt: 'Vorschau',
+          editAltAria: 'Alt-Text bearbeiten',
+          altLabel: 'Alt-Text',
+          altRequiredSuffix: '(Pflicht)',
+          altHintWithInitial: 'Passe den vorhandenen Alt-Text bei Bedarf an.',
+          altHintDefault: 'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.',
+          altPlaceholder: 'Beschreibender Alt-Text',
+          cancel: 'Abbrechen',
+          confirm: 'Übernehmen'
+        }
       },
       preview: {
+        title: 'Vorschau',
         placeholder: 'Dein Text erscheint hier.',
         emptyHint: 'Füge Text, Medien oder einen Link hinzu, um die Vorschau zu sehen.',
         loading: 'Lade Vorschau…',
         error: 'Link-Vorschau konnte nicht geladen werden.',
         timeout: 'Link-Vorschau hat zu lange gebraucht.',
         dismiss: 'Link-Vorschau entfernen'
+      },
+      gifPicker: {
+        title: 'GIF suchen (Tenor)',
+        searchPlaceholder: 'Suchbegriff',
+        searchButton: 'Suchen',
+        closeButton: 'Schließen',
+        imageAlt: 'GIF',
+        emptyFeatured: 'Keine GIFs verfügbar.',
+        emptySearch: 'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.',
+        loadingMore: 'Weitere GIFs werden geladen…',
+        loadMoreHint: 'Scroll weiter nach unten, um mehr GIFs zu laden.',
+        errorPrefix: 'Fehler',
+        footerEmpty: 'Keine weiteren GIFs verfügbar.'
       }
     },
     clientSettings: {
@@ -981,7 +1081,8 @@ const messages = {
       addAccount: 'Add another account',
       viewProfile: 'View profile',
       activeAccount: 'Active',
-      noAccounts: 'No accounts available.'
+      noAccounts: 'No accounts available.',
+      ariaLabel: 'Main navigation'
     },
     login: {
       heading: 'Bluesky login',
@@ -989,6 +1090,7 @@ const messages = {
       subtitleStandalone: 'Sign in with an app password. Your session stays local in the client.',
       serviceLabel: 'Service URL',
       identifierLabel: 'Identifier (handle/email)',
+      identifierPlaceholder: 'name.bsky.social',
       passwordLabel: 'App password',
       passwordHelp: 'Create app password',
       rememberCredentials: 'Remember service URL and identifier',
@@ -1461,8 +1563,16 @@ const messages = {
       }
     },
     app: {
+      title: 'BSky Client',
       status: {
         switchAccount: 'Switching account…'
+      }
+    },
+    media: {
+      lightbox: {
+        close: 'Close',
+        prev: 'Previous image',
+        next: 'Next image'
       }
     },
     layout: {
@@ -1470,6 +1580,9 @@ const messages = {
         notifications: 'Notifications',
         blocks: 'Personal block list',
         saved: 'Saved posts'
+      },
+      nav: {
+        mobileAria: 'Mobile navigation'
       },
       feeds: {
         managerTitle: 'Feed manager',
@@ -1565,11 +1678,42 @@ const messages = {
       titleQuote: 'Quote post',
       cancel: 'Cancel',
       submit: 'Post',
+      fields: {
+        contentLabel: 'Content',
+        contentPlaceholder: 'What do you want to post?'
+      },
+      emoji: {
+        title: 'Select emoji'
+      },
       previewUnavailableStandalone: 'Link preview is not available in standalone mode yet.',
       discardTitle: 'Discard draft',
       discardMessage: 'Are you sure you want to discard this draft?',
       discardConfirm: 'Discard',
       thread: {
+        title: 'Thread content',
+        hint: 'CTRL+Enter inserts a separator. Long sections are split automatically.',
+        placeholder: 'Example:\nIntro...\n---\nNext post...',
+        numberingToggle: 'Append automatic numbering (1/x)',
+        previewTitle: 'Preview',
+        postsCounter: '{count} post(s)',
+        segmentLabel: 'Post {index}',
+        charCount: '{count} / {max}',
+        charCountShort: '{count}',
+        emptySegment: '(no content)',
+        mediaCounter: 'Media {count}/{max}',
+        addImageTitle: 'Add image',
+        addImageLabel: 'Image',
+        addGifTitle: 'Add GIF',
+        addGifLabel: 'GIF',
+        emojiTitle: 'Insert emoji',
+        emojiAria: 'Insert emoji',
+        addImageModalTitle: 'Add media',
+        addGifLimitReached: 'Maximum {max} media items per post reached.',
+        gifTooLarge: 'GIF too large (max. {maxMb}MB).',
+        gifLoadFailed: 'GIF could not be loaded.',
+        altAddTitle: 'Add alt text',
+        altEditTitle: 'Edit alt text',
+        limitWarning: 'Maximum {limit} posts per thread.',
         empty: 'Thread is empty.',
         exceedsLimit: 'At least one segment exceeds the limit.',
         sendFailed: 'Thread could not be posted.',
@@ -1633,15 +1777,63 @@ const messages = {
         authorMissing: 'Author information is missing.'
       },
       media: {
-        altRequired: 'Please add ALT text for all media.'
+        altRequired: 'Please add ALT text for all media.',
+        limitReachedTitle: 'Maximum {count} media items per post reached',
+        limitReachedAria: 'Media limit reached',
+        uploadTitle: 'Upload image or GIF',
+        uploadAria: 'Upload image or GIF',
+        insertGifTitle: 'Insert GIF from Tenor',
+        gifLabel: 'GIF',
+        altImage: 'Image {index}',
+        removeImageTitle: 'Remove image',
+        removeImageAria: 'Remove image',
+        altBadge: 'ALT',
+        altAddBadge: '+ ALT',
+        altEditTitle: 'Edit alt text',
+        altAddTitle: 'Edit alt text',
+        dialog: {
+          addTitle: 'Add image',
+          editAltTitle: 'Edit alt text',
+          selectFile: 'Select file',
+          allowedHint: 'Allowed: {allowed} · Max {max}',
+          invalidType: 'Unsupported file type.',
+          maxSize: 'Maximum {max} allowed.',
+          altRequired: 'Alt text is required.',
+          altTooLong: 'Alt text is too long (max 2000 chars).',
+          prepareError: 'Image could not be prepared.',
+          noPreview: 'No preview',
+          previewAlt: 'Preview',
+          editAltAria: 'Edit alt text',
+          altLabel: 'Alt text',
+          altRequiredSuffix: '(required)',
+          altHintWithInitial: 'Adjust the existing alt text if needed.',
+          altHintDefault: 'Briefly describe what is shown in the image or video.',
+          altPlaceholder: 'Descriptive alt text',
+          cancel: 'Cancel',
+          confirm: 'Confirm'
+        }
       },
       preview: {
+        title: 'Preview',
         placeholder: 'Your text will appear here.',
         emptyHint: 'Add text, media or a link to see the preview.',
         loading: 'Loading preview…',
         error: 'Link preview could not be loaded.',
         timeout: 'Link preview request timed out.',
         dismiss: 'Remove link preview'
+      },
+      gifPicker: {
+        title: 'Search GIFs (Tenor)',
+        searchPlaceholder: 'Search term',
+        searchButton: 'Search',
+        closeButton: 'Close',
+        imageAlt: 'GIF',
+        emptyFeatured: 'No GIFs available.',
+        emptySearch: 'No GIFs found. Please try another search term.',
+        loadingMore: 'Loading more GIFs…',
+        loadMoreHint: 'Scroll down to load more GIFs.',
+        errorPrefix: 'Error',
+        footerEmpty: 'No more GIFs available.'
       }
     },
     clientSettings: {
@@ -1741,6 +1933,14 @@ const messages = {
       save: 'Save'
     },
     profile: {
+      preview: {
+        noData: 'No profile data found.',
+        followedBy: 'Follows you',
+        following: 'Following',
+        followersLabel: 'Followers',
+        followsLabel: 'Following',
+        labelFallback: 'Label'
+      },
       relation: {
         followsYou: 'Follows you',
         youFollow: 'Followed by you',

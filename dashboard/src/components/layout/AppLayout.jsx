@@ -139,8 +139,8 @@ function AppLayout ({
                   type='button'
                   className='hidden rounded-full p-2 text-foreground-muted transition hover:bg-background-subtle dark:hover:bg-primary/10 hover:shadow-sm hover:text-foreground md:inline-flex' 
                   onClick={() => setNavCollapsed(true)}
-                  aria-label='Navigation einklappen'
-                  title='Navigation einklappen'
+                  aria-label={t('layout.nav.collapse', 'Navigation einklappen')}
+                  title={t('layout.nav.collapse', 'Navigation einklappen')}
                 >
                   <HamburgerMenuIcon className='h-5 w-5 rotate-180' />
                 </button>

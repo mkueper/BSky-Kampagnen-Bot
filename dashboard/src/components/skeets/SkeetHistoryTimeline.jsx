@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 /**
  * Zeigt die Sendehistorie eines Skeets als vertikale Timeline an.
@@ -8,34 +9,38 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('de-DE', {
   timeStyle: 'short'
 })
 
-const STATUS_META = {
-  success: { label: 'Erfolgreich', icon: '✔', tone: 'success' },
-  failed: { label: 'Fehlgeschlagen', icon: '✖', tone: 'error' },
-  skipped: { label: 'Übersprungen', icon: '•', tone: 'neutral' },
-  pending: { label: 'Ausstehend', icon: '…', tone: 'neutral' }
-}
-
 function resolveTimestamp (value) {
   if (!value) return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function formatDate (value) {
-  const resolved = resolveTimestamp(value)
-  if (!resolved) return '–'
-  return DATE_FORMATTER.format(resolved)
-}
-
-function getStatusMeta (status) {
-  return STATUS_META[status] || { label: status || 'Aktualisiert', icon: '•', tone: 'neutral' }
-}
-
 export default function SkeetHistoryTimeline ({
   history = [],
-  title = 'Sendehistorie',
+  title,
   showTitle = true
 }) {
+  const { t } = useTranslation()
+  const placeholderDash = t('common.placeholderDash', '-')
+  const resolvedTitle = title ?? t('posts.lists.published.history.title', 'Sendehistorie')
+  const statusMetaByKey = {
+    success: { label: t('posts.lists.published.history.status.success', 'Erfolgreich'), icon: '✔', tone: 'success' },
+    failed: { label: t('posts.lists.published.history.status.failed', 'Fehlgeschlagen'), icon: '✖', tone: 'error' },
+    skipped: { label: t('posts.lists.published.history.status.skipped', 'Übersprungen'), icon: '•', tone: 'neutral' },
+    pending: { label: t('posts.lists.published.history.status.pending', 'Ausstehend'), icon: '…', tone: 'neutral' }
+  }
+  const fallbackStatusLabel = t('posts.lists.published.history.status.fallback', 'Aktualisiert')
+  const platformLabel = t('common.platformLabel', 'Plattform')
+
+  function formatDate (value) {
+    const resolved = resolveTimestamp(value)
+    if (!resolved) return placeholderDash
+    return DATE_FORMATTER.format(resolved)
+  }
+
+  function getStatusMeta (status) {
+    return statusMetaByKey[status] || { label: status || fallbackStatusLabel, icon: '•', tone: 'neutral' }
+  }
   const items = Array.isArray(history)
     ? [...history]
       .filter(Boolean)
@@ -51,10 +56,15 @@ export default function SkeetHistoryTimeline ({
   return (
     <section className='skeet-history' aria-live='polite'>
       {showTitle ? (
-        <p className='skeet-history-title'>{title}</p>
+        <p className='skeet-history-title'>{resolvedTitle}</p>
       ) : null}
       {items.length === 0 ? (
-        <p className='skeet-history-empty'>Noch keine Sendehistorie vorhanden.</p>
+        <p className='skeet-history-empty'>
+          {t(
+            'posts.lists.published.history.empty',
+            'Noch keine Sendehistorie vorhanden.'
+          )}
+        </p>
       ) : (
         <div className='skeet-history-list'>
           {items.map((entry, index) => {
@@ -80,7 +90,7 @@ export default function SkeetHistoryTimeline ({
                   </p>
                   {entry?.platform ? (
                     <p className='skeet-history-platform'>
-                      Plattform: <span>{entry.platform}</span>
+                      {platformLabel}: <span>{entry.platform}</span>
                     </p>
                   ) : null}
                   {entry?.status === 'failed' && entry?.errorMessage ? (

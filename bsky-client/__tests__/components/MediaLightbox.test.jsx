@@ -19,6 +19,14 @@ globalThis.React = React
  * der Media-Lightbox-Komponente.
  */
 import MediaLightbox from '../../src/modules/shared/MediaLightbox.jsx'
+import { I18nProvider } from '../../src/i18n/I18nProvider.jsx'
+
+const renderWithI18n = (ui) =>
+  render(
+    <I18nProvider initialLocale='de'>
+      {ui}
+    </I18nProvider>
+  )
 
 describe('MediaLightbox', () => {
   beforeEach(() => {
@@ -34,7 +42,7 @@ describe('MediaLightbox', () => {
       { src: 'img-2.jpg', alt: 'Two' }
     ]
 
-    render(
+    renderWithI18n(
       <MediaLightbox
         images={images}
         index={0}
@@ -61,7 +69,7 @@ describe('MediaLightbox', () => {
       { src: 'img-2.jpg', alt: 'Two' }
     ]
 
-    render(
+    renderWithI18n(
       <MediaLightbox
         images={images}
         index={0}
@@ -87,7 +95,7 @@ describe('MediaLightbox', () => {
       { src: 'https://example.com/video.m3u8', type: 'video', alt: 'Video' }
     ]
 
-    render(<MediaLightbox images={images} index={0} />)
+    renderWithI18n(<MediaLightbox images={images} index={0} />)
 
     const videoEl = document.querySelector('video')
     expect(videoEl).not.toBeNull()

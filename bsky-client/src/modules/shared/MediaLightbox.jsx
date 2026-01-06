@@ -1,6 +1,7 @@
 import { Cross2Icon, ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseAspectRatioValue } from './utils/media.js'
+import { useTranslation } from '../../i18n/I18nProvider.jsx'
 
 let hlsLoaderPromise = null
 
@@ -26,6 +27,7 @@ function isVideo (item) {
 }
 
 export default function MediaLightbox ({ images = [], index = 0, onClose, onNavigate }) {
+  const { t } = useTranslation()
   const current = images[index] || null
   const videoActive = useMemo(() => isVideo(current), [current])
   const aspectRatio = useMemo(() => {
@@ -151,7 +153,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
       <button
         type='button'
         className='absolute inset-0 h-full w-full cursor-zoom-out'
-        aria-label='Schließen'
+        aria-label={t('media.lightbox.close', 'Schließen')}
         onClick={onClose}
       />
       <div className='relative z-10 max-h-[90vh] max-w-[90vw] rounded-2xl bg-black/40 p-4 shadow-2xl backdrop-blur-sm pointer-events-auto'>
@@ -212,7 +214,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
         <button
           type='button'
           className='absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80'
-          aria-label='Schließen'
+          aria-label={t('media.lightbox.close', 'Schließen')}
           onClick={onClose}
         >
           <Cross2Icon className='h-5 w-5' />
@@ -223,7 +225,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
               type='button'
               className='absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80'
               onClick={() => onNavigate?.('prev')}
-              aria-label='Vorheriges Bild'
+              aria-label={t('media.lightbox.prev', 'Vorheriges Bild')}
             >
               <ChevronLeftIcon className='h-5 w-5' />
             </button>
@@ -231,7 +233,7 @@ export default function MediaLightbox ({ images = [], index = 0, onClose, onNavi
               type='button'
               className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80'
               onClick={() => onNavigate?.('next')}
-              aria-label='Nächstes Bild'
+              aria-label={t('media.lightbox.next', 'Nächstes Bild')}
             >
               <ChevronRightIcon className='h-5 w-5' />
             </button>

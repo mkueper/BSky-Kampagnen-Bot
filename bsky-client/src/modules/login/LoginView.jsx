@@ -138,7 +138,7 @@ export default function LoginView ({
               id='login-identifier'
               type='text'
               className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground focus:border-primary focus:outline-none'
-              placeholder='name.bsky.social'
+              placeholder={t('login.identifierPlaceholder', 'name.bsky.social')}
               value={identifier}
               disabled={submitting}
               onChange={(event) => setIdentifier(event.target.value)}

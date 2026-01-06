@@ -192,15 +192,70 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
   }, [altDialog.pendingIndex, closeAltDialog])
   const mediaGridLabels = useMemo(
     () => ({
-      imageAlt: index => `Bild ${index}`,
-      removeTitle: 'Bild entfernen',
-      removeAria: 'Bild entfernen',
-      altBadge: 'ALT',
-      altAddBadge: '+ ALT',
-      altEditTitle: 'Alt-Text bearbeiten',
-      altAddTitle: 'Alt-Text bearbeiten'
+      imageAlt: index => t('compose.media.altImage', 'Bild {index}', { index }),
+      removeTitle: t('compose.media.removeImageTitle', 'Bild entfernen'),
+      removeAria: t('compose.media.removeImageAria', 'Bild entfernen'),
+      altBadge: t('compose.media.altBadge', 'ALT'),
+      altAddBadge: t('compose.media.altAddBadge', '+ ALT'),
+      altEditTitle: t('compose.media.altEditTitle', 'Alt-Text bearbeiten'),
+      altAddTitle: t('compose.media.altAddTitle', 'Alt-Text bearbeiten')
     }),
-    []
+    [t]
+  )
+  const mediaDialogLabels = useMemo(
+    () => ({
+      selectFile: t('compose.media.dialog.selectFile', 'Datei auswählen'),
+      allowedHint: (allowed, max) =>
+        t(
+          'compose.media.dialog.allowedHint',
+          'Erlaubt: {allowed} · Max {max}',
+          { allowed, max }
+        ),
+      invalidType: t('compose.media.dialog.invalidType', 'Nicht unterstützter Dateityp.'),
+      maxSize: (max) =>
+        t('compose.media.dialog.maxSize', 'Maximal {max} erlaubt.', { max }),
+      altRequired: t('compose.media.dialog.altRequired', 'Alt-Text ist erforderlich.'),
+      altTooLong: t(
+        'compose.media.dialog.altTooLong',
+        'Alt-Text ist zu lang (max. 2000 Zeichen).'
+      ),
+      prepareError: t(
+        'compose.media.dialog.prepareError',
+        'Bild konnte nicht vorbereitet werden.'
+      ),
+      noPreview: t('compose.media.dialog.noPreview', 'Keine Vorschau'),
+      editAltAria: t('compose.media.dialog.editAltAria', 'Alt-Text bearbeiten'),
+      altLabel: t('compose.media.dialog.altLabel', 'Alt-Text'),
+      altRequiredSuffix: t('compose.media.dialog.altRequiredSuffix', '(Pflicht)'),
+      altHintWithInitial: t(
+        'compose.media.dialog.altHintWithInitial',
+        'Passe den vorhandenen Alt-Text bei Bedarf an.'
+      ),
+      altHintDefault: t(
+        'compose.media.dialog.altHintDefault',
+        'Beschreibe kurz, was auf dem Bild oder Video zu sehen ist.'
+      ),
+      altPlaceholder: t('compose.media.dialog.altPlaceholder', 'Beschreibender Alt-Text'),
+      cancelLabel: t('compose.media.dialog.cancel', 'Abbrechen'),
+      confirmLabel: t('compose.media.dialog.confirm', 'Übernehmen')
+    }),
+    [t]
+  )
+  const gifPickerLabels = useMemo(
+    () => ({
+      title: t('compose.gifPicker.title', 'GIF suchen (Tenor)'),
+      searchPlaceholder: t('compose.gifPicker.searchPlaceholder', 'Suchbegriff'),
+      searchButton: t('compose.gifPicker.searchButton', 'Suchen'),
+      closeButton: t('compose.gifPicker.closeButton', 'Schließen'),
+      imageAlt: t('compose.gifPicker.imageAlt', 'GIF'),
+      emptyFeatured: t('compose.gifPicker.emptyFeatured', 'Keine GIFs verfügbar.'),
+      emptySearch: t('compose.gifPicker.emptySearch', 'Keine GIFs gefunden. Bitte anderen Suchbegriff probieren.'),
+      loadingMore: t('compose.gifPicker.loadingMore', 'Weitere GIFs werden geladen…'),
+      loadMoreHint: t('compose.gifPicker.loadMoreHint', 'Scroll weiter nach unten, um mehr GIFs zu laden.'),
+      errorPrefix: t('compose.gifPicker.errorPrefix', 'Fehler'),
+      footerEmpty: t('compose.gifPicker.footerEmpty', 'Keine weiteren GIFs verfügbar.')
+    }),
+    [t]
   )
 
   useEffect(() => {
@@ -655,7 +710,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
       <div className='grid min-h-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
         <div className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
-          <label className='text-sm font-medium text-foreground'>Inhalt</label>
+          <label className='text-sm font-medium text-foreground'>
+            {t('compose.fields.contentLabel', 'Inhalt')}
+          </label>
           <textarea
             ref={textareaRef}
             value={text}
@@ -666,7 +723,10 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             onKeyUp={(e) => updateCursorFromTextarea(e.target)}
             rows={6}
             className='mt-2 h-full min-h-[12rem] flex-1 overflow-auto rounded-2xl border border-border bg-background-subtle p-4 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40'
-            placeholder='Was möchtest du posten?'
+            placeholder={t(
+              'compose.fields.contentPlaceholder',
+              'Was möchtest du posten?'
+            )}
           />
           <div className='mt-3 flex flex-wrap items-center gap-2'>
             <Button
@@ -674,8 +734,16 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               variant='outline'
               onClick={() => setMediaDialogOpen(true)}
               disabled={mediaDisabled}
-              title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'Bild oder GIF hochladen'}
-              aria-label={mediaDisabled ? 'Medienlimit erreicht' : 'Bild oder GIF hochladen'}
+              title={mediaDisabled
+                ? t(
+                    'compose.media.limitReachedTitle',
+                    'Maximal {count} Medien je Post erreicht',
+                    { count: MAX_MEDIA_COUNT }
+                  )
+                : t('compose.media.uploadTitle', 'Bild oder GIF hochladen')}
+              aria-label={mediaDisabled
+                ? t('compose.media.limitReachedAria', 'Medienlimit erreicht')
+                : t('compose.media.uploadAria', 'Bild oder GIF hochladen')}
             >
               <ImageIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
@@ -685,10 +753,18 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 variant='outline'
                 disabled={mediaDisabled}
                 onClick={() => setGifPickerOpen(true)}
-                title={mediaDisabled ? `Maximal ${MAX_MEDIA_COUNT} Medien je Skeet erreicht` : 'GIF aus Tenor einfügen'}
+                title={mediaDisabled
+                  ? t(
+                      'compose.media.limitReachedTitle',
+                      'Maximal {count} Medien je Post erreicht',
+                      { count: MAX_MEDIA_COUNT }
+                    )
+                  : t('compose.media.insertGifTitle', 'GIF aus Tenor einfügen')}
               >
                 <VideoIcon className='h-4 w-4' aria-hidden='true' />
-                <span className='sr-only'>GIF</span>
+                <span className='sr-only'>
+                  {t('compose.media.gifLabel', 'GIF')}
+                </span>
               </Button>
             ) : null}
             <Button
@@ -696,9 +772,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
               type='button'
               variant='outline'
               onClick={() => setEmojiPickerOpen((v) => !v)}
-              title='Emoji auswählen'
+              title={t('compose.emoji.title', 'Emoji auswählen')}
               aria-expanded={emojiPickerOpen}
-              aria-label='Emoji auswählen'
+              aria-label={t('compose.emoji.title', 'Emoji auswählen')}
             >
               <FaceIcon className='h-4 w-4' aria-hidden='true' />
             </Button>
@@ -707,7 +783,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
 
         <section className='flex min-h-0 flex-col rounded-3xl border border-border bg-background p-4 shadow-soft sm:p-6'>
           <div className='flex items-center justify-between'>
-            <h4 className='text-sm font-semibold text-foreground'>Vorschau</h4>
+            <h4 className='text-sm font-semibold text-foreground'>
+              {t('compose.preview.title', 'Vorschau')}
+            </h4>
             <span
               className={`text-xs font-medium ${
                 exceedsCharLimit
@@ -746,7 +824,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
                 <button
                   type='button'
                   className='absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background-subtle text-sm text-foreground-muted hover:text-foreground'
-                  title='Link-Vorschau entfernen'
+                  title={t('compose.preview.dismiss', 'Link-Vorschau entfernen')}
                   onClick={() => setDismissedPreviewUrl(previewUrl)}
                 >
                   ×
@@ -837,8 +915,9 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       </div>
       <MediaDialog
         open={mediaDialogOpen}
-        title='Bild hinzufügen'
+        title={t('compose.media.dialog.addTitle', 'Bild hinzufügen')}
         requireAltText={requireAltText}
+        labels={mediaDialogLabels}
         onClose={() => setMediaDialogOpen(false)}
         onConfirm={(file, altText) => {
           setMediaDialogOpen(false)
@@ -848,10 +927,11 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
       <MediaDialog
         open={altDialog.open}
         mode='alt'
-        title={altDialog.initialAlt ? 'Alt-Text bearbeiten' : 'Alt-Text bearbeiten'}
+        title={t('compose.media.dialog.editAltTitle', 'Alt-Text bearbeiten')}
         previewSrc={altDialog.previewSrc}
         initialAlt={altDialog.initialAlt}
         requireAltText={requireAltText}
+        labels={mediaDialogLabels}
         onConfirm={(_, altText) => handleConfirmAltDialog(altText || '')}
         onClose={closeAltDialog}
       />
@@ -864,6 +944,7 @@ export default function Composer ({ reply = null, quote = null, onCancelQuote, o
             onPick={handleGifPick}
             maxBytes={MAX_GIF_BYTES}
             fetcher={tenorFetcher || undefined}
+            labels={gifPickerLabels}
           />
         </Suspense>
       ) : null}
