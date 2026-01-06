@@ -1028,6 +1028,15 @@ const messages = {
           none: 'Kein Fallback'
         }
       },
+      previewProxy: {
+        title: 'Link-Vorschau',
+        description: 'Legt den Proxy fuer Link-Metadaten fest. Erlaubt sind ein Pfad wie /preview oder eine vollstaendige URL.',
+        label: 'Preview-Proxy-URL',
+        placeholder: '/preview oder http://localhost:3456/preview',
+        hint: 'Im Container reicht /preview. Lokal kann ein Proxy wie http://localhost:3456/preview genutzt werden.',
+        invalid: 'Bitte eine gueltige URL oder einen Pfad angeben.',
+        invalidProtocol: 'Nur http:// oder https:// erlaubt.'
+      },
       unroll: {
         showDividersLabel: 'Trennlinien zwischen Posts anzeigen',
         showDividersHelp: 'Deaktiviere die Trennlinien für eine kompakteste Darstellung.'
@@ -1915,6 +1924,15 @@ const messages = {
           yandex: 'Yandex Translate',
           none: 'No fallback'
         }
+      },
+      previewProxy: {
+        title: 'Link preview',
+        description: 'Sets the proxy for link metadata. Use a path like /preview or a full URL.',
+        label: 'Preview proxy URL',
+        placeholder: '/preview or http://localhost:3456/preview',
+        hint: 'In containers, /preview is enough. Locally you can use http://localhost:3456/preview.',
+        invalid: 'Please enter a valid URL or path.',
+        invalidProtocol: 'Only http:// or https:// are allowed.'
       },
       unroll: {
         showDividersLabel: 'Show dividers between posts',

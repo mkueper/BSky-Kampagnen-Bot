@@ -12,6 +12,7 @@ const { hasCredentials: hasMastodonCredentials } = require('@core/services/masto
 async function getClientConfig(req, res) {
   try {
     const base = config.CLIENT_CONFIG?.polling || {};
+    const { values: clientAppSettings } = await settingsService.getClientAppSettings().catch(() => ({ values: {} }));
     // DB-Overrides für Client-Polling lesen und auf Base mappen
     const { values } = await settingsService.getClientPollingSettings().catch(() => ({ values: null }));
     const polling = {
@@ -68,6 +69,7 @@ async function getClientConfig(req, res) {
       locale: normalizeLocale(locale),
       timeZone,
       needsCredentials,
+      previewProxyUrl: clientAppSettings?.previewProxyUrl || '',
       platforms: {
         mastodonConfigured: Boolean(hasMastodonCredentials())
       },

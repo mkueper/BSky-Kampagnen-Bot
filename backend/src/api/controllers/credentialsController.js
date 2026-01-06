@@ -69,6 +69,20 @@ function validateClientUrl (value) {
   }
 }
 
+function validatePreviewProxyUrl (value) {
+  const raw = sanitizeValue(value)
+  if (!raw) return ''
+  if (raw.startsWith('/')) return ''
+  try {
+    const parsed = new URL(raw)
+    if (parsed.protocol === 'https:') return ''
+    if (parsed.protocol === 'http:' && isPrivateHostname(parsed.hostname)) return ''
+    return 'PREVIEW_URL_PROTOCOL'
+  } catch {
+    return 'PREVIEW_URL_INVALID'
+  }
+}
+
 async function getCredentials (req, res) {
   try {
     const { values: clientApps } = await settingsService.getClientAppSettings().catch(() => ({ values: {} }))
@@ -87,7 +101,8 @@ async function getCredentials (req, res) {
       tenor: {
         // Nur Zustand exponieren, Key selbst bleibt verborgen
         hasApiKey: Boolean((process.env.TENOR_API_KEY || process.env.VITE_TENOR_API_KEY || '').trim())
-      }
+      },
+      previewProxyUrl: clientApps?.previewProxyUrl || ''
     })
   } catch (error) {
     res.status(500).json({ error: error?.message || 'Fehler beim Laden der Zugangsdaten.' })
@@ -116,6 +131,15 @@ async function updateCredentials (req, res) {
         ? 'Mastodon-Client-URL: Nur https:// erlaubt (http:// nur für localhost/private IPs).'
         : 'Mastodon-Client-URL ist ungültig.'
       return res.status(400).json({ error: message, code: mastodonUrlError })
+    }
+    const previewUrlError = Object.prototype.hasOwnProperty.call(payload, 'previewProxyUrl')
+      ? validatePreviewProxyUrl(payload.previewProxyUrl)
+      : ''
+    if (previewUrlError) {
+      const message = previewUrlError === 'PREVIEW_URL_PROTOCOL'
+        ? 'Preview-Proxy-URL: Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+        : 'Preview-Proxy-URL ist ungültig.'
+      return res.status(400).json({ error: message, code: previewUrlError })
     }
 
     const entries = {
@@ -147,13 +171,17 @@ async function updateCredentials (req, res) {
     if (map.has('MASTODON_ACCESS_TOKEN')) process.env.MASTODON_ACCESS_TOKEN = map.get('MASTODON_ACCESS_TOKEN')
     if (map.has('TENOR_API_KEY')) process.env.TENOR_API_KEY = map.get('TENOR_API_KEY')
     if (Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp') ||
-      Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')) {
+      Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp') ||
+      Object.prototype.hasOwnProperty.call(payload, 'previewProxyUrl')) {
       await settingsService.saveClientAppSettings({
         bluesky: Object.prototype.hasOwnProperty.call(payload, 'blueskyClientApp')
           ? entries.BLUESKY_CLIENT_APP
           : undefined,
         mastodon: Object.prototype.hasOwnProperty.call(payload, 'mastodonClientApp')
           ? entries.MASTODON_CLIENT_APP
+          : undefined,
+        previewProxyUrl: Object.prototype.hasOwnProperty.call(payload, 'previewProxyUrl')
+          ? sanitizeValue(payload.previewProxyUrl)
           : undefined
       })
     }

@@ -35,6 +35,7 @@ const CLIENT_KEYS = {
 const CLIENT_APP_KEYS = {
   bluesky: "CLIENT_URL_BLUESKY",
   mastodon: "CLIENT_URL_MASTODON",
+  previewProxyUrl: "CLIENT_PREVIEW_PROXY_URL",
 };
 
 function defaults() {
@@ -294,10 +295,12 @@ async function getClientAppSettings() {
   const values = {
     bluesky: map[CLIENT_APP_KEYS.bluesky] || "",
     mastodon: map[CLIENT_APP_KEYS.mastodon] || "",
+    previewProxyUrl: map[CLIENT_APP_KEYS.previewProxyUrl] || "",
   };
   const overrides = {
     bluesky: map[CLIENT_APP_KEYS.bluesky] ?? null,
     mastodon: map[CLIENT_APP_KEYS.mastodon] ?? null,
+    previewProxyUrl: map[CLIENT_APP_KEYS.previewProxyUrl] ?? null,
   };
   return { values, overrides };
 }
@@ -307,10 +310,12 @@ async function saveClientAppSettings(payload = {}) {
   const next = {
     bluesky: payload.bluesky ?? values.bluesky,
     mastodon: payload.mastodon ?? values.mastodon,
+    previewProxyUrl: payload.previewProxyUrl ?? values.previewProxyUrl,
   };
   await Promise.all([
     setSetting(CLIENT_APP_KEYS.bluesky, next.bluesky, ""),
     setSetting(CLIENT_APP_KEYS.mastodon, next.mastodon, ""),
+    setSetting(CLIENT_APP_KEYS.previewProxyUrl, next.previewProxyUrl, ""),
   ]);
   return getClientAppSettings();
 }

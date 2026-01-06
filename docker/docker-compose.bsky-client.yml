@@ -4,15 +4,44 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.bsky-client
+      args:
+        VITE_PREVIEW_PROXY_URL: ${VITE_PREVIEW_PROXY_URL:-/preview}
     env_file: .env
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      BSKY_CLIENT_PORT: ${BSKY_CLIENT_PORT:-5173}
+      PREVIEW_PROXY_HOST: ${PREVIEW_PROXY_HOST:-link-preview-proxy}
+      PREVIEW_PROXY_PORT: ${PREVIEW_PROXY_PORT:-3456}
     ports:
-      - "${BSKY_CLIENT_PORT:-5173}:${BSKY_CLIENT_PORT:-5173}"
+      - "${BSKY_CLIENT_PORT:-5173}:80"
+    volumes:
+      - bsky-client-config:/etc/nginx/conf.d
+      - bsky-client-data:/usr/share/nginx/html/data
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"const p=process.env.BSKY_CLIENT_PORT||5173; fetch('http://localhost:'+p+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));\""]
+      test: ["CMD-SHELL", "curl -f http://localhost/ > /dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 30s
+    depends_on:
+      - link-preview-proxy
+
+  link-preview-proxy:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/link-preview-proxy.Dockerfile
+    env_file: .env
+    environment:
+      PREVIEW_PROXY_HOST: 0.0.0.0
+      PREVIEW_PROXY_PORT: ${PREVIEW_PROXY_PORT:-3456}
+      PREVIEW_PROXY_PATH: ${PREVIEW_PROXY_PATH:-/preview}
+      PREVIEW_PROXY_TIMEOUT_MS: ${PREVIEW_PROXY_TIMEOUT_MS:-10000}
+    ports:
+      - "${PREVIEW_PROXY_PORT:-3456}:${PREVIEW_PROXY_PORT:-3456}"
+    volumes:
+      - preview-proxy-data:/data
+
+volumes:
+  bsky-client-config:
+  bsky-client-data:
+  preview-proxy-data:

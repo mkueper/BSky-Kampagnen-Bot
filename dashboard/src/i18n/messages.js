@@ -196,6 +196,7 @@ const messages = {
           infoAria: 'Hinweis zur Vorschau anzeigen',
           emptyPlaceholder: '(kein Inhalt)',
           loading: 'Vorschau wird geladen …',
+          timeout: 'Link-Vorschau hat zu lange gebraucht.',
           unavailableStandalone:
             'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
         },
@@ -964,6 +965,11 @@ const messages = {
       externalServices: {
         heading: 'Externe Dienste',
         subtitle: 'API-Keys und Zugangsdaten für optionale Integrationen.',
+        previewProxyLabel: 'Preview-Proxy-URL',
+        previewProxyPlaceholder: '/preview oder http://localhost:3456/preview',
+        previewProxyHint: 'Legt den Endpoint fuer Link-Vorschauen fest.',
+        previewProxyInvalid: 'Bitte eine gültige URL angeben.',
+        previewProxyInvalidProtocol: 'Nur https:// erlaubt (http:// nur für localhost/private IPs).',
         toastTitle: 'Externe Dienste',
         saveSuccessTitle: 'Externe Dienste gespeichert',
         saveSuccessDescription: 'API-Keys wurden aktualisiert.',
@@ -1224,6 +1230,7 @@ const messages = {
           infoAria: 'Show hint for preview',
           emptyPlaceholder: '(no content)',
           loading: 'Loading preview …',
+          timeout: 'Link preview took too long.',
           unavailableStandalone: 'Link preview is not available in standalone mode yet.'
         },
         infoButtonLabel: 'Info',
@@ -1932,6 +1939,11 @@ const messages = {
       externalServices: {
         heading: 'External services',
         subtitle: 'API keys and credentials for optional integrations.',
+        previewProxyLabel: 'Preview proxy URL',
+        previewProxyPlaceholder: '/preview or http://localhost:3456/preview',
+        previewProxyHint: 'Defines the endpoint for link previews.',
+        previewProxyInvalid: 'Please enter a valid URL.',
+        previewProxyInvalidProtocol: 'Only https:// allowed (http:// only for localhost/private IPs).',
         toastTitle: 'External services',
         saveSuccessTitle: 'External services saved',
         saveSuccessDescription: 'API keys were updated.',

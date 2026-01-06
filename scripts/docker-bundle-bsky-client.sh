@@ -45,6 +45,8 @@ find "${APP_DIR}" -name '.env' -type f -delete
 # Docker-Artefakte für den Client bereitstellen
 mkdir -p "${APP_DIR}/docker"
 cp docker/Dockerfile.bsky-client "${APP_DIR}/docker/Dockerfile.bsky-client"
+cp docker/nginx-bsky-client.conf.template "${APP_DIR}/docker/nginx-bsky-client.conf.template"
+cp docker/link-preview-proxy.Dockerfile "${APP_DIR}/docker/link-preview-proxy.Dockerfile"
 cp docker/docker-compose.bsky-client.yml "${APP_DIR}/docker-compose.yml"
 
 # .dockerignore für robuste Docker-Builds in das Bundle aufnehmen (falls vorhanden)
@@ -75,7 +77,13 @@ Vorgehen auf dem Server:
 5. docker compose up -d
 
 Service:
-- bsky-client → Node-Container (Vite Preview, Port ${BSKY_CLIENT_PORT:-5173})
+- bsky-client → Nginx (static), Port ${BSKY_CLIENT_PORT:-5173}
+- link-preview-proxy → Preview-Proxy, Port ${PREVIEW_PROXY_PORT:-3456}
+
+Persistenz:
+- bsky-client-config → Nginx-Konfiguration (volume)
+- bsky-client-data → optionale Client-Daten (volume)
+- preview-proxy-data → Proxy-Daten (volume)
 
 Hinweise zu Environments:
 - VITE_* Variablen werden beim Build eingebunden (docker compose build).

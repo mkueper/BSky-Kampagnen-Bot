@@ -57,6 +57,27 @@ const normalizeTranslateEndpoint = (rawUrl) => {
   }
 }
 
+const normalizePreviewProxyUrl = (value) => (value ?? '').toString().trim()
+
+const validatePreviewProxyUrl = (value, t) => {
+  const raw = normalizePreviewProxyUrl(value)
+  if (!raw) return ''
+  if (raw.startsWith('/')) return ''
+  try {
+    const parsed = new URL(raw)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return ''
+    return t(
+      'clientSettings.previewProxy.invalidProtocol',
+      'Nur http:// oder https:// erlaubt.'
+    )
+  } catch {
+    return t(
+      'clientSettings.previewProxy.invalid',
+      'Bitte eine gueltige URL oder einen Pfad angeben.'
+    )
+  }
+}
+
 function buildLocalConfig (config = {}) {
   const gifs = config?.gifs || {}
   const unroll = config?.unroll || {}
@@ -65,6 +86,9 @@ function buildLocalConfig (config = {}) {
   const layout = config?.layout || {}
   return {
     locale: config?.locale || 'de',
+    previewProxyUrl: typeof config?.previewProxyUrl === 'string'
+      ? config.previewProxyUrl
+      : '/preview',
     gifs: {
       tenorAvailable: Boolean(gifs.tenorAvailable),
       tenorApiKey: gifs.tenorApiKey || ''
@@ -159,7 +183,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
           if (!ignore) {
             setTranslationCheck({
               status: 'valid',
-              message: t('clientSettings.translation.status.valid', 'Server erreichbar.')
+              message: ''
             })
           }
         })
@@ -182,6 +206,9 @@ export default function ClientSettingsModal ({ open, onClose }) {
 
   const hasChanges = useMemo(() => {
     const savedLocale = clientConfig?.locale || 'de'
+    const savedPreviewProxyUrl = typeof clientConfig?.previewProxyUrl === 'string'
+      ? clientConfig.previewProxyUrl
+      : '/preview'
     const savedShowDividers = clientConfig?.unroll?.showDividers !== false
     const savedTranslationEnabled = clientConfig?.translation?.enabled === true
     const savedTranslationBase = clientConfig?.translation?.baseUrl || ''
@@ -206,6 +233,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       .sort()
     return (
       (localConfig.locale || 'de') !== savedLocale ||
+      (localConfig.previewProxyUrl || '') !== savedPreviewProxyUrl ||
       Boolean(localConfig.gifs.tenorAvailable) !== Boolean(clientConfig?.gifs?.tenorAvailable) ||
       (localConfig.gifs.tenorApiKey || '') !== (clientConfig?.gifs?.tenorApiKey || '') ||
       Boolean(localConfig.unroll.showDividers) !== savedShowDividers ||
@@ -238,6 +266,11 @@ export default function ClientSettingsModal ({ open, onClose }) {
       translationCheck.status === 'error' ||
       translationCheck.status === 'checking'
   }, [localConfig.translation.baseUrl, localConfig.translation.enabled, translationCheck.status])
+  const previewProxyError = useMemo(
+    () => validatePreviewProxyUrl(localConfig.previewProxyUrl, t),
+    [localConfig.previewProxyUrl, t]
+  )
+  const previewProxyBlocksSave = Boolean(previewProxyError)
 
   if (!open) return null
 
@@ -250,6 +283,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
   const handleSave = () => {
     setClientConfig({
       locale: localConfig.locale || 'de',
+      previewProxyUrl: normalizePreviewProxyUrl(localConfig.previewProxyUrl),
       gifs: {
         tenorAvailable: Boolean(localConfig.gifs.tenorAvailable),
         tenorApiKey: localConfig.gifs.tenorApiKey?.trim() || ''
@@ -708,6 +742,49 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   </div>
                 </div>
               </section>
+              <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
+                    {t('clientSettings.previewProxy.title', 'Link-Vorschau')}
+                  </p>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.previewProxy.description',
+                      'Legt den Proxy fuer Link-Metadaten fest. Erlaubt sind ein Pfad wie /preview oder eine vollstaendige URL.'
+                    )}
+                  </p>
+                </div>
+                <div className='space-y-2'>
+                  <label className='block text-sm font-medium text-foreground'>
+                    {t('clientSettings.previewProxy.label', 'Preview-Proxy-URL')}
+                  </label>
+                  <input
+                    type='text'
+                    placeholder={t('clientSettings.previewProxy.placeholder', '/preview oder http://localhost:3456/preview')}
+                    value={localConfig.previewProxyUrl || ''}
+                    onChange={(event) =>
+                      setLocalConfig((current) => ({
+                        ...current,
+                        previewProxyUrl: event.target.value
+                      }))
+                    }
+                    className={`w-full rounded-2xl border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                      previewProxyError ? 'border-destructive' : 'border-border'
+                    }`}
+                  />
+                  {previewProxyError ? (
+                    <p className='text-xs text-destructive'>
+                      {previewProxyError}
+                    </p>
+                  ) : null}
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.previewProxy.hint',
+                      'Im Container reicht /preview. Lokal kann ein Proxy wie http://localhost:3456/preview genutzt werden.'
+                    )}
+                  </p>
+                </div>
+              </section>
             </div>
           )}
 
@@ -922,7 +999,11 @@ export default function ClientSettingsModal ({ open, onClose }) {
           <Button variant='ghost' onClick={handleClose}>
             {t('compose.cancel', 'Abbrechen')}
           </Button>
-          <Button variant='primary' onClick={handleSave} disabled={!hasChanges || translationCheckBlocksSave}>
+          <Button
+            variant='primary'
+            onClick={handleSave}
+            disabled={!hasChanges || translationCheckBlocksSave || previewProxyBlocksSave}
+          >
             {t('clientSettings.save', 'Speichern')}
           </Button>
         </div>

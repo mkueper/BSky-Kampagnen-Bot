@@ -111,8 +111,10 @@ app.use(express.urlencoded({ extended: true, limit: `${JSON_LIMIT_MB}mb` }));
 const apiRoutes = require('@api/routes');
 const authRoutes = require('@api/routes/authRoutes');
 const requireAuth = require('@api/middleware/requireAuth');
+const previewController = require('@api/controllers/previewController');
 app.use('/api/auth', authRoutes);
 app.use('/api', requireAuth, apiRoutes);
+app.get('/preview', requireAuth, previewController.getExternalPreview);
 
 // Health endpoint for liveness checks
 app.get("/health", (req, res) => {

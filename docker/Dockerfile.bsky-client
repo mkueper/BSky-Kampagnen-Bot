@@ -1,6 +1,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG VITE_PREVIEW_PROXY_URL
+ENV VITE_PREVIEW_PROXY_URL=${VITE_PREVIEW_PROXY_URL}
+
 # Root-Lock + Workspace-Manifeste (optimiert Caching für npm ci)
 COPY package*.json ./
 COPY bsky-client/package*.json ./bsky-client/
@@ -22,14 +25,11 @@ COPY . .
 # Bluesky-Client-Build
 RUN npm run build --workspace bsky-client
 
-FROM node:20-alpine
-WORKDIR /app
+FROM nginx:alpine
+RUN apk add --no-cache curl gettext
+RUN mkdir -p /etc/nginx/templates
 
-COPY --from=build /app /app
+COPY --from=build /app/bsky-client/dist /usr/share/nginx/html
+COPY docker/nginx-bsky-client.conf.template /etc/nginx/templates/default.conf.template
 
-ENV NODE_ENV=production
-ENV BSKY_CLIENT_PORT=5173
-
-EXPOSE 5173
-
-CMD ["sh", "-c", "npm run preview --workspace bsky-client -- --host 0.0.0.0 --port ${BSKY_CLIENT_PORT:-5173}"]
+EXPOSE 80

@@ -4,6 +4,7 @@ const STORAGE_KEY = 'bsky-client-config:v1'
 const SUPPORTED_LOCALES = ['de', 'en']
 const DEFAULT_CONFIG = {
   locale: 'de',
+  previewProxyUrl: '/preview',
   gifs: { tenorAvailable: false, tenorApiKey: '' },
   search: { advancedPrefixes: null, prefixHints: null },
   unroll: { showDividers: true },
@@ -44,10 +45,12 @@ const normalizeConfig = (input = {}) => {
   const legacyLayout = input?.layout || {}
   const legacyInlineVideo = legacyLayout?.inlineYoutube
   const legacyAllowList = legacyLayout?.youtubeAllowList
+  const hasPreviewProxyUrl = Object.prototype.hasOwnProperty.call(input || {}, 'previewProxyUrl')
   const next = {
     ...DEFAULT_CONFIG,
     ...(input || {}),
     locale: input?.locale,
+    previewProxyUrl: hasPreviewProxyUrl ? input?.previewProxyUrl : DEFAULT_CONFIG.previewProxyUrl,
     gifs: { ...DEFAULT_CONFIG.gifs, ...(input?.gifs || {}) },
     search: { ...DEFAULT_CONFIG.search, ...(input?.search || {}) },
     unroll: { ...DEFAULT_CONFIG.unroll, ...(input?.unroll || {}) },
@@ -104,6 +107,11 @@ const normalizeConfig = (input = {}) => {
   next.layout.videoAllowList = Array.from(new Set(normalizedAllowList)).slice(0, 10)
   const normalizedLocale = typeof next.locale === 'string' ? next.locale.trim().toLowerCase() : ''
   next.locale = SUPPORTED_LOCALES.includes(normalizedLocale) ? normalizedLocale : DEFAULT_CONFIG.locale
+  if (typeof next.previewProxyUrl === 'string') {
+    next.previewProxyUrl = next.previewProxyUrl.trim()
+  } else {
+    next.previewProxyUrl = DEFAULT_CONFIG.previewProxyUrl
+  }
   return next
 }
 
@@ -136,6 +144,9 @@ export function useClientConfig () {
       ...base,
       ...(patchObject || {}),
       locale: patchObject?.locale || base.locale,
+      previewProxyUrl: Object.prototype.hasOwnProperty.call(patchObject || {}, 'previewProxyUrl')
+        ? patchObject?.previewProxyUrl
+        : base.previewProxyUrl,
       gifs: { ...(base.gifs || {}), ...(patchObject?.gifs || {}) },
       search: { ...(base.search || {}), ...(patchObject?.search || {}) },
       unroll: { ...(base.unroll || {}), ...(patchObject?.unroll || {}) },

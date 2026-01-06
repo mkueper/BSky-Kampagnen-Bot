@@ -20,6 +20,10 @@ function ContentWithLinkPreview ({
     'posts.form.preview.unavailableStandalone',
     'Link-Vorschau ist im Standalone-Modus derzeit nicht verfügbar.'
   )
+  const timeoutMessage = t(
+    'posts.form.preview.timeout',
+    'Link-Vorschau hat zu lange gebraucht.'
+  )
   const resolvedDisableReason = disableReason || defaultDisableReason
   const previewDisabled = disablePreview || mediaCount > 0
   const {
@@ -29,7 +33,8 @@ function ContentWithLinkPreview ({
     error
   } = useLinkPreview(content, {
     enabled: !previewDisabled,
-    unavailableMessage
+    unavailableMessage,
+    timeoutMessage
   })
 
   return (

@@ -308,6 +308,8 @@ Aktuell gelten u. a. folgende Codes:
 
 - **GET `/api/preview?url=...`**  
   Liefert og:image, Titel und Beschreibung für Link-Previews im Composer.
+- **GET `/preview?url=...`**  
+  Alias zu `/api/preview` (auth-geschuetzt), z. B. fuer `/preview`-Defaults in Clients.
 
 - **GET/PUT `/api/config/credentials`**  
   Liest bzw. schreibt Bluesky/Mastodon-Zugangsdaten in die `.env`. PUT erwartet u. a. `blueskyServerUrl`, `blueskyIdentifier`, `blueskyAppPassword`. Antworten sind heute einfache JSON-Objekte mit Status-/Konfigurationsinformationen.

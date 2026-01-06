@@ -18,6 +18,10 @@ function resolvePreviewFetcher() {
     if (runtimeEndpoint) {
       return { type: 'endpoint', url: runtimeEndpoint }
     }
+    const storageEndpoint = readPreviewProxyFromStorage()
+    if (storageEndpoint) {
+      return { type: 'endpoint', url: storageEndpoint }
+    }
   }
   const envEndpoint = typeof import.meta !== 'undefined' && import.meta.env
     ? String(import.meta.env.VITE_PREVIEW_PROXY_URL || '').trim()
@@ -25,7 +29,23 @@ function resolvePreviewFetcher() {
   if (envEndpoint) {
     return { type: 'endpoint', url: envEndpoint }
   }
-  return null
+  return { type: 'endpoint', url: '/preview' }
+}
+
+function readPreviewProxyFromStorage() {
+  if (typeof window === 'undefined') return ''
+  try {
+    const raw = window.localStorage.getItem('bsky-client-config:v1')
+    if (!raw) return ''
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return ''
+    const value = typeof parsed.previewProxyUrl === 'string'
+      ? parsed.previewProxyUrl.trim()
+      : ''
+    return value
+  } catch {
+    return ''
+  }
 }
 
 function normalizeUrl(targetUrl) {

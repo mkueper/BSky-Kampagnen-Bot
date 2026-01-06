@@ -2524,16 +2524,48 @@ function ExternalServicesSection () {
   const toast = useToast()
   const { t } = useTranslation()
   const [values, setValues] = useState({
-    tenorApiKey: ''
+    tenorApiKey: '',
+    previewProxyUrl: ''
   })
   const [initialValues, setInitialValues] = useState({
-    tenorApiKey: ''
+    tenorApiKey: '',
+    previewProxyUrl: ''
   })
   const [hasSecret, setHasSecret] = useState({
     tenor: false
   })
+  const [previewProxyError, setPreviewProxyError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  const isPrivateHostname = (hostname) => {
+    if (!hostname) return false
+    const host = hostname.toLowerCase()
+    if (host === 'localhost') return true
+    const v4 = host.split('.').map(part => Number(part))
+    if (v4.length !== 4 || v4.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false
+    if (v4[0] === 10) return true
+    if (v4[0] === 172 && v4[1] >= 16 && v4[1] <= 31) return true
+    if (v4[0] === 192 && v4[1] === 168) return true
+    return false
+  }
+
+  const validatePreviewProxyUrl = (value) => {
+    const raw = (value ?? '').toString().trim()
+    if (!raw) return ''
+    if (raw.startsWith('/')) return ''
+    try {
+      const parsed = new URL(raw)
+      if (parsed.protocol === 'https:') return ''
+      if (parsed.protocol === 'http:' && isPrivateHostname(parsed.hostname)) return ''
+      return t(
+        'config.externalServices.previewProxyInvalidProtocol',
+        'Nur https:// erlaubt (http:// nur für localhost/private IPs).'
+      )
+    } catch {
+      return t('config.externalServices.previewProxyInvalid', 'Bitte eine gültige URL angeben.')
+    }
+  }
 
   useEffect(() => {
     let ignore = false
@@ -2553,10 +2585,14 @@ function ExternalServicesSection () {
         }
         const data = await res.json()
         if (!ignore) {
-          const nextValues = { tenorApiKey: '' }
+          const nextValues = {
+            tenorApiKey: '',
+            previewProxyUrl: data?.previewProxyUrl || ''
+          }
           setValues(nextValues)
           setInitialValues(nextValues)
           setHasSecret({ tenor: Boolean(data?.tenor?.hasApiKey) })
+          setPreviewProxyError('')
         }
       } catch (error) {
         console.error('Externe Dienste laden fehlgeschlagen:', error)
@@ -2586,15 +2622,29 @@ function ExternalServicesSection () {
   }, [values, initialValues])
 
   const onChange = key => e => setValues({ ...values, [key]: e.target.value })
+  const onPreviewProxyBlur = () => {
+    setPreviewProxyError(validatePreviewProxyUrl(values.previewProxyUrl))
+  }
 
   const handleCancel = () => {
     setValues(initialValues)
+    setPreviewProxyError('')
   }
 
   const handleSave = async e => {
     e.preventDefault()
 
     if (!hasChanges) return
+
+    const previewError = validatePreviewProxyUrl(values.previewProxyUrl)
+    if (previewError) {
+      setPreviewProxyError(previewError)
+      toast.error({
+        title: t('config.externalServices.toastTitle', 'Externe Dienste'),
+        description: previewError
+      })
+      return
+    }
 
     setSaving(true)
     try {
@@ -2680,29 +2730,67 @@ function ExternalServicesSection () {
       ) : (
         <form onSubmit={handleSave} className='space-y-6'>
           <section className='space-y-4'>
-            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
-              <h4 className='text-lg font-semibold'>
-                {t('config.credentials.tenor.heading', 'Externe API-Keys')}
-              </h4>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1 md:w-1/2'>
-                  <span className='text-sm font-medium'>
-                    {t('config.credentials.tenor.apiKeyLabel', 'Tenor API-Key')}
-                  </span>
-                  <input
-                    type='password'
-                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    placeholder={hasSecret.tenor ? '••••••••' : ''}
-                    value={values.tenorApiKey}
-                    onChange={onChange('tenorApiKey')}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.tenor.apiKeyHint',
-                      'Leer lassen, um den bestehenden Key zu behalten.'
-                    )}
-                  </p>
-                </label>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                <h4 className='text-lg font-semibold'>
+                  {t('config.credentials.tenor.heading', 'Externe API-Keys')}
+                </h4>
+                <div className='space-y-4'>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t('config.credentials.tenor.apiKeyLabel', 'Tenor API-Key')}
+                    </span>
+                    <input
+                      type='password'
+                      className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      placeholder={hasSecret.tenor ? '••••••••' : ''}
+                      value={values.tenorApiKey}
+                      onChange={onChange('tenorApiKey')}
+                    />
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.credentials.tenor.apiKeyHint',
+                        'Leer lassen, um den bestehenden Key zu behalten.'
+                      )}
+                    </p>
+                  </label>
+                </div>
+              </div>
+              <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                <h4 className='text-lg font-semibold'>
+                  {t('config.externalServices.previewProxyLabel', 'Preview-Proxy-URL')}
+                </h4>
+                <div className='space-y-4'>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t('config.externalServices.previewProxyLabel', 'Preview-Proxy-URL')}
+                    </span>
+                    <input
+                      type='text'
+                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                        previewProxyError ? 'border-destructive' : 'border-border'
+                      }`}
+                      placeholder={t(
+                        'config.externalServices.previewProxyPlaceholder',
+                        '/preview oder http://localhost:3456/preview'
+                      )}
+                      value={values.previewProxyUrl}
+                      onChange={onChange('previewProxyUrl')}
+                      onBlur={onPreviewProxyBlur}
+                    />
+                    {previewProxyError ? (
+                      <p className='text-xs text-destructive'>
+                        {previewProxyError}
+                      </p>
+                    ) : null}
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.externalServices.previewProxyHint',
+                        'Legt den Endpoint fuer Link-Vorschauen fest.'
+                      )}
+                    </p>
+                  </label>
+                </div>
               </div>
             </div>
           </section>
