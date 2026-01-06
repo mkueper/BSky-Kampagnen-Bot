@@ -4,7 +4,7 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-05.01.2026
+06.01.2026
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
@@ -17,20 +17,24 @@
 - `SectionRenderer` startet kein Polling mehr, die Service-Logik läuft zentral im `ClientServiceOrchestrator`.
 - Die Action-Dispatch-Matrix in `docs/code-review-bsky-client.md` ist gepflegt; Tests decken Badge- vs. Snapshot-Polling-Flows ab.
 - Testsuite und Pre-Commit-Lint/Build laufen regelmäßig durch; bekannte Warnungen (`AppProvider`-Dispatch, `@atproto/lex-data` Ponyfills, Backend-Logging `EACCES`, Chunk-Size-Meldung beim `vite build`) sind dokumentiert.
+- Preview-Proxy ist in den Client-Einstellungen konfigurierbar und wird im Link-Preview-Service verwendet; Dashboard liefert die URL fuer das Kampagnen-Tool separat.
+- Externe Dienste im Client: Layout zweispaltig + Link-Vorschau einspaltig, Texte/Hints wurden vereinfacht und mehrfach abgestimmt.
+- Client-Settings Modal wurde in der Hoehe angepasst, um Scrollen im Externe-Dienste-Tab zu reduzieren.
 
 ## 3. Startpunkt (kurze Einleitung für die nächste Session)
 
-Badge-Polling ist abgekoppelt, der Service-Layer steuert Hooks zentral, und die Dokumentation reflektiert den aktuellen Zustand. Der nächste Fokus liegt auf Provider-Aufspaltung und klaren UI/Service-Grenzen bei neuen Sections.
+Der Service-Layer ist stabil; der naechste Fokus liegt auf Feinschliff der Client-Einstellungen (Texte/Hint-Platzierung/Spacing), bevor weitere UI-Themen priorisiert werden.
 
 ## 4. Nächste Schritte (konkrete, umsetzbare ToDos)
 
-Derzeit keine offenen Schritte definiert.
+1) Client-Einstellungen final abstimmen (Texte/Hints/Layout), insbesondere Externe Dienste.
+2) Entscheidung zur globalen Spacing-Reduktion fuer weniger Scrollen vorbereiten.
 
 ## 5. Abschluss-Check (prüfbare Kriterien, optional)
 
 - `useNotificationPolling` trennt Badges (`fetchUnreadNotificationsCount`) von Snapshot-/Has-New-Logiken und läuft nur bei den jeweils nötigen Flags.
 - `ClientServiceOrchestrator` versorgt alle Services mit den richtigen Aktivitäts- und Badge-Parametern, `SectionRenderer` bleibt Polling-frei.
-- Tests und Pre-Commit-Checks (Lint + `vite build`) wurden zuletzt vollständig ausgeführt.
+- Client-Settings: Preview-Proxy kann gespeichert werden, Texte/Hint-Logik ist abgestimmt, Externe Dienste bleibt ohne unnoetiges Scrollen.
 
 ## 6. Offene Fragen (keine Tasks)
 
@@ -39,3 +43,4 @@ Derzeit keine offenen Schritte definiert.
 - Beim Modus "Post zitieren" sollten wir den zitierten Beitrag unterhalb der Texteingabe anzeigen (ggf. direkt unter der Buttonzeile), damit die Vorschau wie in der offiziellen App wahrgenommen wird.
 - UI-Layer möglichst konsequent mit Radix-Komponenten lösen (Select, Popover, Dialog etc.), statt weitere Eigenlösungen zu bauen.
 - **Unroll-Erweiterung:** Wenn die Trennlinie gesetzt ist, Footer mit Reply/Like/Repost/Zitat unter jedem Beitrag anzeigen; außerdem einen Übersetzungsbutton im Unroll-Header vorbereiten, der beim Klick alle enthaltenen Beiträge übersetzt und so schnell Kontext liefert.
+- Soll die Externe-Dienste-UI noch kompakter werden, um Scrollen sicher zu vermeiden?

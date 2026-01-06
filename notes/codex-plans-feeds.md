@@ -1,7 +1,8 @@
 1. Datum (TT.MM.JJJJ)
-26.12.2025
+06.01.2026
 
 2. Status (aktueller Stand, keine ToDos)
+- Keine neuen Aenderungen seit dem letzten Stand; Feed-Aufgaben bleiben offen.
 - Feeds-Seite zeigt nur echte gespeicherte/angepinnte Feeds; Fehler-Feeds werden herausgefiltert.
 - Feed-Metadaten für Feeds/Listen werden geladen (inkl. Listentypen via `app.bsky.graph.getList`); Error-Objekte werden nicht mehr in die UI gepusht.
 - Vereinbart: Home-Tabs sollen ausschließlich aus den tatsächlich gepinnten Feeds/Listen (inkl. Standardlisten) abgeleitet werden, um Duplikate zu vermeiden und bsky.app zu matchen.

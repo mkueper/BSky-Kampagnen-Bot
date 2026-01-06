@@ -4,10 +4,11 @@
 
 ## 1. Datum (TT.MM.JJJJ)
 
-15.12.2025
+06.01.2026
 
 ## 2. Status (aktueller Stand, keine ToDos)
 
+- Keine neuen Anpassungen seit dem letzten Stand; Shared-UI bleibt stabil.
 - ThemeToggle, TimeZonePicker, NewPostsBanner und ScrollTopButton sind parametrisiert und konsistent über Varianten nutzbar.
 - Shared-UI-Komponenten werden nur bei Bedarf erweitert; derzeit keine offenen Anpassungen aus Client- oder Dashboard-Sicht.
 
