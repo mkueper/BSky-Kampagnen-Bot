@@ -10,3 +10,4 @@ Das gilt fuer alle lesenden Aktionen innerhalb des Repository-Roots (/home/micha
 Wenn der Nutzer mich zum Committen auffordert und keine Rueckfragen offen sind, darf ich eine passende Commit-Message selbst waehlen und committen.
 `npm run build`, `npm run lint` und `npm run test` duerfen ohne Rueckfrage ausgefuehrt werden.
 Nach groesseren Aenderungen `npm run build:all`, `npm run test:all` und `npm run lint:all` ausfuehren; groesser = neue Features, i18n-Umbau oder UI-Refactor.
+Wenn ein erlaubter Befehl wegen Sandbox/Landlock scheitert, direkt mit Escalation erneut ausfuehren.
