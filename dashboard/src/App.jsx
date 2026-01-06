@@ -67,7 +67,7 @@ const BASE_NAV_ITEMS = [
       { id: 'threads-plan', label: 'Thread planen' }
     ]
   },
-  { id: 'config', label: 'Konfiguration', icon: GearIcon },
+  { id: 'config', label: 'Einstellungen', icon: GearIcon },
   { id: 'about', label: 'Über Kampagnen‑Tool', icon: InfoCircledIcon }
 ]
 

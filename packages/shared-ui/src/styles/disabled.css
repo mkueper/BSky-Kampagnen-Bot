@@ -1,6 +1,6 @@
 :root {
   --ui-disabled-opacity: 0.6;
-  --ui-disabled-cursor: not-allowed;
+  --ui-disabled-cursor: default;
   --ui-disabled-filter: none;
 }
 

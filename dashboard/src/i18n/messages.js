@@ -8,7 +8,7 @@ const messages = {
       threads: 'Threads',
       'threads-overview': 'Aktivität',
       'threads-plan': 'Thread planen',
-      config: 'Konfiguration',
+      config: 'Einstellungen',
       about: 'Über Kampagnen‑Tool',
       clientLauncher: 'Client öffnen',
       blueskyClient: 'Bluesky Client',
@@ -53,7 +53,7 @@ const messages = {
         threads: 'Threads – Übersicht',
         'threads-overview': 'Threads – Übersicht',
         'threads-plan': 'Thread planen',
-        config: 'Konfiguration',
+        config: 'Einstellungen',
         about: 'Über Kampagnen‑Tool'
       },
       title: {
@@ -794,7 +794,7 @@ const messages = {
           apply:
             'Änderungen greifen sofort – der Scheduler wird automatisch neugestartet.'
         },
-        resetButton: 'Zurücksetzen auf Standard',
+        resetButton: 'Standard wiederherstellen',
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen',
         errors: {
@@ -846,7 +846,7 @@ const messages = {
         },
         summary:
           'Standardwerte: Threads {tActive}/{tIdle}/{tHidden}ms, Posts {pActive}/{pIdle}/{pHidden}ms, Backoff {bStart}→{bMax}ms, Jitter {jitter}, Heartbeat {heartbeat}ms',
-        resetButton: 'Zurücksetzen auf Standard',
+        resetButton: 'Standard wiederherstellen',
         saveBusy: 'Übernehmen…',
         saveLabel: 'Übernehmen',
         infoButtonLabel: 'Dashboard-Polling',
@@ -992,7 +992,7 @@ const messages = {
       threads: 'Threads',
       'threads-overview': 'Activity',
       'threads-plan': 'Schedule thread',
-      config: 'Configuration',
+      config: 'Settings',
       about: 'About Campaign Tool',
       clientLauncher: 'Open client',
       blueskyClient: 'Bluesky client',
@@ -1012,7 +1012,7 @@ const messages = {
         threads: 'Threads – Overview',
         'threads-overview': 'Threads – Overview',
         'threads-plan': 'Schedule thread',
-        config: 'Configuration',
+        config: 'Settings',
         about: 'About Campaign Tool'
       },
       title: {
@@ -1614,7 +1614,7 @@ const messages = {
         saveErrorDescription:
           'General settings could not be saved.',
         summary: 'Current time zone: {tz}',
-        resetButton: 'Reset to default',
+        resetButton: 'Restore defaults',
         saveBusy: 'Applying…',
         saveLabel: 'Apply',
         timeZoneInfoTitle: 'Time zone in scheduler',
@@ -1717,7 +1717,7 @@ const messages = {
           apply:
             'Changes take effect immediately – the scheduler is restarted automatically.'
         },
-        resetButton: 'Reset to defaults',
+        resetButton: 'Restore defaults',
         saveBusy: 'Applying…',
         saveLabel: 'Apply',
         errors: {

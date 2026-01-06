@@ -73,6 +73,24 @@ export default function ConfigPanel () {
   const SESSION_TTL_MIN_HOURS = 6
   const SESSION_TTL_MAX_HOURS = 168
   const SESSION_TTL_DEFAULT_HOURS = 12
+  const readStoredSessionTtlHours = () => {
+    if (typeof window === 'undefined') return SESSION_TTL_DEFAULT_HOURS
+    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
+    const parsed = Number(stored)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    return Math.min(
+      SESSION_TTL_MAX_HOURS,
+      Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe))
+    )
+  }
+  const clampSessionTtlHours = (value) => {
+    const parsed = Number(value)
+    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
+    return Math.min(
+      SESSION_TTL_MAX_HOURS,
+      Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe))
+    )
+  }
   const [generalValues, setGeneralValues] = useState({
     timeZone: '',
     locale: 'de'
@@ -84,12 +102,10 @@ export default function ConfigPanel () {
   const [generalLoading, setGeneralLoading] = useState(true)
   const [generalSaving, setGeneralSaving] = useState(false)
   const [sessionTtlInput, setSessionTtlInput] = useState(() => {
-    if (typeof window === 'undefined') return String(SESSION_TTL_DEFAULT_HOURS)
-    const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
-    const parsed = Number(stored)
-    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
-    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
-    return String(clamped)
+    return String(readStoredSessionTtlHours())
+  })
+  const [sessionTtlInitial, setSessionTtlInitial] = useState(() => {
+    return String(readStoredSessionTtlHours())
   })
 
   // Client-Polling Abschnitt
@@ -217,9 +233,10 @@ export default function ConfigPanel () {
       String(generalValues.timeZone ?? '') !==
         String(generalInitialValues.timeZone ?? '') ||
       String(generalValues.locale ?? '') !==
-        String(generalInitialValues.locale ?? '')
+        String(generalInitialValues.locale ?? '') ||
+      String(sessionTtlInput ?? '') !== String(sessionTtlInitial ?? '')
     )
-  }, [generalValues, generalInitialValues])
+  }, [generalValues, generalInitialValues, sessionTtlInput, sessionTtlInitial])
 
   const onSessionTtlChange = (event) => {
     const nextValue = event.target.value
@@ -229,13 +246,8 @@ export default function ConfigPanel () {
   }
 
   const normalizeSessionTtl = () => {
-    const parsed = Number(sessionTtlInput)
-    const safe = Number.isFinite(parsed) ? parsed : SESSION_TTL_DEFAULT_HOURS
-    const clamped = Math.min(SESSION_TTL_MAX_HOURS, Math.max(SESSION_TTL_MIN_HOURS, Math.round(safe)))
+    const clamped = clampSessionTtlHours(sessionTtlInput)
     setSessionTtlInput(String(clamped))
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SESSION_TTL_STORAGE_KEY, String(clamped))
-    }
   }
 
   useEffect(() => {
@@ -438,6 +450,8 @@ export default function ConfigPanel () {
   const handleGeneralSubmit = async event => {
     event.preventDefault()
     setGeneralSaving(true)
+    const normalizedSessionTtl = clampSessionTtlHours(sessionTtlInput)
+    setSessionTtlInput(String(normalizedSessionTtl))
     try {
       const payload = {
         timeZone: generalValues.timeZone?.trim() || null,
@@ -465,6 +479,13 @@ export default function ConfigPanel () {
       setGeneralValues(nextValues)
       setGeneralInitialValues(nextValues)
       setGeneralDefaults(nextDefaults)
+      setSessionTtlInitial(String(normalizedSessionTtl))
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          SESSION_TTL_STORAGE_KEY,
+          String(normalizedSessionTtl)
+        )
+      }
       if (nextValues.locale && typeof nextValues.locale === 'string') {
         setLocale(nextValues.locale)
       }
@@ -1197,7 +1218,10 @@ export default function ConfigPanel () {
                   <Button
                     type='button'
                     variant='secondary'
-                    onClick={() => setGeneralValues(generalDefaults)}
+                    onClick={() => {
+                      setGeneralValues(generalDefaults)
+                      setSessionTtlInput(String(SESSION_TTL_DEFAULT_HOURS))
+                    }}
                     disabled={generalLoading || generalSaving}
                   >
                     {t(
@@ -1536,7 +1560,7 @@ export default function ConfigPanel () {
                   >
                     {t(
                       'config.scheduler.resetButton',
-                      'Zurücksetzen auf Standard'
+                      'Standard wiederherstellen'
                     )}
                   </Button>
                   <Button
@@ -1860,7 +1884,7 @@ export default function ConfigPanel () {
                   >
                     {t(
                       'config.polling.resetButton',
-                      'Zurücksetzen auf Standard'
+                      'Standard wiederherstellen'
                     )}
                   </Button>
                   <Button
