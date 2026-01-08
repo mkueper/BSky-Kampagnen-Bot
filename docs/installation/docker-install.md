@@ -4,7 +4,7 @@ Diese Anleitung richtet sich an Anwender:innen, die den **BSky-Kampagnen-Tool** 
 
 | Service    | Beschreibung                               | Port (Standard) |
 |------------|---------------------------------------------|-----------------|
-| `backend`  | Express-API inkl. Scheduler                 | `BACKEND_PORT` (3000) |
+| `backend`  | Express-API inkl. Scheduler (nur intern)    | kein externer Port |
 | `frontend` | Nginx-Container mit vorgebauter React-App   | `FRONTEND_PORT` (8080) |
 
 ```
@@ -91,7 +91,7 @@ docker compose exec backend npm run migrate:prod
 ```
 
 - Frontend: <http://localhost:${FRONTEND_PORT:-8080}>
-- Backend-API: <http://localhost:${BACKEND_PORT:-3000}>
+- Backend-API: nur intern über das Docker-Netz erreichbar (z. B. `http://backend:3000`)
 - SQLite-Datenbank und Mediendateien liegen im benannten Volume `data` (`/app/data` im Backend-Container). Innerhalb des Containers werden Medien standardmäßig im Verzeichnis `data/medien` abgelegt.
 
 Für den Hintergrundbetrieb empfiehlt sich `docker compose up -d` (Migration anschließend separat ausführen).

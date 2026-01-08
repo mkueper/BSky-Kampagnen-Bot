@@ -37,6 +37,19 @@
 
 # ---
 
+## 2026-01-08
+
+### Infrastruktur & Deployment
+
+- **Improvement:** Backend-Port wird in Docker Compose standardmaessig nicht mehr nach aussen freigegeben (nur internes Netzwerk).
+- **Feature:** Bundle-Skripte unterstuetzen optionalen SCP-Upload per `--scp`/`-c` mit Ziel aus `scripts/target.conf`.
+
+### Docs
+
+- **Update:** Docker-Installationsanleitung und Scripts-Doku an das interne Backend und den optionalen SCP-Upload angepasst.
+
+# ---
+
 ## 2025-12-12
 
 ### Client & Backend

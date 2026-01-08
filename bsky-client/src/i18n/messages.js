@@ -967,9 +967,9 @@ const messages = {
       },
       sections: {
         gifsTitle: 'GIF-Integration',
-        gifsDescription: 'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.',
+        gifsDescription: 'Aktiviert die GIF-Suche, um GIFs direkt im Beitrag auszuwählen.',
         translationTitle: 'Übersetzungshilfe',
-        translationDescription: 'Konfiguriere LibreTranslate und wähle einen Web-Fallback für Übersetzungen.',
+        translationDescription: 'Konfiguriert den Übersetzungsdienst und den Fallback für Übersetzungen.',
         postsTitle: 'Beiträge',
         postsDescription: 'Steuert die Darstellung von Antworten, Threads und Zeitangaben.',
         unrollTitle: 'Unroll',
@@ -986,7 +986,7 @@ const messages = {
       tenorToggle: 'Tenor-GIFs aktivieren',
       tenorKeyLabel: 'Tenor API-Key',
       tenorKeyPlaceholder: 'API-Key einfügen',
-      tenorKeyHelp: 'Der Key wird nur lokal gespeichert. Ohne Key ist die Tenor-Suche deaktiviert.',
+      tenorKeyHelp: 'Der Key wird nur lokal gespeichert.',
       composer: {
         showReplyPreviewLabel: 'Antwort-Vorschau anzeigen',
         showReplyPreviewHelp: 'Blendet den Beitrag ein, auf den du antwortest. Deaktiviere die Option für ein kompakteres Composer-Layout.'
@@ -1016,10 +1016,16 @@ const messages = {
         enableLabel: 'Übersetzungshilfe anzeigen',
         baseUrlLabel: 'LibreTranslate-Server',
         baseUrlPlaceholder: 'z. B. http://localhost:5000',
-        baseUrlHelp: 'Nur lokale oder private Endpunkte werden akzeptiert. Der Pfad /translate wird automatisch ergänzt.',
         fallbackLabel: 'Web-Übersetzer als Fallback',
-        fallbackHelp: 'Wenn der Server nicht erreichbar ist, wird der ausgewählte Dienst in einem neuen Tab geöffnet.',
         fallbackChange: 'Ändern',
+        help: 'Aktiviert einen Übersetzen‑Button',
+        fallbackHint: 'Dienst falls der Server nicht erreichbar ist',
+        localOnlyHint: 'Nur lokale oder private Hosts erlaubt.',
+        infoTitle: 'Übersetzungshilfe',
+        infoIntro: 'Die Übersetzungshilfe stellt im Beitrag einen Übersetzen‑Button bereit und zeigt die Übersetzung direkt an.',
+        infoLocalOnly: 'Für den Server werden nur lokale oder private Adressen akzeptiert, zum Beispiel http://localhost:5000.',
+        infoSuffix: 'Der Pfad /translate wird automatisch ergänzt.',
+        infoFallback: 'Falls der Server nicht erreichbar ist, öffnet sich der gewählte Web‑Übersetzer in einem neuen Tab.',
         fallback: {
           google: 'Google Translate',
           deepl: 'DeepL',
@@ -1030,12 +1036,22 @@ const messages = {
       },
       previewProxy: {
         title: 'Link-Vorschau',
-        description: 'Legt den Proxy fuer Link-Metadaten fest. Erlaubt sind ein Pfad wie /preview oder eine vollstaendige URL.',
-        label: 'Preview-Proxy-URL',
-        placeholder: '/preview oder http://localhost:3456/preview',
-        hint: 'Im Container reicht /preview. Lokal kann ein Proxy wie http://localhost:3456/preview genutzt werden.',
+        label: 'Preview-Proxy URL',
+        placeholder: 'https://preview.proxy.url[:xxxx]',
         invalid: 'Bitte eine gueltige URL oder einen Pfad angeben.',
-        invalidProtocol: 'Nur http:// oder https:// erlaubt.'
+        invalidProtocol: 'Nur http:// oder https:// erlaubt.',
+        help: 'Adresse des Preview-Proxy',
+        infoTitle: 'Link-Vorschau',
+        infoIntro: 'Die Link‑Vorschau ergänzt beim Schreiben eines Beitrags kleine Vorschauen zu eingefügten Links.',
+        infoPaths: 'Als Adresse reicht ein Pfad wie /preview oder eine vollständige URL.',
+        infoContainer: 'Im Container genügt /preview.'
+      },
+      gifs: {
+        infoTitle: 'GIF-Integration',
+        infoIntro: 'Die GIF‑Integration ermöglicht eine GIF‑Suche im Beitragseditor, um passende GIFs auszuwählen.',
+        infoKey: 'Der Tenor‑API‑Key wird ausschließlich lokal gespeichert und nicht weitergegeben.',
+        infoDisable: 'Ohne Key bleibt die GIF‑Suche ausgeschaltet.',
+        help: 'Ermöglicht die GIF‑Suche im Beitragseditor.'
       },
       unroll: {
         showDividersLabel: 'Trennlinien zwischen Posts anzeigen',
@@ -1044,6 +1060,10 @@ const messages = {
       future: {
         heading: 'Weitere Optionen',
         body: 'Weitere Optionen – z. B. Darstellung und lokale Workflows – folgen hier in Kürze.'
+      },
+      actions: {
+        info: 'Info',
+        infoTitle: 'Hinweis anzeigen'
       },
       language: {
         options: {
@@ -1864,9 +1884,9 @@ const messages = {
       },
       sections: {
         gifsTitle: 'GIF integration',
-        gifsDescription: 'Enable Tenor to search and insert GIFs right from the composer.',
+        gifsDescription: 'Enables the GIF search to pick GIFs directly in a post.',
         translationTitle: 'Translation helper',
-        translationDescription: 'Configure LibreTranslate and choose a web fallback for translations.',
+        translationDescription: 'Configures the translation service and the fallback for translations.',
         postsTitle: 'Posts',
         postsDescription: 'Controls reply context, thread display, and timestamp formatting.',
         unrollTitle: 'Unroll',
@@ -1913,10 +1933,16 @@ const messages = {
         enableLabel: 'Show translation helper',
         baseUrlLabel: 'LibreTranslate server',
         baseUrlPlaceholder: 'e.g. http://localhost:5000',
-        baseUrlHelp: 'Only local/private hosts are allowed. The /translate suffix is appended automatically.',
         fallbackLabel: 'Web translator fallback',
-        fallbackHelp: 'If the server is unavailable, the selected service opens in a new tab.',
         fallbackChange: 'Change',
+        help: 'Adds a translate button that shows the translation inline in the post.',
+        fallbackHint: 'If the server is unavailable, the selected service opens in a new tab.',
+        localOnlyHint: 'Only local or private hosts are allowed.',
+        infoTitle: 'Translation helper',
+        infoIntro: 'The translation helper adds a translate button to a post and shows the result inline.',
+        infoLocalOnly: 'Only local or private addresses are accepted, for example http://localhost:5000.',
+        infoSuffix: 'The /translate path is appended automatically.',
+        infoFallback: 'If the server is unavailable, the selected web translator opens in a new tab.',
         fallback: {
           google: 'Google Translate',
           deepl: 'DeepL',
@@ -1927,12 +1953,22 @@ const messages = {
       },
       previewProxy: {
         title: 'Link preview',
-        description: 'Sets the proxy for link metadata. Use a path like /preview or a full URL.',
         label: 'Preview proxy URL',
-        placeholder: '/preview or http://localhost:3456/preview',
-        hint: 'In containers, /preview is enough. Locally you can use http://localhost:3456/preview.',
+        placeholder: 'https://preview.proxy.url[:xxxx]',
         invalid: 'Please enter a valid URL or path.',
-        invalidProtocol: 'Only http:// or https:// are allowed.'
+        invalidProtocol: 'Only http:// or https:// are allowed.',
+        help: 'Preview proxy address',
+        infoTitle: 'Link preview',
+        infoIntro: 'Link preview adds small previews for links while writing a post.',
+        infoPaths: 'Use a path like /preview or a full URL.',
+        infoContainer: 'Inside a container, /preview is sufficient.'
+      },
+      gifs: {
+        infoTitle: 'GIF integration',
+        infoIntro: 'GIF integration enables a GIF search in the post editor to pick suitable GIFs.',
+        infoKey: 'The Tenor API key is stored locally and not shared.',
+        infoDisable: 'Without a key, the GIF search remains disabled.',
+        help: 'Enables the GIF search in the post editor.'
       },
       unroll: {
         showDividersLabel: 'Show dividers between posts',
@@ -1941,6 +1977,10 @@ const messages = {
       future: {
         heading: 'More options coming soon',
         body: 'More layout tweaks and local workflow settings will follow soon.'
+      },
+      actions: {
+        info: 'Info',
+        infoTitle: 'Show info'
       },
       language: {
         options: {

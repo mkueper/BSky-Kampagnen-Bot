@@ -15,6 +15,7 @@ node_modules/
 /project-check.js
 /dist/
 /.vscode/
+/scripts/target.conf
 dashboard/node_modules/
 dashboard/dist/
 dashboard/.env*

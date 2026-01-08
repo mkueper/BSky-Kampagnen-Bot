@@ -10,8 +10,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       BACKEND_INTERNAL_PORT: ${BACKEND_INTERNAL_PORT:-3000}
       APP_PORT: ${BACKEND_INTERNAL_PORT:-3000}
-    ports:
-      - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
+    # Optional: Backend-API extern freigeben (z. B. für separate Clients)
+    # ports:
+    #   - "${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}"
     volumes:
       - data:/app/data
     healthcheck:

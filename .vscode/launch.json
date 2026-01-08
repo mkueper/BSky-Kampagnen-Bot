@@ -55,6 +55,18 @@
             }
         },
         {
+            "type": "node",
+            "request": "launch",
+            "name": "Preview Proxy Dev Server",
+            "runtimeExecutable": "npm",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "run",
+                "dev:preview-proxy"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Dev: App (Backend + Bsky-Client)",
             "type": "node",
             "request": "launch",
@@ -78,6 +90,14 @@
             "configurations": [
                 "Backend Server",
                 "Dashboard Dev Server"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Dev: Bsky-Client + Preview-Proxy",
+            "configurations": [
+                "Bluesky Client Dev Server",
+                "Preview Proxy Dev Server"
             ],
             "stopAll": true
         }

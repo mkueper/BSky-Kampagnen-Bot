@@ -371,7 +371,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
       <Card
         as='div'
         padding='p-0'
-        className='relative z-50 flex h-[65vh] w-[min(80vh,92vw)] flex-col overflow-hidden rounded-3xl shadow-card'
+        className='relative z-50 flex h-[72vh] w-[min(80vh,92vw)] flex-col overflow-hidden rounded-3xl shadow-card'
       >
         <div className='flex items-start justify-between border-b border-border px-6 py-4'>
           <div>
@@ -560,7 +560,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
           )}
 
           {activeTab === 'services' && (
-            <div className='grid gap-6 md:grid-cols-2'>
+            <div className='space-y-6'>
+              <div className='grid gap-6 md:grid-cols-2'>
               <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
                 <div>
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
@@ -569,7 +570,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.sections.translationDescription',
-                      'Steuert lokale Übersetzungen über LibreTranslate oder den Google-Fallback.'
+                      'Konfiguriert den Übersetzungsdienst und den Fallback für Übersetzungen.'
                     )}
                   </p>
                 </div>
@@ -591,6 +592,12 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     />
                     <span>{t('clientSettings.translation.enableLabel', 'Übersetzungshilfe anzeigen')}</span>
                   </label>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.translation.help',
+                      'Aktiviert einen Übersetzen‑Button, der die Übersetzung direkt im Beitrag zeigt.'
+                    )}
+                  </p>
                   <div className='space-y-2'>
                     <label className='block text-sm font-medium text-foreground'>
                       {t('clientSettings.translation.baseUrlLabel', 'LibreTranslate-Server')}
@@ -612,10 +619,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                       disabled={!localConfig.translation.enabled}
                     />
                     <p className='text-xs text-foreground-muted'>
-                      {t(
-                        'clientSettings.translation.baseUrlHelp',
-                        'Nur lokale oder private Endpunkte werden akzeptiert. Der Pfad /translate wird automatisch ergänzt.'
-                      )}
+                      {t('clientSettings.translation.localOnlyHint', 'Nur lokale oder private Hosts erlaubt.')}
                     </p>
                     {translationCheck.message ? (
                       <p className='text-xs text-foreground-muted'>
@@ -676,8 +680,8 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     </Select.Root>
                     <p className='text-xs text-foreground-muted'>
                       {t(
-                        'clientSettings.translation.fallbackHelp',
-                        'Wenn der Server nicht erreichbar ist, wird der ausgewählte Dienst in einem neuen Tab geöffnet.'
+                        'clientSettings.translation.fallbackHint',
+                        'Wenn der Server nicht erreichbar ist, öffnet sich der ausgewählte Dienst in einem neuen Tab.'
                       )}
                     </p>
                   </div>
@@ -691,7 +695,7 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   <p className='text-xs text-foreground-muted'>
                     {t(
                       'clientSettings.sections.gifsDescription',
-                      'Aktiviere Tenor, um GIFs direkt aus dem Composer auswählen zu können.'
+                      'Aktiviert die GIF-Suche, um GIFs direkt im Beitrag auszuwählen.'
                     )}
                   </p>
                 </div>
@@ -713,6 +717,12 @@ export default function ClientSettingsModal ({ open, onClose }) {
                     />
                     <span>{t('clientSettings.tenorToggle', 'Tenor-GIFs aktivieren')}</span>
                   </label>
+                  <p className='text-xs text-foreground-muted'>
+                    {t(
+                      'clientSettings.gifs.help',
+                      'Ermöglicht die GIF‑Suche im Beitragseditor.'
+                    )}
+                  </p>
                   <div className='space-y-2'>
                     <label className='block text-sm font-medium text-foreground'>
                       {t('clientSettings.tenorKeyLabel', 'Tenor API-Key')}
@@ -742,47 +752,43 @@ export default function ClientSettingsModal ({ open, onClose }) {
                   </div>
                 </div>
               </section>
+              </div>
               <section className='space-y-4 rounded-3xl border border-border bg-background px-5 py-4 shadow-soft'>
                 <div>
                   <p className='text-xs font-semibold uppercase tracking-[0.2em] text-foreground-muted'>
                     {t('clientSettings.previewProxy.title', 'Link-Vorschau')}
                   </p>
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'clientSettings.previewProxy.description',
-                      'Legt den Proxy fuer Link-Metadaten fest. Erlaubt sind ein Pfad wie /preview oder eine vollstaendige URL.'
-                    )}
-                  </p>
                 </div>
                 <div className='space-y-2'>
-                  <label className='block text-sm font-medium text-foreground'>
-                    {t('clientSettings.previewProxy.label', 'Preview-Proxy-URL')}
-                  </label>
-                  <input
-                    type='text'
-                    placeholder={t('clientSettings.previewProxy.placeholder', '/preview oder http://localhost:3456/preview')}
-                    value={localConfig.previewProxyUrl || ''}
-                    onChange={(event) =>
-                      setLocalConfig((current) => ({
-                        ...current,
-                        previewProxyUrl: event.target.value
-                      }))
-                    }
-                    className={`w-full rounded-2xl border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                      previewProxyError ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
+                  <div className='grid gap-3 md:grid-cols-[220px_1fr] md:items-center'>
+                    <label className='text-sm font-medium text-foreground'>
+                      {t('clientSettings.previewProxy.label', 'Preview-Proxy URL')}
+                    </label>
+                    <div className='space-y-2'>
+                      <input
+                        type='text'
+                        placeholder={t('clientSettings.previewProxy.placeholder', 'https://preview.proxy.url[:xxxx]')}
+                        value={localConfig.previewProxyUrl || ''}
+                        onChange={(event) =>
+                          setLocalConfig((current) => ({
+                            ...current,
+                            previewProxyUrl: event.target.value
+                          }))
+                        }
+                        className={`w-full rounded-2xl border bg-background-subtle px-4 py-2 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                          previewProxyError ? 'border-destructive' : 'border-border'
+                        }`}
+                      />
+                      <p className='text-xs text-foreground-muted'>
+                        {t('clientSettings.previewProxy.help', 'Adresse des Preview-Proxy')}
+                      </p>
+                    </div>
+                  </div>
                   {previewProxyError ? (
                     <p className='text-xs text-destructive'>
                       {previewProxyError}
                     </p>
                   ) : null}
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'clientSettings.previewProxy.hint',
-                      'Im Container reicht /preview. Lokal kann ein Proxy wie http://localhost:3456/preview genutzt werden.'
-                    )}
-                  </p>
                 </div>
               </section>
             </div>

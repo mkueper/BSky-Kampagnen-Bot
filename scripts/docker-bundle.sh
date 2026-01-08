@@ -7,6 +7,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PROJECT_ROOT}"
 
+# Optionaler SCP-Upload
+ENABLE_SCP=false
+POSITIONAL_ARGS=()
+for arg in "$@"; do
+  case "${arg}" in
+    --scp|-c)
+      ENABLE_SCP=true
+      ;;
+    *)
+      POSITIONAL_ARGS+=("${arg}")
+      ;;
+  esac
+done
+set -- "${POSITIONAL_ARGS[@]}"
+
+SCP_CONFIG="${SCRIPT_DIR}/target.conf"
+
 # Standard-Bundle-Namen auf Basis des aktuellen Datums setzen
 # Format: Bsky-Kamp-Tool-YYYY-MM-DD
 STAMP=$(date +%F)
@@ -276,9 +293,25 @@ pushd "${BUNDLES_DIR}" > /dev/null
 zip -r "${BUNDLE_NAME}.zip" "${BUNDLE_NAME}" > /dev/null
 popd > /dev/null
 
-echo "Bundle erstellt: ${BUNDLES_DIR}/${BUNDLE_NAME}.zip"
+BUNDLE_ZIP="${BUNDLES_DIR}/${BUNDLE_NAME}.zip"
+echo "Bundle erstellt: ${BUNDLE_ZIP}"
 if [[ -f "${IMAGE_TAR}" ]]; then
   echo "Beigefügter Image-Tarball: ${IMAGE_TAR}"
 else
   echo "Hinweis: Images werden auf dem Server via 'docker compose build' erzeugt."
+fi
+
+if [[ "${ENABLE_SCP}" = true ]]; then
+  if [[ -f "${SCP_CONFIG}" ]]; then
+    # shellcheck disable=SC1090
+    source "${SCP_CONFIG}"
+  fi
+
+  if [[ -z "${TARGET_SCP:-}" ]]; then
+    echo "Fehler: TARGET_SCP ist nicht gesetzt (erwartet in ${SCP_CONFIG})." >&2
+    exit 1
+  fi
+
+  echo "Kopiere Bundle per scp nach ${TARGET_SCP}" >&2
+  scp "${BUNDLE_ZIP}" "${TARGET_SCP}"
 fi

@@ -3,6 +3,7 @@ export {
   Card,
   MediaDialog,
   ConfirmDialog,
+  InfoDialog,
   InlineMenu,
   InlineMenuTrigger,
   InlineMenuContent,
