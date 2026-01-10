@@ -610,14 +610,16 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     }
 
     const scheduledPlannedAt = scheduledDateTimeString
-    const scheduledActualAt =
-      repeat === 'none' && applyJitter && jitterAvailable
-        ? applyRandomOffsetToLocalDateTime({
-            localDateTime: scheduledPlannedAt,
-            timeZone,
-            offsetMinutes: randomOffsetMinutes
-          })
-        : scheduledPlannedAt
+    const isRecurring = repeat !== 'none'
+    const shouldApplyJitter =
+      scheduledPlannedAt && jitterAvailable && (isRecurring || applyJitter)
+    const scheduledActualAt = shouldApplyJitter
+      ? applyRandomOffsetToLocalDateTime({
+          localDateTime: scheduledPlannedAt,
+          timeZone,
+          offsetMinutes: randomOffsetMinutes
+        })
+      : scheduledPlannedAt
 
     const payload = {
       content,

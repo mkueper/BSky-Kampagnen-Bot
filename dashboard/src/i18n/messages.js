@@ -720,10 +720,24 @@ const messages = {
         timeZoneInfoHint:
           'In den meisten Installationen ist die Zeitzone des Deployment-Standorts (z. B. Europe/Berlin) sinnvoll. UTC eignet sich für rein technische Umgebungen.',
         timeZoneInfoAria: 'Hinweis zur Zeitzone anzeigen',
+        sections: {
+          languageTimeZone: 'Sprache und Zeitzone',
+          preview: 'Vorschau',
+          sessionDuration: 'Session-Dauer'
+        },
+        previewOptions: {
+          heading: 'Vorschau max. Zeilen',
+          maxLinesLabel: 'Vorschau max. Zeilen',
+          maxLinesHint: 'Gilt für Vorschau-Text in Übersichten.',
+          showMediaLabel: 'Medien-Thumbnails anzeigen',
+          showLinkPreviewLabel: 'Link-Vorschauen anzeigen'
+        },
         errors: {
           timeZoneRequired: 'TIME_ZONE muss angegeben werden.',
           localeRequired: 'LOCALE muss angegeben werden.',
-          localeUnsupported: 'LOCALE muss entweder "de" oder "en" sein.'
+          localeUnsupported: 'LOCALE muss entweder "de" oder "en" sein.',
+          previewLinesInvalid: 'Bitte eine gültige Anzahl Zeilen angeben.',
+          previewLinesRange: 'Die Anzahl der Zeilen muss zwischen 1 und 12 liegen.'
         }
       },
       scheduler: {
@@ -1699,10 +1713,24 @@ const messages = {
         timeZoneInfoHint:
           'In most installations, the time zone of the deployment location (e.g. Europe/Berlin) is appropriate. UTC is suitable for purely technical environments.',
         timeZoneInfoAria: 'Show hint for time zone',
+        sections: {
+          languageTimeZone: 'Language & time zone',
+          preview: 'Preview',
+          sessionDuration: 'Session duration'
+        },
+        previewOptions: {
+          heading: 'Preview max lines',
+          maxLinesLabel: 'Preview max lines',
+          maxLinesHint: 'Applies to preview text in overviews.',
+          showMediaLabel: 'Show media thumbnails',
+          showLinkPreviewLabel: 'Show link previews'
+        },
         errors: {
           timeZoneRequired: 'TIME_ZONE must be provided.',
           localeRequired: 'LOCALE must be provided.',
-          localeUnsupported: 'LOCALE must be either "de" or "en".'
+          localeUnsupported: 'LOCALE must be either "de" or "en".',
+          previewLinesInvalid: 'Please provide a valid number of lines.',
+          previewLinesRange: 'Number of lines must be between 1 and 12.'
         }
       },
       scheduler: {

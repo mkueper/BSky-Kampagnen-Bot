@@ -8,8 +8,20 @@ const tempBridge = {
   cleanup: (payload) => ipcRenderer.invoke('bsky-temp:cleanup', payload)
 }
 
+const configBridge = {
+  get: () => ipcRenderer.invoke('bsky-config:get'),
+  set: (config) => ipcRenderer.invoke('bsky-config:set', { config }),
+  subscribe: (handler) => {
+    if (typeof handler !== 'function') return () => {}
+    const listener = (_event, payload) => handler(payload?.config || null)
+    ipcRenderer.on('bsky-config:updated', listener)
+    return () => ipcRenderer.removeListener('bsky-config:updated', listener)
+  }
+}
+
 try {
   contextBridge.exposeInMainWorld('bskyTemp', tempBridge)
+  contextBridge.exposeInMainWorld('bskyConfig', configBridge)
   contextBridge.exposeInMainWorld('__BSKY_PREVIEW_FETCH__', async (url) => {
     const response = await ipcRenderer.invoke('bsky-preview:fetch', { url })
     if (response?.error) {

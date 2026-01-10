@@ -131,6 +131,16 @@ function DashboardApp ({ onLogout }) {
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
   const needsCredentials = Boolean(clientConfigPreset?.needsCredentials)
+  const overviewSettings = clientConfigPreset?.overview || {}
+  const overviewPreviewMaxLines = Number.isFinite(
+    Number(overviewSettings.previewMaxLines)
+  )
+    ? Number(overviewSettings.previewMaxLines)
+    : 6
+  const overviewShowPreviewMedia =
+    overviewSettings.showPreviewMedia !== false
+  const overviewShowPreviewLinkPreview =
+    overviewSettings.showPreviewLinkPreview !== false
   const { activeView, gatedNeedsCreds, navigate } = useViewState({
     defaultView: DEFAULT_VIEW,
     validViews: VALID_VIEWS,
@@ -572,13 +582,6 @@ function DashboardApp ({ onLogout }) {
     return entries[0] ?? null
   }, [plannedSkeetsWithoutPending])
 
-  const upcomingSkeetSnippet = useMemo(() => {
-    if (!upcomingSkeet) return null
-    const normalized = (upcomingSkeet.content ?? '').replace(/\s+/g, ' ').trim()
-    if (!normalized) return 'Kein Inhalt hinterlegt'
-    return normalized.length > 200 ? `${normalized.slice(0, 200)}…` : normalized
-  }, [upcomingSkeet])
-
   // Hinweis: Übersichtskarten für Threads werden aktuell nicht verwendet
 
   const activityStatsThreads = useMemo(() => {
@@ -923,7 +926,11 @@ function DashboardApp ({ onLogout }) {
             scheduledAt={
               upcomingSkeet?.scheduledAt || upcomingSkeet?.scheduledDate || null
             }
-            content={upcomingSkeetSnippet}
+            content={upcomingSkeet?.content}
+            media={upcomingSkeet?.media}
+            showMedia={overviewShowPreviewMedia}
+            useLinkPreview={overviewShowPreviewLinkPreview}
+            maxLines={overviewPreviewMaxLines}
             emptyLabel={t(
               'postsExtra.overview.next.none',
               'Noch nichts geplant'
@@ -959,6 +966,7 @@ function DashboardApp ({ onLogout }) {
                 ? (nextScheduledThread.thread.segments?.[0]?.content || '')
                 : ''
             }
+            maxLines={overviewPreviewMaxLines}
             emptyLabel={t(
               'threads.overview.next.none',
               'Noch nichts geplant'

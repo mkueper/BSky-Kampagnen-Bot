@@ -8,6 +8,7 @@ function ContentWithLinkPreview ({
   content,
   className = '',
   mediaCount = 0,
+  textStyle,
   disablePreview = false,
   disableReason = ''
 }) {
@@ -46,6 +47,7 @@ function ContentWithLinkPreview ({
           '(kein Inhalt)'
         )}
         className={className}
+        style={textStyle}
       />
       <LinkPreviewCard
         preview={preview}

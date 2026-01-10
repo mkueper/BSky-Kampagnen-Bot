@@ -8,11 +8,11 @@ import { fetchWithCsrf } from '../utils/apiClient.js'
 
 const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs', 'randomOffsetMinutes']
 
-function formatNumberInput (value) {
+function formatNumberInput(value) {
   return value == null ? '' : String(value)
 }
 
-function normalizeFormPayload (values) {
+function normalizeFormPayload(values) {
   return {
     scheduleTime: values.scheduleTime?.trim(),
     postRetries: values.postRetries !== '' ? Number(values.postRetries) : null,
@@ -27,7 +27,7 @@ function normalizeFormPayload (values) {
   }
 }
 
-export default function ConfigPanel () {
+export default function ConfigPanel() {
   const toast = useToast()
   const { t, setLocale } = useTranslation()
   const [cronInfoOpen, setCronInfoOpen] = useState(false)
@@ -39,19 +39,19 @@ export default function ConfigPanel () {
   // Auf Credentials-Tab springen, wenn Backend fehlende Zugangsdaten meldet
   useEffect(() => {
     let ignore = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/client-config')
-        if (!res.ok) return
-        const data = await res.json().catch(() => null)
-        if (!ignore && data) {
-          if (data.needsCredentials) setTab('credentials')
-          setNeedsCreds(Boolean(data.needsCredentials))
+      ; (async () => {
+        try {
+          const res = await fetch('/api/client-config')
+          if (!res.ok) return
+          const data = await res.json().catch(() => null)
+          if (!ignore && data) {
+            if (data.needsCredentials) setTab('credentials')
+            setNeedsCreds(Boolean(data.needsCredentials))
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
-    })()
+      })()
     return () => {
       ignore = true
     }
@@ -94,7 +94,10 @@ export default function ConfigPanel () {
   }
   const [generalValues, setGeneralValues] = useState({
     timeZone: '',
-    locale: 'de'
+    locale: 'de',
+    overviewPreviewMaxLines: '6',
+    overviewPreviewShowMedia: true,
+    overviewPreviewShowLinkPreview: true
   })
   const [generalInitialValues, setGeneralInitialValues] = useState(
     generalValues
@@ -152,6 +155,18 @@ export default function ConfigPanel () {
       return t(
         'config.general.errors.localeUnsupported',
         'LOCALE muss entweder "de" oder "en" sein.'
+      )
+    }
+    if (code === 'SETTINGS_GENERAL_PREVIEW_LINES_INVALID') {
+      return t(
+        'config.general.errors.previewLinesInvalid',
+        'Bitte eine gültige Anzahl Zeilen angeben.'
+      )
+    }
+    if (code === 'SETTINGS_GENERAL_PREVIEW_LINES_OUT_OF_RANGE') {
+      return t(
+        'config.general.errors.previewLinesRange',
+        'Die Anzahl der Zeilen muss zwischen 1 und 12 liegen.'
       )
     }
 
@@ -232,9 +247,15 @@ export default function ConfigPanel () {
   const generalHasChanges = useMemo(() => {
     return (
       String(generalValues.timeZone ?? '') !==
-        String(generalInitialValues.timeZone ?? '') ||
+      String(generalInitialValues.timeZone ?? '') ||
       String(generalValues.locale ?? '') !==
-        String(generalInitialValues.locale ?? '') ||
+      String(generalInitialValues.locale ?? '') ||
+      String(generalValues.overviewPreviewMaxLines ?? '') !==
+      String(generalInitialValues.overviewPreviewMaxLines ?? '') ||
+      String(generalValues.overviewPreviewShowMedia ?? '') !==
+      String(generalInitialValues.overviewPreviewShowMedia ?? '') ||
+      String(generalValues.overviewPreviewShowLinkPreview ?? '') !==
+      String(generalInitialValues.overviewPreviewShowLinkPreview ?? '') ||
       String(sessionTtlInput ?? '') !== String(sessionTtlInitial ?? '')
     )
   }, [generalValues, generalInitialValues, sessionTtlInput, sessionTtlInitial])
@@ -246,6 +267,29 @@ export default function ConfigPanel () {
     }
   }
 
+  const onPreviewLinesChange = (event) => {
+    const nextValue = event.target.value
+    if (nextValue === '' || /^\d+$/.test(nextValue)) {
+      setGeneralValues(current => ({
+        ...current,
+        overviewPreviewMaxLines: nextValue
+      }))
+    }
+  }
+
+  const normalizePreviewLines = () => {
+    const parsed = Number(generalValues.overviewPreviewMaxLines)
+    const fallback =
+      Number(generalDefaults.overviewPreviewMaxLines) || 6
+    const clamped = Number.isFinite(parsed)
+      ? Math.min(12, Math.max(1, parsed))
+      : fallback
+    setGeneralValues(current => ({
+      ...current,
+      overviewPreviewMaxLines: String(clamped)
+    }))
+  }
+
   const normalizeSessionTtl = () => {
     const clamped = clampSessionTtlHours(sessionTtlInput)
     setSessionTtlInput(String(clamped))
@@ -254,7 +298,7 @@ export default function ConfigPanel () {
   useEffect(() => {
     let ignore = false
 
-    async function load () {
+    async function load() {
       setLoading(true)
       try {
         const res = await fetch('/api/settings/scheduler')
@@ -315,7 +359,7 @@ export default function ConfigPanel () {
   // Allgemeine Settings laden (aktuell: Zeitzone)
   useEffect(() => {
     let ignore = false
-    async function loadGeneral () {
+    async function loadGeneral() {
       setGeneralLoading(true)
       try {
         const res = await fetch('/api/settings/general')
@@ -328,11 +372,31 @@ export default function ConfigPanel () {
         const data = await res.json()
         const nextValues = {
           timeZone: data.values?.timeZone ?? data.defaults?.timeZone ?? '',
-          locale: data.values?.locale ?? data.defaults?.locale ?? 'de'
+          locale: data.values?.locale ?? data.defaults?.locale ?? 'de',
+          overviewPreviewMaxLines: String(
+            data.values?.overviewPreviewMaxLines ??
+            data.defaults?.overviewPreviewMaxLines ??
+            6
+          ),
+          overviewPreviewShowMedia:
+            data.values?.overviewPreviewShowMedia ??
+            data.defaults?.overviewPreviewShowMedia ??
+            true,
+          overviewPreviewShowLinkPreview:
+            data.values?.overviewPreviewShowLinkPreview ??
+            data.defaults?.overviewPreviewShowLinkPreview ??
+            true
         }
         const nextDefaults = {
           timeZone: data.defaults?.timeZone ?? '',
-          locale: data.defaults?.locale ?? 'de'
+          locale: data.defaults?.locale ?? 'de',
+          overviewPreviewMaxLines: String(
+            data.defaults?.overviewPreviewMaxLines ?? 6
+          ),
+          overviewPreviewShowMedia:
+            data.defaults?.overviewPreviewShowMedia ?? true,
+          overviewPreviewShowLinkPreview:
+            data.defaults?.overviewPreviewShowLinkPreview ?? true
         }
         if (!ignore) {
           setGeneralValues(nextValues)
@@ -366,7 +430,7 @@ export default function ConfigPanel () {
   // Client-Polling laden
   useEffect(() => {
     let ignore = false
-    async function loadPolling () {
+    async function loadPolling() {
       setPollLoading(true)
       try {
         const res = await fetch('/api/settings/client-polling')
@@ -454,9 +518,19 @@ export default function ConfigPanel () {
     const normalizedSessionTtl = clampSessionTtlHours(sessionTtlInput)
     setSessionTtlInput(String(normalizedSessionTtl))
     try {
+      const parsedPreviewLines = Number(generalValues.overviewPreviewMaxLines)
       const payload = {
         timeZone: generalValues.timeZone?.trim() || null,
-        locale: generalValues.locale || null
+        locale: generalValues.locale || null,
+        overviewPreviewMaxLines: Number.isFinite(parsedPreviewLines)
+          ? parsedPreviewLines
+          : Number(generalDefaults.overviewPreviewMaxLines) || 6,
+        overviewPreviewShowMedia: Boolean(
+          generalValues.overviewPreviewShowMedia
+        ),
+        overviewPreviewShowLinkPreview: Boolean(
+          generalValues.overviewPreviewShowLinkPreview
+        )
       }
       const res = await fetchWithCsrf('/api/settings/general', {
         method: 'PUT',
@@ -471,11 +545,40 @@ export default function ConfigPanel () {
       const data = await res.json()
       const nextValues = {
         timeZone: data.values?.timeZone ?? payload.timeZone ?? '',
-        locale: data.values?.locale ?? payload.locale ?? generalValues.locale ?? 'de'
+        locale: data.values?.locale ?? payload.locale ?? generalValues.locale ?? 'de',
+        overviewPreviewMaxLines: String(
+          data.values?.overviewPreviewMaxLines ??
+          payload.overviewPreviewMaxLines ??
+          generalValues.overviewPreviewMaxLines ??
+          6
+        ),
+        overviewPreviewShowMedia:
+          data.values?.overviewPreviewShowMedia ??
+          payload.overviewPreviewShowMedia ??
+          generalValues.overviewPreviewShowMedia ??
+          true,
+        overviewPreviewShowLinkPreview:
+          data.values?.overviewPreviewShowLinkPreview ??
+          payload.overviewPreviewShowLinkPreview ??
+          generalValues.overviewPreviewShowLinkPreview ??
+          true
       }
       const nextDefaults = {
         timeZone: data.defaults?.timeZone ?? generalDefaults.timeZone,
-        locale: data.defaults?.locale ?? generalDefaults.locale ?? 'de'
+        locale: data.defaults?.locale ?? generalDefaults.locale ?? 'de',
+        overviewPreviewMaxLines: String(
+          data.defaults?.overviewPreviewMaxLines ??
+          generalDefaults.overviewPreviewMaxLines ??
+          6
+        ),
+        overviewPreviewShowMedia:
+          data.defaults?.overviewPreviewShowMedia ??
+          generalDefaults.overviewPreviewShowMedia ??
+          true,
+        overviewPreviewShowLinkPreview:
+          data.defaults?.overviewPreviewShowLinkPreview ??
+          generalDefaults.overviewPreviewShowLinkPreview ??
+          true
       }
       setGeneralValues(nextValues)
       setGeneralInitialValues(nextValues)
@@ -1092,129 +1195,237 @@ export default function ConfigPanel () {
             </div>
 
             <form onSubmit={handleGeneralSubmit} className='space-y-6'>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <div className='relative space-y-2 focus-within:z-20'>
-                  <label
-                    htmlFor='general-locale'
-                    className='text-sm font-semibold text-foreground'
-                  >
-                    {t('config.general.labels.locale', 'Anzeigesprache')}
-                  </label>
-                  <select
-                    id='general-locale'
-                    value={generalValues.locale || 'de'}
-                    onChange={e => {
-                      const value = e.target.value
-                      setGeneralValues(prev => ({ ...prev, locale: value }))
-                    }}
-                    disabled={generalLoading || generalSaving}
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                  >
-                    <option value='de'>
-                      {t('config.general.localeOptionDe', 'Deutsch')}
-                    </option>
-                    <option value='en'>
-                      {t('config.general.localeOptionEn', 'English')}
-                    </option>
-                  </select>
-                  <p className='text-xs text-foreground-muted'>
+              <div className='space-y-6'>
+                <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                  <h4 className='text-lg font-semibold'>
                     {t(
-                      'config.general.localeHint',
-                      'Steuert die Anzeigesprache des Kampagnen‑Tools.'
+                      'config.general.sections.languageTimeZone',
+                      'Sprache und Zeitzone'
                     )}
-                  </p>
-                </div>
-
-                <div className='space-y-2'>
-                  <div className='flex items-center justify-between gap-2'>
-                    <label
-                      htmlFor='general-timeZone'
-                      className='text-sm font-semibold text-foreground'
-                    >
-                      {t('config.general.labels.timeZone', 'Standard-Zeitzone')}
-                    </label>
-                    <button
-                      type='button'
-                      className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
-                      aria-label={t(
-                        'config.general.timeZoneInfoAria',
-                        'Hinweis zur Zeitzone anzeigen'
-                      )}
-                      title={t(
-                        'posts.form.infoButtonTitle',
-                        'Hinweis anzeigen'
-                      )}
-                      onClick={() => setTimeZoneInfoOpen(true)}
-                    >
-                      <svg
-                        width='12'
-                        height='12'
-                        viewBox='0 0 15 15'
-                        fill='none'
-                        xmlns='http://www.w3.org/2000/svg'
-                        aria-hidden='true'
+                  </h4>
+                  <div className='grid gap-4 md:grid-cols-2'>
+                    <div className='relative space-y-2 focus-within:z-20'>
+                      <label
+                        htmlFor='general-locale'
+                        className='text-sm font-medium text-foreground'
                       >
-                        <path
-                          d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
-                          fill='currentColor'
-                        />
-                        <path
-                          fillRule='evenodd'
-                          clipRule='evenodd'
-                          d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
-                          fill='currentColor'
-                        />
-                      </svg>
-                      {t('posts.form.infoButtonLabel', 'Info')}
-                    </button>
+                        {t('config.general.labels.locale', 'Anzeigesprache')}
+                      </label>
+                      <select
+                        id='general-locale'
+                        value={generalValues.locale || 'de'}
+                        onChange={e => {
+                          const value = e.target.value
+                          setGeneralValues(prev => ({ ...prev, locale: value }))
+                        }}
+                        disabled={generalLoading || generalSaving}
+                        className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      >
+                        <option value='de'>
+                          {t('config.general.localeOptionDe', 'Deutsch')}
+                        </option>
+                        <option value='en'>
+                          {t('config.general.localeOptionEn', 'English')}
+                        </option>
+                      </select>
+                      <p className='text-xs text-foreground-muted'>
+                        {t(
+                          'config.general.localeHint',
+                          'Steuert die Anzeigesprache des Kampagnen‑Tools.'
+                        )}
+                      </p>
+                    </div>
+
+                    <div className='space-y-2'>
+                      <div className='flex items-center justify-between gap-2'>
+                        <label
+                          htmlFor='general-timeZone'
+                          className='text-sm font-medium text-foreground'
+                        >
+                          {t('config.general.labels.timeZone', 'Standard-Zeitzone')}
+                        </label>
+                        <button
+                          type='button'
+                          className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+                          aria-label={t(
+                            'config.general.timeZoneInfoAria',
+                            'Hinweis zur Zeitzone anzeigen'
+                          )}
+                          title={t(
+                            'posts.form.infoButtonTitle',
+                            'Hinweis anzeigen'
+                          )}
+                          onClick={() => setTimeZoneInfoOpen(true)}
+                        >
+                          <svg
+                            width='12'
+                            height='12'
+                            viewBox='0 0 15 15'
+                            fill='none'
+                            xmlns='http://www.w3.org/2000/svg'
+                            aria-hidden='true'
+                          >
+                            <path
+                              d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                              fill='currentColor'
+                            />
+                            <path
+                              fillRule='evenodd'
+                              clipRule='evenodd'
+                              d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                              fill='currentColor'
+                            />
+                          </svg>
+                          {t('posts.form.infoButtonLabel', 'Info')}
+                        </button>
+                      </div>
+                      <TimeZonePicker
+                        id='general-timeZone'
+                        value={generalValues.timeZone || null}
+                        onChange={(tz) =>
+                          setGeneralValues(current => ({
+                            ...current,
+                            timeZone: tz || ''
+                          }))
+                        }
+                        disabled={generalLoading || generalSaving}
+                        placeholder={generalDefaults.timeZone || 'Europe/Berlin'}
+                        helperText={t(
+                          'config.general.timeZoneHint',
+                          'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).'
+                        )}
+                        favoriteTimeZones={['Europe/Berlin', 'UTC']}
+                      />
+                    </div>
                   </div>
-                  <TimeZonePicker
-                    id='general-timeZone'
-                    value={generalValues.timeZone || null}
-                    onChange={(tz) =>
-                      setGeneralValues(current => ({
-                        ...current,
-                        timeZone: tz || ''
-                      }))
-                    }
-                    disabled={generalLoading || generalSaving}
-                    placeholder={generalDefaults.timeZone || 'Europe/Berlin'}
-                    helperText={t(
-                      'config.general.timeZoneHint',
-                      'Beispiel: Europe/Berlin oder UTC (IANA-Zeitzone).'
-                    )}
-                    favoriteTimeZones={['Europe/Berlin', 'UTC']}
-                  />
                 </div>
 
-                <div className='space-y-2'>
-                  <label
-                    htmlFor='general-session-ttl'
-                    className='text-sm font-semibold text-foreground'
-                  >
+                <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                  <h4 className='text-lg font-semibold'>
                     {t(
-                      'config.general.labels.sessionTtl',
-                      'Session-Dauer (Stunden)'
+                      'config.general.sections.preview',
+                      'Vorschau'
                     )}
-                  </label>
-                  <input
-                    id='general-session-ttl'
-                    type='number'
-                    min={SESSION_TTL_MIN_HOURS}
-                    max={SESSION_TTL_MAX_HOURS}
-                    step='1'
-                    inputMode='numeric'
-                    className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    value={sessionTtlInput}
-                    onChange={onSessionTtlChange}
-                    onBlur={normalizeSessionTtl}
-                  />
-                  <p className='text-xs text-foreground-muted'>
+                  </h4>
+                  <div className='grid gap-4 md:grid-cols-2'>
+                    <div className='space-y-2'>
+                      <label
+                        htmlFor='general-overview-preview-lines'
+                        className='text-sm font-medium text-foreground'
+                      >
+                        {t(
+                          'config.general.previewOptions.maxLinesLabel',
+                          'Maximale Zeilen'
+                        )}
+                      </label>
+                      <div className="w-1/2">
+                        <input
+                          id="general-overview-preview-lines"
+                          type="number"
+                          min="1"
+                          max="12"
+                          step="1"
+                          inputMode="numeric"
+                          className="w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          value={generalValues.overviewPreviewMaxLines}
+                          onChange={onPreviewLinesChange}
+                          onBlur={normalizePreviewLines}
+                          disabled={generalLoading || generalSaving}
+                        />
+                      </div>
+                      <p className='text-xs text-foreground-muted'>
+                        {t(
+                          'config.general.previewOptions.maxLinesHint',
+                          'Gilt für Vorschau-Text in Übersichten.'
+                        )}
+                      </p>
+                    </div>
+
+                    <div className='space-y-3 pt-6 md:pt-7'>
+                      <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
+                        <input
+                          type='checkbox'
+                          className='h-4 w-4 rounded border-border'
+                          checked={Boolean(
+                            generalValues.overviewPreviewShowMedia
+                          )}
+                          onChange={(event) =>
+                            setGeneralValues(current => ({
+                              ...current,
+                              overviewPreviewShowMedia: event.target.checked
+                            }))
+                          }
+                          disabled={generalLoading || generalSaving}
+                        />
+                        <span>
+                          {t(
+                            'config.general.previewOptions.showMediaLabel',
+                            'Medien-Thumbnails anzeigen'
+                          )}
+                        </span>
+                      </label>
+                      <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
+                        <input
+                          type='checkbox'
+                          className='h-4 w-4 rounded border-border'
+                          checked={Boolean(
+                            generalValues.overviewPreviewShowLinkPreview
+                          )}
+                          onChange={(event) =>
+                            setGeneralValues(current => ({
+                              ...current,
+                              overviewPreviewShowLinkPreview: event.target.checked
+                            }))
+                          }
+                          disabled={generalLoading || generalSaving}
+                        />
+                        <span>
+                          {t(
+                            'config.general.previewOptions.showLinkPreviewLabel',
+                            'Link-Vorschauen anzeigen'
+                          )}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                  <h4 className='text-lg font-semibold'>
                     {t(
-                      'config.general.sessionTtlHint',
-                      'Gilt nur auf diesem Gerät (6 bis 168 Stunden).'
+                      'config.general.sections.sessionDuration',
+                      'Session-Dauer'
                     )}
-                  </p>
+                  </h4>
+                  <div className='space-y-2'>
+                    <label
+                      htmlFor='general-session-ttl'
+                      className='text-sm font-medium text-foreground'
+                    >
+                      {t(
+                        'config.general.labels.sessionTtl',
+                        'Session-Dauer (Stunden)'
+                      )}
+                    </label>
+                    <input
+                      id='general-session-ttl'
+                      type='number'
+                      min={SESSION_TTL_MIN_HOURS}
+                      max={SESSION_TTL_MAX_HOURS}
+                      step='1'
+                      inputMode='numeric'
+                      className='w-full rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      value={sessionTtlInput}
+                      onChange={onSessionTtlChange}
+                      onBlur={normalizeSessionTtl}
+                    />
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.general.sessionTtlHint',
+                        'Gilt nur auf diesem Gerät (6 bis 168 Stunden).'
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -1242,9 +1453,9 @@ export default function ConfigPanel () {
                     {generalSaving
                       ? t('config.general.saveBusy', 'Übernehmen…')
                       : t(
-                          'config.general.saveLabel',
-                          'Übernehmen'
-                        )}
+                        'config.general.saveLabel',
+                        'Übernehmen'
+                      )}
                   </Button>
                 </div>
               </div>
@@ -1317,29 +1528,29 @@ export default function ConfigPanel () {
                     <div className='grid gap-4 md:grid-cols-3 md:items-start'>
                       <div className='space-y-4 md:col-span-2'>
                         <div className='space-y-2'>
-                        <div className='flex items-center justify-between gap-2'>
-                          <label
-                            htmlFor='scheduleTime'
-                            className='text-sm font-semibold text-foreground'
-                          >
-                            {t(
-                              'config.scheduler.labels.scheduleTime',
-                              'Cron-Ausdruck'
-                            )}
-                          </label>
+                          <div className='flex items-center justify-between gap-2'>
+                            <label
+                              htmlFor='scheduleTime'
+                              className='text-sm font-semibold text-foreground'
+                            >
+                              {t(
+                                'config.scheduler.labels.scheduleTime',
+                                'Cron-Ausdruck'
+                              )}
+                            </label>
+                          </div>
+                          <input
+                            id='scheduleTime'
+                            type='text'
+                            value={formValues.scheduleTime}
+                            onChange={e =>
+                              updateField('scheduleTime', e.target.value)
+                            }
+                            disabled={loading || saving}
+                            className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                            placeholder={defaults.scheduleTime}
+                          />
                         </div>
-                        <input
-                          id='scheduleTime'
-                          type='text'
-                          value={formValues.scheduleTime}
-                          onChange={e =>
-                            updateField('scheduleTime', e.target.value)
-                          }
-                          disabled={loading || saving}
-                          className='w- rounded-2xl border border-border bg-background-subtle px-4 py-3 text-sm text-foreground shadow-soft focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                          placeholder={defaults.scheduleTime}
-                        />
-                      </div>
                         <div className='flex h-full flex-col'>
                           <label
                             htmlFor='randomOffsetMinutes'
@@ -1437,7 +1648,7 @@ export default function ConfigPanel () {
                     </div>
                     <div className='grid gap-4 md:grid-cols-3'>
                       <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
-                      <div className='flex h-full flex-col'>
+                        <div className='flex h-full flex-col'>
                           <div className='flex items-center justify-between gap-2'>
                             <label
                               htmlFor='postRetries'
@@ -1498,7 +1709,7 @@ export default function ConfigPanel () {
                           </label>
                           <input
                             id='postBackoffMaxMs'
-                            type='number'  min={100} max={120000} step={1}
+                            type='number' min={100} max={120000} step={1}
                             value={formValues.postBackoffMaxMs}
                             onChange={e =>
                               updateField('postBackoffMaxMs', e.target.value)
@@ -1576,9 +1787,9 @@ export default function ConfigPanel () {
                     {saving
                       ? t('config.scheduler.saveBusy', 'Übernehmen…')
                       : t(
-                          'config.scheduler.saveLabel',
-                          'Übernehmen'
-                        )}
+                        'config.scheduler.saveLabel',
+                        'Übernehmen'
+                      )}
                   </Button>
                 </div>
               </div>
@@ -1900,9 +2111,9 @@ export default function ConfigPanel () {
                     {pollSaving
                       ? t('config.polling.saveBusy', 'Übernehmen…')
                       : t(
-                          'config.polling.saveLabel',
-                          'Übernehmen'
-                        )}
+                        'config.polling.saveLabel',
+                        'Übernehmen'
+                      )}
                   </Button>
                 </div>
               </div>
@@ -1920,7 +2131,7 @@ export default function ConfigPanel () {
   )
 }
 
-function CredentialsSection () {
+function CredentialsSection() {
   const toast = useToast()
   const { t } = useTranslation()
   const [infoOpen, setInfoOpen] = useState(false)
@@ -1990,7 +2201,7 @@ function CredentialsSection () {
 
   useEffect(() => {
     let ignore = false
-    async function loadCreds () {
+    async function loadCreds() {
       setLoading(true)
       try {
         const res = await fetch('/api/config/credentials')
@@ -1998,10 +2209,10 @@ function CredentialsSection () {
           const data = await res.json().catch(() => ({}))
           throw new Error(
             data.error ||
-              t(
-                'config.credentials.loadErrorFallback',
-                'Fehler beim Laden der Zugangsdaten.'
-              )
+            t(
+              'config.credentials.loadErrorFallback',
+              'Fehler beim Laden der Zugangsdaten.'
+            )
           )
         }
         const data = await res.json()
@@ -2107,10 +2318,10 @@ function CredentialsSection () {
         const data = await res.json().catch(() => ({}))
         throw new Error(
           data.error ||
-            t(
-              'config.credentials.saveErrorFallback',
-              'Fehler beim Speichern der Zugangsdaten.'
-            )
+          t(
+            'config.credentials.saveErrorFallback',
+            'Fehler beim Speichern der Zugangsdaten.'
+          )
         )
       }
       await res.json().catch(() => ({}))
@@ -2211,317 +2422,312 @@ function CredentialsSection () {
         )}
       />
       <Card padding='p-6 lg:p-10'>
-      <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
-        <div>
-          <h3 className='text-2xl font-semibold'>
-            {t('config.credentials.heading', 'Zugangsdaten')}
-          </h3>
-          <p className='text-sm text-foreground-muted'>
-            {t(
-              'config.credentials.subtitle',
-              'Server-URLs und Logins für Bluesky und Mastodon.'
-            )}
-          </p>
-        </div>
-        <div className='mt-2 flex items-center justify-end md:mt-0'>
-          <button
-            type='button'
-            className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
-            aria-label={t(
-              'config.credentials.infoAria',
-              'Hinweis zu Zugangsdaten anzeigen'
-            )}
-            title={t(
-              'posts.form.infoButtonTitle',
-              'Hinweis anzeigen'
-            )}
-            onClick={() => setInfoOpen(true)}
-          >
-            <svg
-              width='12'
-              height='12'
-              viewBox='0 0 15 15'
-              fill='none'
-              xmlns='http://www.w3.org/2000/svg'
-              aria-hidden='true'
-            >
-              <path
-                d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
-                fill='currentColor'
-              />
-              <path
-                fillRule='evenodd'
-                clipRule='evenodd'
-                d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
-                fill='currentColor'
-              />
-            </svg>
-            {t('posts.form.infoButtonLabel', 'Info')}
-          </button>
-        </div>
-      </div>
-      {loading ? (
-        <p className='text-sm text-foreground-muted'>
-          {t('config.credentials.loading', 'Lade …')}
-        </p>
-      ) : (
-        <form onSubmit={handleSave} className='space-y-6'>
-          <section className='space-y-4'>
-            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
-              <h4 className='text-lg font-semibold'>
-                {t('config.credentials.bluesky.heading', 'Bluesky')}
-              </h4>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.bluesky.serverUrlLabel',
-                      'Server URL'
-                    )}
-                  </span>
-                  <input
-                    type='url'
-                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                      blink.blueskyServerUrl
-                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                        : 'border-border'
-                    }`}
-                    placeholder={t(
-                      'config.credentials.bskyServicePlaceholder',
-                      'https://bsky.social'
-                    )}
-                    value={values.blueskyServerUrl}
-                    onChange={onChange('blueskyServerUrl')}
-                  />
-                </label>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.bluesky.identifierLabel',
-                      'Identifier (Handle/E-Mail)'
-                    )}
-                  </span>
-                  <input
-                    type='text'
-                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                      blink.blueskyIdentifier
-                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                        : 'border-border'
-                    }`}
-                    placeholder={t(
-                      'config.credentials.bskyHandlePlaceholder',
-                      'handle.bsky.social'
-                    )}
-                    value={values.blueskyIdentifier}
-                    onChange={onChange('blueskyIdentifier')}
-                  />
-                </label>
-              </div>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.bluesky.appPasswordLabel',
-                      'App Password'
-                    )}
-                  </span>
-                  <input
-                    type='password'
-                    className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                      blink.blueskyAppPassword
-                        ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                        : 'border-border'
-                    }`}
-                    placeholder={hasSecret.bsky ? '••••••••' : ''}
-                    value={values.blueskyAppPassword}
-                    onChange={onChange('blueskyAppPassword')}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.bluesky.appPasswordHint',
-                      'Leer lassen, um das bestehende Passwort zu behalten.'
-                    )}
-                  </p>
-                </label>
-              </div>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1 md:col-span-2'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.bluesky.clientAppLabel',
-                      'Client-App'
-                    )}
-                  </span>
-                  <div className='relative'>
-                    <input
-                      type='url'
-                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                        blink.blueskyClientApp
-                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                          : clientUrlErrors.blueskyClientApp
-                            ? 'border-destructive'
-                            : 'border-border'
-                      }`}
-                      placeholder={t(
-                        'config.credentials.bluesky.clientAppPlaceholder',
-                        'https://client.example oder http://192.168.1.20:5173'
-                      )}
-                      value={values.blueskyClientApp}
-                      onChange={onChange('blueskyClientApp')}
-                      onBlur={onClientUrlBlur('blueskyClientApp')}
-                    />
-                    {values.blueskyClientApp ? (
-                      <button
-                        type='button'
-                        onClick={clearClientUrl('blueskyClientApp')}
-                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
-                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
-                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
-                      >
-                        <Cross2Icon className='h-4 w-4' />
-                      </button>
-                    ) : null}
-                  </div>
-                  {clientUrlErrors.blueskyClientApp ? (
-                    <p className='text-xs text-destructive'>
-                      {clientUrlErrors.blueskyClientApp}
-                    </p>
-                  ) : null}
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.bluesky.clientAppHint',
-                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
-                    )}
-                  </p>
-                </label>
-              </div>
-            </div>
-          </section>
-          <section className='space-y-4'>
-            <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
-              <h4 className='text-lg font-semibold'>
-                {t('config.credentials.mastodon.heading', 'Mastodon')}
-              </h4>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t('config.credentials.mastodon.apiUrlLabel', 'API URL')}
-                  </span>
-                  <input
-                    type='url'
-                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    placeholder={t(
-                      'config.credentials.mastodonServicePlaceholder',
-                      'https://mastodon.social'
-                    )}
-                    value={values.mastodonApiUrl}
-                    onChange={onChange('mastodonApiUrl')}
-                  />
-                </label>
-                <label className='space-y-1'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.mastodon.accessTokenLabel',
-                      'Access Token'
-                    )}
-                  </span>
-                  <input
-                    type='password'
-                    className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
-                    placeholder={hasSecret.masto ? '••••••••' : ''}
-                    value={values.mastodonAccessToken}
-                    onChange={onChange('mastodonAccessToken')}
-                  />
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.mastodon.accessTokenHint',
-                      'Leer lassen, um das bestehende Token zu behalten.'
-                    )}
-                  </p>
-                </label>
-              </div>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <label className='space-y-1 md:col-span-2'>
-                  <span className='text-sm font-medium'>
-                    {t(
-                      'config.credentials.mastodon.clientAppLabel',
-                      'Client-App'
-                    )}
-                  </span>
-                  <div className='relative'>
-                    <input
-                      type='url'
-                      className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                        blink.mastodonClientApp
-                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
-                          : clientUrlErrors.mastodonClientApp
-                            ? 'border-destructive'
-                            : 'border-border'
-                      }`}
-                      placeholder={t(
-                        'config.credentials.mastodon.clientAppPlaceholder',
-                        'https://client.example oder http://192.168.1.20:5173'
-                      )}
-                      value={values.mastodonClientApp}
-                      onChange={onChange('mastodonClientApp')}
-                      onBlur={onClientUrlBlur('mastodonClientApp')}
-                    />
-                    {values.mastodonClientApp ? (
-                      <button
-                        type='button'
-                        onClick={clearClientUrl('mastodonClientApp')}
-                        className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
-                        aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
-                        title={t('config.credentials.clientUrlClear', 'URL entfernen')}
-                      >
-                        <Cross2Icon className='h-4 w-4' />
-                      </button>
-                    ) : null}
-                  </div>
-                  {clientUrlErrors.mastodonClientApp ? (
-                    <p className='text-xs text-destructive'>
-                      {clientUrlErrors.mastodonClientApp}
-                    </p>
-                  ) : null}
-                  <p className='text-xs text-foreground-muted'>
-                    {t(
-                      'config.credentials.mastodon.clientAppHint',
-                      'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
-                    )}
-                  </p>
-                </label>
-              </div>
-            </div>
-          </section>
-          <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
-            <div className='flex flex-wrap gap-3'>
-              <Button
-                type='button'
-                variant='secondary'
-                onClick={handleCancel}
-                disabled={loading || saving || !hasCredentialChanges}
-              >
-                {t('common.actions.cancel', 'Abbrechen')}
-              </Button>
-              <Button
-                type='submit'
-                variant='primary'
-                disabled={loading || saving || !hasCredentialChanges}
-              >
-                {saving
-                  ? t('config.credentials.saveBusy', 'Übernehmen…')
-                  : t('config.credentials.saveLabel', 'Übernehmen')}
-              </Button>
-            </div>
+        <div className='flex flex-col gap-2 pb-6 md:flex-row md:items-baseline md:justify-between'>
+          <div>
+            <h3 className='text-2xl font-semibold'>
+              {t('config.credentials.heading', 'Zugangsdaten')}
+            </h3>
+            <p className='text-sm text-foreground-muted'>
+              {t(
+                'config.credentials.subtitle',
+                'Server-URLs und Logins für Bluesky und Mastodon.'
+              )}
+            </p>
           </div>
-        </form>
-      )}
+          <div className='mt-2 flex items-center justify-end md:mt-0'>
+            <button
+              type='button'
+              className='inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-1 text-[11px] text-foreground hover:bg-background-elevated'
+              aria-label={t(
+                'config.credentials.infoAria',
+                'Hinweis zu Zugangsdaten anzeigen'
+              )}
+              title={t(
+                'posts.form.infoButtonTitle',
+                'Hinweis anzeigen'
+              )}
+              onClick={() => setInfoOpen(true)}
+            >
+              <svg
+                width='12'
+                height='12'
+                viewBox='0 0 15 15'
+                fill='none'
+                xmlns='http://www.w3.org/2000/svg'
+                aria-hidden='true'
+              >
+                <path
+                  d='M6.5 10.5h2V6h-2v4.5zm1-6.8a.9.9 0 100 1.8.9.9 0 000-1.8z'
+                  fill='currentColor'
+                />
+                <path
+                  fillRule='evenodd'
+                  clipRule='evenodd'
+                  d='M7.5 13.5a6 6 0 100-12 6 6 0 000 12zm0 1A7 7 0 107.5-.5a7 7 0 000 14z'
+                  fill='currentColor'
+                />
+              </svg>
+              {t('posts.form.infoButtonLabel', 'Info')}
+            </button>
+          </div>
+        </div>
+        {loading ? (
+          <p className='text-sm text-foreground-muted'>
+            {t('config.credentials.loading', 'Lade …')}
+          </p>
+        ) : (
+          <form onSubmit={handleSave} className='space-y-6'>
+            <section className='space-y-4'>
+              <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                <h4 className='text-lg font-semibold'>
+                  {t('config.credentials.bluesky.heading', 'Bluesky')}
+                </h4>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.bluesky.serverUrlLabel',
+                        'Server URL'
+                      )}
+                    </span>
+                    <input
+                      type='url'
+                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${blink.blueskyServerUrl
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : 'border-border'
+                        }`}
+                      placeholder={t(
+                        'config.credentials.bskyServicePlaceholder',
+                        'https://bsky.social'
+                      )}
+                      value={values.blueskyServerUrl}
+                      onChange={onChange('blueskyServerUrl')}
+                    />
+                  </label>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.bluesky.identifierLabel',
+                        'Identifier (Handle/E-Mail)'
+                      )}
+                    </span>
+                    <input
+                      type='text'
+                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${blink.blueskyIdentifier
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : 'border-border'
+                        }`}
+                      placeholder={t(
+                        'config.credentials.bskyHandlePlaceholder',
+                        'handle.bsky.social'
+                      )}
+                      value={values.blueskyIdentifier}
+                      onChange={onChange('blueskyIdentifier')}
+                    />
+                  </label>
+                </div>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.bluesky.appPasswordLabel',
+                        'App Password'
+                      )}
+                    </span>
+                    <input
+                      type='password'
+                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${blink.blueskyAppPassword
+                          ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                          : 'border-border'
+                        }`}
+                      placeholder={hasSecret.bsky ? '••••••••' : ''}
+                      value={values.blueskyAppPassword}
+                      onChange={onChange('blueskyAppPassword')}
+                    />
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.credentials.bluesky.appPasswordHint',
+                        'Leer lassen, um das bestehende Passwort zu behalten.'
+                      )}
+                    </p>
+                  </label>
+                </div>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <label className='space-y-1 md:col-span-2'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.bluesky.clientAppLabel',
+                        'Client-App'
+                      )}
+                    </span>
+                    <div className='relative'>
+                      <input
+                        type='url'
+                        className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${blink.blueskyClientApp
+                            ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                            : clientUrlErrors.blueskyClientApp
+                              ? 'border-destructive'
+                              : 'border-border'
+                          }`}
+                        placeholder={t(
+                          'config.credentials.bluesky.clientAppPlaceholder',
+                          'https://client.example oder http://192.168.1.20:5173'
+                        )}
+                        value={values.blueskyClientApp}
+                        onChange={onChange('blueskyClientApp')}
+                        onBlur={onClientUrlBlur('blueskyClientApp')}
+                      />
+                      {values.blueskyClientApp ? (
+                        <button
+                          type='button'
+                          onClick={clearClientUrl('blueskyClientApp')}
+                          className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                          aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                          title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        >
+                          <Cross2Icon className='h-4 w-4' />
+                        </button>
+                      ) : null}
+                    </div>
+                    {clientUrlErrors.blueskyClientApp ? (
+                      <p className='text-xs text-destructive'>
+                        {clientUrlErrors.blueskyClientApp}
+                      </p>
+                    ) : null}
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.credentials.bluesky.clientAppHint',
+                        'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
+                      )}
+                    </p>
+                  </label>
+                </div>
+              </div>
+            </section>
+            <section className='space-y-4'>
+              <div className='space-y-3 rounded-2xl border border-border-muted bg-background-subtle p-4'>
+                <h4 className='text-lg font-semibold'>
+                  {t('config.credentials.mastodon.heading', 'Mastodon')}
+                </h4>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t('config.credentials.mastodon.apiUrlLabel', 'API URL')}
+                    </span>
+                    <input
+                      type='url'
+                      className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      placeholder={t(
+                        'config.credentials.mastodonServicePlaceholder',
+                        'https://mastodon.social'
+                      )}
+                      value={values.mastodonApiUrl}
+                      onChange={onChange('mastodonApiUrl')}
+                    />
+                  </label>
+                  <label className='space-y-1'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.mastodon.accessTokenLabel',
+                        'Access Token'
+                      )}
+                    </span>
+                    <input
+                      type='password'
+                      className='w-full rounded-md border border-border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
+                      placeholder={hasSecret.masto ? '••••••••' : ''}
+                      value={values.mastodonAccessToken}
+                      onChange={onChange('mastodonAccessToken')}
+                    />
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.credentials.mastodon.accessTokenHint',
+                        'Leer lassen, um das bestehende Token zu behalten.'
+                      )}
+                    </p>
+                  </label>
+                </div>
+                <div className='grid gap-4 md:grid-cols-2'>
+                  <label className='space-y-1 md:col-span-2'>
+                    <span className='text-sm font-medium'>
+                      {t(
+                        'config.credentials.mastodon.clientAppLabel',
+                        'Client-App'
+                      )}
+                    </span>
+                    <div className='relative'>
+                      <input
+                        type='url'
+                        className={`w-full rounded-md border bg-background p-2 pr-10 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${blink.mastodonClientApp
+                            ? 'animate-pulse ring-2 ring-destructive border-destructive'
+                            : clientUrlErrors.mastodonClientApp
+                              ? 'border-destructive'
+                              : 'border-border'
+                          }`}
+                        placeholder={t(
+                          'config.credentials.mastodon.clientAppPlaceholder',
+                          'https://client.example oder http://192.168.1.20:5173'
+                        )}
+                        value={values.mastodonClientApp}
+                        onChange={onChange('mastodonClientApp')}
+                        onBlur={onClientUrlBlur('mastodonClientApp')}
+                      />
+                      {values.mastodonClientApp ? (
+                        <button
+                          type='button'
+                          onClick={clearClientUrl('mastodonClientApp')}
+                          className='absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground-muted transition hover:bg-background-subtle hover:text-foreground'
+                          aria-label={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                          title={t('config.credentials.clientUrlClear', 'URL entfernen')}
+                        >
+                          <Cross2Icon className='h-4 w-4' />
+                        </button>
+                      ) : null}
+                    </div>
+                    {clientUrlErrors.mastodonClientApp ? (
+                      <p className='text-xs text-destructive'>
+                        {clientUrlErrors.mastodonClientApp}
+                      </p>
+                    ) : null}
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.credentials.mastodon.clientAppHint',
+                        'Wird im Dashboard als Link geöffnet. http:// nur für localhost/private IPs.'
+                      )}
+                    </p>
+                  </label>
+                </div>
+              </div>
+            </section>
+            <div className='flex flex-wrap justify-end gap-3 border-t border-border-muted pt-6'>
+              <div className='flex flex-wrap gap-3'>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  onClick={handleCancel}
+                  disabled={loading || saving || !hasCredentialChanges}
+                >
+                  {t('common.actions.cancel', 'Abbrechen')}
+                </Button>
+                <Button
+                  type='submit'
+                  variant='primary'
+                  disabled={loading || saving || !hasCredentialChanges}
+                >
+                  {saving
+                    ? t('config.credentials.saveBusy', 'Übernehmen…')
+                    : t('config.credentials.saveLabel', 'Übernehmen')}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
       </Card>
     </>
   )
 }
 
-function ExternalServicesSection () {
+function ExternalServicesSection() {
   const toast = useToast()
   const { t } = useTranslation()
   const [values, setValues] = useState({
@@ -2570,7 +2776,7 @@ function ExternalServicesSection () {
 
   useEffect(() => {
     let ignore = false
-    async function loadServices () {
+    async function loadServices() {
       setLoading(true)
       try {
         const res = await fetch('/api/config/credentials')
@@ -2578,10 +2784,10 @@ function ExternalServicesSection () {
           const data = await res.json().catch(() => ({}))
           throw new Error(
             data.error ||
-              t(
-                'config.credentials.loadErrorFallback',
-                'Fehler beim Laden der Zugangsdaten.'
-              )
+            t(
+              'config.credentials.loadErrorFallback',
+              'Fehler beim Laden der Zugangsdaten.'
+            )
           )
         }
         const data = await res.json()
@@ -2660,10 +2866,10 @@ function ExternalServicesSection () {
         const data = await res.json().catch(() => ({}))
         throw new Error(
           data.error ||
-            t(
-              'config.credentials.saveErrorFallback',
-              'Fehler beim Speichern der Zugangsdaten.'
-            )
+          t(
+            'config.credentials.saveErrorFallback',
+            'Fehler beim Speichern der Zugangsdaten.'
+          )
         )
       }
       await res.json().catch(() => ({}))
@@ -2768,9 +2974,8 @@ function ExternalServicesSection () {
                     </span>
                     <input
                       type='text'
-                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                        previewProxyError ? 'border-destructive' : 'border-border'
-                      }`}
+                      className={`w-full rounded-md border bg-background p-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 ${previewProxyError ? 'border-destructive' : 'border-border'
+                        }`}
                       placeholder={t(
                         'config.externalServices.previewProxyPlaceholder',
                         '/preview oder http://localhost:3456/preview'

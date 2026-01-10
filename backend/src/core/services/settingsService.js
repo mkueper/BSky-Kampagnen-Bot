@@ -13,6 +13,13 @@ const KEYS = {
   randomOffsetMinutes: "SCHEDULER_RANDOM_OFFSET_MINUTES",
 };
 const MAX_RANDOM_OFFSET_MINUTES = 120;
+const GENERAL_KEYS = {
+  overviewPreviewMaxLines: "OVERVIEW_PREVIEW_MAX_LINES",
+  overviewPreviewShowMedia: "OVERVIEW_PREVIEW_SHOW_MEDIA",
+  overviewPreviewShowLinkPreview: "OVERVIEW_PREVIEW_SHOW_LINK_PREVIEW",
+};
+const MIN_OVERVIEW_PREVIEW_LINES = 1;
+const MAX_OVERVIEW_PREVIEW_LINES = 12;
 
 // Client-Polling-Konfigurationsschlüssel (werden an das Dashboard exponiert)
 const CLIENT_KEYS = {
@@ -184,17 +191,53 @@ async function getGeneralSettings() {
   const defaults = {
     timeZone: config.TIME_ZONE,
     locale: resolveDefaultLocale(),
+    overviewPreviewMaxLines: 6,
+    overviewPreviewShowMedia: true,
+    overviewPreviewShowLinkPreview: true,
   };
-  const map = await getSettingsMap([KEYS.timeZone, "LOCALE"]);
+  const map = await getSettingsMap([
+    KEYS.timeZone,
+    "LOCALE",
+    ...Object.values(GENERAL_KEYS),
+  ]);
   const values = {
     timeZone: map[KEYS.timeZone] || defaults.timeZone,
     locale: map.LOCALE || defaults.locale,
+    overviewPreviewMaxLines: toNumber(
+      map[GENERAL_KEYS.overviewPreviewMaxLines],
+      defaults.overviewPreviewMaxLines
+    ),
+    overviewPreviewShowMedia: toBool(
+      map[GENERAL_KEYS.overviewPreviewShowMedia],
+      defaults.overviewPreviewShowMedia
+    ),
+    overviewPreviewShowLinkPreview: toBool(
+      map[GENERAL_KEYS.overviewPreviewShowLinkPreview],
+      defaults.overviewPreviewShowLinkPreview
+    ),
   };
   const overrides = {
     timeZone: map[KEYS.timeZone] ?? null,
     locale: map.LOCALE ?? null,
+    overviewPreviewMaxLines: map[GENERAL_KEYS.overviewPreviewMaxLines] ?? null,
+    overviewPreviewShowMedia:
+      map[GENERAL_KEYS.overviewPreviewShowMedia] ?? null,
+    overviewPreviewShowLinkPreview:
+      map[GENERAL_KEYS.overviewPreviewShowLinkPreview] ?? null,
   };
   return { values, defaults, overrides };
+}
+
+function validateOverviewPreviewLines(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    throw new Error("OVERVIEW_PREVIEW_MAX_LINES muss eine ganze Zahl sein.");
+  }
+  if (parsed < MIN_OVERVIEW_PREVIEW_LINES || parsed > MAX_OVERVIEW_PREVIEW_LINES) {
+    throw new Error(
+      `OVERVIEW_PREVIEW_MAX_LINES muss zwischen ${MIN_OVERVIEW_PREVIEW_LINES} und ${MAX_OVERVIEW_PREVIEW_LINES} liegen.`
+    );
+  }
 }
 
 async function saveGeneralSettings(payload = {}) {
@@ -202,6 +245,13 @@ async function saveGeneralSettings(payload = {}) {
   const next = {
     timeZone: payload.timeZone ?? values.timeZone,
     locale: payload.locale ?? values.locale,
+    overviewPreviewMaxLines:
+      payload.overviewPreviewMaxLines ?? values.overviewPreviewMaxLines,
+    overviewPreviewShowMedia:
+      payload.overviewPreviewShowMedia ?? values.overviewPreviewShowMedia,
+    overviewPreviewShowLinkPreview:
+      payload.overviewPreviewShowLinkPreview ??
+      values.overviewPreviewShowLinkPreview,
   };
   if (!next.timeZone || typeof next.timeZone !== "string") {
     throw new Error("TIME_ZONE muss angegeben werden.");
@@ -214,8 +264,24 @@ async function saveGeneralSettings(payload = {}) {
     throw new Error("LOCALE muss entweder \"de\" oder \"en\" sein.");
   }
   next.locale = normalizedLocale;
+  validateOverviewPreviewLines(next.overviewPreviewMaxLines);
   await setSetting(KEYS.timeZone, next.timeZone, defaults.timeZone);
   await setSetting("LOCALE", next.locale, defaults.locale);
+  await setSetting(
+    GENERAL_KEYS.overviewPreviewMaxLines,
+    next.overviewPreviewMaxLines,
+    defaults.overviewPreviewMaxLines
+  );
+  await setSetting(
+    GENERAL_KEYS.overviewPreviewShowMedia,
+    String(Boolean(next.overviewPreviewShowMedia)),
+    defaults.overviewPreviewShowMedia
+  );
+  await setSetting(
+    GENERAL_KEYS.overviewPreviewShowLinkPreview,
+    String(Boolean(next.overviewPreviewShowLinkPreview)),
+    defaults.overviewPreviewShowLinkPreview
+  );
   return getGeneralSettings();
 }
 

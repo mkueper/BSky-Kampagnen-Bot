@@ -18,10 +18,14 @@ function normalizeUrl (raw) {
   }
 }
 
-function LinkifiedText ({ text, className = '', placeholder = '' }) {
+function LinkifiedText ({ text, className = '', placeholder = '', style }) {
   const value = typeof text === 'string' ? text : ''
   if (!value) {
-    return placeholder ? <span className={className}>{placeholder}</span> : null
+    return placeholder ? (
+      <span className={className} style={style}>
+        {placeholder}
+      </span>
+    ) : null
   }
 
   const parts = []
@@ -62,7 +66,7 @@ function LinkifiedText ({ text, className = '', placeholder = '' }) {
   }
 
   return (
-    <span className={className}>
+    <span className={className} style={style}>
       {parts.map((part, index) => {
         if (part.type === 'link') {
           return (

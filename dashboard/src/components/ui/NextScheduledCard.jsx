@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Card } from '@bsky-kampagnen-bot/shared-ui'
+import ContentWithLinkPreview from '../ContentWithLinkPreview.jsx'
 
 function formatDateParts (value, locale) {
   if (!value) {
@@ -28,6 +29,10 @@ function NextScheduledCard ({
   title,
   scheduledAt,
   content,
+  media = [],
+  showMedia = false,
+  useLinkPreview = false,
+  maxLines,
   emptyLabel,
   noContentLabel,
   onActivate,
@@ -43,6 +48,17 @@ function NextScheduledCard ({
     [scheduledAt, locale]
   )
   const hasSchedule = Boolean(scheduledAt)
+  const normalizedMaxLines = Number(maxLines)
+  const clampStyle = Number.isFinite(normalizedMaxLines)
+    ? {
+        display: '-webkit-box',
+        WebkitLineClamp: normalizedMaxLines,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden'
+      }
+    : undefined
+  const mediaItems = Array.isArray(media) ? media : []
+  const hasMedia = showMedia && mediaItems.length > 0
   const summary =
     (content ?? '')
       .toString()
@@ -86,9 +102,40 @@ function NextScheduledCard ({
               </p>
             ) : null}
           </div>
-          <p className='text-foreground-muted'>
-            {summary}
-          </p>
+          {useLinkPreview ? (
+            <div className='space-y-3'>
+              <ContentWithLinkPreview
+                content={(content ?? '').toString()}
+                className='text-foreground-muted whitespace-pre-wrap break-words'
+                mediaCount={hasMedia ? mediaItems.length : 0}
+                textStyle={clampStyle}
+              />
+              {hasMedia ? (
+                <div className='grid grid-cols-2 gap-2'>
+                  {mediaItems.slice(0, 4).map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className='relative h-24 overflow-hidden rounded-xl border border-border bg-background-subtle/70'
+                    >
+                      <img
+                        src={item.previewUrl || ''}
+                        alt={item.altText || `Bild ${idx + 1}`}
+                        className='absolute inset-0 h-full w-full object-contain'
+                        loading='lazy'
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p
+              className='text-foreground-muted whitespace-pre-wrap break-words'
+              style={clampStyle}
+            >
+              {summary}
+            </p>
+          )}
         </div>
       ) : (
         <p className='mt-4 text-sm text-foreground-muted'>

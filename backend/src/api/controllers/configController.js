@@ -43,6 +43,9 @@ async function getClientConfig(req, res) {
     // ansonsten auf die Konfiguration zurückfallen.
     let timeZone = config.TIME_ZONE;
     let locale = config.LOCALE;
+    let overviewPreviewMaxLines = 6;
+    let overviewPreviewShowMedia = true;
+    let overviewPreviewShowLinkPreview = true;
     try {
       const general = await settingsService.getGeneralSettings();
       if (general?.values?.timeZone) {
@@ -50,6 +53,16 @@ async function getClientConfig(req, res) {
       }
       if (general?.values?.locale) {
         locale = general.values.locale;
+      }
+      if (general?.values?.overviewPreviewMaxLines != null) {
+        overviewPreviewMaxLines = general.values.overviewPreviewMaxLines;
+      }
+      if (general?.values?.overviewPreviewShowMedia != null) {
+        overviewPreviewShowMedia = general.values.overviewPreviewShowMedia;
+      }
+      if (general?.values?.overviewPreviewShowLinkPreview != null) {
+        overviewPreviewShowLinkPreview =
+          general.values.overviewPreviewShowLinkPreview;
       }
     } catch {
       // Fallback: config-Werte verwenden, wenn allgemeine Settings nicht gelesen werden können.
@@ -70,6 +83,11 @@ async function getClientConfig(req, res) {
       timeZone,
       needsCredentials,
       previewProxyUrl: clientAppSettings?.previewProxyUrl || '',
+      overview: {
+        previewMaxLines: overviewPreviewMaxLines,
+        showPreviewMedia: overviewPreviewShowMedia,
+        showPreviewLinkPreview: overviewPreviewShowLinkPreview
+      },
       platforms: {
         mastodonConfigured: Boolean(hasMastodonCredentials())
       },

@@ -6,6 +6,7 @@ const { registerTempFileBridge } = require('./tempBridge')
 const { loadWindowState, persistWindowState } = require('./windowState')
 const { getLinkPreview } = require('link-preview-js')
 
+const CONFIG_FILE_NAME = 'client-config.json'
 const startupDebugEnabled = String(process.env.BSKY_STARTUP_DEBUG || '').toLowerCase() === 'true'
 
 function configureEarlyTempDir () {
@@ -144,6 +145,9 @@ if (!gotLock) {
 
 let mainWindow
 let previewHandlerRegistered = false
+let configBridgeRegistered = false
+let clientConfigCache = null
+let clientConfigLoaded = false
 const previewDebugEnabled = String(process.env.BSKY_PREVIEW_DEBUG || '').toLowerCase() === 'true'
 
 function resolveWindowIcon () {
@@ -234,6 +238,61 @@ function registerPreviewBridge () {
   })
 }
 
+function readClientConfigFromDisk () {
+  try {
+    const storePath = path.join(app.getPath('userData'), CONFIG_FILE_NAME)
+    if (!fs.existsSync(storePath)) return null
+    const raw = fs.readFileSync(storePath, 'utf8')
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch (error) {
+    logStartup('failed to read client config', { error: error?.message })
+    return null
+  }
+}
+
+function writeClientConfigToDisk (nextConfig) {
+  try {
+    const storePath = path.join(app.getPath('userData'), CONFIG_FILE_NAME)
+    fs.mkdirSync(path.dirname(storePath), { recursive: true })
+    fs.writeFileSync(storePath, JSON.stringify(nextConfig || {}, null, 2))
+    return true
+  } catch (error) {
+    logStartup('failed to write client config', { error: error?.message })
+    return false
+  }
+}
+
+function getClientConfig () {
+  if (!clientConfigLoaded) {
+    clientConfigCache = readClientConfigFromDisk()
+    clientConfigLoaded = true
+  }
+  return clientConfigCache
+}
+
+function setClientConfig (nextConfig) {
+  clientConfigCache = nextConfig || {}
+  clientConfigLoaded = true
+  writeClientConfigToDisk(clientConfigCache)
+  BrowserWindow.getAllWindows().forEach((window) => {
+    try {
+      window.webContents.send('bsky-config:updated', { config: clientConfigCache })
+    } catch { /* ignore */ }
+  })
+}
+
+function registerConfigBridge () {
+  if (configBridgeRegistered) return
+  configBridgeRegistered = true
+  ipcMain.handle('bsky-config:get', () => getClientConfig())
+  ipcMain.handle('bsky-config:set', (_event, payload = {}) => {
+    const nextConfig = payload?.config && typeof payload.config === 'object' ? payload.config : {}
+    setClientConfig(nextConfig)
+    return { ok: true }
+  })
+}
+
 function createWindow () {
   const icon = resolveWindowIcon()
   if (!icon) {
@@ -242,6 +301,7 @@ function createWindow () {
     logStartup('window icon resolved', { path: icon })
   }
   registerTempFileBridge(app)
+  registerConfigBridge()
   registerPreviewBridge()
   const state = loadWindowState(app)
   const browserOpts = {

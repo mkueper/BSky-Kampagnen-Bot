@@ -3,6 +3,7 @@ import { Card, InfoDialog } from "@bsky-kampagnen-bot/shared-ui";
 import { useTranslation } from "../../i18n/I18nProvider.jsx";
 import NextScheduledCard from "../ui/NextScheduledCard.jsx";
 import { useTheme } from "../ui/ThemeContext.jsx";
+import { useClientConfig } from "../../hooks/useClientConfig";
 
 function formatDate(value) {
   if (!value) return null;
@@ -29,6 +30,23 @@ function MainOverviewView({
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { config: clientConfig } = useClientConfig();
+  const overviewSettings = clientConfig?.overview || {};
+  const previewMaxLines = Number.isFinite(Number(overviewSettings.previewMaxLines))
+    ? Number(overviewSettings.previewMaxLines)
+    : 6;
+  const previewClampStyle = useMemo(() => {
+    if (!Number.isFinite(previewMaxLines)) return undefined;
+    return {
+      display: "-webkit-box",
+      WebkitLineClamp: previewMaxLines,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden",
+    };
+  }, [previewMaxLines]);
+  const showPreviewMedia = overviewSettings.showPreviewMedia !== false;
+  const showPreviewLinkPreview =
+    overviewSettings.showPreviewLinkPreview !== false;
   const [overviewInfoOpen, setOverviewInfoOpen] = useState(false);
   const threadStats = useMemo(() => {
     const items = Array.isArray(threads) ? threads : [];
@@ -163,6 +181,10 @@ function MainOverviewView({
             title={t('overview.next.postTitle', 'Nächster Post')}
             scheduledAt={skeetStats.next?.scheduledAt}
             content={skeetStats.next?.content}
+            media={skeetStats.next?.media}
+            showMedia={showPreviewMedia}
+            useLinkPreview={showPreviewLinkPreview}
+            maxLines={previewMaxLines}
             emptyLabel={t('overview.next.noPost', 'Kein geplanter Post.')}
             noContentLabel={t('overview.next.noPostContent', 'Kein Inhalt vorhanden')}
             onActivate={
@@ -179,6 +201,7 @@ function MainOverviewView({
               threadStats.next?.title ||
               threadStats.next?.segments?.[0]?.content
             }
+            maxLines={previewMaxLines}
             emptyLabel={t('overview.next.noThread', 'Kein geplanter Thread.')}
             noContentLabel={t('overview.next.noThreadTitle', 'Kein Titel hinterlegt')}
             onActivate={
@@ -211,11 +234,16 @@ function MainOverviewView({
                       {formatDate(skeet.scheduledAt)}
                     </p>
                     <p className="mt-1 text-foreground">
-                      {skeet.content?.toString().trim() ||
-                        t(
-                          'overview.upcoming.noPostContent',
-                          '(kein Inhalt)'
-                        )}
+                      <span
+                        className="whitespace-pre-wrap break-words"
+                        style={previewClampStyle}
+                      >
+                        {skeet.content?.toString().trim() ||
+                          t(
+                            'overview.upcoming.noPostContent',
+                            '(kein Inhalt)'
+                          )}
+                      </span>
                     </p>
                   </li>
                 ))}
@@ -245,13 +273,18 @@ function MainOverviewView({
                       {formatDate(thread.scheduledAt)}
                     </p>
                     <p className="mt-1 text-foreground">
-                      {(thread.title || thread.segments?.[0]?.content || '')
-                        .toString()
-                        .trim() ||
-                        t(
-                          'overview.upcoming.noThreadTitle',
-                          '(kein Titel)'
-                        )}
+                      <span
+                        className="whitespace-pre-wrap break-words"
+                        style={previewClampStyle}
+                      >
+                        {(thread.title || thread.segments?.[0]?.content || '')
+                          .toString()
+                          .trim() ||
+                          t(
+                            'overview.upcoming.noThreadTitle',
+                            '(kein Titel)'
+                          )}
+                      </span>
                     </p>
                   </li>
                 ))}

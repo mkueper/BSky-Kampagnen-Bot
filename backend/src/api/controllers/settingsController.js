@@ -70,6 +70,20 @@ function mapGeneralSaveError(error) {
       message,
     };
   }
+  if (message.includes("OVERVIEW_PREVIEW_MAX_LINES muss eine ganze Zahl sein.")) {
+    return {
+      status: 400,
+      code: "SETTINGS_GENERAL_PREVIEW_LINES_INVALID",
+      message,
+    };
+  }
+  if (message.includes("OVERVIEW_PREVIEW_MAX_LINES muss zwischen")) {
+    return {
+      status: 400,
+      code: "SETTINGS_GENERAL_PREVIEW_LINES_OUT_OF_RANGE",
+      message,
+    };
+  }
   return {
     status: 500,
     code: "SETTINGS_GENERAL_SAVE_FAILED",

@@ -35,8 +35,15 @@ export function getRepeatDescription(skeet, localeOverride) {
     return `Wird gepostet um: ${formatTime(skeet.scheduledAt)}`;
   }
 
+  const plannedBase = skeet.repeatAnchorAt || skeet.scheduledPlannedAt || skeet.scheduledAt;
+  const plannedTime = plannedBase ? formatTime(plannedBase, "timeOnly") : null;
+  const nextBase = skeet.scheduledAt || plannedBase;
+  const nextTime = nextBase ? formatTime(nextBase, "timeOnly") : null;
+  const plannedSuffix = plannedTime ? ` ${plannedTime} Uhr` : "";
+  const nextSuffix = nextTime ? `, nächster um ${nextTime} Uhr` : "";
+
   if (skeet.repeat === "daily") {
-    return `Wird täglich um ${formatTime(skeet.scheduledAt, "timeOnly")} gepostet`;
+    return `Geplant für täglich${plannedSuffix}${nextSuffix}`;
   }
 
   if (skeet.repeat === "weekly") {
@@ -72,18 +79,18 @@ export function getRepeatDescription(skeet, localeOverride) {
     ).sort((a, b) => a - b);
 
     if (!normalizedDays.length) {
-      return `Wird wöchentlich um ${formatTime(skeet.scheduledAt, "timeOnly")} gepostet`;
+      return `Geplant für wöchentlich${plannedSuffix}${nextSuffix}`;
     }
 
     const dayLabel = normalizedDays
       .map(index => formatWeekdayLabel(index, locale))
       .join(", ");
 
-    return `Wird wöchentlich am ${dayLabel} um ${formatTime(skeet.scheduledAt, "timeOnly")} gepostet`;
+    return `Geplant für wöchentlich am ${dayLabel}${plannedSuffix}${nextSuffix}`;
   }
 
   if (skeet.repeat === "monthly") {
-    return `Wird monatlich am ${skeet.repeatDayOfMonth}. um ${formatTime(skeet.scheduledAt, "timeOnly")} gepostet`;
+    return `Geplant für monatlich am ${skeet.repeatDayOfMonth}.${plannedSuffix}${nextSuffix}`;
   }
 
   return "";

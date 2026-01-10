@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'bsky-client-config:v1'
 const SUPPORTED_LOCALES = ['de', 'en']
@@ -22,14 +22,28 @@ const DEFAULT_CONFIG = {
 
 let currentConfig = null
 const subscribers = new Set()
+let bridgeSubscribed = false
+
+const hasConfigBridge = () => {
+  if (typeof window === 'undefined') return false
+  return Boolean(window.bskyConfig && typeof window.bskyConfig.get === 'function')
+}
 
 const subscribe = (listener) => {
   subscribers.add(listener)
+  if (!bridgeSubscribed && hasConfigBridge()) {
+    bridgeSubscribed = true
+    window.bskyConfig.subscribe((nextConfig) => {
+      currentConfig = normalizeConfig(nextConfig)
+      subscribers.forEach((entry) => entry())
+    })
+  }
   return () => subscribers.delete(listener)
 }
 
 const readFromStorage = () => {
   if (typeof window === 'undefined') return DEFAULT_CONFIG
+  if (hasConfigBridge()) return DEFAULT_CONFIG
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_CONFIG
@@ -122,11 +136,17 @@ const getSnapshot = () => {
   return currentConfig
 }
 
-const updateSnapshot = (nextConfig) => {
+const updateSnapshot = (nextConfig, { persist = true } = {}) => {
   currentConfig = normalizeConfig(nextConfig)
   try {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(currentConfig))
+      if (hasConfigBridge()) {
+        if (persist) {
+          window.bskyConfig.set(currentConfig)
+        }
+      } else {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(currentConfig))
+      }
     }
   } catch {
     // ignore storage errors
@@ -136,6 +156,20 @@ const updateSnapshot = (nextConfig) => {
 
 export function useClientConfig () {
   const clientConfig = useSyncExternalStore(subscribe, getSnapshot, () => DEFAULT_CONFIG)
+
+  useEffect(() => {
+    if (!hasConfigBridge()) return
+    let active = true
+    window.bskyConfig.get().then((stored) => {
+      if (!active) return
+      if (stored && typeof stored === 'object') {
+        updateSnapshot(stored, { persist: false })
+      }
+    }).catch(() => {
+      // ignore bridge read errors
+    })
+    return () => { active = false }
+  }, [])
 
   const setClientConfig = useCallback((patch = {}) => {
     const base = getSnapshot()

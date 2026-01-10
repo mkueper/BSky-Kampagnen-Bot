@@ -12,6 +12,7 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
   })
 
   const historyItems = Array.isArray(data) ? data : []
+  const hasEntries = historyItems.length > 0
   const { successCount, failedCount } = useMemo(() => {
     return historyItems.reduce(
       (acc, entry) => {
@@ -33,6 +34,15 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
     `posts.lists.published.history.toggle.${isOpen ? 'hide' : 'show'}`,
     toggleLabel
   )
+  const toggleDisabled = !isLoading && !isError && !hasEntries
+  const toggleAriaLabel = toggleDisabled
+    ? t(
+        'posts.lists.published.history.ariaToggleDisabled',
+        'Sendehistorie nicht verfügbar (keine Einträge)'
+      )
+    : t('posts.lists.published.history.ariaToggle', 'Sendehistorie {action}', {
+        action: toggleText
+      })
 
   return (
     <section className='skeet-history' aria-live='polite'>
@@ -60,11 +70,20 @@ export default function SkeetHistoryPanel ({ skeetId, repeat = 'none' }) {
         className='skeet-history-toggle'
         aria-expanded={isOpen}
         aria-controls={historyId}
-        aria-label={t('posts.lists.published.history.ariaToggle', 'Sendehistorie {action}', { action: toggleText })}
+        aria-label={toggleAriaLabel}
+        disabled={toggleDisabled}
         onClick={() => setIsOpen((prev) => !prev)}
       >
         {toggleText}
       </button>
+      {toggleDisabled ? (
+        <p className='skeet-history-empty'>
+          {t(
+            'posts.lists.published.history.emptyHint',
+            'Noch keine Einträge vorhanden.'
+          )}
+        </p>
+      ) : null}
       {isOpen ? (
         <div id={historyId} className='skeet-history-body'>
           {isLoading ? (
