@@ -17,6 +17,7 @@
 * Nach Änderungen an JS/TS: `npm run lint` ausführen.
 * Vor Commits: `npm run lint:all` (Commit nur bei fehlerfreiem Lauf).
 * `npm run build`, `npm run lint`, `npm run test` dürfen ohne Rückfrage ausgeführt werden.
+* Bei `git commit` standardmäßig mit höherem Timeout ausführen (Pre-Commit-Hooks dauern länger).
 
 ---
 

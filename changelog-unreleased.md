@@ -32,6 +32,7 @@
 
 ### Docs
 
+- **Update:** Ticket `session-renew-graceful-expiration` als implementiert markiert.
 - **Update:** Beta-Client-Troubleshooting erweitert (Sandbox/Temp/Wayland).
 - **Update:** Link-Preview-Proxy im Docker-Setup dokumentiert.
 
