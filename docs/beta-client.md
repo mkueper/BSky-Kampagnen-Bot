@@ -21,6 +21,10 @@ Die Skripte erledigen automatisch:
 2. Den Slim-Electron-Entry `electron/main-bsky-client.js` verwenden (only-Client, kein Backend).
 3. Nur die benötigten Dateien verpacken (`electron/**`, `bsky-client/dist/**`, `package.json`).
 
+Hinweis zu Icons:
+- AppImage-Icon kommt aus `build/icon.png` (electron-builder config).
+- Fenster-Icon (KDE/Plasma) nutzt `bsky-client/dist/favicon.png`.
+
 Für lokale Tests kannst du statt des Build-Skripts eine Dev-Session starten:
 
 ```bash
@@ -36,7 +40,15 @@ Damit lädt Electron direkt den Dev-Server (mit eingeschalteter Sandbox).
 - Die bisherige Komplett-App deaktiviert die Chromium-Sandbox, weil das Backend im selben Prozess läuft und AppImage-Umgebungen keine setuid-Helfer erlauben.
 - Die Beta-App lädt ausschließlich den `bsky-client/dist` und startet standardmäßig mit `sandbox: true` für den Browser-Prozess.
 - Auf Linux schaltet das Entry automatisch auf `--no-sandbox`/`disable-gpu-sandbox` um, wenn der ausgelieferte `chrome-sandbox`-Helper nicht root-owned + setuid ist (typisch bei AppImage-Mounts). Damit entfällt ein manueller `--no-sandbox`-Parameter in der Praxis.
-- Wer das Verhalten überschreiben will, kann `BSKY_FORCE_SANDBOX=1` bzw. `BSKY_FORCE_NO_SANDBOX=1` setzen (siehe `electron/main-bsky-client.js`).
+
+## Troubleshooting (nur für Tests)
+
+- `BSKY_FORCE_SANDBOX=1` / `BSKY_FORCE_NO_SANDBOX=1` überschreiben die automatische Sandbox-Erkennung (AppImage).
+- `BSKY_DISABLE_DEV_SHM=true` erzwingt `--disable-dev-shm-usage`.
+- `BSKY_USE_SYSTEM_TMP=true` nutzt wieder `/tmp` statt `~/.bsky-client-tmp`.
+- `BSKY_ENABLE_DEV_SHM=true` hebt die AppImage-Default-Deaktivierung von `/dev/shm` auf.
+- `BSKY_STARTUP_DEBUG=true` loggt Sandbox- und Temp-Entscheidungen beim Start.
+- KDE/Plasma (Wayland): AppImage-Icons können fehlen. Testweise `--ozone-platform=x11` starten oder `kbuildsycoca5 --noincremental` ausführen.
 
 ## Unterschiede zur Vollversion
 

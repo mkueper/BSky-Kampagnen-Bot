@@ -58,3 +58,8 @@
 
 * Reihenfolge und Struktur sind **zwingend**.
 * „Offene Fragen“ dürfen **nicht automatisch** bearbeitet werden.
+
+## G. Aktualisiertung von `changelog-unreleased.md`
+
+1. Neue Einträge kommen immer an den Anfang der Datei
+2. Vor jedem Committ muss `changelog-unreleased.md` aktualisiert werden.

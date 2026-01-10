@@ -5,6 +5,47 @@
 
 # ---
 
+## 2026-01-10
+
+### Client
+
+- **Fix:** Gepinnte Feeds werden beim Start zuverlässiger geladen (Refresh/Cache/Retry-Logik).
+
+### Backend
+
+- **Security:** CSRF-Schutz für alle nicht-GET `/api/*`-Requests, Rate-Limit beim Login, Session-Cookie `SameSite=Strict`.
+
+### Dashboard
+
+- **Security:** CSRF-Header wird zentral gesetzt, Logout und alle schreibenden Requests nutzen den CSRF-Flow.
+
+### Electron/AppImage (Client)
+
+- **Feature:** Link-Preview läuft ohne externen Server via IPC im Main-Process.
+- **Fix:** AppImage-Temp-/SHM-Fallbacks und automatische Sandbox-Deaktivierung, wenn erforderlich.
+- **Improvement:** Icons/Favicon eingebunden, Desktop-Icon-Mapping für KDE/Plasma verbessert.
+- **Maintenance:** Electron auf 39.2.7 und electron-builder auf 26.4.0 aktualisiert.
+
+### Docs
+
+- **Update:** Beta-Client-Troubleshooting erweitert (Sandbox/Temp/Wayland).
+- **Update:** Link-Preview-Proxy im Docker-Setup dokumentiert.
+
+# ---
+
+## 2026-01-08
+
+### Infrastruktur & Deployment
+
+- **Improvement:** Backend-Port wird in Docker Compose standardmaessig nicht mehr nach aussen freigegeben (nur internes Netzwerk).
+- **Feature:** Bundle-Skripte unterstuetzen optionalen SCP-Upload per `--scp`/`-c` mit Ziel aus `scripts/target.conf`.
+
+### Docs
+
+- **Update:** Docker-Installationsanleitung und Scripts-Doku an das interne Backend und den optionalen SCP-Upload angepasst.
+
+# ---
+
 ## 2026-01-04
 
 ### Client
@@ -34,19 +75,6 @@
 ### Infrastruktur & CI
 
 - **Improvement:** Electron-Skripte für Linux/Windows ergänzt; CI holt Media-Picker-Submodule zuverlässig.
-
-# ---
-
-## 2026-01-08
-
-### Infrastruktur & Deployment
-
-- **Improvement:** Backend-Port wird in Docker Compose standardmaessig nicht mehr nach aussen freigegeben (nur internes Netzwerk).
-- **Feature:** Bundle-Skripte unterstuetzen optionalen SCP-Upload per `--scp`/`-c` mit Ziel aus `scripts/target.conf`.
-
-### Docs
-
-- **Update:** Docker-Installationsanleitung und Scripts-Doku an das interne Backend und den optionalen SCP-Upload angepasst.
 
 # ---
 

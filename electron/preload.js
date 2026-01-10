@@ -10,6 +10,15 @@ const tempBridge = {
 
 try {
   contextBridge.exposeInMainWorld('bskyTemp', tempBridge)
+  contextBridge.exposeInMainWorld('__BSKY_PREVIEW_FETCH__', async (url) => {
+    const response = await ipcRenderer.invoke('bsky-preview:fetch', { url })
+    if (response?.error) {
+      const error = new Error(response.message || 'Link preview failed.')
+      error.code = response.error
+      throw error
+    }
+    return response?.data || null
+  })
 } catch {
   // Im Dev-Server (reiner Browser) existiert kein Electron-Kontext
 }

@@ -74,6 +74,7 @@ npm run start:dev
 
 - API: <http://localhost:3000>
 - Dashboard: wird vom Express-Server ausgeliefert (`dashboard/dist`); der erste Aufruf führt, sofern `AUTH_*` gesetzt sind, auf die Login-Seite, anschließend auf das Dashboard.
+- Link-Preview: Im Docker-Setup wird `/preview` über Nginx an das Backend durchgereicht (kein externer Backend-Port nötig).
 
 > Für den Produktionsmodus kannst du `npm run build:all` (baut das Dashboard; Backend benötigt keinen Build) und anschließend `npm start` verwenden. Details siehe `docs/installation/local-install.md`.
 

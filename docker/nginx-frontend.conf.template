@@ -18,4 +18,13 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    # Link-Preview Proxy (läuft im Backend, kein externer Port nötig)
+    location /preview {
+        proxy_pass http://${BACKEND_SERVICE_HOST}:${BACKEND_SERVICE_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
