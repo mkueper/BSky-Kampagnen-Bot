@@ -38,6 +38,7 @@ import { useSkeetActions } from './hooks/useSkeetActions'
 import { useThreadActions } from './hooks/useThreadActions'
 import LoginView from './components/views/LoginView'
 import { useSession } from './hooks/useSession'
+import { fetchWithCsrf } from './utils/apiClient.js'
 import { useTranslation } from './i18n/I18nProvider.jsx'
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
@@ -426,7 +427,7 @@ function DashboardApp ({ onLogout }) {
       const id = skeet && typeof skeet.id === 'number' ? skeet.id : null
       if (!id) return
       try {
-        const res = await fetch(`/api/pending-skeets/${id}/publish-once`, {
+        const res = await fetchWithCsrf(`/api/pending-skeets/${id}/publish-once`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         })
@@ -468,7 +469,7 @@ function DashboardApp ({ onLogout }) {
         variant: 'destructive',
         onConfirm: async () => {
           try {
-            const res = await fetch(`/api/pending-skeets/${id}/discard`, {
+            const res = await fetchWithCsrf(`/api/pending-skeets/${id}/discard`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' }
             })
@@ -1228,7 +1229,7 @@ function App () {
 
   const handleLogout = useCallback(async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      await fetchWithCsrf('/api/auth/logout', { method: 'POST' })
     } catch (err) {
       console.error('Logout fehlgeschlagen', err)
     } finally {

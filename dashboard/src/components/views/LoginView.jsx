@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Card } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../../utils/apiClient.js'
 
 const SESSION_TTL_STORAGE_KEY = 'dashboardSessionTtlHours'
 const SESSION_TTL_MIN_HOURS = 6
@@ -78,7 +79,7 @@ export default function LoginView ({ session, sessionError, refreshSession }) {
         password,
         ...(sessionTtlHours ? { sessionTtlHours } : {})
       }
-      const res = await fetch('/api/auth/login', {
+      const res = await fetchWithCsrf('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

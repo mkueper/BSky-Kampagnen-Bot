@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 export function useThreadActions ({
   toast,
@@ -18,7 +19,7 @@ export function useThreadActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/threads/${thread.id}`, {
+          const res = await fetchWithCsrf(`/api/threads/${thread.id}`, {
             method: 'DELETE'
           })
           if (!res.ok) {
@@ -52,7 +53,7 @@ export function useThreadActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/threads/${thread.id}/retract`, {
+          const res = await fetchWithCsrf(`/api/threads/${thread.id}/retract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
@@ -105,7 +106,7 @@ export function useThreadActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/threads/${thread.id}?permanent=1`, {
+          const res = await fetchWithCsrf(`/api/threads/${thread.id}?permanent=1`, {
             method: 'DELETE'
           })
           if (!res.ok) {
@@ -137,7 +138,7 @@ export function useThreadActions ({
   const handleRestoreThread = useCallback(async (thread) => {
     if (!thread?.id) return
     try {
-      const res = await fetch(`/api/threads/${thread.id}/restore`, {
+      const res = await fetchWithCsrf(`/api/threads/${thread.id}/restore`, {
         method: 'POST'
       })
       if (!res.ok) {

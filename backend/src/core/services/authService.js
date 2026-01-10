@@ -6,6 +6,7 @@ const { createLogger } = require('@utils/logging');
 const log = createLogger('auth');
 
 const DEFAULT_COOKIE_NAME = 'kampagnenbot_session';
+const DEFAULT_CSRF_COOKIE_NAME = 'kampagnenbot_csrf';
 const DEFAULT_TTL_SECONDS = 60 * 60 * 12; // 12h
 
 const isProdLike = () => /^(production|staging)$/i.test(process.env.NODE_ENV || '');
@@ -15,6 +16,7 @@ const authConfig = {
   passwordHash: (process.env.AUTH_PASSWORD_HASH || '').trim(),
   tokenSecret: (process.env.AUTH_TOKEN_SECRET || '').trim(),
   cookieName: (process.env.AUTH_COOKIE_NAME || DEFAULT_COOKIE_NAME).trim() || DEFAULT_COOKIE_NAME,
+  csrfCookieName: (process.env.AUTH_CSRF_COOKIE_NAME || DEFAULT_CSRF_COOKIE_NAME).trim() || DEFAULT_CSRF_COOKIE_NAME,
   ttlSeconds: (() => {
     const explicitSeconds = Number(process.env.AUTH_SESSION_TTL_SECONDS);
     if (Number.isFinite(explicitSeconds) && explicitSeconds > 0) {
@@ -31,7 +33,14 @@ const authConfig = {
 
 const cookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
+  sameSite: 'strict',
+  secure: authConfig.secureCookies,
+  path: '/',
+};
+
+const csrfCookieOptions = {
+  httpOnly: false,
+  sameSite: 'strict',
   secure: authConfig.secureCookies,
   path: '/',
 };
@@ -73,12 +82,28 @@ function persistSession(res, token, ttlSeconds = authConfig.ttlSeconds) {
   });
 }
 
+function issueCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function persistCsrfToken(res, token, ttlSeconds = authConfig.ttlSeconds) {
+  if (typeof res?.cookie !== 'function') return;
+  res.cookie(authConfig.csrfCookieName, token, {
+    ...csrfCookieOptions,
+    maxAge: ttlSeconds * 1000,
+  });
+}
+
 function clearSession(res) {
   res.clearCookie(authConfig.cookieName, cookieOptions);
 }
 
 function readTokenFromRequest(req) {
   return req?.cookies?.[authConfig.cookieName] || null;
+}
+
+function readCsrfTokenFromRequest(req) {
+  return req?.cookies?.[authConfig.csrfCookieName] || null;
 }
 
 function decodeToken(token) {
@@ -103,6 +128,7 @@ function getStatus() {
   return {
     configured: isConfigured(),
     cookieName: authConfig.cookieName,
+    csrfCookieName: authConfig.csrfCookieName,
     ttlSeconds: authConfig.ttlSeconds,
   };
 }
@@ -113,6 +139,9 @@ module.exports = {
   validateCredentials,
   issueSession,
   persistSession,
+  issueCsrfToken,
+  persistCsrfToken,
   clearSession,
   resolveRequestSession,
+  readCsrfTokenFromRequest,
 };

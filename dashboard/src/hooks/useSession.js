@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { setCsrfCookieName } from '../utils/apiClient.js'
 
 export function useSession () {
   const [session, setSession] = useState(null)
@@ -16,6 +17,9 @@ export function useSession () {
       }
       const data = await res.json()
       setSession(data)
+      if (data?.csrfCookieName) {
+        setCsrfCookieName(data.csrfCookieName)
+      }
     } catch (err) {
       setSession(null)
       setError(err)

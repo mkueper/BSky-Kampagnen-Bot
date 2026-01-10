@@ -41,7 +41,7 @@ export function useFeedPicker () {
   const refreshFeeds = useCallback(async ({ force = false, loadDiscover = false } = {}) => {
     if (!force && lastUpdatedRef.current) return
     updateState({ loading: true, error: '', action: { refreshing: true } })
-    try {
+    const loadFeedData = async () => {
       const data = await fetchFeeds()
       let discoverItems = null
       let nextDiscoverCursor = null
@@ -50,6 +50,9 @@ export function useFeedPicker () {
         discoverItems = Array.isArray(discoverResponse?.items) ? discoverResponse.items : []
         nextDiscoverCursor = discoverResponse?.cursor || null
       }
+      return { data, discoverItems, nextDiscoverCursor }
+    }
+    const applyFeedData = ({ data, discoverItems, nextDiscoverCursor }) => {
       updateState({
         loading: false,
         error: '',
@@ -68,13 +71,30 @@ export function useFeedPicker () {
         action: { refreshing: false },
         ...(draftDirty ? {} : { draft: { pinned: Array.isArray(data?.pinned) ? data.pinned : [], saved: Array.isArray(data?.saved) ? data.saved : [], dirty: false } })
       })
-    } catch (error) {
-      updateState({
-        loading: false,
-        error: error?.message || 'Feeds konnten nicht geladen werden.',
-        action: { refreshing: false }
-      })
     }
+    const isSessionPending = (error) => {
+      const message = typeof error?.message === 'string' ? error.message : ''
+      return message.includes('Keine aktive Bluesky-Session')
+    }
+    let lastError = null
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const result = await loadFeedData()
+        applyFeedData(result)
+        return
+      } catch (error) {
+        lastError = error
+        if (!isSessionPending(error) || attempt >= 3) {
+          break
+        }
+        await new Promise((resolve) => setTimeout(resolve, 600 * attempt))
+      }
+    }
+    updateState({
+      loading: false,
+      error: lastError?.message || 'Feeds konnten nicht geladen werden.',
+      action: { refreshing: false }
+    })
   }, [draftDirty, updateState])
 
   const initFeedManagerDraft = useCallback(() => {

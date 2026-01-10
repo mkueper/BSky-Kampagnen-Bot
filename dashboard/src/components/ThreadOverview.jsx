@@ -4,6 +4,7 @@ import { useTheme } from './ui/ThemeContext'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useVirtualList } from '../hooks/useVirtualList'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 const PLATFORM_LABELS = { bluesky: 'Bluesky', mastodon: 'Mastodon' }
 
 function splitSourceIntoSegments (source) {
@@ -643,7 +644,7 @@ function ThreadOverview ({
                                 [thread.id]: true
                               }))
                               try {
-                                const res = await fetch(
+                                const res = await fetchWithCsrf(
                                   `/api/threads/${thread.id}/engagement/refresh`,
                                   { method: 'POST' }
                                 )

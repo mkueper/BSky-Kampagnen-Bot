@@ -60,6 +60,11 @@ const summarizeBody = (payload) => {
 };
 
 const app = express();
+const trustProxyValue = String(process.env.TRUST_PROXY || '').trim().toLowerCase();
+if (trustProxyValue) {
+  const normalized = ['1', 'true', 'yes', 'on'].includes(trustProxyValue) ? 1 : trustProxyValue;
+  app.set('trust proxy', normalized);
+}
 const customization = getCustomization();
 const defaultCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
 defaultCsp["img-src"] = ["'self'", "data:", "blob:", "*"];
@@ -111,9 +116,10 @@ app.use(express.urlencoded({ extended: true, limit: `${JSON_LIMIT_MB}mb` }));
 const apiRoutes = require('@api/routes');
 const authRoutes = require('@api/routes/authRoutes');
 const requireAuth = require('@api/middleware/requireAuth');
+const requireCsrf = require('@api/middleware/requireCsrf');
 const previewController = require('@api/controllers/previewController');
 app.use('/api/auth', authRoutes);
-app.use('/api', requireAuth, apiRoutes);
+app.use('/api', requireAuth, requireCsrf, apiRoutes);
 app.get('/preview', requireAuth, previewController.getExternalPreview);
 
 // Health endpoint for liveness checks

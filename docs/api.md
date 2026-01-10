@@ -4,7 +4,7 @@
 
 - Alle Routen liefern bzw. erwarten JSON (`Content-Type: application/json`), sofern nicht anders erwähnt.
 - Erfolgreiche Operationen geben in der Praxis meist `200 OK` bzw. `201 Created` zurück; einige Endpunkte liefern heute noch „flache“ JSON-Objekte/Arrays (z. B. reine Skeet-/Thread-Listen), andere folgen bereits einem strukturierten Antwortschema.
-- **Authentifizierung & Schutz:** Der Zugriff auf alle produktiven `/api/*`‑Routen (mit Ausnahme von `/api/auth/*`) ist durch einen Admin-Login geschützt. Das Backend erwartet gültige `AUTH_*`‑Variablen in `.env`, setzt beim Login ein httpOnly/SameSite=Lax‑Session‑Cookie und prüft dieses per Middleware `requireAuth` für jede `/api/*`‑Anfrage.
+- **Authentifizierung & Schutz:** Der Zugriff auf alle produktiven `/api/*`‑Routen (mit Ausnahme von `/api/auth/*`) ist durch einen Admin-Login geschützt. Das Backend erwartet gültige `AUTH_*`‑Variablen in `.env`, setzt beim Login ein httpOnly/SameSite=Strict‑Session‑Cookie und prüft dieses per Middleware `requireAuth` für jede `/api/*`‑Anfrage. Für alle nicht‑GET‑Requests ist zusätzlich ein CSRF‑Header (`x-csrf-token`) erforderlich, der dem CSRF‑Cookie entspricht.
 
 > Hinweis zum Response-Schema  
 > Als Soll-Konvention ist ein einheitliches Schema `{ data, meta, error }` in `docs/konventionen/api-konventionen.md` definiert. Der aktuelle Code setzt dies nur teilweise um: Konfigurationsendpunkte (`/api/settings/*`, `/api/client-config`) und einige Hilfsrouten liefern bereits strukturierte Objekte, viele Ressourcen-APIs (Skeets, Threads, Engagement) geben weiterhin direkt Objekte/Arrays ohne `data/meta/error` zurück.
@@ -65,9 +65,11 @@ Aktuell gelten u. a. folgende Codes:
 
 - **Auth / Login**
   - `AUTH_NOT_CONFIGURED` – Login noch nicht konfiguriert (`AUTH_*` fehlt); `/api/auth/login` liefert `503`.
+  - `AUTH_RATE_LIMITED` – zu viele Loginversuche; `429` (Header `Retry-After` gesetzt).
   - `AUTH_MISSING_CREDENTIALS` – Benutzername oder Passwort nicht übermittelt; `400`.
   - `AUTH_INVALID_CREDENTIALS` – Kombination aus Benutzer/Passwort ist ungültig; `401`.
   - `AUTH_SESSION_REQUIRED` – Session fehlt oder ist abgelaufen; `401` (z. B. aus `requireAuth`).
+  - `AUTH_CSRF_FAILED` – CSRF‑Prüfung fehlgeschlagen; `403` (bei nicht‑GET‑Requests).
 - **Settings – Scheduler (`/api/settings/scheduler`)**
   - `SETTINGS_SCHEDULER_LOAD_FAILED` – Fehler beim Laden der Scheduler-Einstellungen; `500`.
   - `SETTINGS_SCHEDULER_INVALID_CRON` – ungültiger Cron-Ausdruck; `400`.

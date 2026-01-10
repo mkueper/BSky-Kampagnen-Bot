@@ -8,6 +8,7 @@ import ThreadOverview from '../ThreadOverview'
 import { useVisibleIds } from '../../hooks/useVisibleIds'
 import FloatingToolbar from '../ui/FloatingToolbar'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../../utils/apiClient.js'
 
 function ThreadDashboardView ({
   threads,
@@ -218,7 +219,7 @@ function ThreadDashboardView ({
                               )
                             })
                           } else {
-                            const res = await fetch(
+                            const res = await fetchWithCsrf(
                               '/api/engagement/refresh-many',
                               {
                                 method: 'POST',
@@ -427,7 +428,7 @@ function ThreadDashboardView ({
                       'Scrolle die Liste, um Einträge sichtbar zu machen.'
                   })
                 } else {
-                  const res = await fetch('/api/engagement/refresh-many', {
+                  const res = await fetchWithCsrf('/api/engagement/refresh-many', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

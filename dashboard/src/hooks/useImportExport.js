@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 const JSON_FILE_PICKER_OPTIONS = {
   types: [
@@ -247,7 +248,7 @@ export function useImportExport ({
         ? t('importExport.labels.threads', 'Threads')
         : t('importExport.labels.posts', 'Posts')
 
-      const res = await fetch(endpoint, {
+      const res = await fetchWithCsrf(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -4,6 +4,7 @@ import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/shared-ui'
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs', 'randomOffsetMinutes']
 
@@ -457,7 +458,7 @@ export default function ConfigPanel () {
         timeZone: generalValues.timeZone?.trim() || null,
         locale: generalValues.locale || null
       }
-      const res = await fetch('/api/settings/general', {
+      const res = await fetchWithCsrf('/api/settings/general', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -580,7 +581,7 @@ export default function ConfigPanel () {
 
     setSaving(true)
     try {
-      const res = await fetch('/api/settings/scheduler', {
+      const res = await fetchWithCsrf('/api/settings/scheduler', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -728,7 +729,7 @@ export default function ConfigPanel () {
 
     setPollSaving(true)
     try {
-      const res = await fetch('/api/settings/client-polling', {
+      const res = await fetchWithCsrf('/api/settings/client-polling', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -2097,7 +2098,7 @@ function CredentialsSection () {
       const payload = { ...next }
       if (!payload.blueskyAppPassword) delete payload.blueskyAppPassword
       if (!payload.mastodonAccessToken) delete payload.mastodonAccessToken
-      const res = await fetch('/api/config/credentials', {
+      const res = await fetchWithCsrf('/api/config/credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -2650,7 +2651,7 @@ function ExternalServicesSection () {
     try {
       const payload = { ...values }
       if (!payload.tenorApiKey) delete payload.tenorApiKey
-      const res = await fetch('/api/config/credentials', {
+      const res = await fetchWithCsrf('/api/config/credentials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

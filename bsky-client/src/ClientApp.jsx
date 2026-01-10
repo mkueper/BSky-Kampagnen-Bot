@@ -140,6 +140,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const previousSectionRef = useRef(section)
   const initialHomeRefreshDoneRef = useRef(false)
   const [logoutPending, setLogoutPending] = useState(false)
+  const activeDid = me?.did || authProfile?.did || ''
   const pushSectionRoute = useCallback((nextSection) => {
     const targetPath = SECTION_ROUTE_MAP[nextSection] || '/'
     if (location.pathname !== targetPath) {
@@ -170,7 +171,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   const [timelineLanguageFilter, setTimelineLanguageFilter] = useState('')
 
   useLayoutEffect(() => {
-    const did = me?.did
+    const did = activeDid
     if (!did) return
     if (feedPicker?.lastUpdatedAt) return
     if (typeof window === 'undefined') return
@@ -196,10 +197,10 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     } catch {
       // ignore storage/parse errors
     }
-  }, [feedPicker?.lastUpdatedAt, me?.did, timelineDispatch])
+  }, [activeDid, feedPicker?.lastUpdatedAt, timelineDispatch])
 
   useEffect(() => {
-    const did = me?.did
+    const did = activeDid
     if (!did) return
     if (typeof window === 'undefined') return
     const pinned = Array.isArray(feedPicker?.pinned) ? feedPicker.pinned : null
@@ -227,7 +228,7 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     feedPicker?.loading,
     feedPicker?.pinned,
     feedPicker?.saved,
-    me?.did
+    activeDid
   ])
 
   const pinnedTabs = useMemo(() => {
@@ -607,6 +608,32 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
     scrollPositionsRef.current.clear()
     skipScrollRestoreRef.current = true
     timelineDispatch({ type: 'RESET_LISTS' })
+    timelineDispatch({
+      type: 'SET_FEED_PICKER_STATE',
+      payload: {
+        loading: false,
+        error: '',
+        pinned: [],
+        saved: [],
+        discover: [],
+        discoverCursor: null,
+        discoverHasMore: true,
+        discoverLoadingMore: false,
+        errors: [],
+        lastUpdatedAt: 0,
+        draft: {
+          pinned: [],
+          saved: [],
+          dirty: false
+        },
+        action: {
+          pinning: '',
+          unpinning: '',
+          savingOrder: false,
+          refreshing: false
+        }
+      }
+    })
 
     timelineKeyRef.current = 'discover'
     timelineDispatch({ type: 'SET_ACTIVE_LIST', payload: 'discover' })
@@ -654,14 +681,9 @@ function AuthenticatedClientApp ({ onNavigateDashboard, shouldRunChatPolling }) 
   }, [location.pathname, appDispatch])
 
   useEffect(() => {
+    if (!activeDid) return
     refreshFeedPicker({ force: true })
-  }, [refreshFeedPicker])
-
-  useEffect(() => {
-    if (!me?.did) return
-    if (feedPicker?.lastUpdatedAt) return
-    refreshFeedPicker({ force: true })
-  }, [feedPicker?.lastUpdatedAt, me?.did, refreshFeedPicker])
+  }, [activeDid, refreshFeedPicker])
 
   useEffect(() => {
     const previousSection = previousSectionRef.current

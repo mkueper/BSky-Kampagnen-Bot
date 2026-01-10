@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 export function useSkeetActions ({
   toast,
@@ -18,7 +19,7 @@ export function useSkeetActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/skeets/${skeet.id}`, { method: 'DELETE' })
+          const res = await fetchWithCsrf(`/api/skeets/${skeet.id}`, { method: 'DELETE' })
           if (!res.ok) {
             const data = await res.json().catch(() => ({}))
             throw new Error(data.error || 'Fehler beim Löschen des Posts.')
@@ -49,7 +50,7 @@ export function useSkeetActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/skeets/${skeet.id}/retract`, {
+          const res = await fetchWithCsrf(`/api/skeets/${skeet.id}/retract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
@@ -98,7 +99,7 @@ export function useSkeetActions ({
       variant: 'destructive',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/skeets/${skeet.id}?permanent=1`, {
+          const res = await fetchWithCsrf(`/api/skeets/${skeet.id}?permanent=1`, {
             method: 'DELETE'
           })
           if (!res.ok) {
@@ -125,7 +126,7 @@ export function useSkeetActions ({
   const handleRestore = useCallback(async (skeet) => {
     if (!skeet?.id) return
     try {
-      const res = await fetch(`/api/skeets/${skeet.id}/restore`, {
+      const res = await fetchWithCsrf(`/api/skeets/${skeet.id}/restore`, {
         method: 'POST'
       })
       if (!res.ok) {

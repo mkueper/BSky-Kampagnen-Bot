@@ -10,6 +10,7 @@ import DeletedSkeetList from '../DeletedSkeetList'
 import { useVisibleIds } from '../../hooks/useVisibleIds'
 import FloatingToolbar from '../ui/FloatingToolbar'
 import { useTranslation } from '../../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../../utils/apiClient.js'
 
 /**
  * Zusammenstellung aller Dashboard-Kacheln und Listen.
@@ -362,7 +363,7 @@ function DashboardView ({
                   })
                   return
                 }
-                const res = await fetch('/api/engagement/refresh-many', {
+                const res = await fetchWithCsrf('/api/engagement/refresh-many', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ entity: 'skeet', ids })

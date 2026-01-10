@@ -26,6 +26,7 @@ import {
 } from '../utils/zonedDate'
 import { applyRandomOffsetToLocalDateTime, clampTimeToNowForToday } from '../utils/scheduling'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 const DASHBOARD_GIF_PICKER_CLASSES = {
   overlay: 'fixed inset-0 z-[200] flex items-center justify-center bg-black/40',
@@ -546,7 +547,7 @@ function ThreadForm({
           formData.append('media', file)
           formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '')
 
-          const res = await fetch(
+          const res = await fetchWithCsrf(
             `/api/threads/${threadId}/segments/${index}/media`,
             {
               method: 'POST',
@@ -608,7 +609,7 @@ function ThreadForm({
           formData.append('media', file)
           formData.append('altText', (altTextOverride ?? mediaAlt[index]) || '')
 
-          const res = await fetch('/api/uploads/temp', {
+          const res = await fetchWithCsrf('/api/uploads/temp', {
             method: 'POST',
             body: formData
           })
@@ -736,7 +737,7 @@ function ThreadForm({
   const handleRemoveMedia = async (segmentIndex, item) => {
     if (item.type === 'existing') {
       try {
-        const res = await fetch(`/api/media/${item.id}`, { method: 'DELETE' })
+        const res = await fetchWithCsrf(`/api/media/${item.id}`, { method: 'DELETE' })
         if (!res.ok)
           throw new Error(
             (await res.json().catch(() => ({}))).error ||
@@ -908,7 +909,7 @@ function ThreadForm({
 
     setSaving(true)
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetchWithCsrf(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1023,7 +1024,7 @@ function ThreadForm({
             media: Array.isArray(pendingMedia[index]) ? pendingMedia[index] : []
           }))
         }
-        const resCreate = await fetch('/api/threads', {
+        const resCreate = await fetchWithCsrf('/api/threads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(createPayload)
@@ -1050,7 +1051,7 @@ function ThreadForm({
         }
       }
 
-      const resPub = await fetch(`/api/threads/${id}/publish-now`, {
+      const resPub = await fetchWithCsrf(`/api/threads/${id}/publish-now`, {
         method: 'POST'
       })
       if (!resPub.ok) {
@@ -1890,7 +1891,7 @@ function ThreadForm({
             const item = altDialog.item
             try {
               if (item.type === 'existing') {
-                const res = await fetch(`/api/media/${item.id}`, {
+                const res = await fetchWithCsrf(`/api/media/${item.id}`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ altText: newAlt })

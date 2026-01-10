@@ -46,6 +46,7 @@ describe('authController.session', () => {
       getStatus: () => ({
         configured: false,
         cookieName: 'sess',
+        csrfCookieName: 'csrf',
         ttlSeconds: 3600
       })
     })
@@ -68,6 +69,7 @@ describe('authController.session', () => {
       getStatus: () => ({
         configured: true,
         cookieName: 'sess',
+        csrfCookieName: 'csrf',
         ttlSeconds: 3600
       }),
       resolveRequestSession: () => null
@@ -82,7 +84,8 @@ describe('authController.session', () => {
 
     expect(payload).toEqual({
       authenticated: false,
-      configured: true
+      configured: true,
+      csrfCookieName: 'csrf'
     })
   })
 
@@ -92,6 +95,7 @@ describe('authController.session', () => {
       getStatus: () => ({
         configured: true,
         cookieName: 'sess',
+        csrfCookieName: 'csrf',
         ttlSeconds: 3600
       }),
       resolveRequestSession: () => ({
@@ -111,6 +115,7 @@ describe('authController.session', () => {
     expect(payload?.configured).toBe(true)
     expect(payload?.user).toEqual({ username: 'admin' })
     expect(payload?.expiresAt).toBe(nowSeconds * 1000)
+    expect(payload?.csrfCookieName).toBe('csrf')
   })
 })
 

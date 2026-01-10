@@ -169,6 +169,10 @@ Changelog pflegen:
 | `AUTH_PASSWORD_HASH`    | Salt:Hash aus `npm run tools:hash-password`              | –        |
 | `AUTH_TOKEN_SECRET`     | Schlüssel für die Signatur der Session-Cookies           | –        |
 | `AUTH_SESSION_TTL_HOURS`| Gültigkeit einer Session in Stunden (alternativ `*_SECONDS`) | `12`  |
+| `AUTH_LOGIN_MAX_ATTEMPTS` | Max. Login-Versuche pro IP im Zeitfenster              | `5`      |
+| `AUTH_LOGIN_WINDOW_MINUTES` | Zeitfenster für Login-Limits (Minuten)             | `15`     |
+| `AUTH_CSRF_COOKIE_NAME` | Name des CSRF-Cookies                                    | `kampagnenbot_csrf` |
+| `TRUST_PROXY`           | Express `trust proxy` (z. B. `true` hinter Proxy)        | –        |
 
 > Hinweis: Standardmäßig lauscht der Backend-Container intern auf `BACKEND_INTERNAL_PORT` (Standard `3000`). Der Host-Port (`BACKEND_PORT`) wird ausschließlich über das Compose-Port-Mapping (`${BACKEND_PORT:-3000}:${BACKEND_INTERNAL_PORT:-3000}`) gesteuert.
 
@@ -181,7 +185,7 @@ Der Zugriff auf `/api/*` (mit Ausnahme von `/api/auth/*`) und das Dashboard ist 
 1. Gewünschten Benutzernamen in `.env` als `AUTH_USERNAME` hinterlegen.
 2. Passwort-Hash erzeugen: `npm run tools:hash-password` (CLI fragt das Passwort ab und liefert einen `salt:hash`-String). Ergebnis als `AUTH_PASSWORD_HASH` eintragen.
 3. Einen zufälligen Schlüssel (mind. 32 Zeichen) als `AUTH_TOKEN_SECRET` setzen.
-4. Backend neu starten. Beim Aufruf des Dashboards erscheint zuerst die Login-Seite, die `/api/auth/login` nutzt; erfolgreiche Logins erhalten ein httpOnly/SameSite=Lax‑Session‑Cookie. Alle produktiven `/api/*`‑Routen hinter `requireAuth` prüfen dieses Cookie und geben bei fehlender/abgelaufener Sitzung `401` zurück; die Session-Laufzeit lässt sich via `AUTH_SESSION_TTL_HOURS` steuern.
+4. Backend neu starten. Beim Aufruf des Dashboards erscheint zuerst die Login-Seite, die `/api/auth/login` nutzt; erfolgreiche Logins erhalten ein httpOnly/SameSite=Strict‑Session‑Cookie. Alle produktiven `/api/*`‑Routen hinter `requireAuth` prüfen dieses Cookie und geben bei fehlender/abgelaufener Sitzung `401` zurück; die Session-Laufzeit lässt sich via `AUTH_SESSION_TTL_HOURS` steuern. Für alle nicht‑GET‑Requests erwartet das Backend zusätzlich einen CSRF‑Header (`x-csrf-token`), der aus dem CSRF‑Cookie gelesen wird.
 
 Ohne konfigurierte Werte (`AUTH_*`) verweigert das Backend sämtliche geschützten API-Aufrufe; die UI erklärt in diesem Fall, welche Schritte notwendig sind.
 

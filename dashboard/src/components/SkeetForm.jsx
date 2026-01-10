@@ -10,6 +10,7 @@ import LinkifiedText from './LinkifiedText'
 import LinkPreviewCard from './LinkPreviewCard'
 import { useLinkPreview } from '../hooks/useLinkPreview'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
+import { fetchWithCsrf } from '../utils/apiClient.js'
 import {
   getDefaultDateParts,
   getInputPartsFromUtc,
@@ -325,7 +326,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     if (!item) return
     if (item.type === 'existing' && item.id) {
       try {
-        const res = await fetch(`/api/skeet-media/${item.id}`, { method: 'DELETE' })
+        const res = await fetchWithCsrf(`/api/skeet-media/${item.id}`, { method: 'DELETE' })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(
@@ -636,7 +637,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
     const url = isEditing ? `/api/skeets/${editingSkeet.id}` : '/api/skeets'
     const method = isEditing ? 'PATCH' : 'POST'
 
-    const res = await fetch(url, {
+    const res = await fetchWithCsrf(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -1497,7 +1498,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             }
             setSendingNow(true)
             try {
-              const resCreate = await fetch('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
+              const resCreate = await fetchWithCsrf('/api/skeets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createPayload) })
               if (!resCreate.ok) {
                 const data = await resCreate.json().catch(() => ({}))
                 throw new Error(
@@ -1517,7 +1518,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
                   )
                 )
               }
-              const resPub = await fetch(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
+              const resPub = await fetchWithCsrf(`/api/skeets/${created.id}/publish-now`, { method: 'POST' })
               if (!resPub.ok) {
                 const data = await resPub.json().catch(() => ({}))
                 throw new Error(
@@ -1556,7 +1557,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
           } else {
             setSendingNow(true)
             try {
-              const res = await fetch(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
+              const res = await fetchWithCsrf(`/api/skeets/${editingSkeet.id}/publish-now`, { method: 'POST' })
               if (!res.ok) {
                 const data = await res.json().catch(() => ({}))
                 throw new Error(
@@ -1664,7 +1665,7 @@ function SkeetForm ({ onSkeetSaved, editingSkeet, onCancelEdit }) {
             const it = altDialog.item
             try {
               if (it.type === 'existing' && it.id) {
-                const res = await fetch(`/api/skeet-media/${it.id}`, {
+                const res = await fetchWithCsrf(`/api/skeet-media/${it.id}`, {
                   method: 'PATCH',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ altText: newAlt })

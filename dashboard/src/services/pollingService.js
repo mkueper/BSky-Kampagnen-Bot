@@ -2,6 +2,7 @@
 // Enthält einen anwendungsunabhängigen Polling-Controller. Er berücksichtigt
 // Tab-Sichtbarkeit, Benutzerinteraktionen sowie einen Master-Tab-Mechanismus,
 // um mehrfaches Polling bei mehreren offenen Fenstern zu vermeiden.
+import { fetchWithCsrf } from '../utils/apiClient.js'
 
 export function createPollingController({
   // Pflicht: Funktionen, die neue Daten holen (Promise<array|object|null>)
@@ -199,7 +200,7 @@ export function createPollingController({
       sendBeat();
       // Server-Heartbeat nur vom Master-Tab senden
       if (isMaster && typeof fetch === 'function') {
-        try { fetch('/api/heartbeat', { method: 'POST' }); } catch (e)  {console.error(e); }
+        try { fetchWithCsrf('/api/heartbeat', { method: 'POST' }); } catch (e)  {console.error(e); }
       }
       // Wenn lange kein fremder Beat gesehen wurde, übernehme Master-Rolle
       // (Die Logik für „isMaster“ sitzt in onMessage)
