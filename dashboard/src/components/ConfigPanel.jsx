@@ -5,6 +5,7 @@ import { Button, Card, InfoDialog, TimeZonePicker } from '@bsky-kampagnen-bot/sh
 import { useToast } from '@bsky-kampagnen-bot/shared-ui'
 import { useTranslation } from '../i18n/I18nProvider.jsx'
 import { fetchWithCsrf } from '../utils/apiClient.js'
+import { readSessionAutoExtend, writeSessionAutoExtend } from '../utils/sessionSettings.js'
 
 const NUMBER_FIELDS = ['postRetries', 'postBackoffMs', 'postBackoffMaxMs', 'randomOffsetMinutes']
 
@@ -74,6 +75,7 @@ export default function ConfigPanel() {
   const SESSION_TTL_MIN_HOURS = 6
   const SESSION_TTL_MAX_HOURS = 168
   const SESSION_TTL_DEFAULT_HOURS = 12
+  const SESSION_AUTO_EXTEND_DEFAULT = true
   const readStoredSessionTtlHours = () => {
     if (typeof window === 'undefined') return SESSION_TTL_DEFAULT_HOURS
     const stored = window.localStorage.getItem(SESSION_TTL_STORAGE_KEY)
@@ -110,6 +112,12 @@ export default function ConfigPanel() {
   })
   const [sessionTtlInitial, setSessionTtlInitial] = useState(() => {
     return String(readStoredSessionTtlHours())
+  })
+  const [sessionAutoExtend, setSessionAutoExtend] = useState(() => {
+    return readSessionAutoExtend()
+  })
+  const [sessionAutoExtendInitial, setSessionAutoExtendInitial] = useState(() => {
+    return readSessionAutoExtend()
   })
 
   // Client-Polling Abschnitt
@@ -247,18 +255,26 @@ export default function ConfigPanel() {
   const generalHasChanges = useMemo(() => {
     return (
       String(generalValues.timeZone ?? '') !==
-      String(generalInitialValues.timeZone ?? '') ||
+        String(generalInitialValues.timeZone ?? '') ||
       String(generalValues.locale ?? '') !==
-      String(generalInitialValues.locale ?? '') ||
+        String(generalInitialValues.locale ?? '') ||
       String(generalValues.overviewPreviewMaxLines ?? '') !==
-      String(generalInitialValues.overviewPreviewMaxLines ?? '') ||
+        String(generalInitialValues.overviewPreviewMaxLines ?? '') ||
       String(generalValues.overviewPreviewShowMedia ?? '') !==
-      String(generalInitialValues.overviewPreviewShowMedia ?? '') ||
+        String(generalInitialValues.overviewPreviewShowMedia ?? '') ||
       String(generalValues.overviewPreviewShowLinkPreview ?? '') !==
-      String(generalInitialValues.overviewPreviewShowLinkPreview ?? '') ||
-      String(sessionTtlInput ?? '') !== String(sessionTtlInitial ?? '')
+        String(generalInitialValues.overviewPreviewShowLinkPreview ?? '') ||
+      String(sessionTtlInput ?? '') !== String(sessionTtlInitial ?? '') ||
+      String(sessionAutoExtend) !== String(sessionAutoExtendInitial)
     )
-  }, [generalValues, generalInitialValues, sessionTtlInput, sessionTtlInitial])
+  }, [
+    generalValues,
+    generalInitialValues,
+    sessionTtlInput,
+    sessionTtlInitial,
+    sessionAutoExtend,
+    sessionAutoExtendInitial
+  ])
 
   const onSessionTtlChange = (event) => {
     const nextValue = event.target.value
@@ -584,11 +600,16 @@ export default function ConfigPanel() {
       setGeneralInitialValues(nextValues)
       setGeneralDefaults(nextDefaults)
       setSessionTtlInitial(String(normalizedSessionTtl))
+      setSessionAutoExtendInitial(Boolean(sessionAutoExtend))
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(
           SESSION_TTL_STORAGE_KEY,
           String(normalizedSessionTtl)
         )
+      }
+      writeSessionAutoExtend(Boolean(sessionAutoExtend))
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('session:auto-extend-updated'))
       }
       if (nextValues.locale && typeof nextValues.locale === 'string') {
         setLocale(nextValues.locale)
@@ -1425,6 +1446,29 @@ export default function ConfigPanel() {
                         'Gilt nur auf diesem Gerät (6 bis 168 Stunden).'
                       )}
                     </p>
+                    <label className='inline-flex items-center gap-2 text-sm font-medium text-foreground'>
+                      <input
+                        type='checkbox'
+                        className='h-4 w-4 rounded border-border'
+                        checked={sessionAutoExtend}
+                        onChange={(event) =>
+                          setSessionAutoExtend(event.target.checked)
+                        }
+                        disabled={generalLoading || generalSaving}
+                      />
+                      <span>
+                        {t(
+                          'config.general.session.autoExtendLabel',
+                          'Session automatisch verlängern'
+                        )}
+                      </span>
+                    </label>
+                    <p className='text-xs text-foreground-muted'>
+                      {t(
+                        'config.general.session.autoExtendHint',
+                        'Verlängert die Session nur bei Aktivität in den letzten 30 Minuten.'
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1437,6 +1481,7 @@ export default function ConfigPanel() {
                     onClick={() => {
                       setGeneralValues(generalDefaults)
                       setSessionTtlInput(String(SESSION_TTL_DEFAULT_HOURS))
+                      setSessionAutoExtend(SESSION_AUTO_EXTEND_DEFAULT)
                     }}
                     disabled={generalLoading || generalSaving}
                   >

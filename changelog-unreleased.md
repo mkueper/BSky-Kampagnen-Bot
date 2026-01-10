@@ -7,6 +7,10 @@
 
 ## 2026-01-10
 
+### Dashboard
+
+- **Feature:** session-renew-gracefull-expiration implementiert (Warnbanner, Renew, Auto-Renew, Tab-Sync).
+
 ### Client
 
 - **Fix:** Gepinnte Feeds werden beim Start zuverlässiger geladen (Refresh/Cache/Retry-Logik).

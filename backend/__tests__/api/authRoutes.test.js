@@ -52,5 +52,11 @@ describe('authRoutes', () => {
     const handlers = route.stack.map((l) => l.handle)
     expect(handlers).toContain(authController.logout)
   })
-})
 
+  it('registriert POST /renew auf authController.renew', () => {
+    const route = findRoute(authRoutes, '/renew', 'post')
+    expect(route).not.toBeNull()
+    const handlers = route.stack.map((l) => l.handle)
+    expect(handlers).toContain(authController.renew)
+  })
+})

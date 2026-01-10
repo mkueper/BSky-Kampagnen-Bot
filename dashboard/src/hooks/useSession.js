@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
-import { setCsrfCookieName } from '../utils/apiClient.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { fetchWithCsrf, setCsrfCookieName } from '../utils/apiClient.js'
 
 export function useSession () {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const sessionRef = useRef(null)
+
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -39,5 +44,29 @@ export function useSession () {
     return () => window.removeEventListener('auth:expired', handler)
   }, [refresh])
 
-  return { session, loading, error, refresh }
+  const renew = useCallback(async () => {
+    setError(null)
+    try {
+      const res = await fetchWithCsrf('/api/auth/renew', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 401) {
+          await refresh()
+        }
+        return { ok: false, status: res.status, error: data }
+      }
+      setSession(current => ({
+        ...(current || sessionRef.current || {}),
+        authenticated: true,
+        configured: true,
+        expiresAt: data.expiresAt ?? current?.expiresAt ?? sessionRef.current?.expiresAt ?? null
+      }))
+      return { ok: true, status: res.status, data }
+    } catch (err) {
+      setError(err)
+      return { ok: false, status: 0, error: { message: err?.message || String(err) } }
+    }
+  }, [refresh])
+
+  return { session, loading, error, refresh, renew }
 }

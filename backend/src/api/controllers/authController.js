@@ -16,6 +16,7 @@ const log = createLogger('auth.controller');
 
 const SESSION_TTL_MIN_HOURS = 6;
 const SESSION_TTL_MAX_HOURS = 168;
+const RENEW_COOLDOWN_SECONDS = 120;
 const LOGIN_MAX_ATTEMPTS = Number(process.env.AUTH_LOGIN_MAX_ATTEMPTS || 5);
 const LOGIN_WINDOW_MINUTES = Number(process.env.AUTH_LOGIN_WINDOW_MINUTES || 15);
 const LOGIN_WINDOW_MS = (Number.isFinite(LOGIN_WINDOW_MINUTES) && LOGIN_WINDOW_MINUTES > 0 ? LOGIN_WINDOW_MINUTES : 15) * 60 * 1000;
@@ -173,8 +174,52 @@ function logout(req, res) {
   res.json({ ok: true });
 }
 
+function renew(req, res) {
+  const status = getStatus();
+  if (!status.configured) {
+    return res.status(503).json({
+      error: 'AUTH_NOT_CONFIGURED',
+      message: 'Login ist noch nicht konfiguriert.',
+    });
+  }
+  if (!validateCsrfToken(req)) {
+    return res.status(403).json({
+      error: 'AUTH_CSRF_FAILED',
+      message: 'Sicherheitsprüfung fehlgeschlagen. Bitte Seite neu laden.',
+    });
+  }
+
+  const payload = resolveRequestSession(req);
+  if (!payload) {
+    return res.status(401).json({
+      error: 'AUTH_SESSION_INVALID',
+      message: 'Sitzung ist abgelaufen.',
+    });
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const issuedAt = Number(payload.iat);
+  if (
+    Number.isFinite(issuedAt) &&
+    nowSeconds - issuedAt < RENEW_COOLDOWN_SECONDS
+  ) {
+    return res.status(429).json({
+      error: 'AUTH_RENEW_TOO_SOON',
+      message: 'Session wurde zu früh erneuert. Bitte kurz warten.',
+    });
+  }
+
+  const ttlSeconds = status.ttlSeconds;
+  const token = issueSession(payload.username || 'dashboard', ttlSeconds);
+  persistSession(res, token, ttlSeconds);
+  persistCsrfToken(res, issueCsrfToken(), ttlSeconds);
+  const expiresAt = Date.now() + ttlSeconds * 1000;
+  return res.json({ expiresAt });
+}
+
 module.exports = {
   session,
   login,
   logout,
+  renew,
 };

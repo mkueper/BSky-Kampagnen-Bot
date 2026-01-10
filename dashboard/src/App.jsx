@@ -40,6 +40,17 @@ import LoginView from './components/views/LoginView'
 import { useSession } from './hooks/useSession'
 import { fetchWithCsrf } from './utils/apiClient.js'
 import { useTranslation } from './i18n/I18nProvider.jsx'
+import { readSessionAutoExtend, SESSION_AUTO_EXTEND_STORAGE_KEY } from './utils/sessionSettings.js'
+import {
+  CHECK_INTERVAL_MS,
+  CLIENT_RENEW_COOLDOWN_MS,
+  IDLE_CUTOFF_MS,
+  WARN_BEFORE_MS,
+  canAutoRenew,
+  getMinutesRemaining,
+  isExpired,
+  isWarningActive
+} from './utils/sessionRenewal.js'
 // UI-Beschriftungen für Plattform-Kürzel – wird an mehreren Stellen benötigt.
 const PLATFORM_LABELS = {
   bluesky: 'Bluesky',
@@ -126,7 +137,7 @@ function LoadingBlock ({ message }) {
   )
 }
 
-function DashboardApp ({ onLogout }) {
+function DashboardApp ({ onLogout, session, onRenew, onRefreshSession }) {
   const { t, setLocale } = useTranslation()
   // --- Globale UI-Zustände -------------------------------------------------
   const { config: clientConfigPreset } = useClientConfig()
@@ -188,6 +199,217 @@ function DashboardApp ({ onLogout }) {
   const toast = useToast()
   const [logoutPending, setLogoutPending] = useState(false)
   const [importExportInfoOpen, setImportExportInfoOpen] = useState(false)
+  const [expiresAt, setExpiresAt] = useState(session?.expiresAt ?? null)
+  const [now, setNow] = useState(() => Date.now())
+  const [renewError, setRenewError] = useState(null)
+  const [isRenewing, setIsRenewing] = useState(false)
+  const [autoExtendSession, setAutoExtendSession] = useState(() => readSessionAutoExtend())
+  const [lastActivityAt, setLastActivityAt] = useState(() => null)
+  const lastActivityRef = useRef(null)
+  const lastRenewAttemptRef = useRef(0)
+  const renewInFlightRef = useRef(false)
+  const syncChannelRef = useRef(null)
+  const syncTabIdRef = useRef(Math.random().toString(36).slice(2))
+  const EXPIRES_STORAGE_KEY = 'dashboardSessionExpiresAt'
+  const ACTIVITY_STORAGE_KEY = 'dashboardSessionLastActivity'
+  const SYNC_STORAGE_KEY = 'dashboardSessionSync'
+
+  useEffect(() => {
+    if (Number.isFinite(session?.expiresAt)) {
+      setExpiresAt(session.expiresAt)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          EXPIRES_STORAGE_KEY,
+          String(session.expiresAt)
+        )
+      }
+    }
+  }, [session?.expiresAt])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const stored = window.localStorage.getItem(ACTIVITY_STORAGE_KEY)
+    const parsed = Number(stored)
+    if (Number.isFinite(parsed)) {
+      lastActivityRef.current = parsed
+      setLastActivityAt(parsed)
+    }
+    return undefined
+  }, [])
+
+  const handleSyncMessage = useCallback((message) => {
+    if (!message || message.sourceId === syncTabIdRef.current) return
+    if (message.type === 'expiresAt' && Number.isFinite(message.expiresAt)) {
+      setExpiresAt(message.expiresAt)
+    }
+    if (message.type === 'activity' && Number.isFinite(message.lastActivityAt)) {
+      lastActivityRef.current = message.lastActivityAt
+      setLastActivityAt(message.lastActivityAt)
+    }
+  }, [])
+
+  const broadcastSync = useCallback((payload) => {
+    if (typeof window === 'undefined') return
+    const message = { ...payload, sourceId: syncTabIdRef.current }
+    if (syncChannelRef.current) {
+      syncChannelRef.current.postMessage(message)
+    }
+    window.localStorage.setItem(
+      SYNC_STORAGE_KEY,
+      JSON.stringify({ ...message, ts: Date.now() })
+    )
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    let channel = null
+    if (typeof window.BroadcastChannel === 'function') {
+      channel = new BroadcastChannel('kampagnenbot-session')
+      channel.onmessage = (event) => {
+        handleSyncMessage(event?.data)
+      }
+      syncChannelRef.current = channel
+    }
+    const handleStorage = (event) => {
+      if (event.key !== SYNC_STORAGE_KEY || !event.newValue) return
+      try {
+        const payload = JSON.parse(event.newValue)
+        handleSyncMessage(payload)
+      } catch {
+        // ignore
+      }
+    }
+    const handleSettingStorage = (event) => {
+      if (event.key !== SESSION_AUTO_EXTEND_STORAGE_KEY) return
+      setAutoExtendSession(readSessionAutoExtend())
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('storage', handleSettingStorage)
+    return () => {
+      if (channel) channel.close()
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('storage', handleSettingStorage)
+      syncChannelRef.current = null
+    }
+  }, [handleSyncMessage])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handler = () => setAutoExtendSession(readSessionAutoExtend())
+    window.addEventListener('session:auto-extend-updated', handler)
+    return () => window.removeEventListener('session:auto-extend-updated', handler)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const recordActivity = () => {
+      const stamp = Date.now()
+      if (stamp - lastActivityRef.current < 1000) return
+      lastActivityRef.current = stamp
+      setLastActivityAt(stamp)
+      window.localStorage.setItem(ACTIVITY_STORAGE_KEY, String(stamp))
+      broadcastSync({ type: 'activity', lastActivityAt: stamp })
+    }
+    const opts = { passive: true }
+    window.addEventListener('pointerdown', recordActivity, opts)
+    window.addEventListener('keydown', recordActivity, opts)
+    window.addEventListener('scroll', recordActivity, opts)
+    return () => {
+      window.removeEventListener('pointerdown', recordActivity, opts)
+      window.removeEventListener('keydown', recordActivity, opts)
+      window.removeEventListener('scroll', recordActivity, opts)
+    }
+  }, [broadcastSync])
+
+  useEffect(() => {
+    if (!Number.isFinite(expiresAt)) return undefined
+    const id = window.setInterval(() => {
+      setNow(Date.now())
+    }, CHECK_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [expiresAt])
+
+  useEffect(() => {
+    if (!Number.isFinite(expiresAt)) return
+    if (isExpired(expiresAt, now)) {
+      window.dispatchEvent(new Event('auth:expired'))
+      onRefreshSession?.()
+    }
+  }, [expiresAt, now, onRefreshSession])
+
+  useEffect(() => {
+    if (!Number.isFinite(expiresAt)) return
+    if (renewInFlightRef.current) return
+    const shouldAuto = canAutoRenew({
+      expiresAt,
+      now,
+      lastActivityAt,
+      autoExtendSession,
+      lastRenewAttemptAt: lastRenewAttemptRef.current,
+      cooldownMs: CLIENT_RENEW_COOLDOWN_MS,
+      idleCutoffMs: IDLE_CUTOFF_MS,
+      warnBeforeMs: WARN_BEFORE_MS
+    })
+    if (!shouldAuto) return
+    renewInFlightRef.current = true
+    lastRenewAttemptRef.current = now
+    Promise.resolve(onRenew?.())
+      .then((result) => {
+        if (result?.ok && Number.isFinite(result?.data?.expiresAt)) {
+          setExpiresAt(result.data.expiresAt)
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(
+              EXPIRES_STORAGE_KEY,
+              String(result.data.expiresAt)
+            )
+          }
+          broadcastSync({ type: 'expiresAt', expiresAt: result.data.expiresAt })
+        }
+      })
+      .finally(() => {
+        renewInFlightRef.current = false
+      })
+  }, [autoExtendSession, broadcastSync, expiresAt, lastActivityAt, now, onRenew])
+
+  const remainingMinutes = useMemo(() => {
+    if (!Number.isFinite(expiresAt)) return null
+    return getMinutesRemaining(expiresAt - now)
+  }, [expiresAt, now])
+  const showWarning = useMemo(() => {
+    if (!Number.isFinite(expiresAt)) return false
+    return isWarningActive(expiresAt, now, WARN_BEFORE_MS)
+  }, [expiresAt, now])
+
+  const handleManualRenew = useCallback(async () => {
+    setRenewError(null)
+    setIsRenewing(true)
+    lastRenewAttemptRef.current = Date.now()
+    const result = await Promise.resolve(onRenew?.())
+    if (result?.ok && Number.isFinite(result?.data?.expiresAt)) {
+      setExpiresAt(result.data.expiresAt)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          EXPIRES_STORAGE_KEY,
+          String(result.data.expiresAt)
+        )
+      }
+      broadcastSync({ type: 'expiresAt', expiresAt: result.data.expiresAt })
+    } else if (result?.status === 429) {
+      setRenewError(
+        result?.error?.message ||
+          t('session.tooSoon', 'Zu häufig, bitte kurz warten.')
+      )
+    } else if (result?.status === 401) {
+      setRenewError(t('session.expired', 'Session ist abgelaufen.'))
+      window.dispatchEvent(new Event('auth:expired'))
+    } else if (result?.status) {
+      setRenewError(
+        result?.error?.message ||
+          t('common.errors.unknown', 'Unbekannter Fehler')
+      )
+    }
+    setIsRenewing(false)
+  }, [broadcastSync, onRenew, t])
   const [clientUrls, setClientUrls] = useState({ bluesky: '', mastodon: '' })
   const skeetViewsEnabled =
     activeView === 'overview' ||
@@ -1151,6 +1373,44 @@ function DashboardApp ({ onLogout }) {
 
   const safeSelectView = (viewId, options) => navigate(viewId, options)
 
+  const sessionBanner = showWarning && Number.isFinite(remainingMinutes) ? (
+    <section className='rounded-2xl border border-border-muted bg-background-subtle p-4 shadow-soft'>
+      <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
+        <div className='space-y-1'>
+          <p className='text-sm font-semibold text-foreground'>
+            {t(
+              'session.warningTitle',
+              'Session läuft in {minutes} Minuten ab.',
+              { minutes: remainingMinutes }
+            )}
+          </p>
+          {renewError ? (
+            <p className='text-xs text-destructive'>{renewError}</p>
+          ) : null}
+        </div>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Button
+            type='button'
+            variant='secondary'
+            onClick={handleManualRenew}
+            disabled={isRenewing}
+          >
+            {isRenewing
+              ? t('session.renewing', 'Verlängern…')
+              : t('session.renew', 'Verlängern')}
+          </Button>
+          <Button
+            type='button'
+            variant='primary'
+            onClick={onLogout}
+          >
+            {t('session.logout', 'Abmelden')}
+          </Button>
+        </div>
+      </div>
+    </section>
+  ) : null
+
   return (
     <UiThemeProvider value={{
       // panelBg: 'bg-background',
@@ -1213,6 +1473,7 @@ function DashboardApp ({ onLogout }) {
       navFooter={navFooter}
       showScrollTop
     >
+      {sessionBanner}
       {content}
       <ConfirmDialog
         open={confirmDialog.open}
@@ -1233,7 +1494,7 @@ function DashboardApp ({ onLogout }) {
 }
 
 function App () {
-  const { session, loading, error, refresh } = useSession()
+  const { session, loading, error, refresh, renew } = useSession()
 
   const handleLogout = useCallback(async () => {
     try {
@@ -1262,7 +1523,12 @@ function App () {
   }
 
   return (
-    <DashboardApp onLogout={handleLogout} />
+    <DashboardApp
+      onLogout={handleLogout}
+      session={session}
+      onRenew={renew}
+      onRefreshSession={refresh}
+    />
   )
 }
 

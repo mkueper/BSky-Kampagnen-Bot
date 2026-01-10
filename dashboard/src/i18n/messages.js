@@ -158,6 +158,14 @@ const messages = {
       footerHint:
         'Tipp: Mehrere Admins sind möglich, wenn die Cookies geteilt oder der Login via Proxy abgesichert wird.'
     },
+    session: {
+      warningTitle: 'Session läuft in {minutes} Minuten ab.',
+      renew: 'Verlängern',
+      renewing: 'Verlängern…',
+      logout: 'Abmelden',
+      tooSoon: 'Zu häufig, bitte kurz warten.',
+      expired: 'Session ist abgelaufen.'
+    },
     posts: {
       form: {
         headingEdit: 'Post bearbeiten',
@@ -725,6 +733,11 @@ const messages = {
           preview: 'Vorschau',
           sessionDuration: 'Session-Dauer'
         },
+        session: {
+          autoExtendLabel: 'Session automatisch verlängern',
+          autoExtendHint:
+            'Verlängert die Session nur bei Aktivität in den letzten 30 Minuten.'
+        },
         previewOptions: {
           heading: 'Vorschau max. Zeilen',
           maxLinesLabel: 'Vorschau max. Zeilen',
@@ -1187,6 +1200,14 @@ const messages = {
       'unconfigured.step2.afterEnv': 'store it.',
       footerHint:
         'Tip: Multiple admins are possible if cookies are shared or login is protected via a proxy.'
+    },
+    session: {
+      warningTitle: 'Session expires in {minutes} minutes.',
+      renew: 'Extend',
+      renewing: 'Extending…',
+      logout: 'Sign out',
+      tooSoon: 'Too frequent, please wait a moment.',
+      expired: 'Session has expired.'
     },
     posts: {
       form: {
@@ -1717,6 +1738,11 @@ const messages = {
           languageTimeZone: 'Language & time zone',
           preview: 'Preview',
           sessionDuration: 'Session duration'
+        },
+        session: {
+          autoExtendLabel: 'Automatically extend session',
+          autoExtendHint:
+            'Extends the session only if there was activity within the last 30 minutes.'
         },
         previewOptions: {
           heading: 'Preview max lines',

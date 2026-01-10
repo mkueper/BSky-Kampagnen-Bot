@@ -249,6 +249,176 @@ describe('authController.login', () => {
   })
 })
 
+describe('authController.renew', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('gibt 503 zurück, wenn Auth nicht konfiguriert ist', () => {
+    const authController = loadController({
+      getStatus: () => ({
+        configured: false,
+        cookieName: 'sess',
+        csrfCookieName: 'csrf',
+        ttlSeconds: 3600
+      })
+    })
+
+    const req = { headers: { 'x-csrf-token': 'token' } }
+    let statusCode = 200
+    let payload = null
+    const res = {
+      status: (code) => {
+        statusCode = code
+        return {
+          json: (obj) => { payload = obj }
+        }
+      },
+      json: (obj) => { payload = obj }
+    }
+
+    authController.renew(req, res)
+
+    expect(statusCode).toBe(503)
+    expect(payload?.error).toBe('AUTH_NOT_CONFIGURED')
+  })
+
+  it('gibt 403 zurück, wenn CSRF-Token fehlt', () => {
+    const authController = loadController({
+      getStatus: () => ({
+        configured: true,
+        cookieName: 'sess',
+        csrfCookieName: 'csrf',
+        ttlSeconds: 3600
+      }),
+      readCsrfTokenFromRequest: () => ''
+    })
+
+    const req = { headers: { 'x-csrf-token': 'token' } }
+    let statusCode = 200
+    let payload = null
+    const res = {
+      status: (code) => {
+        statusCode = code
+        return {
+          json: (obj) => { payload = obj }
+        }
+      },
+      json: (obj) => { payload = obj }
+    }
+
+    authController.renew(req, res)
+
+    expect(statusCode).toBe(403)
+    expect(payload?.error).toBe('AUTH_CSRF_FAILED')
+  })
+
+  it('gibt 401 zurück, wenn Session ungültig ist', () => {
+    const authController = loadController({
+      getStatus: () => ({
+        configured: true,
+        cookieName: 'sess',
+        csrfCookieName: 'csrf',
+        ttlSeconds: 3600
+      }),
+      readCsrfTokenFromRequest: () => 'token',
+      resolveRequestSession: () => null
+    })
+
+    const req = { headers: { 'x-csrf-token': 'token' } }
+    let statusCode = 200
+    let payload = null
+    const res = {
+      status: (code) => {
+        statusCode = code
+        return {
+          json: (obj) => { payload = obj }
+        }
+      },
+      json: (obj) => { payload = obj }
+    }
+
+    authController.renew(req, res)
+
+    expect(statusCode).toBe(401)
+    expect(payload?.error).toBe('AUTH_SESSION_INVALID')
+  })
+
+  it('gibt 429 zurück, wenn Renew zu früh erfolgt', () => {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const authController = loadController({
+      getStatus: () => ({
+        configured: true,
+        cookieName: 'sess',
+        csrfCookieName: 'csrf',
+        ttlSeconds: 3600
+      }),
+      readCsrfTokenFromRequest: () => 'token',
+      resolveRequestSession: () => ({
+        username: 'admin',
+        iat: nowSeconds - 30,
+        exp: nowSeconds + 3600
+      })
+    })
+
+    const req = { headers: { 'x-csrf-token': 'token' } }
+    let statusCode = 200
+    let payload = null
+    const res = {
+      status: (code) => {
+        statusCode = code
+        return {
+          json: (obj) => { payload = obj }
+        }
+      },
+      json: (obj) => { payload = obj }
+    }
+
+    authController.renew(req, res)
+
+    expect(statusCode).toBe(429)
+    expect(payload?.error).toBe('AUTH_RENEW_TOO_SOON')
+  })
+
+  it('verlängert eine gültige Session und gibt expiresAt zurück', () => {
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const issueSpy = vi.fn().mockReturnValue('token123')
+    const persistSpy = vi.fn()
+    const csrfSpy = vi.fn()
+    const authController = loadController({
+      getStatus: () => ({
+        configured: true,
+        cookieName: 'sess',
+        csrfCookieName: 'csrf',
+        ttlSeconds: 3600
+      }),
+      readCsrfTokenFromRequest: () => 'token',
+      resolveRequestSession: () => ({
+        username: 'admin',
+        iat: nowSeconds - 500,
+        exp: nowSeconds + 3600
+      }),
+      issueSession: issueSpy,
+      persistSession: persistSpy,
+      issueCsrfToken: () => 'csrf',
+      persistCsrfToken: csrfSpy
+    })
+
+    const req = { headers: { 'x-csrf-token': 'token' } }
+    let payload = null
+    const res = {
+      json: (obj) => { payload = obj }
+    }
+
+    authController.renew(req, res)
+
+    expect(issueSpy).toHaveBeenCalled()
+    expect(persistSpy).toHaveBeenCalled()
+    expect(csrfSpy).toHaveBeenCalled()
+    expect(payload?.expiresAt).toBeTypeOf('number')
+  })
+})
+
 describe('authController.logout', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
